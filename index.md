@@ -1,13 +1,14 @@
-# waiind — Swiss Weekly Activity Index
+# mfbdfm — Mixed-Frequency Bayesian Dynamic Factor Model
 
-`waiind` estimates a **weekly activity index (WAI) for Switzerland** and
-produces weekly GDP nowcasts and backcasts. The core is a Bayesian
-**mixed-frequency dynamic factor model** estimated by Markov chain Monte
-Carlo (Gibbs) sampling, which combines weekly, monthly and quarterly
-indicator series into a single weekly activity factor that is coherent
-with quarterly real GDP.
+`mfbdfm` estimates a Bayesian **mixed-frequency dynamic factor model**
+by Markov chain Monte Carlo (Gibbs) sampling, combining weekly, monthly
+and quarterly indicator series into a single dynamic factor that can be
+anchored to a chosen target series.
 
-The package also provides:
+The package ships a flagship application: the **weekly activity index
+(WAI) for Switzerland**, which produces weekly GDP nowcasts and
+backcasts by anchoring the factor to quarterly real GDP. Around it, the
+package also provides:
 
 - **real-time GDP vintage handling** — the Swiss real-time GDP vintage
   database ships with the package,
@@ -15,15 +16,12 @@ The package also provides:
   AR(1) benchmark, modified Diebold–Mariano tests),
 - the **table and plot generators** used in the accompanying analysis.
 
-> **Note:** the package is named `waiind` rather than `wai_ind_package`
-> because R package names may only contain letters, numbers and dots.
-
 ## Installation
 
 ``` r
 
 # install.packages("remotes")
-remotes::install_github("PhilippKronenberg/wai_ind_package")
+remotes::install_github("PhilippKronenberg/mfbdfm")
 ```
 
 The package requires R \>= 4.1.
@@ -31,18 +29,17 @@ The package requires R \>= 4.1.
 ## Getting started
 
 For a fuller walkthrough of the model (data augmentation, stochastic
-volatility, the GDP-identification restriction) with a runnable example,
-see
-[`vignette("waiind")`](https://philippkronenberg.github.io/wai_ind_package/articles/waiind.md)
+volatility, the identification restriction) with a runnable example, see
+[`vignette("mfbdfm")`](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.md)
 — also browsable on the [package
-website](https://philippkronenberg.github.io/wai_ind_package/articles/waiind.html).
+website](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.html).
 
 The curated indicator datasets ship with the package. A small (fast,
 demonstration-sized) nowcast:
 
 ``` r
 
-library(waiind)
+library(mfbdfm)
 
 data(data_ch_dataset_test)
 target <- "ch.seco.gdp.real.gdp.ssa"   # quarterly real Swiss GDP
@@ -83,15 +80,15 @@ the pipeline starts from there:
 1.  **`analysis/2_backcast.R`**, **`analysis/real_time_backcast.R`** —
     estimate the model across evaluation dates (pseudo and true
     real-time) via
-    [`run_wai_adj()`](https://philippkronenberg.github.io/wai_ind_package/reference/run_wai_adj.md)
+    [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
     /
-    [`run_ar()`](https://philippkronenberg.github.io/wai_ind_package/reference/run_ar.md).
+    [`run_ar()`](https://philippkronenberg.github.io/mfbdfm/reference/run_ar.md).
 2.  **`analysis/4_tables.R`** — parameter and metadata tables.
 3.  **`analysis/5_plots/`** — in-sample and out-of-sample evaluation:
     `plots_analytics.R` orchestrates `analytics_data.R`,
     `analytics_in_sample.R` and `analytics_out-of-sample.R`; the sample
     is configured via
-    [`wai_sample_config()`](https://philippkronenberg.github.io/wai_ind_package/reference/wai_sample_config.md)
+    [`wai_sample_config()`](https://philippkronenberg.github.io/mfbdfm/reference/wai_sample_config.md)
     (see `_setup.R`).
 
 ## Data
@@ -100,7 +97,7 @@ the pipeline starts from there:
 |----|----|
 | `data_ch_dataset` | Harmonized Swiss indicator dataset (flows/stocks lists of `ts`) |
 | `data_ch_dataset_test` | Test variant, includes the GDP target series |
-| `inst/extdata/realtime_gdp.csv`, `realtime_gdp_cssa.csv` | Real-time GDP vintage database (read by [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/wai_ind_package/reference/get_real_time_gdp_vintages.md)) |
+| `inst/extdata/realtime_gdp.csv`, `realtime_gdp_cssa.csv` | Real-time GDP vintage database (read by [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md)) |
 
 The full `data_ch_dataset` deliberately ships *without* the GDP target
 series — the workflow injects it at runtime from the real-time vintages.
@@ -163,7 +160,7 @@ name, provider, category, unit, frequency, flow/stock role):
 ## Documentation
 
 Full function reference, the vignette, and the change log are published
-at **<https://philippkronenberg.github.io/wai_ind_package/>**.
+at **<https://philippkronenberg.github.io/mfbdfm/>**.
 
 ## Development
 
@@ -192,7 +189,7 @@ which extends the mixed-frequency dynamic factor model of:
 
 A reference list of the related business-cycle-indicator literature is
 in the “References” section of
-[`vignette("waiind")`](https://philippkronenberg.github.io/wai_ind_package/articles/waiind.md).
+[`vignette("mfbdfm")`](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.md).
 
 ## License
 

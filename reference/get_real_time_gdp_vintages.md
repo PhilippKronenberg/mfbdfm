@@ -11,9 +11,9 @@ from `gdp_cssa_file_path`.
 ``` r
 get_real_time_gdp_vintages(
   output_type,
-  gdp_file_path = system.file("extdata", "realtime_gdp.csv", package = "waiind"),
+  gdp_file_path = system.file("extdata", "realtime_gdp.csv", package = "mfbdfm"),
   gdp_cssa_file_path = system.file("extdata", "realtime_gdp_cssa.csv", package =
-    "waiind")
+    "mfbdfm")
 )
 ```
 

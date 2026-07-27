@@ -127,7 +127,7 @@ An object of class `"hfdfm"`: a list with components
 - inventory:
 
   Data frame describing the series (see
-  [`create_inventory()`](https://philippkronenberg.github.io/wai_ind_package/reference/create_inventory.md)).
+  [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md)).
 
 ## Details
 

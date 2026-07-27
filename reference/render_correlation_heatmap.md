@@ -13,7 +13,7 @@ render_correlation_heatmap(cor_tables, series_order, output_file, figures_dir)
 - cor_tables:
 
   Named list of correlation tables from
-  [`get_combined_cor_table()`](https://philippkronenberg.github.io/wai_ind_package/reference/get_combined_cor_table.md),
+  [`get_combined_cor_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.md),
   one per aggregation method.
 
 - series_order:

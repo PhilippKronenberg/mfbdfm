@@ -2,5 +2,5 @@
 
 ### All vignettes
 
-- [waiind: A High-Frequency GDP Indicator for
-  Switzerland](https://philippkronenberg.github.io/wai_ind_package/articles/waiind.md):
+- [mfbdfm: A Mixed-Frequency Bayesian Dynamic Factor
+  Model](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.md):

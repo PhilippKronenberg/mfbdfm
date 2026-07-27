@@ -27,7 +27,7 @@ run_ar(
 - stocks:
 
   Named list of `ts` objects (unused, kept for a uniform interface with
-  [`run_wai_adj()`](https://philippkronenberg.github.io/wai_ind_package/reference/run_wai_adj.md)).
+  [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)).
 
 - target:
 
@@ -45,7 +45,7 @@ run_ar(
 - stochastic_volatility:
 
   Logical, unused; kept for a uniform interface with
-  [`run_wai_adj()`](https://philippkronenberg.github.io/wai_ind_package/reference/run_wai_adj.md).
+  [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md).
 
 - output_dir:
 

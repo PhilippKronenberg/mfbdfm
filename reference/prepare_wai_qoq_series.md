@@ -13,7 +13,7 @@ prepare_wai_qoq_series(wai_result, method)
 - wai_result:
 
   List with elements `tab_gr_qoq` and `tab_gr_lv` (as produced by
-  [`extract_wai_data()`](https://philippkronenberg.github.io/wai_ind_package/reference/extract_wai_data.md)).
+  [`extract_wai_data()`](https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.md)).
 
 - method:
 

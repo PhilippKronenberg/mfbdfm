@@ -1,10 +1,10 @@
 # Per-observation in-sample errors of each series against GDP
 
 Runs the lag regressions of
-[`get_insample_fit_table()`](https://philippkronenberg.github.io/wai_ind_package/reference/get_insample_fit_table.md)
+[`get_insample_fit_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_fit_table.md)
 but returns the full error series per observation date, model, method,
 lag and frequency, for use in
-[`create_error_summary_tables()`](https://philippkronenberg.github.io/wai_ind_package/reference/create_error_summary_tables.md).
+[`create_error_summary_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_error_summary_tables.md).
 
 ## Usage
 

@@ -14,7 +14,7 @@ get_latest_numeric_vintage(df, lower_bound = -Inf, upper_bound)
 
   Vintage table whose column names (except the first) are decimal
   vintage dates, e.g. from
-  [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/wai_ind_package/reference/get_real_time_gdp_vintages.md).
+  [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md).
 
 - lower_bound:
 

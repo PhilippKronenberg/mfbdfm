@@ -3,7 +3,7 @@
 Combines the flow and stock series lists into a data frame describing
 each series: its name, type, frequency, and the mean and standard
 deviation used for standardization in
-[`prepare_data()`](https://philippkronenberg.github.io/wai_ind_package/reference/prepare_data.md).
+[`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md).
 
 ## Usage
 

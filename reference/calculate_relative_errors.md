@@ -13,7 +13,7 @@ calculate_relative_errors(fit_tables)
 - fit_tables:
 
   Output of
-  [`get_insample_fit_table()`](https://philippkronenberg.github.io/wai_ind_package/reference/get_insample_fit_table.md).
+  [`get_insample_fit_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_fit_table.md).
 
 ## Value
 

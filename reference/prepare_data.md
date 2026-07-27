@@ -4,7 +4,7 @@ Standardizes each series using the moments from the inventory, aligns
 all series on the highest-frequency time grid, and returns a single
 multivariate `ts` matrix in which missing observations are encoded as
 zero (as expected by the
-[`hfdfm()`](https://philippkronenberg.github.io/wai_ind_package/reference/hfdfm.md)
+[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
 sampler).
 
 ## Usage
@@ -26,7 +26,7 @@ prepare_data(flows, stocks, inventory, target)
 - inventory:
 
   Data frame from
-  [`create_inventory()`](https://philippkronenberg.github.io/wai_ind_package/reference/create_inventory.md).
+  [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md).
 
 - target:
 

@@ -19,7 +19,7 @@ cut_data(dat, current_date)
 
   A list with components `flows` and `stocks` (named lists of `ts`
   objects), e.g.
-  [data_ch_dataset_test](https://philippkronenberg.github.io/wai_ind_package/reference/data_ch_dataset_test.md).
+  [data_ch_dataset_test](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset_test.md).
 
 - current_date:
 

@@ -13,12 +13,12 @@ annotate_relative_errors(rel_table, pval_table, metric_prefix)
 - rel_table:
 
   Relative error table from
-  [`calculate_relative_errors()`](https://philippkronenberg.github.io/wai_ind_package/reference/calculate_relative_errors.md).
+  [`calculate_relative_errors()`](https://philippkronenberg.github.io/mfbdfm/reference/calculate_relative_errors.md).
 
 - pval_table:
 
   Matching p-value table from
-  [`get_insample_fit_table()`](https://philippkronenberg.github.io/wai_ind_package/reference/get_insample_fit_table.md).
+  [`get_insample_fit_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_fit_table.md).
 
 - metric_prefix:
 

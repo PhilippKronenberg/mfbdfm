@@ -17,7 +17,7 @@ select_most_recent_GDP_vintage(current_date, GDP_gr_vintages)
 - GDP_gr_vintages:
 
   Vintage table from
-  [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/wai_ind_package/reference/get_real_time_gdp_vintages.md).
+  [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md).
 
 ## Value
 

@@ -1,7 +1,7 @@
 # Cut a dataset in real time, using GDP vintages for the target
 
 Like
-[`cut_data()`](https://philippkronenberg.github.io/wai_ind_package/reference/cut_data.md),
+[`cut_data()`](https://philippkronenberg.github.io/mfbdfm/reference/cut_data.md),
 but instead of truncating the quarterly target series, replaces it with
 the newest GDP vintage that was available at `current_date`.
 
@@ -17,7 +17,7 @@ cut_data_real_time(dat, current_date, GDP_gr_vintages)
 
   A list with components `flows` and `stocks` (named lists of `ts`
   objects), e.g.
-  [data_ch_dataset_test](https://philippkronenberg.github.io/wai_ind_package/reference/data_ch_dataset_test.md).
+  [data_ch_dataset_test](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset_test.md).
 
 - current_date:
 
@@ -26,7 +26,7 @@ cut_data_real_time(dat, current_date, GDP_gr_vintages)
 - GDP_gr_vintages:
 
   Vintage table from
-  [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/wai_ind_package/reference/get_real_time_gdp_vintages.md).
+  [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md).
 
 ## Value
 

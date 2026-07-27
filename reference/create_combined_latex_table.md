@@ -18,7 +18,7 @@ create_combined_latex_table(
 - combined_tables_list:
 
   Named list of lag tables (one per aggregation method), e.g. from
-  [`get_combined_cor_table()`](https://philippkronenberg.github.io/wai_ind_package/reference/get_combined_cor_table.md).
+  [`get_combined_cor_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.md).
 
 - caption:
 

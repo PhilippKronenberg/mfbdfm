@@ -16,7 +16,7 @@ data_ch_dataset
 ## Format
 
 A list with two components, as expected by
-[`hfdfm()`](https://philippkronenberg.github.io/wai_ind_package/reference/hfdfm.md):
+[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md):
 
 - flows:
 
@@ -24,8 +24,8 @@ A list with two components, as expected by
   GDP target series is *not* included; the analysis scripts add it at
   runtime from the real-time GDP vintage database that ships with the
   package at
-  `system.file("extdata", "realtime_gdp.csv", package = "waiind")` (see
-  [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/wai_ind_package/reference/get_real_time_gdp_vintages.md)).
+  `system.file("extdata", "realtime_gdp.csv", package = "mfbdfm")` (see
+  [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md)).
 
 - stocks:
 

@@ -13,9 +13,9 @@ retrieve_nowcast(fit, model)
 - fit:
 
   A fit object from
-  [`run_ar()`](https://philippkronenberg.github.io/wai_ind_package/reference/run_ar.md)
+  [`run_ar()`](https://philippkronenberg.github.io/mfbdfm/reference/run_ar.md)
   or
-  [`run_wai_adj()`](https://philippkronenberg.github.io/wai_ind_package/reference/run_wai_adj.md).
+  [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md).
 
 - model:
 

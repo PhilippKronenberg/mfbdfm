@@ -21,7 +21,7 @@ create_error_summary_tables(
 - error_data:
 
   Long error table from
-  [`get_insample_error_details()`](https://philippkronenberg.github.io/wai_ind_package/reference/get_insample_error_details.md).
+  [`get_insample_error_details()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_error_details.md).
 
 - model_order:
 

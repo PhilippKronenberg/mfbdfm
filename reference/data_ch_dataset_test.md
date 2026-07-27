@@ -1,7 +1,7 @@
 # Harmonized Swiss indicator dataset (test variant)
 
 A variant of
-[data_ch_dataset](https://philippkronenberg.github.io/wai_ind_package/reference/data_ch_dataset.md)
+[data_ch_dataset](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md)
 built from the test metadata (`data_meta_test.xlsx`) with a different
 flow/stock split, used for model development and evaluation runs.
 
@@ -14,7 +14,7 @@ data_ch_dataset_test
 ## Format
 
 A list with two components, as expected by
-[`hfdfm()`](https://philippkronenberg.github.io/wai_ind_package/reference/hfdfm.md):
+[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md):
 
 - flows:
 
@@ -28,4 +28,4 @@ A list with two components, as expected by
 ## Source
 
 See
-[data_ch_dataset](https://philippkronenberg.github.io/wai_ind_package/reference/data_ch_dataset.md).
+[data_ch_dataset](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md).
