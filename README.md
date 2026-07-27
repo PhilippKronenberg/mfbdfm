@@ -1,19 +1,20 @@
-# waiind — Swiss Weekly Activity Index
+# mfbdfm — Mixed-Frequency Bayesian Dynamic Factor Model
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/PhilippKronenberg/wai_ind_package/actions/workflows/r.yml/badge.svg)](https://github.com/PhilippKronenberg/wai_ind_package/actions/workflows/r.yml)
-[![test-coverage](https://github.com/PhilippKronenberg/wai_ind_package/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/PhilippKronenberg/wai_ind_package/actions/workflows/test-coverage.yaml)
-[![Codecov test coverage](https://codecov.io/gh/PhilippKronenberg/wai_ind_package/branch/main/graph/badge.svg)](https://app.codecov.io/gh/PhilippKronenberg/wai_ind_package)
+[![R-CMD-check](https://github.com/PhilippKronenberg/mfbdfm/actions/workflows/r.yml/badge.svg)](https://github.com/PhilippKronenberg/mfbdfm/actions/workflows/r.yml)
+[![test-coverage](https://github.com/PhilippKronenberg/mfbdfm/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/PhilippKronenberg/mfbdfm/actions/workflows/test-coverage.yaml)
+[![Codecov test coverage](https://codecov.io/gh/PhilippKronenberg/mfbdfm/branch/main/graph/badge.svg)](https://app.codecov.io/gh/PhilippKronenberg/mfbdfm)
 <!-- badges: end -->
 
-`waiind` estimates a **weekly activity index (WAI) for Switzerland** and
-produces weekly GDP nowcasts and backcasts. The core is a Bayesian
-**mixed-frequency dynamic factor model** estimated by Markov chain Monte
-Carlo (Gibbs) sampling, which combines weekly, monthly and quarterly
-indicator series into a single weekly activity factor that is coherent
-with quarterly real GDP.
+`mfbdfm` estimates a Bayesian **mixed-frequency dynamic factor model**
+by Markov chain Monte Carlo (Gibbs) sampling, combining weekly, monthly
+and quarterly indicator series into a single dynamic factor that can be
+anchored to a chosen target series.
 
-The package also provides:
+The package ships a flagship application: the **weekly activity index
+(WAI) for Switzerland**, which produces weekly GDP nowcasts and
+backcasts by anchoring the factor to quarterly real GDP. Around it, the
+package also provides:
 
 - **real-time GDP vintage handling** — the Swiss real-time GDP vintage
   database ships with the package,
@@ -21,14 +22,11 @@ The package also provides:
   AR(1) benchmark, modified Diebold–Mariano tests),
 - the **table and plot generators** used in the accompanying analysis.
 
-> **Note:** the package is named `waiind` rather than `wai_ind_package`
-> because R package names may only contain letters, numbers and dots.
-
 ## Installation
 
 ``` r
 # install.packages("remotes")
-remotes::install_github("PhilippKronenberg/wai_ind_package")
+remotes::install_github("PhilippKronenberg/mfbdfm")
 ```
 
 The package requires R >= 4.1.
@@ -36,15 +34,15 @@ The package requires R >= 4.1.
 ## Getting started
 
 For a fuller walkthrough of the model (data augmentation, stochastic
-volatility, the GDP-identification restriction) with a runnable example,
-see `vignette("waiind")` — also browsable on the
-[package website](https://philippkronenberg.github.io/wai_ind_package/articles/waiind.html).
+volatility, the identification restriction) with a runnable example,
+see `vignette("mfbdfm")` — also browsable on the
+[package website](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.html).
 
 The curated indicator datasets ship with the package. A small (fast,
 demonstration-sized) nowcast:
 
 ``` r
-library(waiind)
+library(mfbdfm)
 
 data(data_ch_dataset_test)
 target <- "ch.seco.gdp.real.gdp.ssa"   # quarterly real Swiss GDP
@@ -159,7 +157,7 @@ provider, category, unit, frequency, flow/stock role):
 ## Documentation
 
 Full function reference, the vignette, and the change log are published
-at **<https://philippkronenberg.github.io/wai_ind_package/>**.
+at **<https://philippkronenberg.github.io/mfbdfm/>**.
 
 ## Development
 
@@ -186,7 +184,7 @@ which extends the mixed-frequency dynamic factor model of:
 > *Journal of Applied Econometrics*, 40(3), 270-290.
 
 A reference list of the related business-cycle-indicator literature is
-in the "References" section of `vignette("waiind")`.
+in the "References" section of `vignette("mfbdfm")`.
 
 ## License
 

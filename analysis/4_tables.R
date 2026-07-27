@@ -21,7 +21,7 @@ library(zoo)      # for as.yearmon, as.yearqtr
 
 # IMPORT DATA -------------------------------------------------------------
 
-library(waiind)
+library(mfbdfm)
 source("analysis/5_plots/_setup.R")  # figures_dir / tables_dir / results_dir
 
 fit_root <- "fits"  # root of the model fits (git-ignored)

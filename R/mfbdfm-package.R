@@ -1,11 +1,12 @@
-#' waiind: A High-Frequency GDP Indicator for Switzerland
+#' mfbdfm: A Mixed-Frequency Bayesian Dynamic Factor Model
 #'
-#' Estimates the Weekly Activity Index (WAI): a weekly GDP indicator for
-#' Switzerland derived from a Bayesian mixed-frequency dynamic factor
-#' model ([hfdfm()]) that combines conventional macroeconomic indicators
-#' with alternative high-frequency data (mobility, transactions, search
-#' trends, and similar series) at weekly, monthly and quarterly
-#' frequencies.
+#' Estimates a Bayesian mixed-frequency dynamic factor model ([hfdfm()])
+#' that combines indicators observed at weekly, monthly and quarterly
+#' frequencies into a single dynamic factor. The package ships a
+#' flagship application, the Weekly Activity Index (WAI): a weekly GDP
+#' indicator for Switzerland derived from conventional macroeconomic
+#' indicators combined with alternative high-frequency data (mobility,
+#' transactions, search trends, and similar series).
 #'
 #' @section Model in brief:
 #' The model extracts a single dynamic factor, constrained by an
@@ -37,7 +38,7 @@
 #' The package ships the curated indicator datasets [data_ch_dataset]
 #' and [data_ch_dataset_test], plus the real-time GDP vintage database
 #' (in `inst/extdata/`), so a small nowcast can be estimated out of the
-#' box - see `vignette("waiind")` for a worked walkthrough, or the
+#' box - see `vignette("mfbdfm")` for a worked walkthrough, or the
 #' example in [hfdfm()] for the minimal version.
 #'
 #' @references
@@ -48,11 +49,11 @@
 #' Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
 #' Tracking economic activity with alternative high-frequency data.
 #' *Journal of Applied Econometrics*, 40(3), 270-290. (The mixed-frequency
-#' dynamic factor model underlying `waiind`; this package estimates the
+#' dynamic factor model underlying `mfbdfm`; this package estimates the
 #' single-factor, GDP-identified special case used in the WAI.)
 #'
 #' A reference list of the related business-cycle-indicator literature
-#' is in the "References" section of `vignette("waiind")`.
+#' is in the "References" section of `vignette("mfbdfm")`.
 #'
 #' @keywords internal
 "_PACKAGE"

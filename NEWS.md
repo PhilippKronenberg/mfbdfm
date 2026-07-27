@@ -1,7 +1,10 @@
-# waiind 0.0.0.9000
+# mfbdfm 0.0.0.9000
 
 First functional version of the package, converting the WAI research code
-into a proper R package (#9-#19):
+into a proper R package (#9-#19). The package (and repo) were renamed from
+`waiind` to `mfbdfm` before release, since the underlying model is a
+general mixed-frequency Bayesian dynamic factor model and WAI is one
+application of it (#37).
 
 ## New features
 

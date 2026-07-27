@@ -39,7 +39,7 @@ test_that("distributed lag and system matrices have the right dimensions", {
 
   k <- max(inv$freq) / min(inv$freq) # 12
   s <- 2 * (k - 1)                   # 22
-  Llist <- waiind:::get_distributed_lags(inv)
+  Llist <- mfbdfm:::get_distributed_lags(inv)
 
   expect_length(Llist, s + 1)
   expect_named(Llist, as.character(0:s))
@@ -52,6 +52,6 @@ test_that("distributed lag and system matrices have the right dimensions", {
 
   n <- nrow(inv); t <- 100; f <- matrix(rnorm(t + s), t + s, 1)
   rho <- Matrix::Diagonal(x = runif(n)); lambda <- Matrix::Matrix(1, n, 1)
-  Zmat <- waiind:::get_zmat(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
+  Zmat <- mfbdfm:::get_zmat(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
   expect_equal(dim(Zmat), c(n * (t - 1), n))
 })

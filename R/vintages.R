@@ -26,10 +26,10 @@
 get_real_time_gdp_vintages <- function(output_type,
                                        gdp_file_path = system.file("extdata",
                                                                    "realtime_gdp.csv",
-                                                                   package = "waiind"),
+                                                                   package = "mfbdfm"),
                                        gdp_cssa_file_path = system.file("extdata",
                                                                         "realtime_gdp_cssa.csv",
-                                                                        package = "waiind")){
+                                                                        package = "mfbdfm")){
 
   # Usage
   gdp_cssa_info <- read_sheet_info(gdp_cssa_file_path, has_dates = FALSE)

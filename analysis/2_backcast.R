@@ -40,7 +40,7 @@ library(foreach)
 library(doParallel)
 library(readxl)
 
-library(waiind)
+library(mfbdfm)
 
 fit_root <- "fits/updated"  # where model fits are written (git-ignored)
 
@@ -135,7 +135,7 @@ date_vec <- seq(start_date, end_date, 1/48)
 # foreach(ix = date_vec,
 #                    xdat = datasets,
 foreach(ix = date_vec,
-        .packages = c("waiind", "Matrix", "zoo","dplyr",
+        .packages = c("mfbdfm", "Matrix", "zoo","dplyr",
                       "tidyr", "forecast")) %do% { # %dopar% {
 
           for(dataset_name in names(datasets)){

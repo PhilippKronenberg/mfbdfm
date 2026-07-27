@@ -19,7 +19,7 @@ source("analysis/5_plots/_setup.R")
 # -----------------------------------------------------------------------------
 # Shared Dependencies
 # -----------------------------------------------------------------------------
-# Backcasting and time-conversion helpers come from the waiind package.
+# Backcasting and time-conversion helpers come from the mfbdfm package.
 
 
 # -----------------------------------------------------------------------------

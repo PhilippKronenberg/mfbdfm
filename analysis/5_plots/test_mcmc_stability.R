@@ -11,7 +11,7 @@ library(ggplot2)
 library(zoo)
 library(readxl)
 
-library(waiind)
+library(mfbdfm)
 
 sample_config <- wai_sample_config(sample_id = "mcmc_stability",
                                     output_root = file.path("analysis", "outputs", "mcmc_stability"))

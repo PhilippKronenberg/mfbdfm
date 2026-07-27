@@ -1,8 +1,8 @@
 ---
-title: "waiind: A High-Frequency GDP Indicator for Switzerland"
+title: "mfbdfm: A Mixed-Frequency Bayesian Dynamic Factor Model"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{waiind: A High-Frequency GDP Indicator for Switzerland}
+  %\VignetteIndexEntry{mfbdfm: A Mixed-Frequency Bayesian Dynamic Factor Model}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -12,16 +12,19 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 ```{r setup}
-library(waiind)
+library(mfbdfm)
 ```
 
-## What is the WAI?
+## What is mfbdfm?
 
-The Weekly Activity Index (WAI) is a high-frequency GDP indicator for
-Switzerland: a single dynamic factor, extracted from a Bayesian
-mixed-frequency dynamic factor model, that is directly interpretable as
-the week-on-week growth rate of Swiss real GDP. It is built to combine
-two kinds of data:
+`mfbdfm` estimates a Bayesian mixed-frequency dynamic factor model: a
+single dynamic factor extracted from indicators observed at different
+frequencies, optionally anchored to a target series so the factor is
+directly interpretable as that series' growth rate rather than a
+generic activity index. The package ships a flagship application, the
+**Weekly Activity Index (WAI)**, a high-frequency GDP indicator for
+Switzerland anchored to GDP growth, which this vignette uses as the
+worked example throughout. WAI is built to combine two kinds of data:
 
 - **Conventional macroeconomic indicators** — surveys, prices, trade,
   purchasing manager indices — published monthly or quarterly, and
@@ -37,7 +40,7 @@ it is a direct high-frequency proxy for GDP rather than a generic
 activity index that merely correlates with it.
 
 The methodology, full empirical results, and a real-time forecast
-evaluation are described in Kronenberg (2026); see `?waiind` for the
+evaluation are described in Kronenberg (2026); see `?mfbdfm` for the
 full citation and the underlying multi-factor framework of Eckert,
 Kronenberg, Mikosch & Neuwirth (2025). This vignette covers the
 package's user-facing workflow only.
@@ -66,7 +69,7 @@ work with real-world mixed-frequency data:
 Identification fixes the factor's loading on the target series (GDP) to
 one and shrinks its measurement error toward zero, so the factor tracks
 GDP growth closely by construction — see `?hfdfm` for the details and
-references, and `vignette("waiind")`'s "Real-time GDP vintages" section
+references, and `vignette("mfbdfm")`'s "Real-time GDP vintages" section
 below for how the target series itself is constructed for live use.
 
 ## A minimal worked example
