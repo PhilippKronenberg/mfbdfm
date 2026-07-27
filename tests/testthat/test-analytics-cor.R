@@ -70,9 +70,8 @@ test_that("render_correlation_heatmap writes a figure file", {
   cor_tab <- suppressMessages(get_combined_cor_table("mean", "indicators", inputs = inputs))
   dir <- tempfile(); dir.create(dir); on.exit(unlink(dir, recursive = TRUE))
 
-  # render_correlation_heatmap() prints the assembled plot, which needs an
-  # active graphics device; use a null one so no stray Rplots.pdf is left
-  # behind and nothing pops up under CI.
+  # ggarrange()/ggsave() can still touch the active graphics device; use a
+  # null one so nothing pops up under CI.
   grDevices::pdf(NULL)
   on.exit(grDevices::dev.off(), add = TRUE)
 

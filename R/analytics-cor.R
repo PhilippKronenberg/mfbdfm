@@ -535,7 +535,7 @@ render_correlation_heatmap <- function(cor_tables, series_order, output_file, fi
     }
   }
 
-  # Arrange and display all 6 plots in a 2x3 grid
+  # Arrange all 6 plots in a 2x3 grid
   heatmap_plot <- ggarrange(
     plotlist = all_plots,
     ncol = 2,
@@ -544,7 +544,6 @@ render_correlation_heatmap <- function(cor_tables, series_order, output_file, fi
     legend = "right"
   )
 
-  print(heatmap_plot)
   ggsave(output_figure_path(output_file, figures_dir), heatmap_plot, width = 33, height = 44, units = "cm")
 
   invisible(heatmap_plot)
