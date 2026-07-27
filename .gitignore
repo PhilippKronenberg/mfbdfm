@@ -58,5 +58,5 @@ analysis/Rda/insample*
 fits/
 outputs/
 
-# Benchmark literature PDFs (see the References section of vignette("waiind"))
+# Benchmark literature PDFs (see the References section of vignette("mfbdfm"))
 analysis/benchmarks/*.pdf

@@ -1,4 +1,4 @@
 library(testthat)
-library(waiind)
+library(mfbdfm)
 
-test_check("waiind")
+test_check("mfbdfm")

@@ -8,8 +8,8 @@ test_that("shipped datasets have the structure hfdfm() expects", {
 })
 
 test_that("real-time GDP vintage database ships with the package", {
-  gdp_path <- system.file("extdata", "realtime_gdp.csv", package = "waiind")
-  gdp_cssa_path <- system.file("extdata", "realtime_gdp_cssa.csv", package = "waiind")
+  gdp_path <- system.file("extdata", "realtime_gdp.csv", package = "mfbdfm")
+  gdp_cssa_path <- system.file("extdata", "realtime_gdp_cssa.csv", package = "mfbdfm")
   expect_true(nzchar(gdp_path))
   expect_true(file.exists(gdp_path))
   expect_true(nzchar(gdp_cssa_path))

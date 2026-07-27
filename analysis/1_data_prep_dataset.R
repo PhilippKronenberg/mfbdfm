@@ -93,7 +93,7 @@ library(forecast)
 library(dplyr)
 library(tsbox)
 library(tseries)
-library(waiind)
+library(mfbdfm)
 
 # Load variable metadata that controls source ordering, frequency, and transformation.
 metadata <- utils::read.csv(metadata_path) |>

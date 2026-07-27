@@ -13,7 +13,7 @@ library(pammtools)
 library(ggsci)
 library(RColorBrewer)
  
-library(waiind)
+library(mfbdfm)
 source("analysis/5_plots/_setup.R")  # figures_dir / tables_dir / results_dir
 
 fit_root <- "fits/updated"  # root of the model fits (git-ignored)

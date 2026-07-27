@@ -10,7 +10,7 @@ library(tidyr)
 library(foreach)
 library(readxl)
 
-library(waiind)
+library(mfbdfm)
 
 sample_config <- wai_sample_config(sample_id = "0_test",
                                     output_root = file.path("analysis", "outputs", "0_test"))

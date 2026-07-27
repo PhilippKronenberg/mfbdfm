@@ -11,7 +11,7 @@ A list with two components, as expected by \code{hfdfm()}:
 variables. The quarterly GDP target series is \emph{not} included;
 the analysis scripts add it at runtime from the real-time GDP
 vintage database that ships with the package at
-\code{system.file("extdata", "realtime_gdp.csv", package = "waiind")}
+\code{system.file("extdata", "realtime_gdp.csv", package = "mfbdfm")}
 (see \code{get_real_time_gdp_vintages()}).}
 \item{stocks}{Named list of 7 \code{ts} objects treated as stock
 variables.}

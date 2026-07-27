@@ -7,7 +7,7 @@
 # initialize_plots_insample_context() from the pre-package code.
 # -----------------------------------------------------------------------------
 
-library(waiind)
+library(mfbdfm)
 
 Sys.setlocale("LC_TIME", "English")
 library(ggplot2)
