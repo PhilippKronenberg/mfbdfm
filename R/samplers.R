@@ -36,6 +36,23 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   Xmat = matrix(rnorm(t*n), t, n)
   indicators = replicate(t+s, sample(x = 1:7, size = 1, prob = rep(1/7,7)))
 
+  # precompute sparse structures that depend only on the fixed data/dimensions
+  # (Ymat, n, t, s), not on any sampled parameter, so they would otherwise be
+  # rebuilt identically on every one of the burn_in + length_sample*thinning
+  # iterations below
+  Smat <- Diagonal(x = sapply(1:t, function(tx) as.integer(Ymat[tx,] != 0)))
+  V1 <- solve(Diagonal(x = 1e-9, n = t*n))
+  StV1S <- t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Smat
+  Yvec <- t(Ymat)
+  dim(Yvec) <- c(n*t, 1)
+  StV1SY <- t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Yvec
+
+  N <- cbind(rbind(Matrix(0,1,t+s-1),
+                   kronecker(Diagonal(t+s-1), -1)),
+             Matrix(0, t+s,1)) + Diagonal(n = (t+s))
+  N <- N[-1,] # diffuse (improper) prior distribution
+  NtN <- t(N) %*% N
+
   # initialize progress bar
   pb <- txtProgressBar(style = 3)
 
@@ -54,21 +71,26 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
     Gmat <- get_gmat(Gmat_prealloc, Llist, rho, lambda, s, t, n)
 
     # 0. augment data
-    Xmat <- draw_augmented_data(Ymat, Gmat, f, rho, sigma, n, t, return_sample = TRUE)
+    Xmat <- draw_augmented_data(Gmat = Gmat, f = f, rho = rho, sigma = sigma, n = n, t = t,
+                                StV1S = StV1S, StV1SY = StV1SY, return_sample = TRUE)
+
+    # quasi-differenced data used identically by draw_factors/draw_lambda/draw_sigma
+    # below (Xmat and rho are unchanged across these three calls) - compute once
+    Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
+    Xvec_tilde <- t(Xmat_tilde)
+    dim(Xvec_tilde) <- c(n*(t-1),1)
 
     # 1. draw factors (conditional on model parameters)
-    f <- draw_factors(Xmat = Xmat,
+    f <- draw_factors(Xvec_tilde = Xvec_tilde,
                       Gmat = Gmat,
                       n = n,
                       p = p,
                       s = s,
                       t = t,
                       t2 = t2,
-                      lambda = lambda,
                       phi = phi,
                       sigma = sigma,
-                      h = h,
-                      rho = rho)
+                      h = h)
 
     # 2. draw stochastic volatility
     h <- draw_volatility(f = f,
@@ -79,22 +101,21 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                          t = t,
                          omega = omega,
                          indicators = indicators,
-                         h_old = h)
+                         h_old = h,
+                         NtN = NtN)
 
     # 3. draw model parameters (conditional on factors and volatility)
     Zmat <- get_zmat(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
-    lambda <- draw_lambda(Xmat = Xmat,
-                          Ymat = Ymat,
+    lambda <- draw_lambda(Xvec_tilde = Xvec_tilde,
                           Zmat = Zmat,
                           sigma = sigma,
-                          rho = rho,
                           n = n, t = t,
                           inventory = inventory,
                           target = target)
 
 
-    sigma <- draw_sigma(Xmat = Xmat, Ymat = Ymat, Gmat = Gmat, f = f, n = n, t = t,
-                        inventory = inventory, target = target, rho = rho, sigma = sigma)
+    sigma <- draw_sigma(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
+                        inventory = inventory, target = target, sigma = sigma)
     phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi)
     omega <- draw_omega(h = h, t = t, s = s, p = p)
     rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
@@ -166,13 +187,9 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_factors <- function(Xmat, Gmat, n, p, s, t, t2, lambda, phi, sigma, h, rho, return_sample = TRUE){
+draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return_sample = TRUE){
 
   # See section 2.5 Estimation
-  Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
-  Xvec_tilde <- t(Xmat_tilde)
-  dim(Xvec_tilde) <- c(n*(t-1),1)
-
   H <- Reduce("+",lapply(1:p, function(px){
 
     cbind(rbind(Matrix(0,px,(t+s-px)),
@@ -186,10 +203,11 @@ draw_factors <- function(Xmat, Gmat, n, p, s, t, t2, lambda, phi, sigma, h, rho,
 
   # define selection vector such that latent data in forecast horizon has no more impact on factor
   Svec <- c(rep(1,t2-1),rep(0,t-t2))
+  Svec_sigma_inv <- Diagonal(x = Svec) %x% solve(sigma)
 
   # Calculate conditional posterior of the factors
-  F1 <- forceSymmetric(F0 + t(Gmat) %*% (Diagonal(x = Svec) %x% solve(sigma)) %*% Gmat)
-  f1 <- solve(F1, t(Gmat) %*% (Diagonal(x = Svec) %x% solve(sigma)) %*% Xvec_tilde)
+  F1 <- forceSymmetric(F0 + t(Gmat) %*% Svec_sigma_inv %*% Gmat)
+  f1 <- solve(F1, t(Gmat) %*% Svec_sigma_inv %*% Xvec_tilde)
 
   if(return_sample){
 
@@ -210,7 +228,7 @@ draw_factors <- function(Xmat, Gmat, n, p, s, t, t2, lambda, phi, sigma, h, rho,
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old){
+draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN){
 
   #  See appendix A.2 Stochastic Volatility
   err <- c(rep(0,p),f[seq(1+p,t+s),] - Reduce('+', lapply(1:p, function(px){
@@ -224,12 +242,10 @@ draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old){
 
   W <- Diagonal(x = 2, n = t+s)
 
-  N <- cbind(rbind(Matrix(0,1,t+s-1),
-                   kronecker(Diagonal(t+s-1), -1)),
-             Matrix(0, t+s,1)) + Diagonal(n = (t+s))
-  N <- N[-1,] # diffuse (improper) prior distribution
-
-  Q0 <- t(N) %*% solve(Diagonal(x = rep(omega,t+s-1))) %*% N # precision matrix
+  # Diagonal(x = rep(omega,t+s-1)) is omega*I, so its solve() is exactly I/omega;
+  # NtN = crossprod(N) for the (parameter-independent) first-difference operator
+  # N is precomputed once in run_sampling() rather than rebuilt every iteration
+  Q0 <- NtN / omega # precision matrix
 
   # approximate log chi squared distribution from mixture of normals (Primiceri 2005)
   nmix <- data.frame("prob" = c(0.00730,0.10556,0.00002,0.04395,0.34001,0.24566,0.25750),
@@ -293,25 +309,27 @@ draw_indicators <- function(h, f, phi, n, p, s, t){
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_augmented_data <- function(Ymat, Gmat, f, rho, sigma, n, t, return_sample = TRUE){
+draw_augmented_data <- function(Gmat, f, rho, sigma, n, t, StV1S, StV1SY, return_sample = TRUE){
 
-  Yvec <- t(Ymat)
-  dim(Yvec) <- c(n*t,1)
-
-  # propose dataset
-  Smat <- Diagonal(x = sapply(1:t, function(tx) as.integer(Ymat[tx,] != 0)))
+  # StV1S/StV1SY are the "propose dataset" mask terms (originally
+  # t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Smat and ...%*% Yvec) - these
+  # depend only on Ymat/n/t, not on any sampled parameter, so they are
+  # precomputed once in run_sampling() instead of rebuilt every iteration
   Kmat <- cbind(rbind(Matrix(0,n, n*(t-1)),
                       kronecker(Diagonal(t-1), -rho)),
                 Matrix(0,(t)*n,n)) + Diagonal(n = n*t)
 
-  P0 <- t(Kmat) %*% solve(Diagonal(n = t) %x% sigma) %*% Kmat
+  # solve(Diagonal(n = t) %x% sigma) == Diagonal(n = t) %x% solve(sigma)
+  # (Kronecker product of invertible matrices), avoiding a solve() on the
+  # full (t*n)x(t*n) matrix in favor of one on the much smaller n x n sigma
+  sigma_inv <- solve(sigma)
+  Dt_sigma_inv <- Diagonal(n = t) %x% sigma_inv
 
-  V1 <-  solve(Diagonal(x = 1e-9, n = t*n))
+  P0 <- t(Kmat) %*% Dt_sigma_inv %*% Kmat
 
   # Calculate conditional posterior of the factors, see Appendix A.3
-  P1 <-  forceSymmetric(P0 + t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Smat)
-  p1 <- solve(P1, t(Kmat) %*%  solve(Diagonal(n = t) %x% sigma)  %*% rbind(Matrix(0,n,1),Gmat %*% f) +
-                t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Yvec)
+  P1 <-  forceSymmetric(P0 + StV1S)
+  p1 <- solve(P1, t(Kmat) %*% Dt_sigma_inv %*% rbind(Matrix(0,n,1),Gmat %*% f) + StV1SY)
 
   Xvec <- as.matrix(p1 + solve(chol(P1), rnorm((t*n))))
 
@@ -327,20 +345,21 @@ draw_augmented_data <- function(Ymat, Gmat, f, rho, sigma, n, t, return_sample =
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_lambda <- function(Xmat, Ymat, Zmat, sigma, rho, n, t, inventory, target){
+draw_lambda <- function(Xvec_tilde, Zmat, sigma, n, t, inventory, target){
 
   # See appendix A.4 Conditional distributions of Remaining Parameters: Factor Loadings
-  Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
-  Xvec_tilde <- t(Xmat_tilde)
-  dim(Xvec_tilde) <- c(n*(t-1),1)
 
   # uninformative priors
   b0 <- Matrix(0,n,1)
   B0 <- Diagonal(x = 1, n = n)
 
+  # solve(sigma) and its Kronecker product with Diagonal(t-1) are otherwise
+  # computed twice (once for B1, once for b1) for the same result
+  Z_sigma_inv <- t(Zmat) %*% (Diagonal(t-1) %x% solve(sigma))
+
   # Conditional posterior distribution of the factor loadings lambda
-  B1 <- solve(B0) + t(Zmat) %*% (Diagonal(t-1) %x% solve(sigma)) %*% Zmat
-  b1 <- solve(B1, solve(B0) %*% b0 + t(Zmat) %*% (Diagonal(t-1) %x% solve(sigma)) %*% Xvec_tilde)
+  B1 <- solve(B0) + Z_sigma_inv %*% Zmat
+  b1 <- solve(B1, solve(B0) %*% b0 + Z_sigma_inv %*% Xvec_tilde)
 
   lambda <- b1 + solve(chol(forceSymmetric(B1)),rnorm(n))
 
@@ -356,12 +375,8 @@ draw_lambda <- function(Xmat, Ymat, Zmat, sigma, rho, n, t, inventory, target){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_sigma <- function(Xmat, Ymat, Gmat, f, n, t, inventory, target, rho, sigma){
+draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Measurement Error Covariance Matrix
-
-  Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
-  Xvec_tilde <- t(Xmat_tilde)
-  dim(Xvec_tilde) <- c(n*(t-1),1)
 
   # get errors
   Xfit <- Gmat %*% f

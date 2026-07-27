@@ -207,22 +207,27 @@ hfdfm <- function(flows,
 
 
 
-  # MEAN AND VARIANCE OF GROWTH RATES ---------------------------------------
+  # MEAN AND VARIANCE OF GROWTH RATES AND INDEX ------------------------------
 
-  # growth rates of factor at a quarterly rate and rescale
-  flist <- lapply(par_save$f, function(fx){
+  # cut off latent states from distributed lags and de-standardize each
+  # posterior draw once; used below for both the growth-rate series (flist)
+  # and the cumulated index (ilist)
+  target_sd <- inventory[which(inventory$key == target),"sd"]
+  target_mean <- inventory[which(inventory$key == target),"mean"]
 
-    # cut off latent states from distributed lags at the beginning of the sample
+  rescaled_list <- lapply(par_save$f, function(fx){
+
     f_cut <- fx[(s+1):(t+s)]
+    (f_cut * target_sd) + target_mean/k
 
-    # de-standardize data using mean and variance from SECO series
-    f_rescaled <- (f_cut * inventory[which(inventory$key == target),"sd"]) +
-      inventory[which(inventory$key == target),"mean"]/k
+  })
 
-    # annualize
-    out_ts <- ts(((1+f_rescaled)^frequency(Ymat)-1)*100,
-                 start = time(Ymat)[1],
-                 frequency = frequency(Ymat))
+  # growth rates of factor at a quarterly rate, annualized
+  flist <- lapply(rescaled_list, function(f_rescaled){
+
+    ts(((1+f_rescaled)^frequency(Ymat)-1)*100,
+       start = time(Ymat)[1],
+       frequency = frequency(Ymat))
 
   })
 
@@ -232,22 +237,12 @@ hfdfm <- function(flows,
               frequency = frequency(f_mean))
 
 
-  # MEAN AND VARIANCE OF INDEX ----------------------------------------------
+  # cumulated activity index
+  ilist <- lapply(rescaled_list, function(f_rescaled){
 
-  # growth rates of factor at a quarterly rate and rescale
-  ilist <- lapply(par_save$f, function(fx){
-
-    # cut off latent states from distributed lags at the beginning of the sample
-    f_cut <- fx[(s+1):(t+s)]
-
-    # de-standardize data using mean and variance from SECO series
-    f_rescaled <- (f_cut * inventory[which(inventory$key == target),"sd"]) +
-      inventory[which(inventory$key == target),"mean"]/k
-
-    # annualize
-    out_idx <- ts(exp(cumsum(f_rescaled)),
-                  start = time(Ymat)[1],
-                  frequency = frequency(Ymat))
+    ts(exp(cumsum(f_rescaled)),
+       start = time(Ymat)[1],
+       frequency = frequency(Ymat))
 
   })
 
