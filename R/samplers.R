@@ -1,6 +1,16 @@
 # Gibbs samplers for the high-frequency dynamic factor model.
 # All functions here are internal building blocks of hfdfm().
 
+# Seven-component normal mixture approximating the log chi-squared
+# distribution (Kim, Shephard & Chib 1998; Primiceri 2005 Appendix), used by
+# both draw_volatility() and draw_indicators(). Defined once here as plain
+# numeric vectors rather than rebuilt as a data.frame on every call in the
+# sampling loop.
+NMIX_PROB <- c(0.00730,0.10556,0.00002,0.04395,0.34001,0.24566,0.25750)
+NMIX_MEAN <- c(-10.12999,-3.97281,-8.56686,2.77786,0.61942,1.79518,-1.08819)
+NMIX_VAR  <- c(5.79596,2.61369,5.17950,0.16735,0.64009,0.34023,1.26261)
+NMIX_SD   <- sqrt(NMIX_VAR)
+
 #' Run the MCMC sampling loop
 #'
 #' @noRd
@@ -247,15 +257,11 @@ draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN){
   # N is precomputed once in run_sampling() rather than rebuilt every iteration
   Q0 <- NtN / omega # precision matrix
 
-  # approximate log chi squared distribution from mixture of normals (Primiceri 2005)
-  nmix <- data.frame("prob" = c(0.00730,0.10556,0.00002,0.04395,0.34001,0.24566,0.25750),
-                     "mean" = c(-10.12999,-3.97281,-8.56686,2.77786,0.61942,1.79518,-1.08819),
-                     "var" = c(5.79596,2.61369,5.17950,0.16735,0.64009,0.34023,1.26261))
-
-  # simulate from approximated chi-loq square distribution
+  # simulate from approximated chi-loq square distribution using the
+  # log chi-squared normal-mixture constants defined at the top of this file
   nx <- indicators
-  xi = Diagonal(x = nmix[nx,"var"])
-  mu <- Matrix(nmix[nx,"mean"] - 1.2704,t+s,1)
+  xi = Diagonal(x = NMIX_VAR[nx])
+  mu <- Matrix(NMIX_MEAN[nx] - 1.2704,t+s,1)
 
   # Calculate conditional posterior of the stochastic volatility (Appendix A.2)
   Q1 <-  forceSymmetric(Q0 + t(W) %*% solve(xi) %*% W)
@@ -278,28 +284,28 @@ draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN){
 #' @importFrom stats dnorm
 draw_indicators <- function(h, f, phi, n, p, s, t){
 
-  # approximate log chi squared distribution from mixture of normals (Primiceri 2005)
-  nmix <- data.frame("prob" = c(0.00730,0.10556,0.00002,0.04395,0.34001,0.24566,0.25750),
-                     "mean" = c(-10.12999,-3.97281,-8.56686,2.77786,0.61942,1.79518,-1.08819),
-                     "var" = c(5.79596,2.61369,5.17950,0.16735,0.64009,0.34023,1.26261))
-
   #  See appendix A.2 Stochastic Volatility
   err <- c(rep(0,p),f[seq(1+p,t+s),] - Reduce('+', lapply(1:p, function(px){
     f[seq(from = 1+p-px, t+s-px),,drop=FALSE] %*% phi[px]})))
 
   w <- log(err^2 + 0.001)
 
-  probs <- sapply(1:(t+s), function(tx){
+  # component densities as a (t+s) x 7 matrix, built with one vectorized dnorm()
+  # call per mixture component instead of (t+s)*7 scalar calls - dnorm is fully
+  # vectorized, so the scalar version paid ~4900 R-level call overheads per
+  # iteration for no reason
+  base_mean <- 2 * as.numeric(h)
+  wv <- as.numeric(w)
+  dens <- vapply(seq_len(7), function(px){
+    NMIX_PROB[px] * dnorm(x = wv, mean = base_mean + NMIX_MEAN[px] - 1.2704, sd = NMIX_SD[px])
+  }, numeric(t+s))
 
-    px <- sapply(1:7, function(px){
-
-      nmix$prob[px] * dnorm(x = w[tx], mean = 2*h[tx] + nmix$mean[px] - 1.2704, sd = sqrt(nmix$var[px]))
-
-    })
-
-    sample(x = 1:7, size = 1, prob = px)
-
-  })
+  # the per-period sample() calls are deliberately kept as a loop in the same
+  # order as before: this consumes the RNG stream identically, so output stays
+  # bit-identical to the pre-vectorization implementation
+  probs <- vapply(seq_len(t+s), function(tx){
+    sample(x = 1:7, size = 1, prob = dens[tx,])
+  }, integer(1))
 
   return(probs)
 }
