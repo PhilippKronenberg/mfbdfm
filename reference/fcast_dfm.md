@@ -1,0 +1,236 @@
+# Estimate a multi-factor mixed-frequency dynamic factor model
+
+Estimates the Bayesian multi-factor mixed-frequency dynamic factor model
+of Eckert, Kronenberg, Mikosch & Neuwirth (2025) by Markov chain Monte
+Carlo. Flow and stock indicator series of different frequencies are
+combined into `q` common factors, from which high-frequency estimates
+and nowcasts are derived for every input series.
+
+## Usage
+
+``` r
+fcast_dfm(
+  flows = NULL,
+  stocks = NULL,
+  target,
+  p = 1,
+  q = 2,
+  length_sample = 1000,
+  burn_in = 1000,
+  thinning = 1,
+  plots = FALSE,
+  extend = NULL,
+  stochastic_volatility = TRUE,
+  serial_correlation = TRUE,
+  ncores = NULL
+)
+```
+
+## Arguments
+
+- flows:
+
+  Named list of `ts` objects treated as flow variables, or `NULL`. Must
+  contain `target` if `stocks` does not.
+
+- stocks:
+
+  Named list of `ts` objects treated as stock variables, or `NULL`.
+
+- target:
+
+  Character, name of the series of interest (e.g.
+  `"ch.seco.gdp.real.gdp.ssa"`). Must be present in `flows` or `stocks`.
+  Does not affect estimation; see Details.
+
+- p:
+
+  Integer, number of lags in the factor VAR.
+
+- q:
+
+  Integer, number of factors. Must be smaller than the number of input
+  series.
+
+- length_sample:
+
+  Integer, number of posterior draws to keep.
+
+- burn_in:
+
+  Integer, number of initial draws to discard.
+
+- thinning:
+
+  Integer, keep every `thinning`-th draw after burn-in.
+
+- plots:
+
+  Logical, if `TRUE` draw diagnostic plots of the factors, stochastic
+  volatility and trace plots during sampling.
+
+- extend:
+
+  Numeric or `NULL`. If given, the dataset is extended by this many
+  years with zeros so forecasts can be produced.
+
+- stochastic_volatility:
+
+  Logical, include stochastic volatility in the factor state equation.
+
+- serial_correlation:
+
+  Logical, model serial correlation in the measurement errors. If
+  `FALSE`, the autocorrelations are fixed near zero.
+
+- ncores:
+
+  Integer or `NULL`. Number of cores for the rotation step, which is run
+  in parallel via doParallel when supplied.
+
+## Value
+
+An object of class `"fcast_dfm"`: a list with components
+
+- factor:
+
+  `ts` matrix of the `q` posterior mean factors.
+
+- factor_var:
+
+  `ts` matrix of the corresponding variances.
+
+- target:
+
+  Character, the series named by `target`.
+
+- nowcast, nowcast_var:
+
+  `ts`, posterior mean and variance of the nowcast for `target`,
+  extracted from `ncst`.
+
+- pars:
+
+  List of posterior means (`lambda`, `phi`, `sigma`, `rho`, `rho_var`,
+  `h`) and the model dimensions (`n`, `q`, `p`, `s`, `t`, `k`).
+
+- ncst:
+
+  List with `mean` and `var`, each a named list of nowcasts for every
+  input series at its own frequency.
+
+- data:
+
+  The input series.
+
+- data_missings:
+
+  `ts` matrix of the prepared (standardized) data.
+
+- data_hf:
+
+  List with `mean` and `var`, each a named list of high-frequency
+  growth-rate estimates for every input series.
+
+- data_augmented:
+
+  `ts` matrix of the augmented dataset.
+
+- data_augmented_rescaled:
+
+  The same, back on each series' original scale.
+
+- inventory:
+
+  Data frame describing the series (see
+  [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md)).
+
+- target_series:
+
+  List collecting everything about `target` for inspection: `nowcast` (a
+  data frame of `time`, `observed`, `mean`, `lower`, `upper` at the
+  target's own frequency) and `high_frequency` (the same columns for the
+  high-frequency growth estimate). See
+  [`print.fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/print.fcast_dfm.md).
+
+- call:
+
+  The matched call.
+
+## Details
+
+This is a different model from
+[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md),
+not a multi-factor setting of it. The two differ in how the factors are
+identified, in their priors, and in how the autoregressive coefficients
+are drawn:
+
+- Identification:
+
+  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+  identifies the factor *during* sampling, by fixing the loading on
+  `target` to one and shrinking that series' measurement error toward
+  zero, so the factor is directly interpretable as the target's growth
+  rate. `fcast_dfm()` instead samples an unidentified model and resolves
+  the rotational indeterminacy afterwards: every draw is rotated onto a
+  common reference by orthogonal Procrustes, then one global rotation is
+  chosen to make the average loading matrix close to its varimax
+  rotation.
+
+- Priors:
+
+  `fcast_dfm()` uses uninformative priors throughout; no series is
+  treated specially.
+
+- Factor dynamics:
+
+  The factors follow a VAR(`p`) whose coefficients are drawn by
+  Metropolis-Hastings with a stationarity constraint, rather than the
+  conjugate Gibbs step used by
+  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md).
+  A single stochastic volatility path is shared by all `q` factors.
+
+Because identification differs, `fcast_dfm(q = 1)` is **not** equivalent
+to
+[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md).
+Use
+[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+for the target-anchored single-factor model of Kronenberg (2026), and
+`fcast_dfm()` for the multi-factor model.
+
+`target` does not enter the estimation. It names the series whose
+nowcast is surfaced at the top level of the return value for
+convenience; results for every series remain available in `ncst` and
+`data_hf`.
+
+## References
+
+Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025). Tracking
+economic activity with alternative high-frequency data. *Journal of
+Applied Econometrics*, 40(3), 270-290.
+
+Kronenberg, P. (2026). A high-frequency GDP indicator for Switzerland.
+*Swiss Journal of Economics and Statistics*, 162, 10.
+[doi:10.1186/s41937-026-00157-w](https://doi.org/10.1186/s41937-026-00157-w)
+
+## See also
+
+[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+for the single-factor, target-anchored model.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+data(data_ch_dataset_test)
+target <- "ch.seco.gdp.real.gdp.ssa"
+flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                stats::window, start = 2018)
+stocks <- lapply(data_ch_dataset_test$stocks[1:2],
+                 stats::window, start = 2018)
+set.seed(1)
+fit <- fcast_dfm(flows = flows, stocks = stocks, target = target,
+                 q = 2, length_sample = 50, burn_in = 10)
+fit$nowcast
+} # }
+```

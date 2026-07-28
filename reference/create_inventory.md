@@ -15,11 +15,13 @@ create_inventory(flows, stocks)
 
 - flows:
 
-  Named list of `ts` objects treated as flow variables.
+  Named list of `ts` objects treated as flow variables, or `NULL` for a
+  model with no flow variables.
 
 - stocks:
 
-  Named list of `ts` objects treated as stock variables.
+  Named list of `ts` objects treated as stock variables, or `NULL` for a
+  model with no stock variables.
 
 ## Value
 

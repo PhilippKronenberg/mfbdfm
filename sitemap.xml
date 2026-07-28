@@ -28,6 +28,7 @@
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/drop_retail.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/drop_weekly.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.html</loc></url>
+<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/filter_to_sample.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/get_insample_error_details.html</loc></url>
@@ -45,6 +46,7 @@
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/plot_comparison.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/prepare_wai_qoq_series.html</loc></url>
+<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/print.fcast_dfm.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/print_evaluation_periods.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/render_correlation_heatmap.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/rescale_to_gdp.html</loc></url>

@@ -70,9 +70,13 @@ matters for the 1:1 test-file convention below):
 
 | File | Contents |
 |----|----|
-| `hfdfm.R` | [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md) — the exported model entry point |
-| `samplers.R` | Internal Gibbs samplers (`run_sampling`, `draw_*`); no exports |
-| `model-helpers.R` | [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md), [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md) + internal matrix builders |
+| `hfdfm.R` | [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md) — exported entry point, single-factor Kronenberg (2026) model |
+| `samplers.R` | Internal Gibbs samplers for [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md) (`run_sampling`, `draw_*`); no exports |
+| `fcast_dfm.R` | [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md) — exported entry point, multi-factor Eckert et al. (2025) model |
+| `samplers_fcast.R` | Internal multi-factor samplers (`run_sampling_fcast`, `draw_*_fcast`); no exports |
+| `rotation_fcast.R` | Post-hoc rotation/identification for [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md) (`run_rotation_fcast`, `run_identification_fcast`, `get_d_fcast`, `create_h_fcast`, …); no exports |
+| `helpers_fcast.R` | Multi-factor packing/evaluation helpers (`theta2list_fcast`, `list2theta_fcast`, `companion_fcast`, `run_evaluation_fcast`, `get_factors_fcast`, `get_hfts_fcast`, `get_nowcast_fcast`); no exports |
+| `model-helpers.R` | [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md), [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md) + internal matrix builders (shared by both models) |
 | `backcast.R` | [`run_ar()`](https://philippkronenberg.github.io/mfbdfm/reference/run_ar.md), [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md), [`retrieve_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast.md), [`extract_wai_data()`](https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.md) |
 | `vintages.R` | [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md), [`cut_data()`](https://philippkronenberg.github.io/mfbdfm/reference/cut_data.md), [`cut_data_real_time()`](https://philippkronenberg.github.io/mfbdfm/reference/cut_data_real_time.md), [`select_most_recent_GDP_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/select_most_recent_GDP_vintage.md) |
 | `frequency-utils.R` | [`week2mon()`](https://philippkronenberg.github.io/mfbdfm/reference/week2mon.md), [`drop_weekly()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_weekly.md), [`drop_financial()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_financial.md), [`drop_retail()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_retail.md), [`dec2week()`](https://philippkronenberg.github.io/mfbdfm/reference/dec2week.md) |
@@ -212,18 +216,57 @@ constraint.
   throughout: no
   [`library()`](https://rdrr.io/r/base/library.html)/[`source()`](https://rdrr.io/r/base/source.html)/[`setwd()`](https://rdrr.io/r/base/getwd.html)/top-level
   code in `R/`.
+- **Two distinct models, two exported entry points — not one model with
+  a `q` argument** (issue \#45).
+  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+  is the single-factor, target-anchored Kronenberg (2026) model;
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  is the multi-factor Eckert et al. (2025) model. **`fcast_dfm(q = 1)`
+  is NOT equivalent to
+  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)**:
+  they differ in identification (restriction imposed during sampling
+  vs. post-hoc Procrustes + varimax rotation), in priors
+  (target-anchored/informative vs. uninformative), and in how `phi` is
+  drawn (conjugate Gibbs vs. Metropolis-Hastings). Multi-factor sampler
+  internals carry a `_fcast` suffix to avoid colliding with the
+  single-factor ones (files: `samplers_fcast.R`, `helpers_fcast.R`,
+  `rotation_fcast.R`). Only
+  [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md),
+  [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md),
+  `get_distributed_lags()` and `get_gmat()` are genuinely shared.
 - **[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)’s
   `q`, `stochastic_volatility`, `serial_correlation` arguments are
   currently accepted but ignored** by the sampler (always 1 factor +
   stochastic volatility + serial correlation). This is documented on the
-  function, not a bug to “fix” without a deliberate model-design
-  decision.
-- **Identification**: the factor’s loading on `target` is fixed to 1
-  (informative prior shrinking its measurement error toward zero), so
-  the extracted factor is directly interpretable as the target’s (GDP’s)
-  growth rate. See
-  [`?hfdfm`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)’s
+  function, not a bug to “fix” — for multi-factor estimation use
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
+  ([`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  *does* honour its `stochastic_volatility`/`serial_correlation` flags.)
+- **Identification**: in
+  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md),
+  the factor’s loading on `target` is fixed to 1 (informative prior
+  shrinking its measurement error toward zero), so the extracted factor
+  is directly interpretable as the target’s (GDP’s) growth rate. See
+  [`?hfdfm`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)‘s
   `@details` and Kronenberg (2026) Sect. 2.4.
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  instead samples an unidentified model and resolves the rotational
+  indeterminacy afterwards. Its `target` argument does **not** affect
+  estimation — it only selects which series’ nowcast is surfaced at the
+  top level of the return value.
+- **[`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+  trims with `zoo::na.trim(is.na = "all")`, deliberately.** The
+  reference multi-factor implementation used
+  `window(start = min(raw times), end = max(raw times))` instead; that
+  is buggy, because
+  [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+  shifts low-frequency observations to the *end* of their period while
+  [`window()`](https://rdrr.io/r/stats/window.html) compares against
+  *pre-shift* times — measured to silently drop the most recent
+  quarterly GDP observation. The two coincide on the shipped dataset
+  (weekly series run past GDP’s shifted end), which is why it went
+  unnoticed. Don’t “restore” the
+  [`window()`](https://rdrr.io/r/stats/window.html) variant.
 - **The shipped `data_ch_dataset` does NOT contain the GDP target
   series** (`ch.seco.gdp.real.gdp.ssa`) — only `data_ch_dataset_test`
   does. Real workflows inject GDP at runtime from
@@ -302,11 +345,21 @@ constraint.
   `(development version)` — R 4.3’s NEWS parser rejects that heading and
   produces a “no news entries found” check NOTE).
 - `_pkgdown.yml`’s `reference:` section is a **hand-grouped index by
-  source file** (Model / Backcasting & vintages / Frequency & date
+  source file** (Models / Backcasting & vintages / Frequency & date
   utilities / Analytics config / Evaluation tables & plots / Data). If
   you add or remove an export, update this too — validate it matches
   `NAMESPACE` exactly (a quick way: diff `grep '^export(' NAMESPACE`
   against the flattened `contents:` lists in `_pkgdown.yml`).
+  **`grep '^export('` alone is not enough — S3 methods are registered as
+  `S3method(generic,class)`, not `export()`, and pkgdown still requires
+  them in the index.** This bit us on PR \#47: `print.fcast_dfm` was
+  documented and registered but missing from the index, all four
+  `R CMD check` jobs passed, and only the `pkgdown` job failed
+  (`1 topic missing from index`). Include `S3method(...)` lines in the
+  comparison. Note
+  [`pkgdown::check_pkgdown()`](https://pkgdown.r-lib.org/reference/check_pkgdown.html)
+  needs pandoc, so it cannot be run locally in this environment — CI is
+  the authoritative check for the site build.
 
 ## Issue-tracking workflow
 

@@ -1,12 +1,18 @@
 # Package index
 
-## Model
+## Models
 
-The Bayesian mixed-frequency dynamic factor model behind the WAI, and
-the helpers that prepare its input data.
+The two Bayesian mixed-frequency dynamic factor models: the
+target-anchored single-factor model behind the WAI (Kronenberg 2026) and
+the rotation-identified multi-factor model (Eckert et al. 2025), plus
+the helpers that prepare their input data.
 
 - [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
   : Estimate a high-frequency dynamic factor model
+- [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  : Estimate a multi-factor mixed-frequency dynamic factor model
+- [`print(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.fcast_dfm.md)
+  : Print a summary of a multi-factor dynamic factor model fit
 - [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md)
   : Build an inventory of the model input series
 - [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
