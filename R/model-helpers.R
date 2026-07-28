@@ -162,24 +162,54 @@ get_distributed_lags <- function(inventory){
 
 #' Regressor matrix for the factor loading draw
 #'
+#' @details
+#' Every `Llist` entry and `rho` are diagonal (see [get_distributed_lags()]),
+#' so each `aux` term below is diagonal too, and therefore every `n x n`
+#' block of the result is diagonal: the whole `((t-1)*n) x n` matrix holds
+#' only `(t-1)*n` nonzeros, one per row. Rather than forming `s+2` Kronecker
+#' products of that full size and summing them (which dominated sampler
+#' runtime), the block diagonals are accumulated into a small dense
+#' `(t-1) x n` matrix and the sparse result is assembled directly from it.
+#'
+#' The accumulation deliberately runs in the same `sx` order, with the same
+#' per-element multiply-then-add sequence, as the original
+#' `Reduce("+", lapply(...))` - floating-point addition is not associative,
+#' so preserving that order is what keeps the result bit-identical.
+#'
 #' @noRd
+#' @importFrom methods new
 get_zmat <- function(f, n, t, s, Llist, rho){
 
-  Reduce("+", lapply(0:(s+1), function(sx){
+  fv <- as.numeric(f)
+  rd <- diag(rho)
+  tm1 <- t - 1
+
+  # accumulate the block diagonals: cmat[i, j] is the (j, j) entry of block i
+  cmat <- NULL
+  for(sx in 0:(s+1)){
 
     if(sx == 0){
-      aux <- Llist[[as.character(0)]]
+      a <- diag(Llist[[as.character(0)]])
     } else if(sx == s+1){
-      aux <- -rho %*% Llist[[as.character(s)]]
+      a <- -rd * diag(Llist[[as.character(s)]])
     } else {
-      aux <- Llist[[as.character(sx-1)]] - rho %*% Llist[[as.character(sx)]]
+      a <- diag(Llist[[as.character(sx-1)]]) - rd * diag(Llist[[as.character(sx)]])
     }
 
-    f[seq(from = 2+s-sx, to = t+s-sx),] %x% aux
+    term <- outer(fv[seq(from = 2+s-sx, to = t+s-sx)], a)
+    cmat <- if(is.null(cmat)) term else cmat + term
 
-  }))
+  }
 
-
+  # assemble the column-compressed sparse matrix directly. Column j holds the
+  # (j, j) entry of every block, i.e. rows (i-1)*n + j for i = 1..t-1, so the
+  # values in column-major order are exactly as.vector(cmat).
+  new("dgCMatrix",
+      i = as.integer(rep(seq.int(0L, by = n, length.out = tm1), times = n) +
+                       rep(seq.int(0L, n - 1L), each = tm1)),
+      p = as.integer(seq.int(0L, by = tm1, length.out = n + 1L)),
+      x = as.vector(cmat),
+      Dim = c(as.integer(tm1 * n), as.integer(n)))
 
 }
 

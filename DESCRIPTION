@@ -41,6 +41,7 @@ Imports:
     knitr,
     lubridate,
     Matrix,
+    methods,
     Metrics,
     plyr,
     purrr,
