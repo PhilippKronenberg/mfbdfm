@@ -13,6 +13,7 @@ reference:
   contents:
   - hfdfm
   - fcast_dfm
+  - print.fcast_dfm
   - create_inventory
   - prepare_data
 
