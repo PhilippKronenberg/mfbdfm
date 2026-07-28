@@ -13,6 +13,25 @@
 #                             its varimax rotation, i.e. to pick an
 #                             interpretable orientation.
 #
+# DEVIATIONS FROM THE PUBLISHED ALGORITHM (Appendix E of the online appendix
+# to Eckert et al. 2025). All are deliberate and retained; noted so nobody
+# "fixes" them back into the paper's form without meaning to. See issue #46.
+#
+#  a) The varimax stage (step 2 above) is NOT part of the published
+#     algorithm, which ends once the draws are no longer orthogonally mixed.
+#     It applies the SAME rotation to every draw, so it does not affect the
+#     alignment between draws - it only re-orients the identified sample into
+#     a more interpretable one. Kept because that interpretability is useful.
+#
+#  b) Convergence. The appendix specifies "the SUM of squared deviations
+#     between two successive theta* is lower than 1e-9". run_rotation_fcast()
+#     tests the MEAN squared deviation against 1e-9, which over a packed
+#     vector of length (nq + pq^2 + 2n + nt + t+s) is a much weaker
+#     requirement, and additionally caps the loop at `max_iter` iterations
+#     (the appendix has no cap). Both trade strictness for runtime and
+#     neither changes the algorithm itself. Kept for now; making the stopping
+#     rule selectable is tracked in issue #46.
+#
 # All functions here are internal.
 
 #' Rotate every posterior draw onto a common reference
@@ -59,9 +78,9 @@ run_rotation_fcast <- function(theta_out, n, q, p, s, t, ncores = NULL, max_iter
              n = n, q = q, s = s, t = t, p = p)
     }
 
-    # 2. Compute theta star
-    rlist <- lapply(1:length_sample, function(rx) create_h_fcast(D = D_save[[rx]], n, q, p, s, t) %*% theta_out[rx,])
-    theta_star_new <- Reduce("+",rlist)/length(rlist)
+    # 2. Compute theta star  (step (2) of the appendix algorithm)
+    rlist <- lapply(1:length_sample, function(rx) apply_rotation_fcast(D_save[[rx]], theta_out[rx,], n, q, p))
+    theta_star_new <- matrix(Reduce("+",rlist)/length(rlist))
 
     # 3. Status message
     i <- i + 1
@@ -69,6 +88,8 @@ run_rotation_fcast <- function(theta_out, n, q, p, s, t, ncores = NULL, max_iter
     message("Rotation iteration ", as.integer(i), ": convergence ", signif(delta, 3))
 
     # 4. Convergence check
+    #    NOTE: `delta` is the MEAN squared deviation; the appendix specifies
+    #    the SUM. See the deviations note at the top of this file (issue #46).
     converged <- delta < tol
     check_convergence <- converged | i >= max_iter
     theta_star <- theta_star_new
@@ -106,11 +127,17 @@ run_identification_fcast <- function(theta_out, D_save, n, q, p, s, t){
     upper_bound <- pi - 1e-16
     n_pars <- q*(q-1)/2
 
+    # the varimax objective reads only the loadings, so extract that block
+    # once rather than rotating every full draw on each objective evaluation
+    lam_draws <- lapply(seq_len(nrow(theta_out)), function(rx){
+      matrix(theta_out[rx, seq_len(n*q)], nrow = n, ncol = q)
+    })
+
     optim_p <- optim(par = rep(1, n_pars),
                      fn = loss_sim_fcast,
                      D_save = D_save,
                      z = 1,
-                     theta_out = theta_out,
+                     lam_draws = lam_draws,
                      n = n, q = q, p = p, s = s, t = t,
                      lower = rep(lower_bound, n_pars),
                      upper = rep(upper_bound, n_pars),
@@ -120,7 +147,7 @@ run_identification_fcast <- function(theta_out, D_save, n, q, p, s, t){
                      fn = loss_sim_fcast,
                      D_save = D_save,
                      z = -1,
-                     theta_out = theta_out,
+                     lam_draws = lam_draws,
                      n = n, q = q, p = p, s = s, t = t,
                      lower = rep(lower_bound, n_pars),
                      upper = rep(upper_bound, n_pars),
@@ -137,7 +164,7 @@ run_identification_fcast <- function(theta_out, D_save, n, q, p, s, t){
 
   # apply the per-draw rotation followed by the global identifying rotation
   lapply(1:length(D_save), function(rx){
-    create_h_fcast(D = D_save[[rx]] %*% D_star, n, q, p, s, t) %*% theta_out[rx,]
+    matrix(apply_rotation_fcast(D_save[[rx]] %*% D_star, theta_out[rx,], n, q, p))
   })
 
 }
@@ -173,11 +200,11 @@ initialize_theta_star_fcast <- function(theta_out, length_sample, n, q, p, s, t)
       S <- svd(t(D_bar) %*% W %*% D_bar_star)
       D <- S$u %*% t(S$v)
 
-      create_h_fcast(D, n, q, p, s, t) %*% theta_out[rx,]
+      apply_rotation_fcast(D, theta_out[rx,], n, q, p)
 
     })
 
-    theta_star_new <- Reduce("+",rlist)/length(rlist)
+    theta_star_new <- matrix(Reduce("+",rlist)/length(rlist))
 
     # Convergence check on the loading block only
     check_convergence <- t(theta_star_new[c(1:(n*q))] - theta_star[c(1:(n*q))]) %*%
@@ -239,30 +266,45 @@ get_d_fcast <- function(theta_out, theta_star, rx, n, q, p, s, t){
 
 #' Squared distance between a rotated draw and the reference
 #'
+#' Eq. (44) of the online appendix. The residual is formed over the whole
+#' packed vector, exactly as the appendix defines it - only the application
+#' of H(D) is done structurally (see [apply_rotation_fcast()]) rather than by
+#' building the matrix, which was the dominant cost of the rotation step.
+#'
 #' @noRd
 loss_fcast <- function(par, z, th, th_star, n, q, p, s, t){
 
-  d <- create_h_fcast(D = generate_d_fcast(n = q, z = z, gammas = par), n, q, p, s, t) %*% th - th_star
-  as.numeric(t(d) %*% d)
+  d <- apply_rotation_fcast(generate_d_fcast(n = q, z = z, gammas = par), th, n, q, p) -
+    as.numeric(th_star)
+  sum(d^2)
 
 }
 
 
-#' Varimax-based loss_fcast for the final identifying rotation
+#' Varimax-based loss for the final identifying rotation
+#'
+#' The objective reads only the loading block of the averaged draw, so only
+#' that block needs rotating and averaging - the remaining
+#' `2n + nt + t+s` components of every draw were previously rotated and
+#' averaged on each objective evaluation and then thrown away. `lam_draws`
+#' holds the per-draw loading matrices, extracted once by the caller.
+#'
+#' The association `Lambda %*% (D_save %*% D)` and the averaging order are
+#' kept exactly as in the original formulation.
 #'
 #' @noRd
 #' @importFrom stats varimax
-loss_sim_fcast <- function(par, theta_out, D_save, z, n, q, p, s, t){
+loss_sim_fcast <- function(par, lam_draws, D_save, z, n, q, p, s, t){
 
-  rlist <- lapply(1:length(D_save), function(rx){
+  D <- generate_d_fcast(q, z, gammas = par)
 
-    create_h_fcast(D = D_save[[rx]] %*% generate_d_fcast(q, z, gammas = par), n, q, p, s, t) %*% theta_out[rx,]
+  lam_bar <- Reduce("+", lapply(seq_along(D_save), function(rx){
 
-  })
+    lam_draws[[rx]] %*% (D_save[[rx]] %*% D)
 
-  th_star <- theta2list_fcast(Reduce("+",rlist)/length(rlist), n, p, q, t)
+  })) / length(D_save)
 
-  sum((th_star$lambda - th_star$lambda %*% varimax(x = th_star$lambda, normalize = TRUE)$rotmat)^2)
+  sum((lam_bar - lam_bar %*% varimax(x = lam_bar, normalize = TRUE)$rotmat)^2)
 
 }
 
@@ -313,8 +355,24 @@ generate_d_fcast <- function(n, z, gammas){
 
 #' Lift a q x q rotation to the full packed-parameter space
 #'
-#' Applies `D` to the loading and VAR blocks of a packed draw and leaves the
-#' remaining blocks (sigma, rho, Xmat, h) untouched.
+#' This is H(D) of Eq. (44) in the paper's online appendix, written out
+#' explicitly:
+#'
+#' \preformatted{
+#'          [ D' (x) I_n            0                0        ]
+#'   H(D) = [ 0            I_p (x) (D' (x) D')       0        ]
+#'          [ 0                     0        I_(2n + nt + t+s) ]
+#' }
+#'
+#' so that `H(D) theta` equals
+#' `[vec(Lambda D)', vec(D' Phi_1 D)', ..., diag(Sigma)', diag(P)', vec(X)', h']'`.
+#'
+#' Note the third block is the identity: the measurement-error parameters,
+#' the augmented data and the volatility path are outside the rotational
+#' indeterminacy and pass through untouched. [apply_rotation_fcast()]
+#' exploits exactly that and should be preferred in any hot path; this
+#' function is retained because it states the structure explicitly and
+#' serves as the reference the fast version is tested against.
 #'
 #' @noRd
 create_h_fcast <- function(D, n, q, p, s, t){
@@ -323,5 +381,43 @@ create_h_fcast <- function(D, n, q, p, s, t){
         cbind(Matrix(0,p*q^2,q*n), kronecker(Diagonal(p), kronecker(t(D), t(D))),
               Matrix(0,p*q^2,2*n+t+s+n*t)),
         cbind(Matrix(0,2*n+t+s+n*t,q*n+p*q^2), Diagonal(2*n+t+s+n*t)))
+
+}
+
+
+#' Apply H(D) to a packed draw without materializing H(D)
+#'
+#' Equivalent to `create_h_fcast(D, n, q, p, s, t) %*% theta`, but exploits
+#' the block structure documented there: only the loading block
+#' (`vec(Lambda) -> vec(Lambda D)`, i.e. `Lambda %*% D`) and the VAR block
+#' (`vec(Phi_j) -> vec(D' Phi_j D)`) are transformed; everything after them
+#' is copied unchanged.
+#'
+#' This matters because H(D) is
+#' `(nq + pq^2 + 2n + nt + t+s)` square - on a realistic problem roughly
+#' 11,750 x 11,750 - while only `nq + pq^2` of those rows (about 0.3%) do
+#' anything. Building it inside an optimizer's objective was the dominant
+#' cost of the rotation step.
+#'
+#' @noRd
+apply_rotation_fcast <- function(D, theta, n, q, p){
+
+  out <- as.numeric(theta)
+  nq <- n * q
+  npq <- nq + p * q^2
+
+  # loading block: vec(Lambda D) = (D' %x% I_n) vec(Lambda)
+  out[seq_len(nq)] <- as.numeric(matrix(out[seq_len(nq)], nrow = n, ncol = q) %*% D)
+
+  # VAR block: (I_p %x% (D' %x% D')) applied blockwise, i.e. Phi_j -> D' Phi_j D
+  if(p > 0){
+    for(j in seq_len(p)){
+      ix <- (nq + (j-1)*q^2 + 1):(nq + j*q^2)
+      out[ix] <- as.numeric(t(D) %*% matrix(out[ix], nrow = q, ncol = q) %*% D)
+    }
+  }
+
+  # everything from npq+1 onwards is outside the rotational indeterminacy
+  out
 
 }
