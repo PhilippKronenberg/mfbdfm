@@ -7,9 +7,11 @@
 create_inventory(flows, stocks)
 }
 \arguments{
-\item{flows}{Named list of \code{ts} objects treated as flow variables.}
+\item{flows}{Named list of \code{ts} objects treated as flow variables, or
+\code{NULL} for a model with no flow variables.}
 
-\item{stocks}{Named list of \code{ts} objects treated as stock variables.}
+\item{stocks}{Named list of \code{ts} objects treated as stock variables, or
+\code{NULL} for a model with no stock variables.}
 }
 \value{
 A data frame with one row per series and columns \code{key} (series

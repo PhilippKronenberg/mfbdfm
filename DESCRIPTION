@@ -33,7 +33,9 @@ Depends:
     R (>= 4.1)
 Imports:
     broom,
+    doParallel,
     dplyr (>= 1.0.0),
+    foreach,
     ggplot2,
     ggpubr,
     graphics,
@@ -41,7 +43,9 @@ Imports:
     knitr,
     lubridate,
     Matrix,
+    methods,
     Metrics,
+    parallel,
     plyr,
     purrr,
     rlang,
@@ -52,9 +56,8 @@ Imports:
     utils,
     zoo
 Suggests:
-    doParallel,
+    coda,
     forecast,
-    foreach,
     ggsci,
     ISOweek,
     pammtools,

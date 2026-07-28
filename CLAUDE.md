@@ -48,9 +48,13 @@ Documentation is generated from roxygen2 comments; **do not hand-edit `NAMESPACE
 
 | File | Contents |
 | --- | --- |
-| `hfdfm.R` | `hfdfm()` — the exported model entry point |
-| `samplers.R` | Internal Gibbs samplers (`run_sampling`, `draw_*`); no exports |
-| `model-helpers.R` | `create_inventory()`, `prepare_data()` + internal matrix builders |
+| `hfdfm.R` | `hfdfm()` — exported entry point, single-factor Kronenberg (2026) model |
+| `samplers.R` | Internal Gibbs samplers for `hfdfm()` (`run_sampling`, `draw_*`); no exports |
+| `fcast_dfm.R` | `fcast_dfm()` — exported entry point, multi-factor Eckert et al. (2025) model |
+| `samplers-mf.R` | Internal multi-factor samplers (`run_sampling_mf`, `draw_*_mf`); no exports |
+| `rotation.R` | Post-hoc rotation/identification for `fcast_dfm()` (`run_rotation`, `run_identification`, `getD`, `createH`, …); no exports |
+| `mf-helpers.R` | Multi-factor packing/evaluation helpers (`theta2list`, `list2theta`, `companion`, `run_evaluation`, `get_factors`, `get_hfts`, `get_nowcast_mf`); no exports |
+| `model-helpers.R` | `create_inventory()`, `prepare_data()` + internal matrix builders (shared by both models) |
 | `backcast.R` | `run_ar()`, `run_wai_adj()`, `retrieve_nowcast()`, `extract_wai_data()` |
 | `vintages.R` | `get_real_time_gdp_vintages()`, `cut_data()`, `cut_data_real_time()`, `select_most_recent_GDP_vintage()` |
 | `frequency-utils.R` | `week2mon()`, `drop_weekly()`, `drop_financial()`, `drop_retail()`, `dec2week()` |
@@ -113,8 +117,10 @@ Claude usage quota has been tight. Until the user says otherwise, follow the act
 ## Package architecture: conventions that aren't obvious from the code alone
 
 - **No side effects by default.** `run_ar()`/`run_wai_adj()` return the fit object (invisibly) and only write to disk when an explicit `output_dir` argument is given — they never infer a save path from `getwd()`. Same principle throughout: no `library()`/`source()`/`setwd()`/top-level code in `R/`.
-- **`hfdfm()`'s `q`, `stochastic_volatility`, `serial_correlation` arguments are currently accepted but ignored** by the sampler (always 1 factor + stochastic volatility + serial correlation). This is documented on the function, not a bug to "fix" without a deliberate model-design decision.
-- **Identification**: the factor's loading on `target` is fixed to 1 (informative prior shrinking its measurement error toward zero), so the extracted factor is directly interpretable as the target's (GDP's) growth rate. See `?hfdfm`'s `@details` and Kronenberg (2026) Sect. 2.4.
+- **Two distinct models, two exported entry points — not one model with a `q` argument** (issue #45). `hfdfm()` is the single-factor, target-anchored Kronenberg (2026) model; `fcast_dfm()` is the multi-factor Eckert et al. (2025) model. **`fcast_dfm(q = 1)` is NOT equivalent to `hfdfm()`**: they differ in identification (restriction imposed during sampling vs. post-hoc Procrustes + varimax rotation), in priors (target-anchored/informative vs. uninformative), and in how `phi` is drawn (conjugate Gibbs vs. Metropolis-Hastings). Multi-factor sampler internals carry an `_mf` suffix to avoid colliding with the single-factor ones. Only `create_inventory()`, `prepare_data()`, `get_distributed_lags()` and `get_gmat()` are genuinely shared.
+- **`hfdfm()`'s `q`, `stochastic_volatility`, `serial_correlation` arguments are currently accepted but ignored** by the sampler (always 1 factor + stochastic volatility + serial correlation). This is documented on the function, not a bug to "fix" — for multi-factor estimation use `fcast_dfm()`. (`fcast_dfm()` *does* honour its `stochastic_volatility`/`serial_correlation` flags.)
+- **Identification**: in `hfdfm()`, the factor's loading on `target` is fixed to 1 (informative prior shrinking its measurement error toward zero), so the extracted factor is directly interpretable as the target's (GDP's) growth rate. See `?hfdfm`'s `@details` and Kronenberg (2026) Sect. 2.4. `fcast_dfm()` instead samples an unidentified model and resolves the rotational indeterminacy afterwards. Its `target` argument does **not** affect estimation — it only selects which series' nowcast is surfaced at the top level of the return value.
+- **`prepare_data()` trims with `zoo::na.trim(is.na = "all")`, deliberately.** The reference multi-factor implementation used `window(start = min(raw times), end = max(raw times))` instead; that is buggy, because `prepare_data()` shifts low-frequency observations to the *end* of their period while `window()` compares against *pre-shift* times — measured to silently drop the most recent quarterly GDP observation. The two coincide on the shipped dataset (weekly series run past GDP's shifted end), which is why it went unnoticed. Don't "restore" the `window()` variant.
 - **The shipped `data_ch_dataset` does NOT contain the GDP target series** (`ch.seco.gdp.real.gdp.ssa`) — only `data_ch_dataset_test` does. Real workflows inject GDP at runtime from `get_real_time_gdp_vintages()` (reads `inst/extdata/realtime_gdp.csv` and `realtime_gdp_cssa.csv`, no path arguments needed — they ship with the package). This has caused confusion more than once; check which dataset an example needs.
 - **Analytics table builders take an explicit `inputs` list**, not implicit globals. `get_combined_cor_table()`, `get_insample_fit_table()`, `get_insample_error_details()` all require `inputs = <named list of ~10-16 data objects>`, validated against a `required_inputs` vector per `analysis_set`. This replaced the old pattern of scripts stuffing objects into the calling environment.
 - **`wai_sample_config()`** replaced the old `initialize_plots_insample_context()` (which wrote into the caller's environment) and **`load_analytics_packages()`** was deleted entirely (replaced by proper `@importFrom`). Analysis scripts source `analysis/5_plots/_setup.R` for the shared prelude.

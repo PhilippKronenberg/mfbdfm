@@ -4,8 +4,10 @@
 #' each series: its name, type, frequency, and the mean and standard
 #' deviation used for standardization in [prepare_data()].
 #'
-#' @param flows Named list of `ts` objects treated as flow variables.
-#' @param stocks Named list of `ts` objects treated as stock variables.
+#' @param flows Named list of `ts` objects treated as flow variables, or
+#'   `NULL` for a model with no flow variables.
+#' @param stocks Named list of `ts` objects treated as stock variables, or
+#'   `NULL` for a model with no stock variables.
 #'
 #' @return A data frame with one row per series and columns `key` (series
 #'   name), `type` (factor, `"flow"` or `"stock"`), `freq` (observations
@@ -21,21 +23,35 @@
 #' @export
 create_inventory <- function(flows, stocks){
 
-  # construct inventory of time series
-  inventory <- rbind(data.frame("key" = as.character(names(flows)),
-                                "type" = factor("flow", levels = c("stock","flow")),
-                                "freq" = sapply(flows, frequency),
-                                "mean" = sapply(flows, mean, na.rm=TRUE),
-                                "sd" = sapply(flows, sd, na.rm=TRUE),
-                                stringsAsFactors = FALSE,
-                                row.names = NULL),
-                     data.frame("key" = names(stocks),
-                                "type" = factor("stock", levels = c("stock","flow")),
-                                "freq" = sapply(stocks, frequency),
-                                "mean" = sapply(stocks, mean, na.rm=TRUE),
-                                "sd" = sapply(stocks, sd, na.rm=TRUE),
-                                stringsAsFactors = FALSE,
-                                row.names = NULL))
+  # construct inventory of time series. Each block is skipped entirely when
+  # that side is NULL, so a model can be specified with flows only or stocks
+  # only; rbind() drops NULL arguments, so the non-NULL block is returned
+  # unchanged and the both-supplied case is byte-for-byte as before.
+  if(is.null(flows)){
+    df_flows <- NULL
+  } else {
+    df_flows <- data.frame("key" = as.character(names(flows)),
+                           "type" = factor("flow", levels = c("stock","flow")),
+                           "freq" = sapply(flows, frequency),
+                           "mean" = sapply(flows, mean, na.rm=TRUE),
+                           "sd" = sapply(flows, sd, na.rm=TRUE),
+                           stringsAsFactors = FALSE,
+                           row.names = NULL)
+  }
+
+  if(is.null(stocks)){
+    df_stocks <- NULL
+  } else {
+    df_stocks <- data.frame("key" = names(stocks),
+                            "type" = factor("stock", levels = c("stock","flow")),
+                            "freq" = sapply(stocks, frequency),
+                            "mean" = sapply(stocks, mean, na.rm=TRUE),
+                            "sd" = sapply(stocks, sd, na.rm=TRUE),
+                            stringsAsFactors = FALSE,
+                            row.names = NULL)
+  }
+
+  inventory <- rbind(df_flows, df_stocks)
 
   # remove NULL entires
   if(length(which(inventory$key == "") > 0)) inventory <- inventory[-which(inventory$key == ""),]
