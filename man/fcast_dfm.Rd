@@ -79,6 +79,12 @@ high-frequency growth-rate estimates for every input series.}
 scale.}
 \item{inventory}{Data frame describing the series (see
 \code{\link[=create_inventory]{create_inventory()}}).}
+\item{target_series}{List collecting everything about \code{target} for
+inspection: \code{nowcast} (a data frame of \code{time}, \code{observed}, \code{mean},
+\code{lower}, \code{upper} at the target's own frequency) and
+\code{high_frequency} (the same columns for the high-frequency growth
+estimate). See \code{\link[=print.fcast_dfm]{print.fcast_dfm()}}.}
+\item{call}{The matched call.}
 }
 }
 \description{

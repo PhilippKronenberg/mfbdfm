@@ -6,21 +6,21 @@
 # samplers.R rather than generalized into them: the two models differ in
 # their priors, in how phi is drawn (conjugate Gibbs vs Metropolis-Hastings),
 # and above all in how the factors are identified (a restriction imposed
-# during sampling vs a post-hoc rotation). The `_mf` suffix marks the
+# during sampling vs a post-hoc rotation). The `_fcast` suffix marks the
 # multi-factor variant throughout.
 
 #' Run the multi-factor MCMC sampling loop
 #'
-#' Returns a matrix with one packed draw per row (see [list2theta()]).
+#' Returns a matrix with one packed draw per row (see [list2theta_fcast()]).
 #' The sampler runs *unidentified*: the factors and loadings are only
 #' determined up to a `q x q` rotation, which is resolved afterwards by
-#' [run_rotation()] and [run_identification()].
+#' [run_rotation_fcast()] and [run_identification_fcast()].
 #'
 #' @noRd
 #' @importFrom stats ts time frequency rnorm runif
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @importFrom graphics par title
-run_sampling_mf <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thinning,
+run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thinning,
                             inventory, plots, Gmat_prealloc,
                             stochastic_volatility, serial_correlation){
 
@@ -67,35 +67,35 @@ run_sampling_mf <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thinnin
     Gmat <- get_gmat(Gmat_prealloc, Llist, rho, lambda, s, t, n)
 
     # 0. augment data
-    Xmat <- draw_augmented_data_mf(Ymat, Gmat, f, rho, sigma, n, t, return_sample = TRUE)
+    Xmat <- draw_augmented_data_fcast(Ymat, Gmat, f, rho, sigma, n, t, return_sample = TRUE)
 
     # 1. draw factors (conditional on model parameters)
-    f <- draw_factors_mf(Xmat = Xmat, Gmat = Gmat, n = n, q = q, p = p, s = s, t = t,
+    f <- draw_factors_fcast(Xmat = Xmat, Gmat = Gmat, n = n, q = q, p = p, s = s, t = t,
                          lambda = lambda, phi = phi, sigma = sigma, h = h, rho = rho)
 
     # 2. draw stochastic volatility
     if(stochastic_volatility){
 
-      h <- draw_volatility_mf(f = f, phi = phi, n = n, q = q, p = p, s = s, t = t,
+      h <- draw_volatility_fcast(f = f, phi = phi, n = n, q = q, p = p, s = s, t = t,
                               omega = omega, indicators = indicators, Ymat = Ymat)
 
     }
 
     # 3. draw model parameters (conditional on factors and volatility)
-    Zmat <- get_zmat_mf(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
-    lambda <- draw_lambda_mf(Xmat = Xmat, Ymat = Ymat, Zmat = Zmat, sigma = sigma,
+    Zmat <- get_zmat_fcast(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
+    lambda <- draw_lambda_fcast(Xmat = Xmat, Ymat = Ymat, Zmat = Zmat, sigma = sigma,
                              rho = rho, n = n, q = q, t = t, inventory = inventory)
 
-    sigma <- draw_sigma_mf(Xmat = Xmat, Ymat = Ymat, Gmat = Gmat, f = f, n = n, t = t,
+    sigma <- draw_sigma_fcast(Xmat = Xmat, Ymat = Ymat, Gmat = Gmat, f = f, n = n, t = t,
                            inventory = inventory, rho = rho, sigma = sigma)
-    phi <- draw_phi_mf(f = f, h = h, p = p, q = q, t = t, s = s, phi_old = phi)
-    omega <- draw_omega_mf(h, t, p, s, omega_old = omega)
+    phi <- draw_phi_fcast(f = f, h = h, p = p, q = q, t = t, s = s, phi_old = phi)
+    omega <- draw_omega_fcast(h, t, p, s, omega_old = omega)
     if(serial_correlation){
-      rho <- draw_rho_mf(Xmat = Xmat, f = f, n = n, t = t, s = s, sigma = sigma,
+      rho <- draw_rho_fcast(Xmat = Xmat, f = f, n = n, t = t, s = s, sigma = sigma,
                          lambda = lambda, Llist = Llist, inventory = inventory)
     }
 
-    indicators <- draw_indicators_mf(h, f, phi, n, p, q, s, t)
+    indicators <- draw_indicators_fcast(h, f, phi, n, p, q, s, t)
 
     # 4. track a fixed random subset of the augmented data as a convergence check
     check_sample <- Xmat[checks]
@@ -114,7 +114,7 @@ run_sampling_mf <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thinnin
       colnames(pdat) <- c(paste("Factor",1:q),"SV")
       plot(pdat, ylim = c(-2.5,1), xlab = NULL, ylab = NULL, main = NA)
       title(main = paste0("Iteration ",jx, ", (max. Eigenvalue ",
-                          round(abs(eigen(companion(phi,p,q))$values[1]),4),")"),
+                          round(abs(eigen(companion_fcast(phi,p,q))$values[1]),4),")"),
             sub = paste0("SV process: omega ", round(omega,6)))
 
       # trace plots are a diagnostic nicety; coda is only a Suggests
@@ -127,7 +127,7 @@ run_sampling_mf <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thinnin
     # 5. start saving draws upon convergence
     if(jx > burn_in & jx %% thinning == 0){
 
-      theta_out[(jx - burn_in)/thinning,] <- list2theta(lambda, phi, diag(sigma), diag(rho), Xmat, h)
+      theta_out[(jx - burn_in)/thinning,] <- list2theta_fcast(lambda, phi, diag(sigma), diag(rho), Xmat, h)
 
     }
   }
@@ -142,7 +142,7 @@ run_sampling_mf <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thinnin
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_factors_mf <- function(Xmat, Gmat, n, q, p, s, t, lambda, phi, sigma, h, rho,
+draw_factors_fcast <- function(Xmat, Gmat, n, q, p, s, t, lambda, phi, sigma, h, rho,
                             return_sample = TRUE){
 
   # See section 2.5 Estimation
@@ -186,7 +186,7 @@ draw_factors_mf <- function(Xmat, Gmat, n, q, p, s, t, lambda, phi, sigma, h, rh
 #'
 #' @noRd
 #' @importFrom stats rnorm quantile
-draw_volatility_mf <- function(f, phi, n, q, p, s, t, omega, indicators, Ymat){
+draw_volatility_fcast <- function(f, phi, n, q, p, s, t, omega, indicators, Ymat){
 
   #  See appendix A.2 Stochastic Volatility
   err <- rbind(matrix(0,p,q),
@@ -228,7 +228,7 @@ draw_volatility_mf <- function(f, phi, n, q, p, s, t, omega, indicators, Ymat){
 #'
 #' @noRd
 #' @importFrom stats dnorm
-draw_indicators_mf <- function(h, f, phi, n, p, q, s, t){
+draw_indicators_fcast <- function(h, f, phi, n, p, q, s, t){
 
   #  See appendix A.2 Stochastic Volatility
   err <- rbind(matrix(0,p,q),
@@ -257,7 +257,7 @@ draw_indicators_mf <- function(h, f, phi, n, p, q, s, t){
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_augmented_data_mf <- function(Ymat, Gmat, f, rho, sigma, n, t, return_sample = TRUE){
+draw_augmented_data_fcast <- function(Ymat, Gmat, f, rho, sigma, n, t, return_sample = TRUE){
 
   Yvec <- t(Ymat)
   dim(Yvec) <- c(n*t,1)
@@ -289,11 +289,11 @@ draw_augmented_data_mf <- function(Ymat, Gmat, f, rho, sigma, n, t, return_sampl
 #' Draw the factor loadings (multi-factor, unrestricted)
 #'
 #' No identifying restriction is imposed here - that is what makes the
-#' post-hoc rotation in [run_rotation()] necessary.
+#' post-hoc rotation in [run_rotation_fcast()] necessary.
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_lambda_mf <- function(Xmat, Ymat, Zmat, sigma, rho, n, q, t, inventory){
+draw_lambda_fcast <- function(Xmat, Ymat, Zmat, sigma, rho, n, q, t, inventory){
 
   # See appendix A.4 Conditional distributions of Remaining Parameters: Factor Loadings
   Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
@@ -320,7 +320,7 @@ draw_lambda_mf <- function(Xmat, Ymat, Zmat, sigma, rho, n, q, t, inventory){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_sigma_mf <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma){
+draw_sigma_fcast <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma){
   # See appendix A.4: Measurement Error Covariance Matrix
 
   Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
@@ -358,7 +358,7 @@ draw_sigma_mf <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma){
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_rho_mf <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory){
+draw_rho_fcast <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory){
 
   # See appendix A.4: Autocorrelation of Measurement Errors
   Xfit <- Reduce("+", lapply(0:s, function(sx){
@@ -405,13 +405,13 @@ draw_rho_mf <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory){
 #'
 #' Unlike the conjugate Gibbs step used by the single-factor model, the
 #' multi-factor VAR coefficients are updated one at a time with a Beta
-#' random-walk proposal, rejecting draws that would make the companion
+#' random-walk proposal, rejecting draws that would make the companion_fcast
 #' matrix non-stationary (or a diagonal element negative).
 #'
 #' @noRd
 #' @importFrom stats rbeta runif
 #' @importFrom methods as
-draw_phi_mf <- function(f, h, p, q, t, s, phi_old){
+draw_phi_fcast <- function(f, h, p, q, t, s, phi_old){
 
   # dependent variable
   m <- matrix(t(f[(1+p):nrow(f),]))
@@ -424,11 +424,11 @@ draw_phi_mf <- function(f, h, p, q, t, s, phi_old){
   # covariance matrix
   V <- Diagonal(x = exp(2*rep(h[(1+p):(nrow(h)),], each = q)))
 
-  diag_elements <- list2vec(lapply(1:p, function(px) diag(q)))
+  diag_elements <- list2vec_fcast(lapply(1:p, function(px) diag(q)))
 
   # propose coefficients
-  a_old <- list2vec(phi_old) # old vector
-  a_new <- list2vec(phi_old) # proposal
+  a_old <- list2vec_fcast(phi_old) # old vector
+  a_new <- list2vec_fcast(phi_old) # proposal
 
   # draw proposals for each autoregressive coefficient and evaluate
   for(ix in 1:(p*q^2)){
@@ -457,7 +457,7 @@ draw_phi_mf <- function(f, h, p, q, t, s, phi_old){
     # stationarity check
     a_check <- a_new
     dim(a_check) <- c(q*p,q)
-    stat_check <- abs(eigen(companion(vec2list(a_check, p, q), p, q))$values)[1] > 1
+    stat_check <- abs(eigen(companion_fcast(vec2list_fcast(a_check, p, q), p, q))$values)[1] > 1
 
     # positivity check
     pos_check <- ((a_new[ix] < 0) & (diag_elements[ix] == 1))
@@ -472,7 +472,7 @@ draw_phi_mf <- function(f, h, p, q, t, s, phi_old){
   }
 
   dim(a_new) <- c(q*p,q)
-  vec2list(a_new, p, q)
+  vec2list_fcast(a_new, p, q)
 
 }
 
@@ -481,7 +481,7 @@ draw_phi_mf <- function(f, h, p, q, t, s, phi_old){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_omega_mf <- function(h, t, p, s, omega_old){
+draw_omega_fcast <- function(h, t, p, s, omega_old){
 
   m <- matrix(h[(s+1):nrow(h),] - h[s:(nrow(h)-1),])
 
@@ -511,7 +511,7 @@ draw_omega_mf <- function(h, t, p, s, omega_old){
 #' is the general form.
 #'
 #' @noRd
-get_zmat_mf <- function(f, n, t, s, Llist, rho){
+get_zmat_fcast <- function(f, n, t, s, Llist, rho){
 
   Reduce("+", lapply(0:(s+1), function(sx){
 

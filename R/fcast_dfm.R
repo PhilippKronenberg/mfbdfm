@@ -81,6 +81,12 @@
 #'       scale.}
 #'     \item{inventory}{Data frame describing the series (see
 #'       [create_inventory()]).}
+#'     \item{target_series}{List collecting everything about `target` for
+#'       inspection: `nowcast` (a data frame of `time`, `observed`, `mean`,
+#'       `lower`, `upper` at the target's own frequency) and
+#'       `high_frequency` (the same columns for the high-frequency growth
+#'       estimate). See [print.fcast_dfm()].}
+#'     \item{call}{The matched call.}
 #'   }
 #'
 #' @examples
@@ -199,7 +205,7 @@ fcast_dfm <- function(flows = NULL,
   # SAMPLING ----------------------------------------------------------------
 
   message("simulating posterior distribution..")
-  theta_out <- run_sampling_mf(Ymat = Ymat,
+  theta_out <- run_sampling_fcast(Ymat = Ymat,
                                q = q, n = n, t = t, p = p, s = s,
                                length_sample = length_sample,
                                burn_in = burn_in,
@@ -214,23 +220,86 @@ fcast_dfm <- function(flows = NULL,
   # ROTATION ----------------------------------------------------------------
 
   message("running rotation of each draw..")
-  D_save <- run_rotation(theta_out, n = n, q = q, p = p, s = s, t = t, ncores = ncores)
+  D_save <- run_rotation_fcast(theta_out, n = n, q = q, p = p, s = s, t = t, ncores = ncores)
 
 
   # IDENTIFICATION ----------------------------------------------------------
 
   message("running identification..")
-  rlist <- run_identification(theta_out, D_save, n = n, q = q, p = p, s = s, t = t)
+  rlist <- run_identification_fcast(theta_out, D_save, n = n, q = q, p = p, s = s, t = t)
 
 
   # EVALUATION --------------------------------------------------------------
 
   message("processing output..")
-  out <- run_evaluation(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t,
+  out <- run_evaluation_fcast(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t,
                         inventory, flows, stocks, target)
 
+  out$call <- match.call()
   class(out) <- "fcast_dfm"
 
   return(out)
+
+}
+
+
+#' Print a summary of a multi-factor dynamic factor model fit
+#'
+#' Reports the model dimensions and shows the most recent values of the
+#' target series: its observed values alongside the model's nowcast and 95%
+#' band, so the fit can be inspected at a glance.
+#'
+#' @param x An object of class `"fcast_dfm"` from [fcast_dfm()].
+#' @param n_show Integer, how many of the most recent target observations to
+#'   display.
+#' @param ... Ignored, present for compatibility with the [print()] generic.
+#'
+#' @return `x`, invisibly.
+#'
+#' @examples
+#' \dontrun{
+#' fit <- fcast_dfm(flows = flows, stocks = stocks, target = target, q = 2)
+#' fit          # calls print.fcast_dfm()
+#' print(fit, n_show = 12)
+#' }
+#'
+#' @method print fcast_dfm
+#' @export
+print.fcast_dfm <- function(x, n_show = 8, ...){
+
+  cat("Multi-factor mixed-frequency dynamic factor model (Eckert et al. 2025)\n")
+  if(!is.null(x$call)) cat("Call: ", deparse(x$call, nlines = 2), "\n", sep = "")
+  cat("\n")
+  cat("  series (n)      : ", x$pars$n, "\n", sep = "")
+  cat("  factors (q)     : ", x$pars$q, "\n", sep = "")
+  cat("  factor lags (p) : ", x$pars$p, "\n", sep = "")
+  cat("  periods (t)     : ", x$pars$t, "\n", sep = "")
+
+  ts_target <- x$target_series
+  cat("\nTarget series: ", ts_target$name, "\n", sep = "")
+
+  nc <- ts_target$nowcast
+  show <- utils::tail(nc, n_show)
+
+  cat("\n  Most recent nowcasts (95% band):\n\n")
+  fmt <- function(v) ifelse(is.na(v), "        NA", formatC(v, format = "f", digits = 4, width = 10))
+  cat(sprintf("  %10s %10s %10s %10s %10s\n",
+              "time", "observed", "nowcast", "lower", "upper"))
+  for(i in seq_len(nrow(show))){
+    cat(sprintf("  %10s %s %s %s %s\n",
+                formatC(show$time[i], format = "f", digits = 3, width = 10),
+                fmt(show$observed[i]), fmt(show$mean[i]),
+                fmt(show$lower[i]), fmt(show$upper[i])))
+  }
+
+  n_missing <- sum(is.na(nc$observed))
+  if(n_missing > 0){
+    cat("\n  ", n_missing, " of ", nrow(nc),
+        " periods have no observed value (nowcast/backcast).\n", sep = "")
+  }
+
+  cat("\nFull results: $factor, $ncst (all series), $data_hf, $target_series\n")
+
+  invisible(x)
 
 }

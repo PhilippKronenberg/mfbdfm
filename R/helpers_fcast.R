@@ -1,17 +1,17 @@
 # Helpers for the multi-factor model of Eckert et al. (2025), used by
 # fcast_dfm(). Draws are stored packed into a single numeric vector per
 # retained iteration ("theta") so that a rotation matrix can be applied to a
-# whole draw with one matrix multiplication (see createH() in rotation.R).
+# whole draw with one matrix multiplication (see create_h_fcast() in rotation.R).
 # All functions here are internal.
 
 #' Pack one draw of the model parameters into a single vector
 #'
-#' The packing order is fixed and must match [theta2list()]:
+#' The packing order is fixed and must match [theta2list_fcast()]:
 #' `lambda` (`n*q`), `phi` (`p*q^2`), `sigma` (`n`), `rho` (`n`),
 #' `Xmat` (`n*t`), `h` (`t+s`).
 #'
 #' @noRd
-list2theta <- function(lambda, phi, sigma, rho, Xmat, h){
+list2theta_fcast <- function(lambda, phi, sigma, rho, Xmat, h){
 
   rbind(matrix(lambda),
         do.call(rbind, lapply(phi, function(x) matrix(x))),
@@ -25,10 +25,10 @@ list2theta <- function(lambda, phi, sigma, rho, Xmat, h){
 
 #' Unpack a draw vector back into named model parameters
 #'
-#' Inverse of [list2theta()].
+#' Inverse of [list2theta_fcast()].
 #'
 #' @noRd
-theta2list <- function(theta, n, p, q, t){
+theta2list_fcast <- function(theta, n, p, q, t){
 
   list(lambda = matrix(theta[c(1:(n*q)),], ncol = q),
        phi =  lapply(1:p, function(px){
@@ -44,7 +44,7 @@ theta2list <- function(theta, n, p, q, t){
 #' Convert a stacked VAR coefficient vector into a list of lag matrices
 #'
 #' @noRd
-vec2list <- function(x, p, q){
+vec2list_fcast <- function(x, p, q){
 
   x_adj <- x
   dim(x_adj) <- c(p*q,q)
@@ -55,10 +55,10 @@ vec2list <- function(x, p, q){
 
 #' Convert a list of VAR lag matrices into a stacked coefficient vector
 #'
-#' Inverse of [vec2list()].
+#' Inverse of [vec2list_fcast()].
 #'
 #' @noRd
-list2vec <- function(x){
+list2vec_fcast <- function(x){
 
   matrix(t(do.call(cbind,x)))
 
@@ -67,11 +67,11 @@ list2vec <- function(x){
 
 #' Companion-form matrix of a VAR(p) coefficient list
 #'
-#' Used for the stationarity check in [draw_phi_mf()]: the VAR is stationary
+#' Used for the stationarity check in [draw_phi_fcast()]: the VAR is stationary
 #' when all eigenvalues of this matrix lie inside the unit circle.
 #'
 #' @noRd
-companion <- function(phi, p, q){
+companion_fcast <- function(phi, p, q){
 
   rbind(do.call(cbind,phi),cbind(diag(1,(p-1)*q),matrix(0,(p-1)*q,q)))
 
@@ -82,7 +82,7 @@ companion <- function(phi, p, q){
 #'
 #' @noRd
 #' @importFrom stats ts time frequency var
-get_factors <- function(Ymat, f_draws, inventory, n, q, p, s, t){
+get_factors_fcast <- function(Ymat, f_draws, inventory, n, q, p, s, t){
 
   list("mean" =  ts(Reduce("+",f_draws)/length(f_draws),
                     start = time(Ymat)[1]-(s/frequency(Ymat)),
@@ -108,10 +108,10 @@ get_factors <- function(Ymat, f_draws, inventory, n, q, p, s, t){
 #'
 #' @noRd
 #' @importFrom stats ts time var
-get_nowcast_mf <- function(Xmat, Ymat, rlist, inventory, n, q, p, s, t){
+get_nowcast_fcast <- function(Xmat, Ymat, rlist, inventory, n, q, p, s, t){
 
   Xmat_list <- lapply(rlist, function(x) {
-    Xm <- theta2list(theta = x, n, p, q, t)$Xmat
+    Xm <- theta2list_fcast(theta = x, n, p, q, t)$Xmat
     colnames(Xm) <- inventory$key
     Xm
 
@@ -164,7 +164,7 @@ get_nowcast_mf <- function(Xmat, Ymat, rlist, inventory, n, q, p, s, t){
 #'
 #' @noRd
 #' @importFrom stats ts time frequency var
-get_hfts <- function(Ymat, f_draws, th_mean, inventory, n, q, p, s, t, k){
+get_hfts_fcast <- function(Ymat, f_draws, th_mean, inventory, n, q, p, s, t, k){
 
   # get weekly growth rates for each time series
   out_draws <- lapply(inventory$key, function(ix){
@@ -216,13 +216,13 @@ get_hfts <- function(Ymat, f_draws, th_mean, inventory, n, q, p, s, t, k){
 #'
 #' @noRd
 #' @importFrom stats ts time frequency var
-run_evaluation <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, inventory,
+run_evaluation_fcast <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, inventory,
                            flows, stocks, target){
 
   # gather factor draws
   f_draws <- lapply(rlist, function(rx){
 
-    th_rx <- theta2list(theta = rx, n, p, q, t)
+    th_rx <- theta2list_fcast(theta = rx, n, p, q, t)
 
     Gmat <- get_gmat(Gmat_prealloc,
                      Llist = get_distributed_lags(inventory),
@@ -232,7 +232,7 @@ run_evaluation <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, invento
                      t = t,
                      n = n)
 
-    draw_factors_mf(Xmat = th_rx$Xmat,
+    draw_factors_fcast(Xmat = th_rx$Xmat,
                     Gmat = Gmat,
                     n = n,
                     q = q,
@@ -248,27 +248,27 @@ run_evaluation <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, invento
   })
 
   # retrieve mean and variance of the estimated factors
-  fcts <- get_factors(Ymat = Ymat, f_draws = f_draws, inventory = inventory,
+  fcts <- get_factors_fcast(Ymat = Ymat, f_draws = f_draws, inventory = inventory,
                       n = n, q = q, p = p, s = s, t = t)
 
   # get average of all parameter draws
-  th_mean <- theta2list(theta = Reduce("+",rlist)/length(rlist), n, p, q, t)
+  th_mean <- theta2list_fcast(theta = Reduce("+",rlist)/length(rlist), n, p, q, t)
 
   # get mean and variance of nowcasts
-  ncst <- get_nowcast_mf(Xmat = th_mean$Xmat,
+  ncst <- get_nowcast_fcast(Xmat = th_mean$Xmat,
                          Ymat = Ymat,
                          rlist = rlist,
                          inventory = inventory,
                          n = n, q = q, p = p, s = s, t = t)
 
   # get mean and variance of high frequency data
-  hfts <- get_hfts(Ymat = Ymat, f_draws = f_draws, th_mean = th_mean, inventory = inventory,
+  hfts <- get_hfts_fcast(Ymat = Ymat, f_draws = f_draws, th_mean = th_mean, inventory = inventory,
                    n = n, q = q, p = p, s = s, t = t, k = k)
 
   # get distribution of parameters
   rho_var <- apply(do.call(cbind, lapply(rlist, function(rx){
 
-    theta2list(rx, n, p, q, t)$rho
+    theta2list_fcast(rx, n, p, q, t)$rho
 
   })),1, var)
 
@@ -311,6 +311,55 @@ run_evaluation <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, invento
 
   }); names(out$data_augmented_rescaled) <- inventory$key
 
+  # collect everything about the target series in one place for inspection
+  out$target_series <- get_target_series_fcast(out, target)
+
   return(out)
+
+}
+
+
+#' Collect the target series' observed, nowcast and high-frequency estimates
+#'
+#' Gathers, in one place, everything the model says about the series named by
+#' `target`: the observed input data, the nowcast at the target's own
+#' frequency, and the high-frequency estimate, each with 95% bands. This is
+#' purely for inspection - it re-packages values already present elsewhere in
+#' the fit object and does not enter the estimation.
+#'
+#' @noRd
+#' @importFrom stats time qnorm
+get_target_series_fcast <- function(out, target){
+
+  z <- qnorm(0.975)
+
+  # nowcast at the target's own frequency
+  ncst_mean <- out$ncst$mean[[target]]
+  ncst_sd <- sqrt(out$ncst$var[[target]])
+  nowcast <- data.frame(time = as.numeric(time(ncst_mean)),
+                        mean = as.numeric(ncst_mean),
+                        lower = as.numeric(ncst_mean - z * ncst_sd),
+                        upper = as.numeric(ncst_mean + z * ncst_sd))
+
+  # observed input values, aligned onto the same time axis where they exist
+  observed <- out$data[[target]]
+  if(!is.null(observed)){
+    obs_df <- data.frame(time = round(as.numeric(time(observed)), 5),
+                         observed = as.numeric(observed))
+    nowcast$observed <- obs_df$observed[match(round(nowcast$time, 5), obs_df$time)]
+  } else {
+    nowcast$observed <- NA_real_
+  }
+  nowcast <- nowcast[, c("time", "observed", "mean", "lower", "upper")]
+
+  # high-frequency growth-rate estimate
+  hf_mean <- out$data_hf$mean[[target]]
+  hf_sd <- sqrt(out$data_hf$var[[target]])
+  high_frequency <- data.frame(time = as.numeric(time(hf_mean)),
+                               mean = as.numeric(hf_mean),
+                               lower = as.numeric(hf_mean - z * hf_sd),
+                               upper = as.numeric(hf_mean + z * hf_sd))
+
+  list(name = target, nowcast = nowcast, high_frequency = high_frequency)
 
 }

@@ -50,7 +50,42 @@ test_that("fcast_dfm returns a complete, finite fit object", {
 })
 
 test_that("fcast_dfm is deterministic given a seed", {
-  expect_identical(run_small_fcast(7), run_small_fcast(7))
+  # $call records the matched call, which differs between the two invocations
+  # only via the enclosing frame; compare everything else.
+  a <- run_small_fcast(7); b <- run_small_fcast(7)
+  a$call <- NULL; b$call <- NULL
+  expect_identical(a, b)
+})
+
+test_that("target_series collects the target's results for inspection", {
+  fit <- run_small_fcast(5)
+  ts_target <- fit$target_series
+
+  expect_equal(ts_target$name, fit$target)
+  expect_named(ts_target$nowcast, c("time", "observed", "mean", "lower", "upper"))
+  expect_named(ts_target$high_frequency, c("time", "mean", "lower", "upper"))
+
+  # bands must bracket the mean
+  expect_true(all(ts_target$nowcast$lower <= ts_target$nowcast$mean))
+  expect_true(all(ts_target$nowcast$mean <= ts_target$nowcast$upper))
+  expect_true(all(ts_target$high_frequency$lower <= ts_target$high_frequency$mean))
+
+  # observed values are aligned, and at least some are present
+  expect_true(sum(!is.na(ts_target$nowcast$observed)) > 0)
+  expect_true(all(is.finite(ts_target$nowcast$mean)))
+})
+
+test_that("print.fcast_dfm is registered and returns invisibly", {
+  fit <- run_small_fcast(5)
+
+  # dispatch actually happens (not default list printing)
+  expect_output(print(fit), "Multi-factor mixed-frequency dynamic factor model")
+  expect_output(print(fit), fit$target)
+  expect_output(print(fit), "Most recent nowcasts")
+
+  expect_false(withVisible(print(fit))$visible)
+  expect_identical(suppressWarnings(capture.output(res <- print(fit))) , capture.output(print(fit)))
+  expect_s3_class(res, "fcast_dfm")
 })
 
 test_that("fcast_dfm runs with a single factor", {

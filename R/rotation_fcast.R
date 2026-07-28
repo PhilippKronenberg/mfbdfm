@@ -1,14 +1,14 @@
 # Post-hoc rotation and identification for the multi-factor model of
 # Eckert et al. (2025).
 #
-# run_sampling_mf() deliberately leaves the model unidentified: with q > 1 the
+# run_sampling_fcast() deliberately leaves the model unidentified: with q > 1 the
 # factors and loadings are only determined up to an invertible q x q rotation.
 # These functions resolve that in two stages:
 #
-#   1. run_rotation()       - rotate every draw onto a common reference point
+#   1. run_rotation_fcast()       - rotate every draw onto a common reference point
 #                             (orthogonal Procrustes, iterated to convergence),
 #                             so that draws are mutually comparable.
-#   2. run_identification() - apply one further global rotation, chosen to make
+#   2. run_identification_fcast() - apply one further global rotation, chosen to make
 #                             the average loading matrix as close as possible to
 #                             its varimax rotation, i.e. to pick an
 #                             interpretable orientation.
@@ -21,7 +21,7 @@
 #' @importFrom foreach foreach %do% %dopar%
 #' @importFrom parallel makeCluster stopCluster
 #' @importFrom doParallel registerDoParallel
-run_rotation <- function(theta_out, n, q, p, s, t, ncores = NULL, max_iter = 5,
+run_rotation_fcast <- function(theta_out, n, q, p, s, t, ncores = NULL, max_iter = 5,
                          tol = 1e-9){
 
   length_sample <- nrow(theta_out)
@@ -30,7 +30,7 @@ run_rotation <- function(theta_out, n, q, p, s, t, ncores = NULL, max_iter = 5,
   rx <- NULL # silence R CMD check note for the foreach iterator
 
   # Initialize theta star from SVD
-  theta_star <- initialize_theta_star(theta_out = theta_out,
+  theta_star <- initialize_theta_star_fcast(theta_out = theta_out,
                                       length_sample = length_sample,
                                       n = n, q = q, p = p, s = s, t = t)
 
@@ -49,18 +49,18 @@ run_rotation <- function(theta_out, n, q, p, s, t, ncores = NULL, max_iter = 5,
 
       D_save <- foreach(rx = 1:length_sample,
                         .packages = c("Matrix","mfbdfm")) %dopar%
-        getD(theta_out = theta_out, theta_star = theta_star, rx = rx,
+        get_d_fcast(theta_out = theta_out, theta_star = theta_star, rx = rx,
              n = n, q = q, s = s, t = t, p = p)
 
     } else {
 
       D_save <- foreach(rx = 1:length_sample) %do%
-        getD(theta_out = theta_out, theta_star = theta_star, rx = rx,
+        get_d_fcast(theta_out = theta_out, theta_star = theta_star, rx = rx,
              n = n, q = q, s = s, t = t, p = p)
     }
 
     # 2. Compute theta star
-    rlist <- lapply(1:length_sample, function(rx) createH(D = D_save[[rx]], n, q, p, s, t) %*% theta_out[rx,])
+    rlist <- lapply(1:length_sample, function(rx) create_h_fcast(D = D_save[[rx]], n, q, p, s, t) %*% theta_out[rx,])
     theta_star_new <- Reduce("+",rlist)/length(rlist)
 
     # 3. Status message
@@ -93,7 +93,7 @@ run_rotation <- function(theta_out, n, q, p, s, t, ncores = NULL, max_iter = 5,
 #'
 #' @noRd
 #' @importFrom stats optim varimax
-run_identification <- function(theta_out, D_save, n, q, p, s, t){
+run_identification_fcast <- function(theta_out, D_save, n, q, p, s, t){
 
   if(q == 1){
 
@@ -107,7 +107,7 @@ run_identification <- function(theta_out, D_save, n, q, p, s, t){
     n_pars <- q*(q-1)/2
 
     optim_p <- optim(par = rep(1, n_pars),
-                     fn = loss_sim,
+                     fn = loss_sim_fcast,
                      D_save = D_save,
                      z = 1,
                      theta_out = theta_out,
@@ -117,7 +117,7 @@ run_identification <- function(theta_out, D_save, n, q, p, s, t){
                      method = "L-BFGS-B")
 
     optim_n <- optim(par = rep(1, n_pars),
-                     fn = loss_sim,
+                     fn = loss_sim_fcast,
                      D_save = D_save,
                      z = -1,
                      theta_out = theta_out,
@@ -126,18 +126,18 @@ run_identification <- function(theta_out, D_save, n, q, p, s, t){
                      upper = rep(upper_bound, n_pars),
                      method = "L-BFGS-B")
 
-    # the reflection (z = +/-1) is chosen by whichever attains the lower loss
+    # the reflection (z = +/-1) is chosen by whichever attains the lower loss_fcast
     if(optim_p$value < optim_n$value){
-      D_star <- generate_D(q, 1, optim_p$par)
+      D_star <- generate_d_fcast(q, 1, optim_p$par)
     } else {
-      D_star <- generate_D(q, -1, optim_n$par)
+      D_star <- generate_d_fcast(q, -1, optim_n$par)
     }
 
   }
 
   # apply the per-draw rotation followed by the global identifying rotation
   lapply(1:length(D_save), function(rx){
-    createH(D = D_save[[rx]] %*% D_star, n, q, p, s, t) %*% theta_out[rx,]
+    create_h_fcast(D = D_save[[rx]] %*% D_star, n, q, p, s, t) %*% theta_out[rx,]
   })
 
 }
@@ -146,7 +146,7 @@ run_identification <- function(theta_out, D_save, n, q, p, s, t){
 #' Starting value for the common rotation reference
 #'
 #' @noRd
-initialize_theta_star <- function(theta_out, length_sample, n, q, p, s, t){
+initialize_theta_star_fcast <- function(theta_out, length_sample, n, q, p, s, t){
 
   theta_star <- matrix(theta_out[length_sample,])
 
@@ -154,11 +154,11 @@ initialize_theta_star <- function(theta_out, length_sample, n, q, p, s, t){
 
   while(check_convergence){
 
-    lam_bar_star <- theta2list(theta_star, n, p, q, t)$lambda
+    lam_bar_star <- theta2list_fcast(theta_star, n, p, q, t)$lambda
 
     W0 <- lapply(1:n, function(ix){
       det(Reduce("+", lapply(1:length_sample, function(rx){
-        lam_bar0 <- theta2list(matrix(theta_out[rx,]), n = n, p = p, q = q, t = t)$lambda
+        lam_bar0 <- theta2list_fcast(matrix(theta_out[rx,]), n = n, p = p, q = q, t = t)$lambda
         (lam_bar0[ix,] - lam_bar_star[ix,]) %*% t(lam_bar0[ix,] - lam_bar_star[ix,])
       }))/length_sample)^(-1/q)
     })
@@ -167,13 +167,13 @@ initialize_theta_star <- function(theta_out, length_sample, n, q, p, s, t){
 
     rlist <- lapply(1:length_sample, function(rx){
 
-      D_bar <- theta2list(theta = matrix(theta_out[rx,]), n = n, p = p, q = q, t = t)$lambda
-      D_bar_star <- theta2list(theta = theta_star, n = n, p = p, q = q, t = t)$lambda
+      D_bar <- theta2list_fcast(theta = matrix(theta_out[rx,]), n = n, p = p, q = q, t = t)$lambda
+      D_bar_star <- theta2list_fcast(theta = theta_star, n = n, p = p, q = q, t = t)$lambda
 
       S <- svd(t(D_bar) %*% W %*% D_bar_star)
       D <- S$u %*% t(S$v)
 
-      createH(D, n, q, p, s, t) %*% theta_out[rx,]
+      create_h_fcast(D, n, q, p, s, t) %*% theta_out[rx,]
 
     })
 
@@ -196,13 +196,13 @@ initialize_theta_star <- function(theta_out, length_sample, n, q, p, s, t){
 #'
 #' @noRd
 #' @importFrom stats optim
-getD <- function(theta_out, theta_star, rx, n, q, p, s, t){
+get_d_fcast <- function(theta_out, theta_star, rx, n, q, p, s, t){
 
   if(q == 1){
 
     # with one factor only the scale/sign is free
-    D <- mean(theta2list(theta_star, n, p, q, t)$lambda) /
-      mean(theta2list(t(theta_out[rx,,drop=FALSE]), n, p, q, t)$lambda)
+    D <- mean(theta2list_fcast(theta_star, n, p, q, t)$lambda) /
+      mean(theta2list_fcast(t(theta_out[rx,,drop=FALSE]), n, p, q, t)$lambda)
 
   } else {
 
@@ -210,14 +210,14 @@ getD <- function(theta_out, theta_star, rx, n, q, p, s, t){
     upper_bound <- pi - 1e-16
     n_pars <- q*(q-1)/2
 
-    optim_p <- optim(par = rep(0,n_pars), fn = loss, z = 1,
+    optim_p <- optim(par = rep(0,n_pars), fn = loss_fcast, z = 1,
                      n = n, q = q, p = p, s = s, t = t,
                      th = t(theta_out[rx,,drop=FALSE]), th_star = theta_star,
                      lower = rep(lower_bound, n_pars),
                      upper = rep(upper_bound, n_pars),
                      method = "L-BFGS-B")
 
-    optim_n <- optim(par = rep(0,n_pars), fn = loss, z = -1,
+    optim_n <- optim(par = rep(0,n_pars), fn = loss_fcast, z = -1,
                      n = n, q = q, p = p, s = s, t = t,
                      th = t(theta_out[rx,,drop=FALSE]), th_star = theta_star,
                      lower = rep(lower_bound, n_pars),
@@ -225,9 +225,9 @@ getD <- function(theta_out, theta_star, rx, n, q, p, s, t){
                      method = "L-BFGS-B")
 
     if(optim_p$value < optim_n$value){
-      D <- generate_D(q, 1, optim_p$par)
+      D <- generate_d_fcast(q, 1, optim_p$par)
     } else {
-      D <- generate_D(q, -1, optim_n$par)
+      D <- generate_d_fcast(q, -1, optim_n$par)
     }
 
   }
@@ -240,27 +240,27 @@ getD <- function(theta_out, theta_star, rx, n, q, p, s, t){
 #' Squared distance between a rotated draw and the reference
 #'
 #' @noRd
-loss <- function(par, z, th, th_star, n, q, p, s, t){
+loss_fcast <- function(par, z, th, th_star, n, q, p, s, t){
 
-  d <- createH(D = generate_D(n = q, z = z, gammas = par), n, q, p, s, t) %*% th - th_star
+  d <- create_h_fcast(D = generate_d_fcast(n = q, z = z, gammas = par), n, q, p, s, t) %*% th - th_star
   as.numeric(t(d) %*% d)
 
 }
 
 
-#' Varimax-based loss for the final identifying rotation
+#' Varimax-based loss_fcast for the final identifying rotation
 #'
 #' @noRd
 #' @importFrom stats varimax
-loss_sim <- function(par, theta_out, D_save, z, n, q, p, s, t){
+loss_sim_fcast <- function(par, theta_out, D_save, z, n, q, p, s, t){
 
   rlist <- lapply(1:length(D_save), function(rx){
 
-    createH(D = D_save[[rx]] %*% generate_D(q, z, gammas = par), n, q, p, s, t) %*% theta_out[rx,]
+    create_h_fcast(D = D_save[[rx]] %*% generate_d_fcast(q, z, gammas = par), n, q, p, s, t) %*% theta_out[rx,]
 
   })
 
-  th_star <- theta2list(Reduce("+",rlist)/length(rlist), n, p, q, t)
+  th_star <- theta2list_fcast(Reduce("+",rlist)/length(rlist), n, p, q, t)
 
   sum((th_star$lambda - th_star$lambda %*% varimax(x = th_star$lambda, normalize = TRUE)$rotmat)^2)
 
@@ -270,7 +270,7 @@ loss_sim <- function(par, theta_out, D_save, z, n, q, p, s, t){
 #' Givens rotation matrix in the (i, j) plane
 #'
 #' @noRd
-gen_givens <- function(n, i, j, gam){
+gen_givens_fcast <- function(n, i, j, gam){
 
   G <- diag(n)
   G[i,i] <- cos(gam)
@@ -286,7 +286,7 @@ gen_givens <- function(n, i, j, gam){
 #' Build a q x q rotation (optionally with a reflection) from Givens angles
 #'
 #' @noRd
-generate_D <- function(n, z, gammas){
+generate_d_fcast <- function(n, z, gammas){
 
   Glist <- vector("list", n*(n-1)/2)
 
@@ -296,7 +296,7 @@ generate_D <- function(n, z, gammas){
 
     for(j in (i+1):n){
 
-      Glist[[dx]] <- gen_givens(n, i, j, gammas[dx])
+      Glist[[dx]] <- gen_givens_fcast(n, i, j, gammas[dx])
       dx <- dx + 1
 
     }
@@ -317,7 +317,7 @@ generate_D <- function(n, z, gammas){
 #' remaining blocks (sigma, rho, Xmat, h) untouched.
 #'
 #' @noRd
-createH <- function(D, n, q, p, s, t){
+create_h_fcast <- function(D, n, q, p, s, t){
 
   rbind(cbind(kronecker(t(D), Diagonal(n)), Matrix(0,q*n,p*q^2+2*n+t+s+n*t)),
         cbind(Matrix(0,p*q^2,q*n), kronecker(Diagonal(p), kronecker(t(D), t(D))),
