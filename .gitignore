@@ -60,3 +60,8 @@ outputs/
 
 # Benchmark literature PDFs (see the References section of vignette("mfbdfm"))
 analysis/benchmarks/*.pdf
+
+# reference papers (copyrighted; kept locally, not committed)
+*.pdf
+paper_text.rds
+appendix_text.rds

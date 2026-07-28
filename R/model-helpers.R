@@ -4,8 +4,10 @@
 #' each series: its name, type, frequency, and the mean and standard
 #' deviation used for standardization in [prepare_data()].
 #'
-#' @param flows Named list of `ts` objects treated as flow variables.
-#' @param stocks Named list of `ts` objects treated as stock variables.
+#' @param flows Named list of `ts` objects treated as flow variables, or
+#'   `NULL` for a model with no flow variables.
+#' @param stocks Named list of `ts` objects treated as stock variables, or
+#'   `NULL` for a model with no stock variables.
 #'
 #' @return A data frame with one row per series and columns `key` (series
 #'   name), `type` (factor, `"flow"` or `"stock"`), `freq` (observations
@@ -21,21 +23,35 @@
 #' @export
 create_inventory <- function(flows, stocks){
 
-  # construct inventory of time series
-  inventory <- rbind(data.frame("key" = as.character(names(flows)),
-                                "type" = factor("flow", levels = c("stock","flow")),
-                                "freq" = sapply(flows, frequency),
-                                "mean" = sapply(flows, mean, na.rm=TRUE),
-                                "sd" = sapply(flows, sd, na.rm=TRUE),
-                                stringsAsFactors = FALSE,
-                                row.names = NULL),
-                     data.frame("key" = names(stocks),
-                                "type" = factor("stock", levels = c("stock","flow")),
-                                "freq" = sapply(stocks, frequency),
-                                "mean" = sapply(stocks, mean, na.rm=TRUE),
-                                "sd" = sapply(stocks, sd, na.rm=TRUE),
-                                stringsAsFactors = FALSE,
-                                row.names = NULL))
+  # construct inventory of time series. Each block is skipped entirely when
+  # that side is NULL, so a model can be specified with flows only or stocks
+  # only; rbind() drops NULL arguments, so the non-NULL block is returned
+  # unchanged and the both-supplied case is byte-for-byte as before.
+  if(is.null(flows)){
+    df_flows <- NULL
+  } else {
+    df_flows <- data.frame("key" = as.character(names(flows)),
+                           "type" = factor("flow", levels = c("stock","flow")),
+                           "freq" = sapply(flows, frequency),
+                           "mean" = sapply(flows, mean, na.rm=TRUE),
+                           "sd" = sapply(flows, sd, na.rm=TRUE),
+                           stringsAsFactors = FALSE,
+                           row.names = NULL)
+  }
+
+  if(is.null(stocks)){
+    df_stocks <- NULL
+  } else {
+    df_stocks <- data.frame("key" = names(stocks),
+                            "type" = factor("stock", levels = c("stock","flow")),
+                            "freq" = sapply(stocks, frequency),
+                            "mean" = sapply(stocks, mean, na.rm=TRUE),
+                            "sd" = sapply(stocks, sd, na.rm=TRUE),
+                            stringsAsFactors = FALSE,
+                            row.names = NULL)
+  }
+
+  inventory <- rbind(df_flows, df_stocks)
 
   # remove NULL entires
   if(length(which(inventory$key == "") > 0)) inventory <- inventory[-which(inventory$key == ""),]
@@ -162,24 +178,55 @@ get_distributed_lags <- function(inventory){
 
 #' Regressor matrix for the factor loading draw
 #'
+#' @details
+#' Every `Llist` entry and `rho` are diagonal (see [get_distributed_lags()]),
+#' so each `aux` term below is diagonal too, and therefore every `n x n`
+#' block of the result is diagonal: the whole `((t-1)*n) x n` matrix holds
+#' only `(t-1)*n` nonzeros, one per row. Rather than forming `s+2` Kronecker
+#' products of that full size and summing them (which dominated sampler
+#' runtime), the block diagonals are accumulated into a small dense
+#' `(t-1) x n` matrix and the sparse result is assembled directly from it.
+#'
+#' The accumulation deliberately runs in the same `sx` order, with the same
+#' per-element multiply-then-add sequence, as the original
+#' `Reduce("+", lapply(...))` - floating-point addition is not associative,
+#' so preserving that order is what keeps the result bit-identical.
+#'
 #' @noRd
 get_zmat <- function(f, n, t, s, Llist, rho){
 
-  Reduce("+", lapply(0:(s+1), function(sx){
+  fv <- as.numeric(f)
+  rd <- diag(rho)
+  tm1 <- t - 1
+
+  # accumulate the block diagonals: cmat[i, j] is the (j, j) entry of block i
+  cmat <- NULL
+  for(sx in 0:(s+1)){
 
     if(sx == 0){
-      aux <- Llist[[as.character(0)]]
+      a <- diag(Llist[[as.character(0)]])
     } else if(sx == s+1){
-      aux <- -rho %*% Llist[[as.character(s)]]
+      a <- -rd * diag(Llist[[as.character(s)]])
     } else {
-      aux <- Llist[[as.character(sx-1)]] - rho %*% Llist[[as.character(sx)]]
+      a <- diag(Llist[[as.character(sx-1)]]) - rd * diag(Llist[[as.character(sx)]])
     }
 
-    f[seq(from = 2+s-sx, to = t+s-sx),] %x% aux
+    term <- outer(fv[seq(from = 2+s-sx, to = t+s-sx)], a)
+    cmat <- if(is.null(cmat)) term else cmat + term
 
-  }))
+  }
 
-
+  # assemble the sparse matrix in one shot. Column j holds the (j, j) entry of
+  # every block, i.e. rows (i-1)*n + j for i = 1..t-1, so the values in
+  # column-major order are exactly as.vector(cmat). sparseMatrix() is used in
+  # preference to new("dgCMatrix", ...) because ?sparseMatrix recommends it
+  # over constructing slots directly; it returns an identical object here and
+  # the extra cost is a fraction of a percent of sampler runtime.
+  sparseMatrix(i = rep(seq.int(1L, by = n, length.out = tm1), times = n) +
+                 rep(seq.int(0L, n - 1L), each = tm1),
+               j = rep(seq_len(n), each = tm1),
+               x = as.vector(cmat),
+               dims = c(tm1 * n, n))
 
 }
 

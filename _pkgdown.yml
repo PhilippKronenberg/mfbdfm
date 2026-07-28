@@ -4,12 +4,16 @@ template:
   bootstrap: 5
 
 reference:
-- title: Model
+- title: Models
   desc: >
-    The Bayesian mixed-frequency dynamic factor model behind the WAI, and
-    the helpers that prepare its input data.
+    The two Bayesian mixed-frequency dynamic factor models: the
+    target-anchored single-factor model behind the WAI (Kronenberg 2026) and
+    the rotation-identified multi-factor model (Eckert et al. 2025), plus the
+    helpers that prepare their input data.
   contents:
   - hfdfm
+  - fcast_dfm
+  - print.fcast_dfm
   - create_inventory
   - prepare_data
 
