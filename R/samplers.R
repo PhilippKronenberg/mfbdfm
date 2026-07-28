@@ -438,18 +438,40 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Autocorrelation of Measurement Errors
   # construct auxiliary matrix
 
-  Xfit <- Reduce("+", lapply(0:s, function(sx){
+  # Every Llist entry is diagonal, so Llist[[sx]] %*% lambda is an elementwise
+  # product and each term of the sum is an outer product - accumulate them as
+  # plain dense matrices instead of building s+1 Matrix objects and folding
+  # them with Matrix arithmetic. Runs in the same sx order, with the same
+  # per-element multiply-then-add sequence, as the original left-folding
+  # Reduce(): floating-point addition is not associative, so that ordering is
+  # what keeps the result bit-identical.
+  fv <- as.numeric(f)
+  lam <- as.numeric(lambda)
 
-    f[seq(from = 1+s-sx, to = t+s-sx),] %*% t(Llist[[as.character(sx)]] %*% lambda)
+  Xfit <- NULL
+  for(sx in 0:s){
 
-  }))
+    a <- diag(Llist[[as.character(sx)]]) * lam
+    term <- outer(fv[seq(from = 1+s-sx, to = t+s-sx)], a)
+    Xfit <- if(is.null(Xfit)) term else Xfit + term
+
+  }
 
   E <- Xmat - Xfit
 
+  # hoisted out of the per-series loop below, where each was recomputed for
+  # every one of the n series: the target lookup rescanned inventory$key, the
+  # measurement variances went through ddiMatrix `[` dispatch, and the lagged
+  # and led blocks of E were re-sliced by negative indexing on every use
+  target_ix <- which(inventory$key == target)
+  sigma_d <- diag(sigma)
+  nr <- nrow(E)
+  Elag <- E[-nr, , drop = FALSE]
+  Elead <- E[-1, , drop = FALSE]
 
   rho <- Diagonal(x = sapply(1:n, function(nx){
 
-    if(nx ==  which(inventory$key == target)){
+    if(nx == target_ix){
 
       r0 = 0
       R0 = 1e-9
@@ -460,8 +482,17 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target){
       R0 = 5
     }
 
-    R1 = solve(solve(R0) + solve(sigma[nx,nx]) * t(E[-nrow(E),nx]) %*% E[-nrow(E),nx])
-    r1 = R1 %*% (solve(R0) %*% r0 + solve(sigma[nx,nx]) %*% t(E[-nrow(E),nx]) %*% E[-1,nx])
+    elag <- Elag[,nx]
+    inv_sigma <- 1/sigma_d[nx]
+
+    # The two lines below deliberately keep the original association. `%*%`
+    # binds tighter than `*`, so in R1 the 1/sigma scaling is applied AFTER
+    # the elag'elag dot product, whereas r1's original
+    # solve(sigma) %*% t(elag) %*% elead associates left to right and so
+    # scales t(elag) BEFORE dotting it with elead. In floating point those
+    # are not interchangeable, so both forms are preserved verbatim.
+    R1 = 1/(1/R0 + inv_sigma * (t(elag) %*% elag))
+    r1 = R1 %*% ((1/R0) * r0 + (inv_sigma * t(elag)) %*% Elead[,nx])
 
 
     # Initialize stationarity check

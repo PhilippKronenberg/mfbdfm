@@ -177,7 +177,6 @@ get_distributed_lags <- function(inventory){
 #' so preserving that order is what keeps the result bit-identical.
 #'
 #' @noRd
-#' @importFrom methods new
 get_zmat <- function(f, n, t, s, Llist, rho){
 
   fv <- as.numeric(f)
@@ -201,15 +200,17 @@ get_zmat <- function(f, n, t, s, Llist, rho){
 
   }
 
-  # assemble the column-compressed sparse matrix directly. Column j holds the
-  # (j, j) entry of every block, i.e. rows (i-1)*n + j for i = 1..t-1, so the
-  # values in column-major order are exactly as.vector(cmat).
-  new("dgCMatrix",
-      i = as.integer(rep(seq.int(0L, by = n, length.out = tm1), times = n) +
-                       rep(seq.int(0L, n - 1L), each = tm1)),
-      p = as.integer(seq.int(0L, by = tm1, length.out = n + 1L)),
-      x = as.vector(cmat),
-      Dim = c(as.integer(tm1 * n), as.integer(n)))
+  # assemble the sparse matrix in one shot. Column j holds the (j, j) entry of
+  # every block, i.e. rows (i-1)*n + j for i = 1..t-1, so the values in
+  # column-major order are exactly as.vector(cmat). sparseMatrix() is used in
+  # preference to new("dgCMatrix", ...) because ?sparseMatrix recommends it
+  # over constructing slots directly; it returns an identical object here and
+  # the extra cost is a fraction of a percent of sampler runtime.
+  sparseMatrix(i = rep(seq.int(1L, by = n, length.out = tm1), times = n) +
+                 rep(seq.int(0L, n - 1L), each = tm1),
+               j = rep(seq_len(n), each = tm1),
+               x = as.vector(cmat),
+               dims = c(tm1 * n, n))
 
 }
 
