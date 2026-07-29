@@ -78,6 +78,22 @@ Run from the package root using `Rscript -e '<command>'` or interactively in R/R
 - `pkgdown::build_site()` — preview the documentation website locally (writes to gitignored `docs/`).
 - `R CMD build .` then `R CMD check --no-manual <tarball>` — what CI actually runs; useful when `devtools` behavior and `R CMD check` behavior diverge.
 
+## Verifying that a change did not alter results
+
+Most changes to the samplers are meant to be **behaviour-preserving**, and that claim should be checked rather than asserted. `dev/baseline.R` stores a snapshot of small seeded fits (both models, plus the `stochastic_volatility = FALSE` and `serial_correlation = FALSE` branches) so the check is one fit and a comparison rather than a git worktree and two:
+
+```r
+source("dev/baseline.R")
+baseline_check()    # compare current code against dev/baseline.rds  (~10 s)
+baseline_write()    # regenerate, ONLY when a change is meant to alter results
+```
+
+`baseline_check()` reports per-component max absolute and relative differences, and localizes a change to the affected model (a change in `samplers.R` leaves the `fcast_q2` entry identical). It caught a deliberate 1e-7 relative perturbation to a single prior in testing.
+
+- **This is a local developer tool, not a CI test, deliberately.** MCMC output is not bit-identical across platforms: a different BLAS sums in a different order, shifting the last bit, and an MCMC chain amplifies that to O(1) within a few iterations. A committed golden-value test would fail across the CI matrix for reasons unrelated to the code. The snapshot records the platform and `baseline_check()` warns when comparing across one.
+- The snapshot **is** committed, so it can be compared across commits and regenerated deliberately. Regenerating it is a visible act in the diff — if a commit changes `dev/baseline.rds`, it changed results, and the commit message should say why.
+- For a change that must be bit-identical, `baseline_check()` is the fast first pass; the git-worktree comparison against the parent commit remains the thorough one for anything touching the numerics.
+
 ## Pre-commit verification
 
 **Run `R CMD check` before every commit that touches package code** (`R/`, `tests/`, `DESCRIPTION`, `NAMESPACE`, `man/`, `vignettes/`) — not just before opening a PR. `devtools::check()` is fine for a quick local pass, but prefer the real `R CMD build .` then `R CMD check --no-manual <tarball>` sequence when in doubt, since `devtools::check()` and CI's `R CMD check` have diverged in this repo before (see the `.Rbuildignore` incident below). A clean local check on one commit does not guarantee the next commit is still clean — re-run it, don't assume. This is the same discipline as running the test suite after every substantive change; treat a passing `R CMD check` as a required gate before `git commit`, not an optional nicety saved for pre-merge.
