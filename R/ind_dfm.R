@@ -72,7 +72,12 @@
 #'     \item{data_augmented}{`ts` matrix of the augmented dataset.}
 #'     \item{inventory}{Data frame describing the series (see
 #'       [create_inventory()]).}
+#'     \item{call}{The matched call.}
 #'   }
+#'
+#' @seealso [fcast_dfm()] for the multi-factor model, [dfm_priors()] to vary
+#'   the priors, and [ind_dfm_methods] for the `print`, `summary`, `plot`,
+#'   `coef`, `fitted`, `residuals` and `as.data.frame` methods.
 #'
 #' @examples
 #' \donttest{
@@ -101,8 +106,8 @@
 #' @importFrom stats ts time frequency window var plot.ts
 #' @importFrom graphics par
 #' @export
-ind_dfm <- function(flows,
-                    stocks,
+ind_dfm <- function(flows = NULL,
+                    stocks = NULL,
                     target,
                     p = 1,
                     length_sample = 10000,
@@ -114,6 +119,10 @@ ind_dfm <- function(flows,
                     serial_correlation = TRUE,
                     priors = dfm_priors("ind_dfm")){
 
+  # validate inputs early, naming the offending argument
+  validate_model_inputs(flows = flows, stocks = stocks, target = target,
+                        p = p, length_sample = length_sample, burn_in = burn_in,
+                        thinning = thinning, call = "ind_dfm")
   check_priors(priors, "ind_dfm")
 
   # create an inventory of the time series involved
@@ -298,6 +307,7 @@ ind_dfm <- function(flows,
               "data_augmented" = Xmat_full,
               "inventory" = inventory)
 
+  out$call <- match.call()
   class(out) <- "ind_dfm"
 
   # return results

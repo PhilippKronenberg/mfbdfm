@@ -5,8 +5,8 @@
 \title{Estimate a high-frequency dynamic factor model}
 \usage{
 ind_dfm(
-  flows,
-  stocks,
+  flows = NULL,
+  stocks = NULL,
   target,
   p = 1,
   length_sample = 10000,
@@ -71,6 +71,7 @@ An object of class \code{"ind_dfm"}: a list with components
 \item{data_augmented}{\code{ts} matrix of the augmented dataset.}
 \item{inventory}{Data frame describing the series (see
 \code{\link[=create_inventory]{create_inventory()}}).}
+\item{call}{The matched call.}
 }
 }
 \description{
@@ -130,4 +131,9 @@ Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.
 Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
 Tracking economic activity with alternative high-frequency data.
 \emph{Journal of Applied Econometrics}, 40(3), 270-290.
+}
+\seealso{
+\code{\link[=fcast_dfm]{fcast_dfm()}} for the multi-factor model, \code{\link[=dfm_priors]{dfm_priors()}} to vary
+the priors, and \link{ind_dfm_methods} for the \code{print}, \code{summary}, \code{plot},
+\code{coef}, \code{fitted}, \code{residuals} and \code{as.data.frame} methods.
 }

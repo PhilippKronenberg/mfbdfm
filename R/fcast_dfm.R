@@ -140,21 +140,9 @@ fcast_dfm <- function(flows = NULL,
   check_priors(priors, "fcast_dfm")
 
   # validate inputs early, naming the offending argument
-  if(is.null(flows) && is.null(stocks)){
-    stop("At least one of `flows` and `stocks` must be supplied.", call. = FALSE)
-  }
-  if(missing(target) || !is.character(target) || length(target) != 1){
-    stop("`target` must be a single series name (character).", call. = FALSE)
-  }
-  available <- c(names(flows), names(stocks))
-  if(!target %in% available){
-    stop("`target` (\"", target, "\") is not among the supplied series.",
-         call. = FALSE)
-  }
-  if(length(stocks) + length(flows) < q){
-    stop("`q` (", q, ") must be smaller than the number of input series (",
-         length(stocks) + length(flows), ").", call. = FALSE)
-  }
+  validate_model_inputs(flows = flows, stocks = stocks, target = target,
+                        p = p, length_sample = length_sample, burn_in = burn_in,
+                        thinning = thinning, q = q, call = "fcast_dfm")
 
   # create an inventory of the time series involved
   inventory <- create_inventory(flows = flows, stocks = stocks)
@@ -251,26 +239,7 @@ fcast_dfm <- function(flows = NULL,
 }
 
 
-#' Print a summary of a multi-factor dynamic factor model fit
-#'
-#' Reports the model dimensions and shows the most recent values of the
-#' target series: its observed values alongside the model's nowcast and 95%
-#' band, so the fit can be inspected at a glance.
-#'
-#' @param x An object of class `"fcast_dfm"` from [fcast_dfm()].
-#' @param n_show Integer, how many of the most recent target observations to
-#'   display.
-#' @param ... Ignored, present for compatibility with the [print()] generic.
-#'
-#' @return `x`, invisibly.
-#'
-#' @examples
-#' \dontrun{
-#' fit <- fcast_dfm(flows = flows, stocks = stocks, target = target, q = 2)
-#' fit          # calls print.fcast_dfm()
-#' print(fit, n_show = 12)
-#' }
-#'
+#' @rdname fcast_dfm_methods
 #' @method print fcast_dfm
 #' @export
 print.fcast_dfm <- function(x, n_show = 8, ...){

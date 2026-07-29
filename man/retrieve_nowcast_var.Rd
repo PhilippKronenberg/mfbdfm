@@ -4,12 +4,15 @@
 \alias{retrieve_nowcast_var}
 \title{Extract the nowcast variance from a fit object}
 \usage{
-retrieve_nowcast_var(fit, model)
+retrieve_nowcast_var(fit, model = c("ar", "wai"))
 }
 \arguments{
 \item{fit}{A fit object from \code{\link[=run_ar]{run_ar()}} or \code{\link[=run_wai_adj]{run_wai_adj()}}.}
 
-\item{model}{Character, \code{"ar"} or \code{"wai"}.}
+\item{model}{Character, which kind of fit \code{fit} is: \code{"ar"} for the AR
+benchmark (whose nowcast is already a single value) or \code{"wai"} for the
+dynamic factor model (whose nowcast is a series, of which the last value
+is taken). Matched with \code{\link[=match.arg]{match.arg()}}.}
 }
 \value{
 The nowcast variance.
@@ -21,3 +24,8 @@ Extract the nowcast variance from a fit object
 fit <- list(nowcast_var = stats::ts(c(0.02, 0.04), start = 2024, frequency = 4))
 retrieve_nowcast_var(fit, model = "wai")
 }
+\seealso{
+Other backcasting functions: 
+\code{\link{retrieve_nowcast}()}
+}
+\concept{backcasting functions}

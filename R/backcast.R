@@ -115,18 +115,27 @@ run_wai_adj <- function(flows, stocks, target, date, dataset_used, stochastic_vo
 #' Extract the nowcast from a fit object
 #'
 #' @param fit A fit object from [run_ar()] or [run_wai_adj()].
-#' @param model Character, `"ar"` or `"wai"`.
+#' @param model Character, which kind of fit `fit` is: `"ar"` for the AR
+#'   benchmark (whose nowcast is already a single value) or `"wai"` for the
+#'   dynamic factor model (whose nowcast is a series, of which the last value
+#'   is taken). Matched with [match.arg()].
 #'
 #' @return The nowcast value.
 #' @examples
 #' fit <- list(nowcast = stats::ts(c(0.3, 0.5), start = 2024, frequency = 4))
 #' retrieve_nowcast(fit, model = "wai")
+#' @family backcasting functions
 #' @export
-retrieve_nowcast <- function(fit, model){
-  if(model == "ar") ncst <- fit$nowcast
-  if(model == "wai") ncst <- tail(fit$nowcast,1)
+retrieve_nowcast <- function(fit, model = c("ar", "wai")){
 
-  return(ncst)
+  # previously an if/if chain with no else: an unmatched `model` left `ncst`
+  # undefined and the user got "object 'ncst' not found", naming neither the
+  # argument nor the expectation
+  model <- match.arg(model)
+
+  switch(model,
+         ar  = fit$nowcast,
+         wai = tail(fit$nowcast, 1))
 
 }
 
@@ -138,12 +147,15 @@ retrieve_nowcast <- function(fit, model){
 #' @examples
 #' fit <- list(nowcast_var = stats::ts(c(0.02, 0.04), start = 2024, frequency = 4))
 #' retrieve_nowcast_var(fit, model = "wai")
+#' @family backcasting functions
 #' @export
-retrieve_nowcast_var <- function(fit, model){
-  if(model == "ar") ncst <- fit$nowcast_var
-  if(model == "wai") ncst <- tail(fit$nowcast_var,1)
+retrieve_nowcast_var <- function(fit, model = c("ar", "wai")){
 
-  return(ncst)
+  model <- match.arg(model)
+
+  switch(model,
+         ar  = fit$nowcast_var,
+         wai = tail(fit$nowcast_var, 1))
 
 }
 
