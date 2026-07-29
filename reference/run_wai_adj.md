@@ -1,7 +1,7 @@
 # Fit the WAI dynamic factor model at a given evaluation date
 
 Runs
-[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
 with the settings used in the WAI out-of-sample evaluation and windows
 the factor and nowcast output to the evaluation date.
 
@@ -45,7 +45,7 @@ run_wai_adj(
 - stochastic_volatility:
 
   Logical, passed to
-  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
   (currently without effect there).
 
 - output_dir:
@@ -56,7 +56,7 @@ run_wai_adj(
 
 ## Value
 
-Invisibly, the windowed `hfdfm` fit object.
+Invisibly, the windowed `ind_dfm` fit object.
 
 ## Examples
 

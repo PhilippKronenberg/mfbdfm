@@ -52,7 +52,7 @@ stocks <- lapply(data_ch_dataset_test$stocks[1:2],
                  stats::window, start = 2018)
 
 set.seed(1)
-fit <- hfdfm(flows = flows, stocks = stocks, target = target,
+fit <- ind_dfm(flows = flows, stocks = stocks, target = target,
              length_sample = 500, burn_in = 100)
 
 fit$factor    # weekly activity factor (annualized growth)
@@ -204,16 +204,42 @@ target-anchored single-factor model behind the WAI (Kronenberg 2026) and
 the rotation-identified multi-factor model (Eckert et al. 2025), plus
 the helpers that prepare their input data.
 
-- [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
-  : Estimate a high-frequency dynamic factor model
+- [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  : Estimate a single-factor, target-anchored dynamic factor model
 - [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
   : Estimate a multi-factor mixed-frequency dynamic factor model
-- [`print(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.fcast_dfm.md)
-  : Print a summary of a multi-factor dynamic factor model fit
+- [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
+  : Specify the prior distributions for a dynamic factor model
+- [`print(`*`<dfm_priors>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_priors.md)
+  : Print a prior specification
 - [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md)
   : Build an inventory of the model input series
 - [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
   : Standardize and align mixed-frequency series into one matrix
+
+## Methods on fitted models
+
+The generics both fit classes support: print, summary, plot, coef,
+fitted, residuals and as.data.frame.
+
+- [`coef(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  [`fitted(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  [`residuals(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  [`as.data.frame(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  [`plot(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  [`summary(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  [`print(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  : Methods for single-factor model fits
+- [`print(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+  [`coef(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+  [`fitted(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+  [`residuals(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+  [`as.data.frame(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+  [`plot(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+  [`summary(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+  : Methods for multi-factor model fits
+- [`print(`*`<summary.mfbdfm_fit>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.summary.mfbdfm_fit.md)
+  : Print a fit summary
 
 ## Backcasting & real-time vintages
 

@@ -44,10 +44,10 @@
 
       <dl><dt>
 
-          <code><a href="hfdfm.html">hfdfm()</a></code>
+          <code><a href="ind_dfm.html">ind_dfm()</a></code>
 
         </dt>
-        <dd>Estimate a high-frequency dynamic factor model</dd>
+        <dd>Estimate a single-factor, target-anchored dynamic factor model</dd>
 
         <dt>
 
@@ -58,10 +58,17 @@
 
         <dt>
 
-          <code><a href="print.fcast_dfm.html">print(<i>&lt;fcast_dfm&gt;</i>)</a></code>
+          <code><a href="dfm_priors.html">dfm_priors()</a></code>
 
         </dt>
-        <dd>Print a summary of a multi-factor dynamic factor model fit</dd>
+        <dd>Specify the prior distributions for a dynamic factor model</dd>
+
+        <dt>
+
+          <code><a href="print.dfm_priors.html">print(<i>&lt;dfm_priors&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print a prior specification</dd>
 
         <dt>
 
@@ -76,6 +83,36 @@
 
         </dt>
         <dd>Standardize and align mixed-frequency series into one matrix</dd>
+      </dl></div><div class="section level2">
+      <h2 id="methods-on-fitted-models">Methods on fitted models<a class="anchor" aria-label="anchor" href="#methods-on-fitted-models"></a></h2>
+
+      <div class="section-desc"><p>The generics both fit classes support: print, summary, plot, coef, fitted, residuals and as.data.frame.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="ind_dfm_methods.html">coef(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">fitted(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">residuals(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">as.data.frame(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">plot(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">summary(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">print(<i>&lt;ind_dfm&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Methods for single-factor model fits</dd>
+
+        <dt>
+
+          <code><a href="fcast_dfm_methods.html">print(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">coef(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">fitted(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">residuals(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">as.data.frame(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">plot(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">summary(<i>&lt;fcast_dfm&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Methods for multi-factor model fits</dd>
+
+        <dt>
+
+          <code><a href="print.summary.mfbdfm_fit.html">print(<i>&lt;summary.mfbdfm_fit&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print a fit summary</dd>
       </dl></div><div class="section level2">
       <h2 id="backcasting-real-time-vintages">Backcasting &amp; real-time vintages<a class="anchor" aria-label="anchor" href="#backcasting-real-time-vintages"></a></h2>
 

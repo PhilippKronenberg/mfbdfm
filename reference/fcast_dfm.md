@@ -22,7 +22,8 @@ fcast_dfm(
   extend = NULL,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
-  ncores = NULL
+  ncores = NULL,
+  priors = dfm_priors("fcast_dfm")
 )
 ```
 
@@ -88,6 +89,15 @@ fcast_dfm(
   Integer or `NULL`. Number of cores for the rotation step, which is run
   in parallel via doParallel when supplied.
 
+- priors:
+
+  Prior specification from
+  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md).
+  The default reproduces the published priors exactly. Note that the
+  loading prior carries the identification – it must stay diffuse for
+  the post-hoc rotation to work; see
+  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md).
+
 ## Value
 
 An object of class `"fcast_dfm"`: a list with components
@@ -151,7 +161,7 @@ An object of class `"fcast_dfm"`: a list with components
   data frame of `time`, `observed`, `mean`, `lower`, `upper` at the
   target's own frequency) and `high_frequency` (the same columns for the
   high-frequency growth estimate). See
-  [`print.fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/print.fcast_dfm.md).
+  [fcast_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md).
 
 - call:
 
@@ -160,14 +170,14 @@ An object of class `"fcast_dfm"`: a list with components
 ## Details
 
 This is a different model from
-[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md),
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
 not a multi-factor setting of it. The two differ in how the factors are
 identified, in their priors, and in how the autoregressive coefficients
 are drawn:
 
 - Identification:
 
-  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
   identifies the factor *during* sampling, by fixing the loading on
   `target` to one and shrinking that series' measurement error toward
   zero, so the factor is directly interpretable as the target's growth
@@ -187,16 +197,27 @@ are drawn:
   The factors follow a VAR(`p`) whose coefficients are drawn by
   Metropolis-Hastings with a stationarity constraint, rather than the
   conjugate Gibbs step used by
-  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md).
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md).
   A single stochastic volatility path is shared by all `q` factors.
 
 Because identification differs, `fcast_dfm(q = 1)` is **not** equivalent
 to
-[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md).
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md).
 Use
-[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
 for the target-anchored single-factor model of Kronenberg (2026), and
 `fcast_dfm()` for the multi-factor model.
+
+## Maturity
+
+This function is **experimental**. It reproduces the published sampler
+and is covered by structural tests, but it has not yet been validated by
+simulation recovery – generating data from a known `q`-factor process
+and checking that the estimated factors and loadings recover it up to
+rotation. Until that exists, treat multi-factor results (`q > 1`) as
+provisional.
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+is the settled entry point.
 
 `target` does not enter the estimation. It names the series whose
 nowcast is surfaced at the top level of the return value for
@@ -215,22 +236,61 @@ Kronenberg, P. (2026). A high-frequency GDP indicator for Switzerland.
 
 ## See also
 
-[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
 for the single-factor, target-anchored model.
+
+Other model fitting functions:
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
 
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest, not \dontrun: this works on the shipped data, it is only slow -
+# the post-hoc rotation step scales with the number of retained draws.
+# \donttest{
 data(data_ch_dataset_test)
 target <- "ch.seco.gdp.real.gdp.ssa"
 flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                stats::window, start = 2018)
+                stats::window, start = 2021)
 stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-                 stats::window, start = 2018)
+                 stats::window, start = 2021)
 set.seed(1)
 fit <- fcast_dfm(flows = flows, stocks = stocks, target = target,
-                 q = 2, length_sample = 50, burn_in = 10)
-fit$nowcast
-} # }
+                 q = 2, length_sample = 20, burn_in = 5)
+#> preallocating..
+#> simulating posterior distribution..
+#>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%
+#> running rotation of each draw..
+#> Rotation iteration 1: convergence 2.12e-05
+#> Rotation iteration 2: convergence 6.86e-06
+#> Rotation iteration 3: convergence 3.11e-06
+#> Rotation iteration 4: convergence 2.57e-09
+#> Rotation iteration 5: convergence 1.13e-11
+#> running identification..
+#> processing output..
+fit
+#> Multi-factor mixed-frequency dynamic factor model (Eckert et al. 2025)
+#> Call: fcast_dfm(flows = flows, stocks = stocks, target = target, q = 2,     length_sample = 20, burn_in = 5)
+#> 
+#>   series (n)      : 4
+#>   factors (q)     : 2
+#>   factor lags (p) : 1
+#>   periods (t)     : 250
+#> 
+#> Target series: ch.seco.gdp.real.gdp.ssa
+#> 
+#>   Most recent nowcasts (95% band):
+#> 
+#>         time   observed    nowcast      lower      upper
+#>     2024.000    -0.0012    -0.0012    -0.0012    -0.0012
+#>     2024.250     0.0078     0.0078     0.0078     0.0078
+#>     2024.500     0.0029     0.0029     0.0029     0.0029
+#>     2024.750     0.0052     0.0052     0.0052     0.0052
+#>     2025.000     0.0079     0.0079     0.0079     0.0079
+#>     2025.250     0.0012     0.0012     0.0012     0.0012
+#>     2025.500    -0.0044    -0.0044    -0.0044    -0.0044
+#>     2025.750     0.0015     0.0015     0.0015     0.0015
+#> 
+#> Full results: $factor, $ncst (all series), $data_hf, $target_series
+# }
 ```

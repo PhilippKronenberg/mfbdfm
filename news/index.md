@@ -10,11 +10,98 @@ release, since the underlying model is a general mixed-frequency
 Bayesian dynamic factor model and WAI is one application of it
 ([\#37](https://github.com/PhilippKronenberg/mfbdfm/issues/37)).
 
+### Breaking changes
+
+- `hfdfm()` is renamed
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+  and its S3 class with it. There is no deprecated alias: calls to
+  `hfdfm()` will fail with “could not find function”
+  ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
+- [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  no longer takes a `q` argument. It was accepted and silently ignored,
+  so `hfdfm(q = 2)` returned a one-factor model without complaint. Use
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  for multi-factor estimation
+  ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
+
 ### New features
 
-- [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
-  estimates the Bayesian mixed-frequency dynamic factor model behind the
-  Swiss Weekly Activity Index, with exported data-preparation helpers
+- [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  estimates the multi-factor mixed-frequency dynamic factor model of
+  Eckert, Kronenberg, Mikosch & Neuwirth (2025), with post-hoc rotation
+  and varimax identification. This is a **different model** from
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+  not a multi-factor setting of it – the two differ in identification,
+  priors and how the VAR coefficients are drawn, so `fcast_dfm(q = 1)`
+  is not
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md).
+  Marked experimental until validated by simulation recovery
+  ([\#45](https://github.com/PhilippKronenberg/mfbdfm/issues/45)).
+- [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
+  makes the priors a first-class, inspectable object with a
+  [`print()`](https://rdrr.io/r/base/print.html) method, and
+  distinguishes the priors that carry each model’s identification from
+  those that are genuinely tunable. `type` moves only the latter;
+  overriding a structural prior warns
+  ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
+- [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  and
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  now honour `stochastic_volatility` and `serial_correlation`. In
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  these were previously accepted and ignored. Note
+  `stochastic_volatility = FALSE` means something different in each
+  model, because they pin the factor scale in different places: an
+  estimated constant variance in
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+  a variance fixed at one in
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
+- Both fit classes support
+  [`print()`](https://rdrr.io/r/base/print.html),
+  [`summary()`](https://rdrr.io/r/base/summary.html),
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html),
+  [`coef()`](https://rdrr.io/r/stats/coef.html),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) and
+  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html).
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) returns `NA`
+  for unobserved periods rather than differencing against the zeros that
+  encode missingness. There is deliberately no
+  [`predict()`](https://rdrr.io/r/stats/predict.html) method
+  ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
+- Exported functions validate their inputs and report the offending
+  argument
+  ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
+
+### Bug fixes
+
+- [`retrieve_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast.md)
+  and
+  [`retrieve_nowcast_var()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast_var.md)
+  failed with “object ‘ncst’ not found” for any `model` other than
+  `"ar"` or `"wai"`, naming neither the argument nor the expectation.
+  Now use [`match.arg()`](https://rdrr.io/r/base/match.arg.html)
+  ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
+- [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)’s
+  `pars$h` had a trailing `NA` – it was sliced one element past the end
+  of the volatility path – and was shifted one period against `factor`.
+  Estimates were unaffected; only the reported value was wrong
+  ([\#49](https://github.com/PhilippKronenberg/mfbdfm/issues/49)).
+- [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+  keeps `zoo::na.trim(is.na = "all")` for both models. The alternative
+  used by the reference multi-factor implementation silently dropped the
+  most recent low-frequency observation, because it compared pre-shift
+  times against a grid where low-frequency observations have been
+  shifted to the end of their period
+  ([\#45](https://github.com/PhilippKronenberg/mfbdfm/issues/45)).
+
+### Converting the research scripts into a package
+
+- [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  (originally `hfdfm()`) estimates the Bayesian mixed-frequency dynamic
+  factor model behind the Swiss Weekly Activity Index, with exported
+  data-preparation helpers
   [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md)
   and
   [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)

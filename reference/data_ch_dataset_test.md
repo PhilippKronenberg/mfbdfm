@@ -14,7 +14,7 @@ data_ch_dataset_test
 ## Format
 
 A list with two components, as expected by
-[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md):
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md):
 
 - flows:
 

@@ -4,7 +4,7 @@ Standardizes each series using the moments from the inventory, aligns
 all series on the highest-frequency time grid, and returns a single
 multivariate `ts` matrix in which missing observations are encoded as
 zero (as expected by the
-[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
 sampler).
 
 ## Usage
@@ -37,6 +37,11 @@ prepare_data(flows, stocks, inventory, target)
 
 A multivariate `ts` at the highest input frequency with one column per
 series; missing values are encoded as `0`.
+
+## See also
+
+Other data preparation functions:
+[`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md)
 
 ## Examples
 

@@ -29,6 +29,11 @@ A data frame with one row per series and columns `key` (series name),
 `type` (factor, `"flow"` or `"stock"`), `freq` (observations per year),
 `mean` and `sd` (moments of the raw series, NA-removed).
 
+## See also
+
+Other data preparation functions:
+[`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+
 ## Examples
 
 ``` r

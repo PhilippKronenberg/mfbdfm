@@ -12,11 +12,10 @@ underlying model is general — it is not tied to any one derived
 indicator.
 
 `mfbdfm` estimates a Bayesian mixed-frequency dynamic factor model
-([`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)).
-The package ships a flagship application, the **Weekly Activity Index
-(WAI)**, a high-frequency GDP indicator for Switzerland. The methodology
-and full empirical results are published in Kronenberg (2026), *Swiss
-Journal of Economics and Statistics*, 162:10,
+(`hfdfm()`). The package ships a flagship application, the **Weekly
+Activity Index (WAI)**, a high-frequency GDP indicator for Switzerland.
+The methodology and full empirical results are published in Kronenberg
+(2026), *Swiss Journal of Economics and Statistics*, 162:10,
 <https://doi.org/10.1186/s41937-026-00157-w>, extending the multi-factor
 framework of Eckert, Kronenberg, Mikosch & Neuwirth (2025), *Journal of
 Applied Econometrics*, 40(3), 270–290. **Always cite these two papers,
@@ -70,8 +69,8 @@ matters for the 1:1 test-file convention below):
 
 | File | Contents |
 |----|----|
-| `hfdfm.R` | [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md) — exported entry point, single-factor Kronenberg (2026) model |
-| `samplers.R` | Internal Gibbs samplers for [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md) (`run_sampling`, `draw_*`); no exports |
+| `hfdfm.R` | `hfdfm()` — exported entry point, single-factor Kronenberg (2026) model |
+| `samplers.R` | Internal Gibbs samplers for `hfdfm()` (`run_sampling`, `draw_*`); no exports |
 | `fcast_dfm.R` | [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md) — exported entry point, multi-factor Eckert et al. (2025) model |
 | `samplers_fcast.R` | Internal multi-factor samplers (`run_sampling_fcast`, `draw_*_fcast`); no exports |
 | `rotation_fcast.R` | Post-hoc rotation/identification for [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md) (`run_rotation_fcast`, `run_identification_fcast`, `get_d_fcast`, `create_h_fcast`, …); no exports |
@@ -107,6 +106,42 @@ interactively in R/RStudio.
 - `R CMD build .` then `R CMD check --no-manual <tarball>` — what CI
   actually runs; useful when `devtools` behavior and `R CMD check`
   behavior diverge.
+
+## Verifying that a change did not alter results
+
+Most changes to the samplers are meant to be **behaviour-preserving**,
+and that claim should be checked rather than asserted. `dev/baseline.R`
+stores a snapshot of small seeded fits (both models, plus the
+`stochastic_volatility = FALSE` and `serial_correlation = FALSE`
+branches) so the check is one fit and a comparison rather than a git
+worktree and two:
+
+``` r
+
+source("dev/baseline.R")
+baseline_check()    # compare current code against dev/baseline.rds  (~10 s)
+baseline_write()    # regenerate, ONLY when a change is meant to alter results
+```
+
+`baseline_check()` reports per-component max absolute and relative
+differences, and localizes a change to the affected model (a change in
+`samplers.R` leaves the `fcast_q2` entry identical). It caught a
+deliberate 1e-7 relative perturbation to a single prior in testing.
+
+- **This is a local developer tool, not a CI test, deliberately.** MCMC
+  output is not bit-identical across platforms: a different BLAS sums in
+  a different order, shifting the last bit, and an MCMC chain amplifies
+  that to O(1) within a few iterations. A committed golden-value test
+  would fail across the CI matrix for reasons unrelated to the code. The
+  snapshot records the platform and `baseline_check()` warns when
+  comparing across one.
+- The snapshot **is** committed, so it can be compared across commits
+  and regenerated deliberately. Regenerating it is a visible act in the
+  diff — if a commit changes `dev/baseline.rds`, it changed results, and
+  the commit message should say why.
+- For a change that must be bit-identical, `baseline_check()` is the
+  fast first pass; the git-worktree comparison against the parent commit
+  remains the thorough one for anything touching the numerics.
 
 ## Pre-commit verification
 
@@ -217,38 +252,33 @@ constraint.
   [`library()`](https://rdrr.io/r/base/library.html)/[`source()`](https://rdrr.io/r/base/source.html)/[`setwd()`](https://rdrr.io/r/base/getwd.html)/top-level
   code in `R/`.
 - **Two distinct models, two exported entry points — not one model with
-  a `q` argument** (issue \#45).
-  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
-  is the single-factor, target-anchored Kronenberg (2026) model;
+  a `q` argument** (issue \#45). `hfdfm()` is the single-factor,
+  target-anchored Kronenberg (2026) model;
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
   is the multi-factor Eckert et al. (2025) model. **`fcast_dfm(q = 1)`
-  is NOT equivalent to
-  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)**:
-  they differ in identification (restriction imposed during sampling
-  vs. post-hoc Procrustes + varimax rotation), in priors
-  (target-anchored/informative vs. uninformative), and in how `phi` is
-  drawn (conjugate Gibbs vs. Metropolis-Hastings). Multi-factor sampler
-  internals carry a `_fcast` suffix to avoid colliding with the
-  single-factor ones (files: `samplers_fcast.R`, `helpers_fcast.R`,
-  `rotation_fcast.R`). Only
+  is NOT equivalent to `hfdfm()`**: they differ in identification
+  (restriction imposed during sampling vs. post-hoc Procrustes + varimax
+  rotation), in priors (target-anchored/informative vs. uninformative),
+  and in how `phi` is drawn (conjugate Gibbs vs. Metropolis-Hastings).
+  Multi-factor sampler internals carry a `_fcast` suffix to avoid
+  colliding with the single-factor ones (files: `samplers_fcast.R`,
+  `helpers_fcast.R`, `rotation_fcast.R`). Only
   [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md),
   [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md),
   `get_distributed_lags()` and `get_gmat()` are genuinely shared.
-- **[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)’s
-  `q`, `stochastic_volatility`, `serial_correlation` arguments are
-  currently accepted but ignored** by the sampler (always 1 factor +
-  stochastic volatility + serial correlation). This is documented on the
-  function, not a bug to “fix” — for multi-factor estimation use
+- **`hfdfm()`’s `q`, `stochastic_volatility`, `serial_correlation`
+  arguments are currently accepted but ignored** by the sampler (always
+  1 factor + stochastic volatility + serial correlation). This is
+  documented on the function, not a bug to “fix” — for multi-factor
+  estimation use
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
   ([`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
   *does* honour its `stochastic_volatility`/`serial_correlation` flags.)
-- **Identification**: in
-  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md),
-  the factor’s loading on `target` is fixed to 1 (informative prior
-  shrinking its measurement error toward zero), so the extracted factor
-  is directly interpretable as the target’s (GDP’s) growth rate. See
-  [`?hfdfm`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)‘s
-  `@details` and Kronenberg (2026) Sect. 2.4.
+- **Identification**: in `hfdfm()`, the factor’s loading on `target` is
+  fixed to 1 (informative prior shrinking its measurement error toward
+  zero), so the extracted factor is directly interpretable as the
+  target’s (GDP’s) growth rate. See `?hfdfm`‘s `@details` and
+  Kronenberg (2026) Sect. 2.4.
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
   instead samples an unidentified model and resolves the rotational
   indeterminacy afterwards. Its `target` argument does **not** affect
@@ -316,9 +346,9 @@ constraint.
   **never** the private, gitignored `analysis/Rda/` result caches or
   `fits/` directory, so the suite runs identically for anyone who clones
   the repo.
-- [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
-  itself is tested with a small, seeded, short-chain smoke test
-  (structure + [`identical()`](https://rdrr.io/r/base/identical.html)
+- `hfdfm()` itself is tested with a small, seeded, short-chain smoke
+  test (structure +
+  [`identical()`](https://rdrr.io/r/base/identical.html)
   seed-determinism), not value-level regression — MCMC output isn’t
   expected to be bit-stable across code changes to the sampler, only
   across identical code with identical seeds.
@@ -330,6 +360,99 @@ constraint.
   `on.exit(grDevices::dev.off(), add = TRUE)` — otherwise R opens a real
   default device and leaves a stray `Rplots.pdf` behind (bit us once;
   see `test-hfdfm.R` and `test-analytics-cor.R` for the pattern).
+
+## User-facing API conventions (issue \#48)
+
+These apply to **exported** functions — the ones a package user calls
+directly. They exist because \#45 applied good practice to a new
+function
+([`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md))
+and not to the existing one, leaving two model entry points of visibly
+different quality in the same package.
+
+- **Parity rule: anything true of one model entry point must be true of
+  the other.**
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  and
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  get the same validation, the same S3 methods, and the same argument
+  name for the same concept. When you touch one, check the other. This
+  is the rule that prevents the whole class of problems below.
+- **Validate inputs in exported functions, not internals.** Check early,
+  and name the offending argument and what was expected. Never validate
+  inside `draw_*()`/`run_sampling*()` — those run once per MCMC
+  iteration and would pay the cost for nothing.
+- **No silent wrong answers.** An argument that is accepted and ignored
+  is a bug, not a documentation problem. `hfdfm(q = 2)` silently
+  returned a one-factor model; `retrieve_nowcast(model = "AR")` failed
+  with `object 'ncst' not found`, naming neither the argument nor the
+  expectation. Use
+  [`match.arg()`](https://rdrr.io/r/base/match.arg.html) for fixed
+  choice sets.
+- **Document shared parameters once and `@inheritParams` them.** The two
+  entry points duplicated 11 identical `@param` blocks; duplicated docs
+  drift. Good `@param` text is also what produces argument
+  auto-completion with descriptions in RStudio — there is no separate
+  mechanism for that.
+- **Defaults are scientifically appropriate, with runtime documented** —
+  not tuned so the first run finishes quickly.
+- **Fit objects support `print`, `summary`, `plot`, `as.data.frame`,
+  `fitted`, `residuals`, `coef`, and store
+  [`match.call()`](https://rdrr.io/r/base/match.call.html).**
+  Deliberately **no
+  [`predict()`](https://rdrr.io/r/stats/predict.html)**: this model does
+  not forecast in the usual sense — nowcasts are computed during fitting
+  and stored — so a [`predict()`](https://rdrr.io/r/stats/predict.html)
+  returning stored values would advertise a capability that does not
+  exist.
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html)/[`residuals()`](https://rdrr.io/r/stats/residuals.html)
+  must mask missing observations, since zeros in the prepared data
+  encode *missing*.
+- **Prefer `\donttest{}` to `\dontrun{}`.** `\dontrun` blocks never
+  execute, so those examples are never checked; `\donttest` is run under
+  `--run-donttest`. Reserve `\dontrun` for examples that genuinely
+  cannot run (private `fits/` data).
+- Not adopted, deliberately: renaming exports to a `mfbdfm_` prefix for
+  discoverability (would break every existing analysis script — may be
+  used for *new* exports only).
+
+## Scale identification: pin it in exactly one place
+
+A factor model has one unavoidable scale indeterminacy — replacing
+`f -> c*f` and `Lambda -> Lambda/c` leaves the likelihood unchanged — so
+the scale must be pinned in exactly one place, and **only one**. The two
+models spend that identification differently, and almost every
+behavioural difference between them follows from it:
+
+|  | pins the loadings | pins the state variance |
+|----|----|----|
+| `ind_dfm` | yes — `samplers.R`, `lambda[target] <- 1` | no, must stay free |
+| `fcast_dfm` | no — loadings unrestricted | yes — state covariance = I |
+
+Consequences worth knowing before changing anything in the samplers:
+
+- **`stochastic_volatility = FALSE` means different things in each
+  model.** In `ind_dfm` the innovation variance is the free parameter
+  the data determines, so it is estimated as a single constant
+  (conjugate inverse-gamma). In `fcast_dfm` it is fixed at exactly 1
+  (`h = 0`) — Aßmann et al.’s original assumption, which EKMN relaxed to
+  `I * e^h`. Estimating a free constant there would sit on an
+  unidentified ridge where the variance trades off exactly against the
+  scale of `Lambda`.
+- `samplers_fcast.R` **normalises h’s level and spread away on every
+  draw** (`h <- (h - Q1) * (0.01 / (Q3 - Q1))`, commented “necessary for
+  identification”) because only the *shape* of the volatility path is
+  identified there. `samplers.R` has no such line — only a numerical
+  clamp — because the level *is* identified by the anchoring. Do not
+  “harmonise” these.
+- **Some priors are the identification, not tuning knobs.** In
+  `ind_dfm`, the target’s measurement variance (`c0 = t`, `d0 = t*1e-3`)
+  and serial correlation (`R0 = 1e-9`) are what make the factor track
+  GDP; relaxing them silently dissolves the anchoring. In `fcast_dfm`,
+  the `lambda` prior must stay diffuse or it conflicts with the post-hoc
+  rotation. `dfm_priors(type = ...)` therefore moves **tunable priors
+  only**; changing a structural one requires an explicit argument that
+  warns.
 
 ## Documentation & release conventions
 

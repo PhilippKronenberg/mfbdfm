@@ -65,7 +65,8 @@ nowcasts are derived for every input series.</p>
 <span>  extend <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  stochastic_volatility <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  serial_correlation <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  ncores <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  ncores <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  priors <span class="op">=</span> <span class="fu"><a href="dfm_priors.html">dfm_priors</a></span><span class="op">(</span><span class="st">"fcast_dfm"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -134,6 +135,13 @@ measurement errors. If <code>FALSE</code>, the autocorrelations are fixed near z
 <dd><p>Integer or <code>NULL</code>. Number of cores for the rotation step,
 which is run in parallel via <span class="pkg">doParallel</span> when supplied.</p></dd>
 
+
+<dt id="arg-priors">priors<a class="anchor" aria-label="anchor" href="#arg-priors"></a></dt>
+<dd><p>Prior specification from <code><a href="dfm_priors.html">dfm_priors()</a></code>. The default
+reproduces the published priors exactly. Note that the loading prior
+carries the identification – it must stay diffuse for the post-hoc
+rotation to work; see <code><a href="dfm_priors.html">dfm_priors()</a></code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -185,7 +193,7 @@ scale.</p></dd>
 inspection: <code>nowcast</code> (a data frame of <code>time</code>, <code>observed</code>, <code>mean</code>,
 <code>lower</code>, <code>upper</code> at the target's own frequency) and
 <code>high_frequency</code> (the same columns for the high-frequency growth
-estimate). See <code><a href="print.fcast_dfm.html">print.fcast_dfm()</a></code>.</p></dd>
+estimate). See <a href="fcast_dfm_methods.html">fcast_dfm_methods</a>.</p></dd>
 
 <dt>call</dt>
 <dd><p>The matched call.</p></dd>
@@ -194,11 +202,11 @@ estimate). See <code><a href="print.fcast_dfm.html">print.fcast_dfm()</a></code>
 </dl></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>This is a different model from <code><a href="hfdfm.html">hfdfm()</a></code>, not a multi-factor setting of
+    <p>This is a different model from <code><a href="ind_dfm.html">ind_dfm()</a></code>, not a multi-factor setting of
 it. The two differ in how the factors are identified, in their priors,
 and in how the autoregressive coefficients are drawn:</p>
 <dl><dt>Identification</dt>
-<dd><p><code><a href="hfdfm.html">hfdfm()</a></code> identifies the factor <em>during</em> sampling,
+<dd><p><code><a href="ind_dfm.html">ind_dfm()</a></code> identifies the factor <em>during</em> sampling,
 by fixing the loading on <code>target</code> to one and shrinking that series'
 measurement error toward zero, so the factor is directly interpretable
 as the target's growth rate. <code>fcast_dfm()</code> instead samples an
@@ -214,13 +222,22 @@ series is treated specially.</p></dd>
 <dt>Factor dynamics</dt>
 <dd><p>The factors follow a VAR(<code>p</code>) whose coefficients
 are drawn by Metropolis-Hastings with a stationarity constraint,
-rather than the conjugate Gibbs step used by <code><a href="hfdfm.html">hfdfm()</a></code>. A single
+rather than the conjugate Gibbs step used by <code><a href="ind_dfm.html">ind_dfm()</a></code>. A single
 stochastic volatility path is shared by all <code>q</code> factors.</p></dd>
 
 
 </dl><p>Because identification differs, <code>fcast_dfm(q = 1)</code> is <strong>not</strong> equivalent to
-<code><a href="hfdfm.html">hfdfm()</a></code>. Use <code><a href="hfdfm.html">hfdfm()</a></code> for the target-anchored single-factor model of
+<code><a href="ind_dfm.html">ind_dfm()</a></code>. Use <code><a href="ind_dfm.html">ind_dfm()</a></code> for the target-anchored single-factor model of
 Kronenberg (2026), and <code>fcast_dfm()</code> for the multi-factor model.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="maturity">Maturity<a class="anchor" aria-label="anchor" href="#maturity"></a></h2>
+    <p>This function is <strong>experimental</strong>. It reproduces the published sampler and
+is covered by structural tests, but it has not yet been validated by
+simulation recovery – generating data from a known <code>q</code>-factor process and
+checking that the estimated factors and loadings recover it up to rotation.
+Until that exists, treat multi-factor results (<code>q &gt; 1</code>) as provisional.
+<code><a href="ind_dfm.html">ind_dfm()</a></code> is the settled entry point.</p>
 <p><code>target</code> does not enter the estimation. It names the series whose nowcast
 is surfaced at the top level of the return value for convenience; results
 for every series remain available in <code>ncst</code> and <code>data_hf</code>.</p>
@@ -236,23 +253,61 @@ Switzerland. <em>Swiss Journal of Economics and Statistics</em>, 162, 10.
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="hfdfm.html">hfdfm()</a></code> for the single-factor, target-anchored model.</p></div>
+    <div class="dont-index"><p><code><a href="ind_dfm.html">ind_dfm()</a></code> for the single-factor, target-anchored model.</p>
+<p>Other model fitting functions:
+<code><a href="ind_dfm.html">ind_dfm()</a></code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest, not \dontrun: this works on the shipped data, it is only slow -</span></span></span>
+<span class="r-in"><span><span class="co"># the post-hoc rotation step scales with the number of retained draws.</span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">target</span> <span class="op">&lt;-</span> <span class="st">"ch.seco.gdp.real.gdp.ssa"</span></span></span>
 <span class="r-in"><span><span class="va">flows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">]</span>,</span></span>
-<span class="r-in"><span>                <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2018</span><span class="op">)</span></span></span>
+<span class="r-in"><span>                <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">stocks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span>,</span></span>
-<span class="r-in"><span>                 <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2018</span><span class="op">)</span></span></span>
+<span class="r-in"><span>                 <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">fcast_dfm</span><span class="op">(</span>flows <span class="op">=</span> <span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">stocks</span>, target <span class="op">=</span> <span class="va">target</span>,</span></span>
-<span class="r-in"><span>                 q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">50</span>, burn_in <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">fit</span><span class="op">$</span><span class="va">nowcast</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span>                 q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">20</span>, burn_in <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> preallocating..</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> simulating posterior distribution..</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> running rotation of each draw..</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 1: convergence 2.12e-05</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 2: convergence 6.86e-06</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 3: convergence 3.11e-06</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 4: convergence 2.57e-09</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 5: convergence 1.13e-11</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> running identification..</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> processing output..</span>
+<span class="r-in"><span><span class="va">fit</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multi-factor mixed-frequency dynamic factor model (Eckert et al. 2025)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Call: fcast_dfm(flows = flows, stocks = stocks, target = target, q = 2,     length_sample = 20, burn_in = 5)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   series (n)      : 4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   factors (q)     : 2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   factor lags (p) : 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   periods (t)     : 250</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Target series: ch.seco.gdp.real.gdp.ssa</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Most recent nowcasts (95% band):</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         time   observed    nowcast      lower      upper</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2024.000    -0.0012    -0.0012    -0.0012    -0.0012</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2024.250     0.0078     0.0078     0.0078     0.0078</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2024.500     0.0029     0.0029     0.0029     0.0029</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2024.750     0.0052     0.0052     0.0052     0.0052</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2025.000     0.0079     0.0079     0.0079     0.0079</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2025.250     0.0012     0.0012     0.0012     0.0012</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2025.500    -0.0044    -0.0044    -0.0044    -0.0044</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2025.750     0.0015     0.0015     0.0015     0.0015</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $ncst (all series), $data_hf, $target_series</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

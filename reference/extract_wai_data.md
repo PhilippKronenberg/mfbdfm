@@ -1,6 +1,6 @@
 # Extract WAI growth, level and year-over-year tables from a saved fit
 
-Loads a saved `hfdfm` fit (an `.Rda` file containing an object `mod`)
+Loads a saved `ind_dfm` fit (an `.Rda` file containing an object `mod`)
 and derives long-format tables of the weekly growth rate (with 95%
 bands), the cumulated level index (rebased to 2020 = 100), and
 year-over-year growth, as used by the plotting scripts.

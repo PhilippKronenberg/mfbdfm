@@ -5,7 +5,7 @@ Extract the nowcast variance from a fit object
 ## Usage
 
 ``` r
-retrieve_nowcast_var(fit, model)
+retrieve_nowcast_var(fit, model = c("ar", "wai"))
 ```
 
 ## Arguments
@@ -19,11 +19,20 @@ retrieve_nowcast_var(fit, model)
 
 - model:
 
-  Character, `"ar"` or `"wai"`.
+  Character, which kind of fit `fit` is: `"ar"` for the AR benchmark
+  (whose nowcast is already a single value) or `"wai"` for the dynamic
+  factor model (whose nowcast is a series, of which the last value is
+  taken). Matched with
+  [`match.arg()`](https://rdrr.io/r/base/match.arg.html).
 
 ## Value
 
 The nowcast variance.
+
+## See also
+
+Other backcasting functions:
+[`retrieve_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast.md)
 
 ## Examples
 

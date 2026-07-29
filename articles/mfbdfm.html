@@ -99,7 +99,7 @@ the package’s user-facing workflow only.</p>
 <div class="section level2">
 <h2 id="the-model-briefly">The model, briefly<a class="anchor" aria-label="anchor" href="#the-model-briefly"></a>
 </h2>
-<p><code><a href="../reference/hfdfm.html">hfdfm()</a></code> estimates a single latent weekly factor
+<p><code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> estimates a single latent weekly factor
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>f</mi><mi>t</mi></msub><annotation encoding="application/x-tex">f_t</annotation></semantics></math>
 whose (distributed-lag, temporally aggregated) measurement equation
 links it to every input series, and whose autoregressive state equation
@@ -125,8 +125,8 @@ common factor.</li>
 </ul>
 <p>Identification fixes the factor’s loading on the target series (GDP)
 to one and shrinks its measurement error toward zero, so the factor
-tracks GDP growth closely by construction — see <code><a href="../reference/hfdfm.html">?hfdfm</a></code> for
-the details and references, and <code><a href="../articles/mfbdfm.html">vignette("mfbdfm")</a></code>’s
+tracks GDP growth closely by construction — see <code><a href="../reference/ind_dfm.html">?ind_dfm</a></code>
+for the details and references, and <code><a href="../articles/mfbdfm.html">vignette("mfbdfm")</a></code>’s
 “Real-time GDP vintages” section below for how the target series itself
 is constructed for live use.</p>
 </div>
@@ -151,7 +151,7 @@ quickly.</p>
 <span><span class="va">stocks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span>, <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2018</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hfdfm.html">hfdfm</a></span><span class="op">(</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ind_dfm.html">ind_dfm</a></span><span class="op">(</span></span>
 <span>  flows <span class="op">=</span> <span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">stocks</span>, target <span class="op">=</span> <span class="va">target</span>,</span>
 <span>  length_sample <span class="op">=</span> <span class="fl">200</span>, burn_in <span class="op">=</span> <span class="fl">50</span></span>
 <span><span class="op">)</span></span>
@@ -161,11 +161,11 @@ quickly.</p>
 <span><span class="co">#&gt; processing output..</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "hfdfm"</span></span>
+<span><span class="co">#&gt; [1] "ind_dfm"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;  [1] "factor"         "factor_var"     "index"          "nowcast"       </span></span>
 <span><span class="co">#&gt;  [5] "nowcast_var"    "target"         "pars"           "data"          </span></span>
-<span><span class="co">#&gt;  [9] "data_augmented" "inventory"</span></span></code></pre></div>
+<span><span class="co">#&gt;  [9] "data_augmented" "inventory"      "call"</span></span></code></pre></div>
 <p><code>fit$factor</code> is the annualized weekly growth rate implied
 by the model — the WAI itself — and <code>fit$nowcast</code> is that
 same information aggregated back up to the target’s own (here quarterly)
@@ -260,7 +260,7 @@ below.</li>
 <em>Tracking economic activity with alternative high-frequency
 data</em>, Journal of Applied Econometrics, 40(3), 270-290. The
 underlying (multi-factor) Bayesian mixed-frequency dynamic factor model
-that <code><a href="../reference/hfdfm.html">hfdfm()</a></code> implements as a single-factor special
+that <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> implements as a single-factor special
 case.</li>
 <li>Eckert, Kronenberg, Mikosch, Neuwirth — <em>Weekly Activity Index
 (WWA)</em>, SECO technical note and press material, 2021. Available from

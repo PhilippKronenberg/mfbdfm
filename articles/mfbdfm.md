@@ -38,7 +38,7 @@ package’s user-facing workflow only.
 
 ## The model, briefly
 
-[`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
 estimates a single latent weekly factor $`f_t`$ whose (distributed-lag,
 temporally aggregated) measurement equation links it to every input
 series, and whose autoregressive state equation includes **stochastic
@@ -61,7 +61,7 @@ real-world mixed-frequency data:
 Identification fixes the factor’s loading on the target series (GDP) to
 one and shrinks its measurement error toward zero, so the factor tracks
 GDP growth closely by construction — see
-[`?hfdfm`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+[`?ind_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
 for the details and references, and
 [`vignette("mfbdfm")`](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.md)’s
 “Real-time GDP vintages” section below for how the target series itself
@@ -88,7 +88,7 @@ flows <- lapply(
 stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2018)
 
 set.seed(1)
-fit <- hfdfm(
+fit <- ind_dfm(
   flows = flows, stocks = stocks, target = target,
   length_sample = 200, burn_in = 50
 )
@@ -98,11 +98,11 @@ fit <- hfdfm(
 #> processing output..
 
 class(fit)
-#> [1] "hfdfm"
+#> [1] "ind_dfm"
 names(fit)
 #>  [1] "factor"         "factor_var"     "index"          "nowcast"       
 #>  [5] "nowcast_var"    "target"         "pars"           "data"          
-#>  [9] "data_augmented" "inventory"
+#>  [9] "data_augmented" "inventory"      "call"
 ```
 
 `fit$factor` is the annualized weekly growth rate implied by the model —
@@ -217,7 +217,7 @@ and related functions documented under
   *Tracking economic activity with alternative high-frequency data*,
   Journal of Applied Econometrics, 40(3), 270-290. The underlying
   (multi-factor) Bayesian mixed-frequency dynamic factor model that
-  [`hfdfm()`](https://philippkronenberg.github.io/mfbdfm/reference/hfdfm.md)
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
   implements as a single-factor special case.
 - Eckert, Kronenberg, Mikosch, Neuwirth — *Weekly Activity Index (WWA)*,
   SECO technical note and press material, 2021. Available from SECO
