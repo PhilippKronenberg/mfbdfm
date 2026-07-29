@@ -18,3 +18,4 @@
 \.pdf$
 ^paper_text\.rds$
 ^appendix_text\.rds$
+^dev$
