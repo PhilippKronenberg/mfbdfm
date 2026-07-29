@@ -5,7 +5,7 @@
 \alias{data_ch_dataset}
 \title{Harmonized Swiss indicator dataset for the WAI model}
 \format{
-A list with two components, as expected by \code{hfdfm()}:
+A list with two components, as expected by \code{ind_dfm()}:
 \describe{
 \item{flows}{Named list of 45 \code{ts} objects treated as flow
 variables. The quarterly GDP target series is \emph{not} included;

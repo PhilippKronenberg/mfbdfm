@@ -30,3 +30,8 @@ inv <- create_inventory(flows = data_ch_dataset_test$flows,
 head(inv)
 
 }
+\seealso{
+Other data preparation functions: 
+\code{\link{prepare_data}()}
+}
+\concept{data preparation functions}

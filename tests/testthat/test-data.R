@@ -1,4 +1,4 @@
-test_that("shipped datasets have the structure hfdfm() expects", {
+test_that("shipped datasets have the structure ind_dfm() expects", {
   expect_named(data_ch_dataset, c("flows", "stocks"))
   expect_named(data_ch_dataset_test, c("flows", "stocks"))
   # Only the test variant ships the GDP target; the full dataset gets it

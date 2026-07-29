@@ -6,7 +6,7 @@
 \alias{mfbdfm-package}
 \title{mfbdfm: A Mixed-Frequency Bayesian Dynamic Factor Model}
 \description{
-Estimates a Bayesian mixed-frequency dynamic factor model (\code{\link[=hfdfm]{hfdfm()}})
+Estimates a Bayesian mixed-frequency dynamic factor model (\code{\link[=ind_dfm]{ind_dfm()}})
 that combines indicators observed at weekly, monthly and quarterly
 frequencies into a single dynamic factor. The package ships a
 flagship application, the Weekly Activity Index (WAI): a weekly GDP
@@ -48,7 +48,7 @@ The package ships the curated indicator datasets \link{data_ch_dataset}
 and \link{data_ch_dataset_test}, plus the real-time GDP vintage database
 (in \verb{inst/extdata/}), so a small nowcast can be estimated out of the
 box - see \code{vignette("mfbdfm")} for a worked walkthrough, or the
-example in \code{\link[=hfdfm]{hfdfm()}} for the minimal version.
+example in \code{\link[=ind_dfm]{ind_dfm()}} for the minimal version.
 }
 
 \references{

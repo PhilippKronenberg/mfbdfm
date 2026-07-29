@@ -11,11 +11,21 @@ reference:
     the rotation-identified multi-factor model (Eckert et al. 2025), plus the
     helpers that prepare their input data.
   contents:
-  - hfdfm
+  - ind_dfm
   - fcast_dfm
-  - print.fcast_dfm
+  - dfm_priors
+  - print.dfm_priors
   - create_inventory
   - prepare_data
+
+- title: Methods on fitted models
+  desc: >
+    The generics both fit classes support: print, summary, plot, coef,
+    fitted, residuals and as.data.frame.
+  contents:
+  - ind_dfm_methods
+  - fcast_dfm_methods
+  - print.summary.mfbdfm_fit
 
 - title: Backcasting & real-time vintages
   desc: >

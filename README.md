@@ -55,7 +55,7 @@ stocks <- lapply(data_ch_dataset_test$stocks[1:2],
                  stats::window, start = 2018)
 
 set.seed(1)
-fit <- hfdfm(flows = flows, stocks = stocks, target = target,
+fit <- ind_dfm(flows = flows, stocks = stocks, target = target,
              length_sample = 500, burn_in = 100)
 
 fit$factor    # weekly activity factor (annualized growth)

@@ -7,12 +7,12 @@
 #' nowcasts are derived for every input series.
 #'
 #' @details
-#' This is a different model from [hfdfm()], not a multi-factor setting of
+#' This is a different model from [ind_dfm()], not a multi-factor setting of
 #' it. The two differ in how the factors are identified, in their priors,
 #' and in how the autoregressive coefficients are drawn:
 #'
 #' \describe{
-#'   \item{Identification}{[hfdfm()] identifies the factor *during* sampling,
+#'   \item{Identification}{[ind_dfm()] identifies the factor *during* sampling,
 #'     by fixing the loading on `target` to one and shrinking that series'
 #'     measurement error toward zero, so the factor is directly interpretable
 #'     as the target's growth rate. `fcast_dfm()` instead samples an
@@ -24,13 +24,22 @@
 #'     series is treated specially.}
 #'   \item{Factor dynamics}{The factors follow a VAR(`p`) whose coefficients
 #'     are drawn by Metropolis-Hastings with a stationarity constraint,
-#'     rather than the conjugate Gibbs step used by [hfdfm()]. A single
+#'     rather than the conjugate Gibbs step used by [ind_dfm()]. A single
 #'     stochastic volatility path is shared by all `q` factors.}
 #' }
 #'
 #' Because identification differs, `fcast_dfm(q = 1)` is **not** equivalent to
-#' [hfdfm()]. Use [hfdfm()] for the target-anchored single-factor model of
+#' [ind_dfm()]. Use [ind_dfm()] for the target-anchored single-factor model of
 #' Kronenberg (2026), and `fcast_dfm()` for the multi-factor model.
+#'
+#' # Maturity
+#'
+#' This function is **experimental**. It reproduces the published sampler and
+#' is covered by structural tests, but it has not yet been validated by
+#' simulation recovery -- generating data from a known `q`-factor process and
+#' checking that the estimated factors and loadings recover it up to rotation.
+#' Until that exists, treat multi-factor results (`q > 1`) as provisional.
+#' [ind_dfm()] is the settled entry point.
 #'
 #' `target` does not enter the estimation. It names the series whose nowcast
 #' is surfaced at the top level of the return value for convenience; results
@@ -59,6 +68,10 @@
 #'   measurement errors. If `FALSE`, the autocorrelations are fixed near zero.
 #' @param ncores Integer or `NULL`. Number of cores for the rotation step,
 #'   which is run in parallel via \pkg{doParallel} when supplied.
+#' @param priors Prior specification from [dfm_priors()]. The default
+#'   reproduces the published priors exactly. Note that the loading prior
+#'   carries the identification -- it must stay diffuse for the post-hoc
+#'   rotation to work; see [dfm_priors()].
 #'
 #' @return An object of class `"fcast_dfm"`: a list with components
 #'   \describe{
@@ -85,22 +98,24 @@
 #'       inspection: `nowcast` (a data frame of `time`, `observed`, `mean`,
 #'       `lower`, `upper` at the target's own frequency) and
 #'       `high_frequency` (the same columns for the high-frequency growth
-#'       estimate). See [print.fcast_dfm()].}
+#'       estimate). See [fcast_dfm_methods].}
 #'     \item{call}{The matched call.}
 #'   }
 #'
 #' @examples
-#' \dontrun{
+#' # \donttest, not \dontrun: this works on the shipped data, it is only slow -
+#' # the post-hoc rotation step scales with the number of retained draws.
+#' \donttest{
 #' data(data_ch_dataset_test)
 #' target <- "ch.seco.gdp.real.gdp.ssa"
 #' flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-#'                 stats::window, start = 2018)
+#'                 stats::window, start = 2021)
 #' stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-#'                  stats::window, start = 2018)
+#'                  stats::window, start = 2021)
 #' set.seed(1)
 #' fit <- fcast_dfm(flows = flows, stocks = stocks, target = target,
-#'                  q = 2, length_sample = 50, burn_in = 10)
-#' fit$nowcast
+#'                  q = 2, length_sample = 20, burn_in = 5)
+#' fit
 #' }
 #'
 #' @references
@@ -112,8 +127,9 @@
 #' Switzerland. *Swiss Journal of Economics and Statistics*, 162, 10.
 #' \doi{10.1186/s41937-026-00157-w}
 #'
-#' @seealso [hfdfm()] for the single-factor, target-anchored model.
+#' @seealso [ind_dfm()] for the single-factor, target-anchored model.
 #'
+#' @family model fitting functions
 #' @import Matrix
 #' @importFrom stats ts time frequency window plot.ts
 #' @importFrom graphics par
@@ -130,24 +146,15 @@ fcast_dfm <- function(flows = NULL,
                       extend = NULL,
                       stochastic_volatility = TRUE,
                       serial_correlation = TRUE,
-                      ncores = NULL){
+                      ncores = NULL,
+                      priors = dfm_priors("fcast_dfm")){
+
+  check_priors(priors, "fcast_dfm")
 
   # validate inputs early, naming the offending argument
-  if(is.null(flows) && is.null(stocks)){
-    stop("At least one of `flows` and `stocks` must be supplied.", call. = FALSE)
-  }
-  if(missing(target) || !is.character(target) || length(target) != 1){
-    stop("`target` must be a single series name (character).", call. = FALSE)
-  }
-  available <- c(names(flows), names(stocks))
-  if(!target %in% available){
-    stop("`target` (\"", target, "\") is not among the supplied series.",
-         call. = FALSE)
-  }
-  if(length(stocks) + length(flows) < q){
-    stop("`q` (", q, ") must be smaller than the number of input series (",
-         length(stocks) + length(flows), ").", call. = FALSE)
-  }
+  validate_model_inputs(flows = flows, stocks = stocks, target = target,
+                        p = p, length_sample = length_sample, burn_in = burn_in,
+                        thinning = thinning, q = q, call = "fcast_dfm")
 
   # create an inventory of the time series involved
   inventory <- create_inventory(flows = flows, stocks = stocks)
@@ -214,7 +221,8 @@ fcast_dfm <- function(flows = NULL,
                                plots = plots,
                                Gmat_prealloc = Gmat_prealloc,
                                stochastic_volatility = stochastic_volatility,
-                               serial_correlation = serial_correlation)
+                               serial_correlation = serial_correlation,
+                               priors = priors)
 
 
   # ROTATION ----------------------------------------------------------------
@@ -243,26 +251,7 @@ fcast_dfm <- function(flows = NULL,
 }
 
 
-#' Print a summary of a multi-factor dynamic factor model fit
-#'
-#' Reports the model dimensions and shows the most recent values of the
-#' target series: its observed values alongside the model's nowcast and 95%
-#' band, so the fit can be inspected at a glance.
-#'
-#' @param x An object of class `"fcast_dfm"` from [fcast_dfm()].
-#' @param n_show Integer, how many of the most recent target observations to
-#'   display.
-#' @param ... Ignored, present for compatibility with the [print()] generic.
-#'
-#' @return `x`, invisibly.
-#'
-#' @examples
-#' \dontrun{
-#' fit <- fcast_dfm(flows = flows, stocks = stocks, target = target, q = 2)
-#' fit          # calls print.fcast_dfm()
-#' print(fit, n_show = 12)
-#' }
-#'
+#' @rdname fcast_dfm_methods
 #' @method print fcast_dfm
 #' @export
 print.fcast_dfm <- function(x, n_show = 8, ...){

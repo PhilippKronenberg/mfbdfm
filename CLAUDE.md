@@ -135,6 +135,34 @@ Claude usage quota has been tight. Until the user says otherwise, follow the act
 - `hfdfm()` itself is tested with a small, seeded, short-chain smoke test (structure + `identical()` seed-determinism), not value-level regression — MCMC output isn't expected to be bit-stable across code changes to the sampler, only across identical code with identical seeds.
 - Graphics-touching tests (anything that calls `print()` on a ggplot or triggers base `par()`/`plot()`) must wrap in `grDevices::pdf(NULL)` + `on.exit(grDevices::dev.off(), add = TRUE)` — otherwise R opens a real default device and leaves a stray `Rplots.pdf` behind (bit us once; see `test-hfdfm.R` and `test-analytics-cor.R` for the pattern).
 
+## User-facing API conventions (issue #48)
+
+These apply to **exported** functions — the ones a package user calls directly. They exist because #45 applied good practice to a new function (`fcast_dfm()`) and not to the existing one, leaving two model entry points of visibly different quality in the same package.
+
+- **Parity rule: anything true of one model entry point must be true of the other.** `ind_dfm()` and `fcast_dfm()` get the same validation, the same S3 methods, and the same argument name for the same concept. When you touch one, check the other. This is the rule that prevents the whole class of problems below.
+- **Validate inputs in exported functions, not internals.** Check early, and name the offending argument and what was expected. Never validate inside `draw_*()`/`run_sampling*()` — those run once per MCMC iteration and would pay the cost for nothing.
+- **No silent wrong answers.** An argument that is accepted and ignored is a bug, not a documentation problem. `hfdfm(q = 2)` silently returned a one-factor model; `retrieve_nowcast(model = "AR")` failed with `object 'ncst' not found`, naming neither the argument nor the expectation. Use `match.arg()` for fixed choice sets.
+- **Document shared parameters once and `@inheritParams` them.** The two entry points duplicated 11 identical `@param` blocks; duplicated docs drift. Good `@param` text is also what produces argument auto-completion with descriptions in RStudio — there is no separate mechanism for that.
+- **Defaults are scientifically appropriate, with runtime documented** — not tuned so the first run finishes quickly.
+- **Fit objects support `print`, `summary`, `plot`, `as.data.frame`, `fitted`, `residuals`, `coef`, and store `match.call()`.** Deliberately **no `predict()`**: this model does not forecast in the usual sense — nowcasts are computed during fitting and stored — so a `predict()` returning stored values would advertise a capability that does not exist. `fitted()`/`residuals()` must mask missing observations, since zeros in the prepared data encode *missing*.
+- **Prefer `\donttest{}` to `\dontrun{}`.** `\dontrun` blocks never execute, so those examples are never checked; `\donttest` is run under `--run-donttest`. Reserve `\dontrun` for examples that genuinely cannot run (private `fits/` data).
+- Not adopted, deliberately: renaming exports to a `mfbdfm_` prefix for discoverability (would break every existing analysis script — may be used for *new* exports only).
+
+## Scale identification: pin it in exactly one place
+
+A factor model has one unavoidable scale indeterminacy — replacing `f -> c*f` and `Lambda -> Lambda/c` leaves the likelihood unchanged — so the scale must be pinned in exactly one place, and **only one**. The two models spend that identification differently, and almost every behavioural difference between them follows from it:
+
+| | pins the loadings | pins the state variance |
+| --- | --- | --- |
+| `ind_dfm` | yes — `samplers.R`, `lambda[target] <- 1` | no, must stay free |
+| `fcast_dfm` | no — loadings unrestricted | yes — state covariance = I |
+
+Consequences worth knowing before changing anything in the samplers:
+
+- **`stochastic_volatility = FALSE` means different things in each model.** In `ind_dfm` the innovation variance is the free parameter the data determines, so it is estimated as a single constant (conjugate inverse-gamma). In `fcast_dfm` it is fixed at exactly 1 (`h = 0`) — Aßmann et al.'s original assumption, which EKMN relaxed to `I * e^h`. Estimating a free constant there would sit on an unidentified ridge where the variance trades off exactly against the scale of `Lambda`.
+- `samplers_fcast.R` **normalises h's level and spread away on every draw** (`h <- (h - Q1) * (0.01 / (Q3 - Q1))`, commented "necessary for identification") because only the *shape* of the volatility path is identified there. `samplers.R` has no such line — only a numerical clamp — because the level *is* identified by the anchoring. Do not "harmonise" these.
+- **Some priors are the identification, not tuning knobs.** In `ind_dfm`, the target's measurement variance (`c0 = t`, `d0 = t*1e-3`) and serial correlation (`R0 = 1e-9`) are what make the factor track GDP; relaxing them silently dissolves the anchoring. In `fcast_dfm`, the `lambda` prior must stay diffuse or it conflicts with the post-hoc rotation. `dfm_priors(type = ...)` therefore moves **tunable priors only**; changing a structural one requires an explicit argument that warns.
+
 ## Documentation & release conventions
 
 - Every exported function has `@param`, `@return`, and `@examples` (runnable where feasible; `\donttest{}` for slow-but-working; `\dontrun{}` only for functions needing the private `fits/` data or a full `inputs` bundle).

@@ -121,7 +121,7 @@ extract_component_table <- function(mod, burn_in, length_sample, label) {
 
 run_one_setting <- function(flows, stocks, burn_in, length_sample, target) {
   timing <- system.time({
-    mod <- hfdfm(
+    mod <- ind_dfm(
       flows = flows,
       stocks = stocks,
       target = target,

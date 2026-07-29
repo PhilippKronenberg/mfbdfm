@@ -22,7 +22,11 @@
 #' @importFrom graphics par title
 run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thinning,
                             inventory, plots, Gmat_prealloc,
-                            stochastic_volatility, serial_correlation){
+                            stochastic_volatility, serial_correlation,
+                            priors = dfm_priors("fcast_dfm")){
+
+  # fill in the priors whose published default is a rule in terms of t
+  priors <- resolve_priors(priors, t = t, p = p)
 
   # preallocate chains
   chain <- matrix(NA, burn_in + thinning*length_sample, 100)
@@ -84,18 +88,30 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
     # 3. draw model parameters (conditional on factors and volatility)
     Zmat <- get_zmat_fcast(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
     lambda <- draw_lambda_fcast(Xmat = Xmat, Ymat = Ymat, Zmat = Zmat, sigma = sigma,
-                             rho = rho, n = n, q = q, t = t, inventory = inventory)
+                             rho = rho, n = n, q = q, t = t, inventory = inventory,
+                             prior = priors$lambda)
 
     sigma <- draw_sigma_fcast(Xmat = Xmat, Ymat = Ymat, Gmat = Gmat, f = f, n = n, t = t,
-                           inventory = inventory, rho = rho, sigma = sigma)
+                           inventory = inventory, rho = rho, sigma = sigma,
+                           prior = priors$sigma)
     phi <- draw_phi_fcast(f = f, h = h, p = p, q = q, t = t, s = s, phi_old = phi)
-    omega <- draw_omega_fcast(h, t, p, s, omega_old = omega)
+
+    # omega (the variance of h's own innovations) and the mixture indicators
+    # exist solely to draw the volatility PATH, so they are pointless when
+    # stochastic volatility is off - previously both were computed and thrown
+    # away in that case. Each conditional is kept in its original position in
+    # the sequence so that with stochastic_volatility = TRUE the RNG is
+    # consumed exactly as before.
+    if(stochastic_volatility) omega <- draw_omega_fcast(h, t, p, s, omega_old = omega,
+                                                        prior = priors$omega)
+
     if(serial_correlation){
       rho <- draw_rho_fcast(Xmat = Xmat, f = f, n = n, t = t, s = s, sigma = sigma,
-                         lambda = lambda, Llist = Llist, inventory = inventory)
+                         lambda = lambda, Llist = Llist, inventory = inventory,
+                         prior = priors$rho)
     }
 
-    indicators <- draw_indicators_fcast(h, f, phi, n, p, q, s, t)
+    if(stochastic_volatility) indicators <- draw_indicators_fcast(h, f, phi, n, p, q, s, t)
 
     # 4. track a fixed random subset of the augmented data as a convergence check
     check_sample <- Xmat[checks]
@@ -293,7 +309,7 @@ draw_augmented_data_fcast <- function(Ymat, Gmat, f, rho, sigma, n, t, return_sa
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_lambda_fcast <- function(Xmat, Ymat, Zmat, sigma, rho, n, q, t, inventory){
+draw_lambda_fcast <- function(Xmat, Ymat, Zmat, sigma, rho, n, q, t, inventory, prior){
 
   # See appendix A.4 Conditional distributions of Remaining Parameters: Factor Loadings
   Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
@@ -301,8 +317,10 @@ draw_lambda_fcast <- function(Xmat, Ymat, Zmat, sigma, rho, n, q, t, inventory){
   dim(Xvec_tilde) <- c(n*(t-1),1)
 
   # uninformative priors
-  b0 <- Matrix(0,n*q,1)
-  B0 <- Diagonal(x = 1e+9, n = n*q)
+  # STRUCTURAL: the loadings must stay diffuse for the post-hoc rotation to
+  # identify the model; see dfm_priors()
+  b0 <- Matrix(prior$b0,n*q,1)
+  B0 <- Diagonal(x = prior$B0, n = n*q)
 
   # Conditional posterior distribution of the factor loadings lambda
   B1 <- solve(B0) + t(Zmat) %*% (Diagonal(t-1) %x% solve(sigma)) %*% Zmat
@@ -320,7 +338,7 @@ draw_lambda_fcast <- function(Xmat, Ymat, Zmat, sigma, rho, n, q, t, inventory){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_sigma_fcast <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma){
+draw_sigma_fcast <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma, prior){
   # See appendix A.4: Measurement Error Covariance Matrix
 
   Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
@@ -337,8 +355,8 @@ draw_sigma_fcast <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma){
   Diagonal(x = sapply(1:n, function(ix){
 
     # this prior choice is uninformative
-    c0 <- 3
-    d0 <- 1e-9
+    c0 <- prior$c0
+    d0 <- prior$d0
 
     # posterior
     c1 <- c0 + t
@@ -358,7 +376,7 @@ draw_sigma_fcast <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma){
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_rho_fcast <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory){
+draw_rho_fcast <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, prior){
 
   # See appendix A.4: Autocorrelation of Measurement Errors
   Xfit <- Reduce("+", lapply(0:s, function(sx){
@@ -372,8 +390,8 @@ draw_rho_fcast <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory){
   Diagonal(x = sapply(1:n, function(nx){
 
     # prior
-    r0 <- 0
-    R0 <- 1/t
+    r0 <- prior$r0
+    R0 <- prior$R0
 
     # posterior
     R1 <- solve(solve(R0) + solve(sigma[nx,nx]) * t(E[-nrow(E),nx]) %*% E[-nrow(E),nx])
@@ -481,13 +499,13 @@ draw_phi_fcast <- function(f, h, p, q, t, s, phi_old){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_omega_fcast <- function(h, t, p, s, omega_old){
+draw_omega_fcast <- function(h, t, p, s, omega_old, prior){
 
   m <- matrix(h[(s+1):nrow(h),] - h[s:(nrow(h)-1),])
 
   # this prior choice is uninformative
-  c0 <- 3
-  d0 <- 1
+  c0 <- prior$c0
+  d0 <- prior$d0
 
   # posterior
   c1 <- c0 + t

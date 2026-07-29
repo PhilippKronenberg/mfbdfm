@@ -1,4 +1,4 @@
-#' Estimate a high-frequency dynamic factor model
+#' Estimate a single-factor, target-anchored dynamic factor model
 #'
 #' Estimates the Bayesian mixed-frequency dynamic factor model behind the
 #' Swiss Weekly Activity Index (WAI) by Markov chain Monte Carlo (Gibbs)
@@ -21,14 +21,24 @@
 #' equation includes stochastic volatility, and measurement errors are
 #' quasi-differenced to remove serial correlation (see `@references`).
 #'
+#' Because the factor's scale is pinned by the loading restriction, the
+#' factor innovation variance is a free parameter that the data must
+#' determine. Setting `stochastic_volatility = FALSE` therefore does **not**
+#' fix that variance: it replaces the time-varying volatility path with a
+#' single constant variance which is still estimated, drawn from its
+#' conjugate inverse-gamma posterior each iteration. (This differs from
+#' [fcast_dfm()], whose loadings are unrestricted and whose innovation
+#' variance consequently carries the identification and *is* fixed at one
+#' when its stochastic volatility is switched off. The two models pin the
+#' scale in different places, so switching the same option off means
+#' something different in each.)
+#'
 #' @param flows Named list of `ts` objects treated as flow variables. Must
 #'   contain `target`.
 #' @param stocks Named list of `ts` objects treated as stock variables.
 #' @param target Character, name of the low-frequency target series in
 #'   `flows` (e.g. `"ch.seco.gdp.real.gdp.ssa"`).
 #' @param p Integer, number of factor lags in the factor state equation.
-#' @param q Integer, number of factors. Currently ignored: the sampler
-#'   always uses a single factor.
 #' @param length_sample Integer, number of posterior draws to keep.
 #' @param burn_in Integer, number of initial draws to discard.
 #' @param thinning Integer, keep every `thinning`-th draw after burn-in.
@@ -36,13 +46,19 @@
 #'   the data and of factor/volatility convergence during sampling.
 #' @param extend_to Numeric (decimal time) or `NULL`. If beyond the sample
 #'   end, the dataset is extended with zeros so forecasts can be produced.
-#' @param stochastic_volatility Logical. Currently ignored: the sampler
-#'   always includes stochastic volatility. Kept for API compatibility.
-#' @param serial_correlation Logical. Currently ignored: the sampler
-#'   always models serial correlation in measurement errors. Kept for API
-#'   compatibility.
+#' @param stochastic_volatility Logical. If `TRUE` (default) the factor
+#'   innovation variance follows a stochastic volatility process. If `FALSE`
+#'   it is a single constant variance, **still estimated** rather than fixed
+#'   -- see `@details`.
+#' @param serial_correlation Logical. If `TRUE` (default) the measurement
+#'   errors are allowed to be serially correlated and their autocorrelations
+#'   are drawn. If `FALSE` they are held at (effectively) zero.
+#' @param priors Prior specification from [dfm_priors()]. The default
+#'   reproduces the published priors exactly. Note that two of them -- the
+#'   target's measurement-error variance and serial correlation -- carry the
+#'   identification rather than being tuning knobs; see [dfm_priors()].
 #'
-#' @return An object of class `"hfdfm"`: a list with components
+#' @return An object of class `"ind_dfm"`: a list with components
 #'   \describe{
 #'     \item{factor}{`ts`, posterior mean of the annualized activity factor.}
 #'     \item{factor_var}{`ts`, posterior variance of the factor.}
@@ -56,7 +72,12 @@
 #'     \item{data_augmented}{`ts` matrix of the augmented dataset.}
 #'     \item{inventory}{Data frame describing the series (see
 #'       [create_inventory()]).}
+#'     \item{call}{The matched call.}
 #'   }
+#'
+#' @seealso [fcast_dfm()] for the multi-factor model, [dfm_priors()] to vary
+#'   the priors, and [ind_dfm_methods] for the `print`, `summary`, `plot`,
+#'   `coef`, `fitted`, `residuals` and `as.data.frame` methods.
 #'
 #' @examples
 #' \donttest{
@@ -67,7 +88,7 @@
 #' stocks <- lapply(data_ch_dataset_test$stocks[1:2],
 #'                  stats::window, start = 2018)
 #' set.seed(1)
-#' fit <- hfdfm(flows = flows, stocks = stocks, target = target,
+#' fit <- ind_dfm(flows = flows, stocks = stocks, target = target,
 #'              length_sample = 50, burn_in = 10)
 #' fit$nowcast
 #' }
@@ -81,22 +102,29 @@
 #' Tracking economic activity with alternative high-frequency data.
 #' *Journal of Applied Econometrics*, 40(3), 270-290.
 #'
+#' @family model fitting functions
 #' @import Matrix
 #' @importFrom stats ts time frequency window var plot.ts
 #' @importFrom graphics par
 #' @export
-hfdfm <- function(flows,
-                  stocks,
-                  target,
-                  p = 1,
-                  q = 1,
-                  length_sample = 10000,
-                  burn_in = 1000,
-                  thinning = 1,
-                  plots = FALSE,
-                  extend_to = NULL,
-                  stochastic_volatility = TRUE,
-                  serial_correlation = TRUE){
+ind_dfm <- function(flows = NULL,
+                    stocks = NULL,
+                    target,
+                    p = 1,
+                    length_sample = 10000,
+                    burn_in = 1000,
+                    thinning = 1,
+                    plots = FALSE,
+                    extend_to = NULL,
+                    stochastic_volatility = TRUE,
+                    serial_correlation = TRUE,
+                    priors = dfm_priors("ind_dfm")){
+
+  # validate inputs early, naming the offending argument
+  validate_model_inputs(flows = flows, stocks = stocks, target = target,
+                        p = p, length_sample = length_sample, burn_in = burn_in,
+                        thinning = thinning, call = "ind_dfm")
+  check_priors(priors, "ind_dfm")
 
   # create an inventory of the time series involved
   inventory <- create_inventory(flows = flows, stocks = stocks)
@@ -174,7 +202,10 @@ hfdfm <- function(flows,
                            inventory = inventory,
                            plots = plots,
                            Gmat_prealloc = Gmat_prealloc,
-                           fdat = flows)
+                           fdat = flows,
+                           stochastic_volatility = stochastic_volatility,
+                           serial_correlation = serial_correlation,
+                           priors = priors)
 
   message("processing output..")
 
@@ -259,7 +290,14 @@ hfdfm <- function(flows,
               "nowcast" = ncst_mean,
               "nowcast_var" = ncst_var,
               "target" = target,
-              "pars" = list("h" = h_out[(s+2):(t+s+1)],
+              # h spans t+s periods, of which the first s are the latent states
+              # carried by the distributed lags. Drop those and keep the t
+              # in-sample periods, using the same slice as the factor above -
+              # h_t describes the innovation to f_t, so the two must share an
+              # index. The previous (s+2):(t+s+1) ran one past the end of h,
+              # leaving a trailing NA, and was shifted one period against the
+              # factor (#49).
+              "pars" = list("h" = h_out[(s+1):(t+s)],
                             "lambda" = lambda_out,
                             "phi" = phi_out,
                             "sigma" = sigma_out,
@@ -270,7 +308,8 @@ hfdfm <- function(flows,
               "data_augmented" = Xmat_full,
               "inventory" = inventory)
 
-  class(out) <- "hfdfm"
+  out$call <- match.call()
+  class(out) <- "ind_dfm"
 
   # return results
   return(out)

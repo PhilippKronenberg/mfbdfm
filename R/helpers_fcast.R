@@ -103,7 +103,7 @@ get_factors_fcast <- function(Ymat, f_draws, inventory, n, q, p, s, t){
 #' Per-series nowcasts from the augmented dataset
 #'
 #' Unlike [get_nowcast()] (which extracts the single target series for
-#' `hfdfm()`), this returns the mean and variance of the fitted value for
+#' `ind_dfm()`), this returns the mean and variance of the fitted value for
 #' *every* series, each at that series' own frequency.
 #'
 #' @noRd
