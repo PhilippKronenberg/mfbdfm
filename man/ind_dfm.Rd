@@ -2,7 +2,7 @@
 % Please edit documentation in R/ind_dfm.R
 \name{ind_dfm}
 \alias{ind_dfm}
-\title{Estimate a high-frequency dynamic factor model}
+\title{Estimate a single-factor, target-anchored dynamic factor model}
 \usage{
 ind_dfm(
   flows = NULL,
@@ -136,4 +136,8 @@ Tracking economic activity with alternative high-frequency data.
 \code{\link[=fcast_dfm]{fcast_dfm()}} for the multi-factor model, \code{\link[=dfm_priors]{dfm_priors()}} to vary
 the priors, and \link{ind_dfm_methods} for the \code{print}, \code{summary}, \code{plot},
 \code{coef}, \code{fitted}, \code{residuals} and \code{as.data.frame} methods.
+
+Other model fitting functions: 
+\code{\link{fcast_dfm}()}
 }
+\concept{model fitting functions}

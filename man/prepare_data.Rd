@@ -37,3 +37,8 @@ Ymat <- prepare_data(flows = data_ch_dataset_test$flows,
 dim(Ymat)
 
 }
+\seealso{
+Other data preparation functions: 
+\code{\link{create_inventory}()}
+}
+\concept{data preparation functions}

@@ -1,4 +1,4 @@
-#' Estimate a high-frequency dynamic factor model
+#' Estimate a single-factor, target-anchored dynamic factor model
 #'
 #' Estimates the Bayesian mixed-frequency dynamic factor model behind the
 #' Swiss Weekly Activity Index (WAI) by Markov chain Monte Carlo (Gibbs)
@@ -102,6 +102,7 @@
 #' Tracking economic activity with alternative high-frequency data.
 #' *Journal of Applied Econometrics*, 40(3), 270-290.
 #'
+#' @family model fitting functions
 #' @import Matrix
 #' @importFrom stats ts time frequency window var plot.ts
 #' @importFrom graphics par

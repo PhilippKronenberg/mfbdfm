@@ -32,6 +32,15 @@
 #' [ind_dfm()]. Use [ind_dfm()] for the target-anchored single-factor model of
 #' Kronenberg (2026), and `fcast_dfm()` for the multi-factor model.
 #'
+#' # Maturity
+#'
+#' This function is **experimental**. It reproduces the published sampler and
+#' is covered by structural tests, but it has not yet been validated by
+#' simulation recovery -- generating data from a known `q`-factor process and
+#' checking that the estimated factors and loadings recover it up to rotation.
+#' Until that exists, treat multi-factor results (`q > 1`) as provisional.
+#' [ind_dfm()] is the settled entry point.
+#'
 #' `target` does not enter the estimation. It names the series whose nowcast
 #' is surfaced at the top level of the return value for convenience; results
 #' for every series remain available in `ncst` and `data_hf`.
@@ -89,22 +98,24 @@
 #'       inspection: `nowcast` (a data frame of `time`, `observed`, `mean`,
 #'       `lower`, `upper` at the target's own frequency) and
 #'       `high_frequency` (the same columns for the high-frequency growth
-#'       estimate). See [print.fcast_dfm()].}
+#'       estimate). See [fcast_dfm_methods].}
 #'     \item{call}{The matched call.}
 #'   }
 #'
 #' @examples
-#' \dontrun{
+#' # \donttest, not \dontrun: this works on the shipped data, it is only slow -
+#' # the post-hoc rotation step scales with the number of retained draws.
+#' \donttest{
 #' data(data_ch_dataset_test)
 #' target <- "ch.seco.gdp.real.gdp.ssa"
 #' flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-#'                 stats::window, start = 2018)
+#'                 stats::window, start = 2021)
 #' stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-#'                  stats::window, start = 2018)
+#'                  stats::window, start = 2021)
 #' set.seed(1)
 #' fit <- fcast_dfm(flows = flows, stocks = stocks, target = target,
-#'                  q = 2, length_sample = 50, burn_in = 10)
-#' fit$nowcast
+#'                  q = 2, length_sample = 20, burn_in = 5)
+#' fit
 #' }
 #'
 #' @references
@@ -118,6 +129,7 @@
 #'
 #' @seealso [ind_dfm()] for the single-factor, target-anchored model.
 #'
+#' @family model fitting functions
 #' @import Matrix
 #' @importFrom stats ts time frequency window plot.ts
 #' @importFrom graphics par

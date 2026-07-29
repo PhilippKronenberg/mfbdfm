@@ -89,7 +89,7 @@ scale.}
 inspection: \code{nowcast} (a data frame of \code{time}, \code{observed}, \code{mean},
 \code{lower}, \code{upper} at the target's own frequency) and
 \code{high_frequency} (the same columns for the high-frequency growth
-estimate). See \code{\link[=print.fcast_dfm]{print.fcast_dfm()}}.}
+estimate). See \link{fcast_dfm_methods}.}
 \item{call}{The matched call.}
 }
 }
@@ -125,23 +125,34 @@ stochastic volatility path is shared by all \code{q} factors.}
 Because identification differs, \code{fcast_dfm(q = 1)} is \strong{not} equivalent to
 \code{\link[=ind_dfm]{ind_dfm()}}. Use \code{\link[=ind_dfm]{ind_dfm()}} for the target-anchored single-factor model of
 Kronenberg (2026), and \code{fcast_dfm()} for the multi-factor model.
+}
+\section{Maturity}{
+This function is \strong{experimental}. It reproduces the published sampler and
+is covered by structural tests, but it has not yet been validated by
+simulation recovery -- generating data from a known \code{q}-factor process and
+checking that the estimated factors and loadings recover it up to rotation.
+Until that exists, treat multi-factor results (\code{q > 1}) as provisional.
+\code{\link[=ind_dfm]{ind_dfm()}} is the settled entry point.
 
 \code{target} does not enter the estimation. It names the series whose nowcast
 is surfaced at the top level of the return value for convenience; results
 for every series remain available in \code{ncst} and \code{data_hf}.
 }
+
 \examples{
-\dontrun{
+# \donttest, not \dontrun: this works on the shipped data, it is only slow -
+# the post-hoc rotation step scales with the number of retained draws.
+\donttest{
 data(data_ch_dataset_test)
 target <- "ch.seco.gdp.real.gdp.ssa"
 flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                stats::window, start = 2018)
+                stats::window, start = 2021)
 stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-                 stats::window, start = 2018)
+                 stats::window, start = 2021)
 set.seed(1)
 fit <- fcast_dfm(flows = flows, stocks = stocks, target = target,
-                 q = 2, length_sample = 50, burn_in = 10)
-fit$nowcast
+                 q = 2, length_sample = 20, burn_in = 5)
+fit
 }
 
 }
@@ -156,4 +167,8 @@ Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.
 }
 \seealso{
 \code{\link[=ind_dfm]{ind_dfm()}} for the single-factor, target-anchored model.
+
+Other model fitting functions: 
+\code{\link{ind_dfm}()}
 }
+\concept{model fitting functions}

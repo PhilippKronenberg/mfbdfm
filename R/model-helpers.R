@@ -19,6 +19,7 @@
 #'                         stocks = data_ch_dataset_test$stocks)
 #' head(inv)
 #'
+#' @family data preparation functions
 #' @importFrom stats frequency sd
 #' @export
 create_inventory <- function(flows, stocks){
@@ -87,6 +88,7 @@ create_inventory <- function(flows, stocks){
 #'                      target = "ch.seco.gdp.real.gdp.ssa")
 #' dim(Ymat)
 #'
+#' @family data preparation functions
 #' @importFrom dplyr left_join
 #' @importFrom zoo na.trim
 #' @importFrom stats ts time frequency
