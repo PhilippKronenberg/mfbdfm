@@ -18,7 +18,8 @@ NMIX_SD   <- sqrt(NMIX_VAR)
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @importFrom graphics par
 run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, thinning,
-                         inventory, plots,Gmat_prealloc, fdat){
+                         inventory, plots,Gmat_prealloc, fdat,
+                         stochastic_volatility = TRUE, serial_correlation = TRUE){
 
   # preallocation of output matrices
   chain <- NULL # matrix(NA, burn_in + length_sample*thinning, 100)
@@ -42,7 +43,14 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   omega <- 1e-2
   h <- matrix(-5, t+s, 1)
   f <- matrix(rnorm(t+s), t+s, 1)
-  rho <- Diagonal(x = runif(n))
+  # with serial_correlation = FALSE the measurement-error autocorrelations are
+  # held at (effectively) zero rather than drawn; 1e-9 rather than exactly 0 to
+  # avoid singularities downstream, matching fcast_dfm()
+  if(serial_correlation){
+    rho <- Diagonal(x = runif(n))
+  } else {
+    rho <- Diagonal(x = 1e-9, n = n)
+  }
   Xmat = matrix(rnorm(t*n), t, n)
   indicators = replicate(t+s, sample(x = 1:7, size = 1, prob = rep(1/7,7)))
 
@@ -102,17 +110,26 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                       sigma = sigma,
                       h = h)
 
-    # 2. draw stochastic volatility
-    h <- draw_volatility(f = f,
-                         phi = phi,
-                         n = n,
-                         p = p,
-                         s = s,
-                         t = t,
-                         omega = omega,
-                         indicators = indicators,
-                         h_old = h,
-                         NtN = NtN)
+    # 2. draw the factor-innovation variance: a full stochastic volatility path,
+    #    or - when it is switched off - a single constant variance, still
+    #    estimated (the factor's scale is pinned by lambda[target] = 1, so the
+    #    variance is the free parameter the data determines; see CLAUDE.md,
+    #    "Scale identification"). Both write into `h` as log-sd, so everything
+    #    downstream (draw_factors, draw_phi) is unchanged.
+    if(stochastic_volatility){
+      h <- draw_volatility(f = f,
+                           phi = phi,
+                           n = n,
+                           p = p,
+                           s = s,
+                           t = t,
+                           omega = omega,
+                           indicators = indicators,
+                           h_old = h,
+                           NtN = NtN)
+    } else {
+      h <- draw_factor_variance(f = f, phi = phi, p = p, s = s, t = t)
+    }
 
     # 3. draw model parameters (conditional on factors and volatility)
     Zmat <- get_zmat(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
@@ -127,11 +144,19 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
     sigma <- draw_sigma(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
                         inventory = inventory, target = target, sigma = sigma)
     phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi)
-    omega <- draw_omega(h = h, t = t, s = s, p = p)
-    rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
-                    lambda = lambda, Llist = Llist, inventory = inventory, target = target)
 
-    indicators = draw_indicators(h, f, phi, n, p, s, t)
+    # omega (the variance of h's own innovations) and the mixture indicators
+    # exist solely to draw a volatility PATH; with a constant variance they are
+    # meaningless. Each conditional is kept in its original position in the
+    # sequence so that with the defaults the RNG is consumed exactly as before.
+    if(stochastic_volatility) omega <- draw_omega(h = h, t = t, s = s, p = p)
+
+    if(serial_correlation){
+      rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
+                      lambda = lambda, Llist = Llist, inventory = inventory, target = target)
+    }
+
+    if(stochastic_volatility) indicators = draw_indicators(h, f, phi, n, p, s, t)
 
     # 3. check convergence
     if(plots == TRUE){
@@ -274,6 +299,53 @@ draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN){
   h[which(h > ubound)] <- h_old[which(h > ubound)]
 
   return(h)
+
+}
+
+
+#' Draw a single constant factor-innovation variance
+#'
+#' Used in place of [draw_volatility()] when `stochastic_volatility = FALSE`.
+#'
+#' Switching stochastic volatility off here cannot mean "fix the variance":
+#' the factor's scale is already pinned by the identifying restriction
+#' `lambda[target] = 1`, so the innovation variance is the free parameter the
+#' data determines, and imposing a value would fight the anchoring. (This is
+#' the opposite of `fcast_dfm()`, whose loadings are unrestricted and whose
+#' variance therefore *carries* the identification and is fixed at 1. See
+#' CLAUDE.md, "Scale identification".)
+#'
+#' So the variance is still estimated, just constant over time. With
+#' `eps_t ~ N(0, sigma_f^2)` in the factor state equation and an inverse-gamma
+#' prior, the conditional posterior is conjugate:
+#' `sigma_f^2 | . ~ IG((c0 + N)/2, (d0 + sum(v^2))/2)`, where `v` are the state
+#' equation residuals.
+#'
+#' The result is returned on the same log-sd scale that [draw_volatility()]
+#' uses, i.e. `h = 0.5 * log(sigma_f^2)` repeated over all periods, so that
+#' `exp(2*h) == sigma_f^2` and every downstream consumer of `h`
+#' ([draw_factors()], [draw_phi()]) works unchanged.
+#'
+#' @noRd
+#' @importFrom stats rgamma
+draw_factor_variance <- function(f, phi, p, s, t){
+
+  # residuals of the factor state equation, computed exactly as in
+  # draw_volatility(); the first p entries are the zero padding it also uses
+  err <- c(rep(0,p), f[seq(1+p,t+s),] - Reduce('+', lapply(1:p, function(px){
+    f[seq(from = 1+p-px, t+s-px),,drop=FALSE] %*% phi[px]})))
+  v <- err[(p+1):(t+s)]
+
+  # uninformative prior (moves into dfm_priors() - see #48)
+  c0 <- 3
+  d0 <- 1e-2
+
+  c1 <- c0 + length(v)
+  d1 <- d0 + sum(v^2)
+
+  sigma_f2 <- 1/rgamma(n = 1, shape = c1/2, rate = d1/2) + 1e-9
+
+  matrix(0.5 * log(sigma_f2), t+s, 1)
 
 }
 

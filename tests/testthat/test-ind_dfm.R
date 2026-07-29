@@ -34,6 +34,54 @@ test_that("ind_dfm returns a complete, finite fit object", {
   expect_equal(as.numeric(fit$pars$lambda[fit$inventory$key == fit$target]), 1)
 })
 
+test_that("stochastic_volatility = FALSE gives a constant but estimated variance", {
+  run <- function(seed) {
+    data(data_ch_dataset_test, envir = environment())
+    target <- "ch.seco.gdp.real.gdp.ssa"
+    flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                    stats::window, start = 2020)
+    stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2020)
+    set.seed(seed)
+    suppressMessages(ind_dfm(flows = flows, stocks = stocks, target = target,
+                             length_sample = 10, burn_in = 4, plots = FALSE,
+                             stochastic_volatility = FALSE))
+  }
+
+  fit <- run(1)
+  h <- fit$pars$h[!is.na(fit$pars$h)]
+
+  # constant over time - not a volatility path
+  expect_equal(length(unique(h)), 1)
+  expect_true(is.finite(h[1]))
+  # ... and a positive variance
+  expect_gt(exp(2 * h[1]), 0)
+
+  # estimated, not fixed: a different seed gives a different value
+  h2 <- run(2)$pars$h[1]
+  expect_false(isTRUE(all.equal(h[1], as.numeric(h2))))
+})
+
+test_that("serial_correlation = FALSE holds the autocorrelations at zero", {
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2020)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2020)
+
+  set.seed(3)
+  off <- suppressMessages(ind_dfm(flows = flows, stocks = stocks, target = target,
+                                  length_sample = 10, burn_in = 4, plots = FALSE,
+                                  serial_correlation = FALSE))
+  set.seed(3)
+  on <- suppressMessages(ind_dfm(flows = flows, stocks = stocks, target = target,
+                                 length_sample = 10, burn_in = 4, plots = FALSE))
+
+  expect_lt(max(abs(off$pars$rho)), 1e-6)
+  # the default really does estimate them, so the flag is doing something
+  expect_gt(max(abs(on$pars$rho)), 1e-6)
+  expect_false(identical(off$factor, on$factor))
+})
+
 test_that("ind_dfm is deterministic given a seed", {
   fit1 <- run_small_ind_dfm(7)
   fit2 <- run_small_ind_dfm(7)

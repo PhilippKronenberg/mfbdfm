@@ -41,12 +41,14 @@ the data and of factor/volatility convergence during sampling.}
 \item{extend_to}{Numeric (decimal time) or \code{NULL}. If beyond the sample
 end, the dataset is extended with zeros so forecasts can be produced.}
 
-\item{stochastic_volatility}{Logical. Currently ignored: the sampler
-always includes stochastic volatility. Kept for API compatibility.}
+\item{stochastic_volatility}{Logical. If \code{TRUE} (default) the factor
+innovation variance follows a stochastic volatility process. If \code{FALSE}
+it is a single constant variance, \strong{still estimated} rather than fixed
+-- see \verb{@details}.}
 
-\item{serial_correlation}{Logical. Currently ignored: the sampler
-always models serial correlation in measurement errors. Kept for API
-compatibility.}
+\item{serial_correlation}{Logical. If \code{TRUE} (default) the measurement
+errors are allowed to be serially correlated and their autocorrelations
+are drawn. If \code{FALSE} they are held at (effectively) zero.}
 }
 \value{
 An object of class \code{"ind_dfm"}: a list with components
@@ -86,6 +88,18 @@ uninformative priors. Missing and lower-frequency observations are
 estimated as latent states via data augmentation; the factor state
 equation includes stochastic volatility, and measurement errors are
 quasi-differenced to remove serial correlation (see \verb{@references}).
+
+Because the factor's scale is pinned by the loading restriction, the
+factor innovation variance is a free parameter that the data must
+determine. Setting \code{stochastic_volatility = FALSE} therefore does \strong{not}
+fix that variance: it replaces the time-varying volatility path with a
+single constant variance which is still estimated, drawn from its
+conjugate inverse-gamma posterior each iteration. (This differs from
+\code{\link[=fcast_dfm]{fcast_dfm()}}, whose loadings are unrestricted and whose innovation
+variance consequently carries the identification and \emph{is} fixed at one
+when its stochastic volatility is switched off. The two models pin the
+scale in different places, so switching the same option off means
+something different in each.)
 }
 \examples{
 \donttest{

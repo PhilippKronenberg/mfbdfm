@@ -89,13 +89,21 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
     sigma <- draw_sigma_fcast(Xmat = Xmat, Ymat = Ymat, Gmat = Gmat, f = f, n = n, t = t,
                            inventory = inventory, rho = rho, sigma = sigma)
     phi <- draw_phi_fcast(f = f, h = h, p = p, q = q, t = t, s = s, phi_old = phi)
-    omega <- draw_omega_fcast(h, t, p, s, omega_old = omega)
+
+    # omega (the variance of h's own innovations) and the mixture indicators
+    # exist solely to draw the volatility PATH, so they are pointless when
+    # stochastic volatility is off - previously both were computed and thrown
+    # away in that case. Each conditional is kept in its original position in
+    # the sequence so that with stochastic_volatility = TRUE the RNG is
+    # consumed exactly as before.
+    if(stochastic_volatility) omega <- draw_omega_fcast(h, t, p, s, omega_old = omega)
+
     if(serial_correlation){
       rho <- draw_rho_fcast(Xmat = Xmat, f = f, n = n, t = t, s = s, sigma = sigma,
                          lambda = lambda, Llist = Llist, inventory = inventory)
     }
 
-    indicators <- draw_indicators_fcast(h, f, phi, n, p, q, s, t)
+    if(stochastic_volatility) indicators <- draw_indicators_fcast(h, f, phi, n, p, q, s, t)
 
     # 4. track a fixed random subset of the augmented data as a convergence check
     check_sample <- Xmat[checks]

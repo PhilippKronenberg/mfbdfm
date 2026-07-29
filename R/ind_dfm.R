@@ -21,6 +21,18 @@
 #' equation includes stochastic volatility, and measurement errors are
 #' quasi-differenced to remove serial correlation (see `@references`).
 #'
+#' Because the factor's scale is pinned by the loading restriction, the
+#' factor innovation variance is a free parameter that the data must
+#' determine. Setting `stochastic_volatility = FALSE` therefore does **not**
+#' fix that variance: it replaces the time-varying volatility path with a
+#' single constant variance which is still estimated, drawn from its
+#' conjugate inverse-gamma posterior each iteration. (This differs from
+#' [fcast_dfm()], whose loadings are unrestricted and whose innovation
+#' variance consequently carries the identification and *is* fixed at one
+#' when its stochastic volatility is switched off. The two models pin the
+#' scale in different places, so switching the same option off means
+#' something different in each.)
+#'
 #' @param flows Named list of `ts` objects treated as flow variables. Must
 #'   contain `target`.
 #' @param stocks Named list of `ts` objects treated as stock variables.
@@ -34,11 +46,13 @@
 #'   the data and of factor/volatility convergence during sampling.
 #' @param extend_to Numeric (decimal time) or `NULL`. If beyond the sample
 #'   end, the dataset is extended with zeros so forecasts can be produced.
-#' @param stochastic_volatility Logical. Currently ignored: the sampler
-#'   always includes stochastic volatility. Kept for API compatibility.
-#' @param serial_correlation Logical. Currently ignored: the sampler
-#'   always models serial correlation in measurement errors. Kept for API
-#'   compatibility.
+#' @param stochastic_volatility Logical. If `TRUE` (default) the factor
+#'   innovation variance follows a stochastic volatility process. If `FALSE`
+#'   it is a single constant variance, **still estimated** rather than fixed
+#'   -- see `@details`.
+#' @param serial_correlation Logical. If `TRUE` (default) the measurement
+#'   errors are allowed to be serially correlated and their autocorrelations
+#'   are drawn. If `FALSE` they are held at (effectively) zero.
 #'
 #' @return An object of class `"ind_dfm"`: a list with components
 #'   \describe{
@@ -171,7 +185,9 @@ ind_dfm <- function(flows,
                            inventory = inventory,
                            plots = plots,
                            Gmat_prealloc = Gmat_prealloc,
-                           fdat = flows)
+                           fdat = flows,
+                           stochastic_volatility = stochastic_volatility,
+                           serial_correlation = serial_correlation)
 
   message("processing output..")
 
