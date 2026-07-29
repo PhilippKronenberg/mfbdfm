@@ -34,6 +34,15 @@ test_that("ind_dfm returns a complete, finite fit object", {
   expect_equal(as.numeric(fit$pars$lambda[fit$inventory$key == fit$target]), 1)
 })
 
+test_that("pars$h is complete and aligned with the factor (#49)", {
+  fit <- run_small_ind_dfm(11)
+
+  # h spans the same t in-sample periods as the factor: no trailing NA from
+  # slicing one past the end of h, and the same length as the factor
+  expect_false(anyNA(fit$pars$h))
+  expect_equal(length(fit$pars$h), length(fit$factor))
+})
+
 test_that("stochastic_volatility = FALSE gives a constant but estimated variance", {
   run <- function(seed) {
     data(data_ch_dataset_test, envir = environment())

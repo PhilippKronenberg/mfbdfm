@@ -272,7 +272,14 @@ ind_dfm <- function(flows,
               "nowcast" = ncst_mean,
               "nowcast_var" = ncst_var,
               "target" = target,
-              "pars" = list("h" = h_out[(s+2):(t+s+1)],
+              # h spans t+s periods, of which the first s are the latent states
+              # carried by the distributed lags. Drop those and keep the t
+              # in-sample periods, using the same slice as the factor above -
+              # h_t describes the innovation to f_t, so the two must share an
+              # index. The previous (s+2):(t+s+1) ran one past the end of h,
+              # leaving a trailing NA, and was shifted one period against the
+              # factor (#49).
+              "pars" = list("h" = h_out[(s+1):(t+s)],
                             "lambda" = lambda_out,
                             "phi" = phi_out,
                             "sigma" = sigma_out,
