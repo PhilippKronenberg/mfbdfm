@@ -8,7 +8,7 @@ application of it (#37).
 
 ## New features
 
-* `hfdfm()` estimates the Bayesian mixed-frequency dynamic factor model
+* `ind_dfm()` estimates the Bayesian mixed-frequency dynamic factor model
   behind the Swiss Weekly Activity Index, with exported data-preparation
   helpers `create_inventory()` and `prepare_data()` (#12).
 * Backcasting and real-time vintage tooling: `run_wai_adj()`, `run_ar()`,

@@ -11,7 +11,7 @@ reference:
     the rotation-identified multi-factor model (Eckert et al. 2025), plus the
     helpers that prepare their input data.
   contents:
-  - hfdfm
+  - ind_dfm
   - fcast_dfm
   - print.fcast_dfm
   - create_inventory

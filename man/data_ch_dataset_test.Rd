@@ -5,7 +5,7 @@
 \alias{data_ch_dataset_test}
 \title{Harmonized Swiss indicator dataset (test variant)}
 \format{
-A list with two components, as expected by \code{hfdfm()}:
+A list with two components, as expected by \code{ind_dfm()}:
 \describe{
 \item{flows}{Named list of 28 \code{ts} objects treated as flow
 variables, including the quarterly target series

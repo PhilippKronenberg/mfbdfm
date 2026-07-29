@@ -15,7 +15,7 @@ A list of data frames: \code{tab_wai_yoy_full}, \code{tab_wai_yoy},
 \code{tab_gr_full}, \code{tab_gr_qoq}, \code{tab_gr_lv}.
 }
 \description{
-Loads a saved \code{hfdfm} fit (an \code{.Rda} file containing an object \code{mod})
+Loads a saved \code{ind_dfm} fit (an \code{.Rda} file containing an object \code{mod})
 and derives long-format tables of the weekly growth rate (with 95\%
 bands), the cumulated level index (rebased to 2020 = 100), and
 year-over-year growth, as used by the plotting scripts.

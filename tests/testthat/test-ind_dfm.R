@@ -1,7 +1,7 @@
 # Smoke and determinism tests for the MCMC engine. Kept small: a short
 # chain on a reduced dataset — structure and reproducibility, not values.
 
-run_small_hfdfm <- function(seed) {
+run_small_ind_dfm <- function(seed) {
   data(data_ch_dataset_test, envir = environment())
   target <- "ch.seco.gdp.real.gdp.ssa"
   flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI", "trendecon_wai")],
@@ -11,15 +11,15 @@ run_small_hfdfm <- function(seed) {
 
   set.seed(seed)
   suppressMessages(
-    hfdfm(flows = flows, stocks = stocks, target = target,
+    ind_dfm(flows = flows, stocks = stocks, target = target,
           length_sample = 30, burn_in = 5, thinning = 1, plots = FALSE)
   )
 }
 
-test_that("hfdfm returns a complete, finite fit object", {
-  fit <- run_small_hfdfm(42)
+test_that("ind_dfm returns a complete, finite fit object", {
+  fit <- run_small_ind_dfm(42)
 
-  expect_s3_class(fit, "hfdfm")
+  expect_s3_class(fit, "ind_dfm")
   expect_named(fit, c("factor", "factor_var", "index", "nowcast", "nowcast_var",
                       "target", "pars", "data", "data_augmented", "inventory"))
   expect_s3_class(fit$factor, "ts")
@@ -34,13 +34,13 @@ test_that("hfdfm returns a complete, finite fit object", {
   expect_equal(as.numeric(fit$pars$lambda[fit$inventory$key == fit$target]), 1)
 })
 
-test_that("hfdfm is deterministic given a seed", {
-  fit1 <- run_small_hfdfm(7)
-  fit2 <- run_small_hfdfm(7)
+test_that("ind_dfm is deterministic given a seed", {
+  fit1 <- run_small_ind_dfm(7)
+  fit2 <- run_small_ind_dfm(7)
   expect_identical(fit1, fit2)
 })
 
-test_that("hfdfm(plots = TRUE) restores the caller's graphics state", {
+test_that("ind_dfm(plots = TRUE) restores the caller's graphics state", {
   data(data_ch_dataset_test, envir = environment())
   target <- "ch.seco.gdp.real.gdp.ssa"
   flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")], stats::window, start = 2019)
@@ -53,7 +53,7 @@ test_that("hfdfm(plots = TRUE) restores the caller's graphics state", {
 
   set.seed(1)
   suppressMessages(
-    hfdfm(flows = flows, stocks = stocks, target = target,
+    ind_dfm(flows = flows, stocks = stocks, target = target,
           length_sample = 5, burn_in = 2, thinning = 1, plots = TRUE)
   )
 

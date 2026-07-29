@@ -66,7 +66,7 @@ create_inventory <- function(flows, stocks){
 #' Standardizes each series using the moments from the inventory, aligns
 #' all series on the highest-frequency time grid, and returns a single
 #' multivariate `ts` matrix in which missing observations are encoded as
-#' zero (as expected by the [hfdfm()] sampler).
+#' zero (as expected by the [ind_dfm()] sampler).
 #'
 #' @param flows Named list of `ts` objects treated as flow variables.
 #' @param stocks Named list of `ts` objects treated as stock variables.

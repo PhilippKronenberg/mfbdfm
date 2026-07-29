@@ -24,7 +24,7 @@ column per series; missing values are encoded as \code{0}.
 Standardizes each series using the moments from the inventory, aligns
 all series on the highest-frequency time grid, and returns a single
 multivariate \code{ts} matrix in which missing observations are encoded as
-zero (as expected by the \code{\link[=hfdfm]{hfdfm()}} sampler).
+zero (as expected by the \code{\link[=ind_dfm]{ind_dfm()}} sampler).
 }
 \examples{
 data(data_ch_dataset_test)

@@ -27,8 +27,6 @@
 #' @param target Character, name of the low-frequency target series in
 #'   `flows` (e.g. `"ch.seco.gdp.real.gdp.ssa"`).
 #' @param p Integer, number of factor lags in the factor state equation.
-#' @param q Integer, number of factors. Currently ignored: the sampler
-#'   always uses a single factor.
 #' @param length_sample Integer, number of posterior draws to keep.
 #' @param burn_in Integer, number of initial draws to discard.
 #' @param thinning Integer, keep every `thinning`-th draw after burn-in.
@@ -42,7 +40,7 @@
 #'   always models serial correlation in measurement errors. Kept for API
 #'   compatibility.
 #'
-#' @return An object of class `"hfdfm"`: a list with components
+#' @return An object of class `"ind_dfm"`: a list with components
 #'   \describe{
 #'     \item{factor}{`ts`, posterior mean of the annualized activity factor.}
 #'     \item{factor_var}{`ts`, posterior variance of the factor.}
@@ -67,7 +65,7 @@
 #' stocks <- lapply(data_ch_dataset_test$stocks[1:2],
 #'                  stats::window, start = 2018)
 #' set.seed(1)
-#' fit <- hfdfm(flows = flows, stocks = stocks, target = target,
+#' fit <- ind_dfm(flows = flows, stocks = stocks, target = target,
 #'              length_sample = 50, burn_in = 10)
 #' fit$nowcast
 #' }
@@ -85,18 +83,17 @@
 #' @importFrom stats ts time frequency window var plot.ts
 #' @importFrom graphics par
 #' @export
-hfdfm <- function(flows,
-                  stocks,
-                  target,
-                  p = 1,
-                  q = 1,
-                  length_sample = 10000,
-                  burn_in = 1000,
-                  thinning = 1,
-                  plots = FALSE,
-                  extend_to = NULL,
-                  stochastic_volatility = TRUE,
-                  serial_correlation = TRUE){
+ind_dfm <- function(flows,
+                    stocks,
+                    target,
+                    p = 1,
+                    length_sample = 10000,
+                    burn_in = 1000,
+                    thinning = 1,
+                    plots = FALSE,
+                    extend_to = NULL,
+                    stochastic_volatility = TRUE,
+                    serial_correlation = TRUE){
 
   # create an inventory of the time series involved
   inventory <- create_inventory(flows = flows, stocks = stocks)
@@ -270,7 +267,7 @@ hfdfm <- function(flows,
               "data_augmented" = Xmat_full,
               "inventory" = inventory)
 
-  class(out) <- "hfdfm"
+  class(out) <- "ind_dfm"
 
   # return results
   return(out)

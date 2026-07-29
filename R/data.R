@@ -7,7 +7,7 @@
 #' the data dictionary in `README.md` for the per-series source,
 #' category, unit, and transformation).
 #'
-#' @format A list with two components, as expected by `hfdfm()`:
+#' @format A list with two components, as expected by `ind_dfm()`:
 #' \describe{
 #'   \item{flows}{Named list of 45 `ts` objects treated as flow
 #'     variables. The quarterly GDP target series is *not* included;
@@ -29,7 +29,7 @@
 #' (`data_meta_test.xlsx`) with a different flow/stock split, used for
 #' model development and evaluation runs.
 #'
-#' @format A list with two components, as expected by `hfdfm()`:
+#' @format A list with two components, as expected by `ind_dfm()`:
 #' \describe{
 #'   \item{flows}{Named list of 28 `ts` objects treated as flow
 #'     variables, including the quarterly target series

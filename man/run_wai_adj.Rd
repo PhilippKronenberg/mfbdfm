@@ -27,7 +27,7 @@ at this date.}
 \item{dataset_used}{Character, dataset label used as sub-directory
 when saving.}
 
-\item{stochastic_volatility}{Logical, passed to \code{\link[=hfdfm]{hfdfm()}} (currently
+\item{stochastic_volatility}{Logical, passed to \code{\link[=ind_dfm]{ind_dfm()}} (currently
 without effect there).}
 
 \item{output_dir}{Directory to save the fit to, or \code{NULL} (default) to
@@ -35,10 +35,10 @@ skip saving. When given, the fit is saved as
 \code{file.path(output_dir, dataset_used, "fit_<date>.Rda")}.}
 }
 \value{
-Invisibly, the windowed \code{hfdfm} fit object.
+Invisibly, the windowed \code{ind_dfm} fit object.
 }
 \description{
-Runs \code{\link[=hfdfm]{hfdfm()}} with the settings used in the WAI out-of-sample
+Runs \code{\link[=ind_dfm]{ind_dfm()}} with the settings used in the WAI out-of-sample
 evaluation and windows the factor and nowcast output to the
 evaluation date.
 }

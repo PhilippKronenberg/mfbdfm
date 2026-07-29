@@ -7,12 +7,12 @@
 #' nowcasts are derived for every input series.
 #'
 #' @details
-#' This is a different model from [hfdfm()], not a multi-factor setting of
+#' This is a different model from [ind_dfm()], not a multi-factor setting of
 #' it. The two differ in how the factors are identified, in their priors,
 #' and in how the autoregressive coefficients are drawn:
 #'
 #' \describe{
-#'   \item{Identification}{[hfdfm()] identifies the factor *during* sampling,
+#'   \item{Identification}{[ind_dfm()] identifies the factor *during* sampling,
 #'     by fixing the loading on `target` to one and shrinking that series'
 #'     measurement error toward zero, so the factor is directly interpretable
 #'     as the target's growth rate. `fcast_dfm()` instead samples an
@@ -24,12 +24,12 @@
 #'     series is treated specially.}
 #'   \item{Factor dynamics}{The factors follow a VAR(`p`) whose coefficients
 #'     are drawn by Metropolis-Hastings with a stationarity constraint,
-#'     rather than the conjugate Gibbs step used by [hfdfm()]. A single
+#'     rather than the conjugate Gibbs step used by [ind_dfm()]. A single
 #'     stochastic volatility path is shared by all `q` factors.}
 #' }
 #'
 #' Because identification differs, `fcast_dfm(q = 1)` is **not** equivalent to
-#' [hfdfm()]. Use [hfdfm()] for the target-anchored single-factor model of
+#' [ind_dfm()]. Use [ind_dfm()] for the target-anchored single-factor model of
 #' Kronenberg (2026), and `fcast_dfm()` for the multi-factor model.
 #'
 #' `target` does not enter the estimation. It names the series whose nowcast
@@ -112,7 +112,7 @@
 #' Switzerland. *Swiss Journal of Economics and Statistics*, 162, 10.
 #' \doi{10.1186/s41937-026-00157-w}
 #'
-#' @seealso [hfdfm()] for the single-factor, target-anchored model.
+#' @seealso [ind_dfm()] for the single-factor, target-anchored model.
 #'
 #' @import Matrix
 #' @importFrom stats ts time frequency window plot.ts

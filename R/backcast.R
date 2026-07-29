@@ -53,7 +53,7 @@ run_ar <- function(flows, stocks, target, date, dataset_used, stochastic_volatil
 
 #' Fit the WAI dynamic factor model at a given evaluation date
 #'
-#' Runs [hfdfm()] with the settings used in the WAI out-of-sample
+#' Runs [ind_dfm()] with the settings used in the WAI out-of-sample
 #' evaluation and windows the factor and nowcast output to the
 #' evaluation date.
 #'
@@ -64,13 +64,13 @@ run_ar <- function(flows, stocks, target, date, dataset_used, stochastic_volatil
 #'   at this date.
 #' @param dataset_used Character, dataset label used as sub-directory
 #'   when saving.
-#' @param stochastic_volatility Logical, passed to [hfdfm()] (currently
+#' @param stochastic_volatility Logical, passed to [ind_dfm()] (currently
 #'   without effect there).
 #' @param output_dir Directory to save the fit to, or `NULL` (default) to
 #'   skip saving. When given, the fit is saved as
 #'   `file.path(output_dir, dataset_used, "fit_<date>.Rda")`.
 #'
-#' @return Invisibly, the windowed `hfdfm` fit object.
+#' @return Invisibly, the windowed `ind_dfm` fit object.
 #'
 #' @importFrom stats window time frequency
 #' @examples
@@ -85,17 +85,16 @@ run_ar <- function(flows, stocks, target, date, dataset_used, stochastic_volatil
 run_wai_adj <- function(flows, stocks, target, date, dataset_used, stochastic_volatility = TRUE,
                         output_dir = NULL){
 
-  mod <- hfdfm(flows = flows,
-        stocks = stocks,
-        target = target,
-        burn_in = 1000,
-        length_sample = 5000,
-        thinning = 1,
-        p = 1, # Number of factor lags in factor state equation.
-        q = 1, # Number of factors
-        plots = FALSE,
-        stochastic_volatility = stochastic_volatility,
-        serial_correlation = TRUE)
+  mod <- ind_dfm(flows = flows,
+                 stocks = stocks,
+                 target = target,
+                 burn_in = 1000,
+                 length_sample = 5000,
+                 thinning = 1,
+                 p = 1, # Number of factor lags in factor state equation.
+                 plots = FALSE,
+                 stochastic_volatility = stochastic_volatility,
+                 serial_correlation = TRUE)
 
   mod$factor <- window(mod$factor, end = date)
   mod$factor_var <- window(mod$factor_var, end = date)
@@ -151,7 +150,7 @@ retrieve_nowcast_var <- function(fit, model){
 
 #' Extract WAI growth, level and year-over-year tables from a saved fit
 #'
-#' Loads a saved `hfdfm` fit (an `.Rda` file containing an object `mod`)
+#' Loads a saved `ind_dfm` fit (an `.Rda` file containing an object `mod`)
 #' and derives long-format tables of the weekly growth rate (with 95%
 #' bands), the cumulated level index (rebased to 2020 = 100), and
 #' year-over-year growth, as used by the plotting scripts.

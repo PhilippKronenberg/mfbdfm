@@ -95,12 +95,12 @@ combined into \code{q} common factors, from which high-frequency estimates and
 nowcasts are derived for every input series.
 }
 \details{
-This is a different model from \code{\link[=hfdfm]{hfdfm()}}, not a multi-factor setting of
+This is a different model from \code{\link[=ind_dfm]{ind_dfm()}}, not a multi-factor setting of
 it. The two differ in how the factors are identified, in their priors,
 and in how the autoregressive coefficients are drawn:
 
 \describe{
-\item{Identification}{\code{\link[=hfdfm]{hfdfm()}} identifies the factor \emph{during} sampling,
+\item{Identification}{\code{\link[=ind_dfm]{ind_dfm()}} identifies the factor \emph{during} sampling,
 by fixing the loading on \code{target} to one and shrinking that series'
 measurement error toward zero, so the factor is directly interpretable
 as the target's growth rate. \code{fcast_dfm()} instead samples an
@@ -112,12 +112,12 @@ average loading matrix close to its varimax rotation.}
 series is treated specially.}
 \item{Factor dynamics}{The factors follow a VAR(\code{p}) whose coefficients
 are drawn by Metropolis-Hastings with a stationarity constraint,
-rather than the conjugate Gibbs step used by \code{\link[=hfdfm]{hfdfm()}}. A single
+rather than the conjugate Gibbs step used by \code{\link[=ind_dfm]{ind_dfm()}}. A single
 stochastic volatility path is shared by all \code{q} factors.}
 }
 
 Because identification differs, \code{fcast_dfm(q = 1)} is \strong{not} equivalent to
-\code{\link[=hfdfm]{hfdfm()}}. Use \code{\link[=hfdfm]{hfdfm()}} for the target-anchored single-factor model of
+\code{\link[=ind_dfm]{ind_dfm()}}. Use \code{\link[=ind_dfm]{ind_dfm()}} for the target-anchored single-factor model of
 Kronenberg (2026), and \code{fcast_dfm()} for the multi-factor model.
 
 \code{target} does not enter the estimation. It names the series whose nowcast
@@ -149,5 +149,5 @@ Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.
 \doi{10.1186/s41937-026-00157-w}
 }
 \seealso{
-\code{\link[=hfdfm]{hfdfm()}} for the single-factor, target-anchored model.
+\code{\link[=ind_dfm]{ind_dfm()}} for the single-factor, target-anchored model.
 }

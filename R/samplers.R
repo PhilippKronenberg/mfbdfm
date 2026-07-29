@@ -1,5 +1,5 @@
 # Gibbs samplers for the high-frequency dynamic factor model.
-# All functions here are internal building blocks of hfdfm().
+# All functions here are internal building blocks of ind_dfm().
 
 # Seven-component normal mixture approximating the log chi-squared
 # distribution (Kim, Shephard & Chib 1998; Primiceri 2005 Appendix), used by

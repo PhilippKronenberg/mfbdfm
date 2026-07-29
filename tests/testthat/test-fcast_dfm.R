@@ -1,8 +1,8 @@
 # Smoke and structure tests for the multi-factor model. Kept small: a short
 # chain on a reduced dataset - structure and reproducibility, not values
-# (see test-hfdfm.R for the same rationale).
+# (see test-ind_dfm.R for the same rationale).
 #
-# Note fcast_dfm() is NOT expected to agree with hfdfm() at q = 1: the two
+# Note fcast_dfm() is NOT expected to agree with ind_dfm() at q = 1: the two
 # models differ in identification and priors (see ?fcast_dfm Details).
 
 run_small_fcast <- function(seed, q = 2) {

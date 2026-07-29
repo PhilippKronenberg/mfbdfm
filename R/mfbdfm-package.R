@@ -1,6 +1,6 @@
 #' mfbdfm: A Mixed-Frequency Bayesian Dynamic Factor Model
 #'
-#' Estimates a Bayesian mixed-frequency dynamic factor model ([hfdfm()])
+#' Estimates a Bayesian mixed-frequency dynamic factor model ([ind_dfm()])
 #' that combines indicators observed at weekly, monthly and quarterly
 #' frequencies into a single dynamic factor. The package ships a
 #' flagship application, the Weekly Activity Index (WAI): a weekly GDP
@@ -39,7 +39,7 @@
 #' and [data_ch_dataset_test], plus the real-time GDP vintage database
 #' (in `inst/extdata/`), so a small nowcast can be estimated out of the
 #' box - see `vignette("mfbdfm")` for a worked walkthrough, or the
-#' example in [hfdfm()] for the minimal version.
+#' example in [ind_dfm()] for the minimal version.
 #'
 #' @references
 #' Kronenberg, P. (2026). A high-frequency GDP indicator for

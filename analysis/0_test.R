@@ -74,7 +74,7 @@ dat$flows[[target]] <- x_hist_gr
 # dat$stocks <- lapply(dat$stocks, truncate_to_q3_2021)
 tail(time(dat$flows$ch.seco.gdp.real.gdp.ssa),1)[1]
 
-out <- hfdfm(flows = dat$flows,
+out <- ind_dfm(flows = dat$flows,
              stocks = dat$stocks,
              burn_in = 1000,
              length_sample = 10000,
