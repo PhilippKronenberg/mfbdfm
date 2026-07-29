@@ -17,7 +17,8 @@ fcast_dfm(
   extend = NULL,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
-  ncores = NULL
+  ncores = NULL,
+  priors = dfm_priors("fcast_dfm")
 )
 }
 \arguments{
@@ -56,6 +57,11 @@ measurement errors. If \code{FALSE}, the autocorrelations are fixed near zero.}
 
 \item{ncores}{Integer or \code{NULL}. Number of cores for the rotation step,
 which is run in parallel via \pkg{doParallel} when supplied.}
+
+\item{priors}{Prior specification from \code{\link[=dfm_priors]{dfm_priors()}}. The default
+reproduces the published priors exactly. Note that the loading prior
+carries the identification -- it must stay diffuse for the post-hoc
+rotation to work; see \code{\link[=dfm_priors]{dfm_priors()}}.}
 }
 \value{
 An object of class \code{"fcast_dfm"}: a list with components

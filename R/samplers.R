@@ -19,7 +19,11 @@ NMIX_SD   <- sqrt(NMIX_VAR)
 #' @importFrom graphics par
 run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, thinning,
                          inventory, plots,Gmat_prealloc, fdat,
-                         stochastic_volatility = TRUE, serial_correlation = TRUE){
+                         stochastic_volatility = TRUE, serial_correlation = TRUE,
+                         priors = dfm_priors("ind_dfm")){
+
+  # fill in the priors whose published default is a rule in terms of t or p
+  priors <- resolve_priors(priors, t = t, p = p)
 
   # preallocation of output matrices
   chain <- NULL # matrix(NA, burn_in + length_sample*thinning, 100)
@@ -128,7 +132,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                            h_old = h,
                            NtN = NtN)
     } else {
-      h <- draw_factor_variance(f = f, phi = phi, p = p, s = s, t = t)
+      h <- draw_factor_variance(f = f, phi = phi, p = p, s = s, t = t,
+                                prior = priors$factor_var)
     }
 
     # 3. draw model parameters (conditional on factors and volatility)
@@ -138,22 +143,27 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                           sigma = sigma,
                           n = n, t = t,
                           inventory = inventory,
-                          target = target)
+                          target = target,
+                          prior = priors$lambda)
 
 
     sigma <- draw_sigma(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
-                        inventory = inventory, target = target, sigma = sigma)
-    phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi)
+                        inventory = inventory, target = target, sigma = sigma,
+                        prior_target = priors$sigma_target,
+                        prior_other = priors$sigma_other)
+    phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi, prior = priors$phi)
 
     # omega (the variance of h's own innovations) and the mixture indicators
     # exist solely to draw a volatility PATH; with a constant variance they are
     # meaningless. Each conditional is kept in its original position in the
     # sequence so that with the defaults the RNG is consumed exactly as before.
-    if(stochastic_volatility) omega <- draw_omega(h = h, t = t, s = s, p = p)
+    if(stochastic_volatility) omega <- draw_omega(h = h, t = t, s = s, p = p,
+                                                  prior = priors$omega)
 
     if(serial_correlation){
       rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
-                      lambda = lambda, Llist = Llist, inventory = inventory, target = target)
+                      lambda = lambda, Llist = Llist, inventory = inventory, target = target,
+                      prior_target = priors$rho_target, prior_other = priors$rho_other)
     }
 
     if(stochastic_volatility) indicators = draw_indicators(h, f, phi, n, p, s, t)
@@ -328,7 +338,7 @@ draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_factor_variance <- function(f, phi, p, s, t){
+draw_factor_variance <- function(f, phi, p, s, t, prior){
 
   # residuals of the factor state equation, computed exactly as in
   # draw_volatility(); the first p entries are the zero padding it also uses
@@ -336,9 +346,9 @@ draw_factor_variance <- function(f, phi, p, s, t){
     f[seq(from = 1+p-px, t+s-px),,drop=FALSE] %*% phi[px]})))
   v <- err[(p+1):(t+s)]
 
-  # uninformative prior (moves into dfm_priors() - see #48)
-  c0 <- 3
-  d0 <- 1e-2
+  # uninformative prior; see dfm_priors()
+  c0 <- prior$c0
+  d0 <- prior$d0
 
   c1 <- c0 + length(v)
   d1 <- d0 + sum(v^2)
@@ -423,13 +433,13 @@ draw_augmented_data <- function(Gmat, f, rho, sigma, n, t, StV1S, StV1SY, return
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_lambda <- function(Xvec_tilde, Zmat, sigma, n, t, inventory, target){
+draw_lambda <- function(Xvec_tilde, Zmat, sigma, n, t, inventory, target, prior){
 
   # See appendix A.4 Conditional distributions of Remaining Parameters: Factor Loadings
 
-  # uninformative priors
-  b0 <- Matrix(0,n,1)
-  B0 <- Diagonal(x = 1, n = n)
+  # uninformative priors (see dfm_priors())
+  b0 <- Matrix(prior$b0,n,1)
+  B0 <- Diagonal(x = prior$B0, n = n)
 
   # solve(sigma) and its Kronecker product with Diagonal(t-1) are otherwise
   # computed twice (once for B1, once for b1) for the same result
@@ -453,7 +463,8 @@ draw_lambda <- function(Xvec_tilde, Zmat, sigma, n, t, inventory, target){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma){
+draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma,
+                       prior_target, prior_other){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Measurement Error Covariance Matrix
 
   # get errors
@@ -467,19 +478,21 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma){
 
     if(ix == which(inventory$key == target)){
 
-      # the prior choice for the target variable shrinks the measurement error variance
-      # strongly towards zero. this ensures that the high frequency factor
-      # is approximatively coherent with the low frequency target variable
+      # STRUCTURAL: the prior choice for the target variable shrinks the
+      # measurement error variance strongly towards zero. This ensures that the
+      # high frequency factor is approximatively coherent with the low frequency
+      # target variable - i.e. it *is* the identification, not a tuning knob.
+      # Defaults to c0 = t, d0 = t * 1e-3; see dfm_priors().
 
-      c0 <- t
-      d0 <- t * 1e-3 # Different for in-sample run than for out-of-sample run
+      c0 <- prior_target$c0
+      d0 <- prior_target$d0
 
     } else {
 
       # this prior choice is uninformative
 
-      c0 <- 3
-      d0 <- 5e-2
+      c0 <- prior_other$c0
+      d0 <- prior_other$d0
 
     }
 
@@ -505,7 +518,8 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma){
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target){
+draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
+                     prior_target, prior_other){
 
   # See appendix A.4 Conditional distributions of Remaining Parameters: Autocorrelation of Measurement Errors
   # construct auxiliary matrix
@@ -545,13 +559,15 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target){
 
     if(nx == target_ix){
 
-      r0 = 0
-      R0 = 1e-9
+      # STRUCTURAL: shrinking the target's serial correlation to zero is part
+      # of the anchoring; see dfm_priors()
+      r0 = prior_target$r0
+      R0 = prior_target$R0
 
     } else {
 
-      r0 = 0
-      R0 = 5
+      r0 = prior_other$r0
+      R0 = prior_other$R0
     }
 
     elag <- Elag[,nx]
@@ -595,7 +611,7 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target){
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_phi = function(f, h, p, t, phi_old){
+draw_phi = function(f, h, p, t, phi_old, prior){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Autoregressive Coefficients
 
   m = f[(p+1):(nrow(f)),]
@@ -603,9 +619,9 @@ draw_phi = function(f, h, p, t, phi_old){
 
   V <- Diagonal(x = exp(2*h[(1+p):(nrow(h)),]))
 
-  # uninformative prior
-  a0 <- matrix(c(0,rep(0,p-1)))
-  A0 <- Diagonal(x = 0.12/((1:p)^2), n = p)
+  # uninformative prior; A0 defaults to 0.12/(lag^2), see dfm_priors()
+  a0 <- matrix(rep(prior$a0, p))
+  A0 <- Diagonal(x = prior$A0, n = p)
 
   # distribution parameters
   A1 <- solve(solve(A0) + t(M) %*% solve(V) %*% M) # Formula (26)
@@ -635,13 +651,13 @@ draw_phi = function(f, h, p, t, phi_old){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_omega <- function(h, t, s, p){
+draw_omega <- function(h, t, s, p, prior){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Stochastic Volatility Variance
   v <- h[2:nrow(h),] - h[seq(from = 1, nrow(h)-1),,drop=FALSE]
 
-  # informative prior
-  k0 <- t
-  l0 <- t * 1e-2
+  # informative prior; defaults to k0 = t, l0 = t * 1e-2, see dfm_priors()
+  k0 <- prior$k0
+  l0 <- prior$l0
 
   # parametrize posterior
   k1 <- k0 + t + s

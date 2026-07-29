@@ -15,7 +15,8 @@ ind_dfm(
   plots = FALSE,
   extend_to = NULL,
   stochastic_volatility = TRUE,
-  serial_correlation = TRUE
+  serial_correlation = TRUE,
+  priors = dfm_priors("ind_dfm")
 )
 }
 \arguments{
@@ -49,6 +50,11 @@ it is a single constant variance, \strong{still estimated} rather than fixed
 \item{serial_correlation}{Logical. If \code{TRUE} (default) the measurement
 errors are allowed to be serially correlated and their autocorrelations
 are drawn. If \code{FALSE} they are held at (effectively) zero.}
+
+\item{priors}{Prior specification from \code{\link[=dfm_priors]{dfm_priors()}}. The default
+reproduces the published priors exactly. Note that two of them -- the
+target's measurement-error variance and serial correlation -- carry the
+identification rather than being tuning knobs; see \code{\link[=dfm_priors]{dfm_priors()}}.}
 }
 \value{
 An object of class \code{"ind_dfm"}: a list with components

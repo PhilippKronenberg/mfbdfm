@@ -53,6 +53,10 @@
 #' @param serial_correlation Logical. If `TRUE` (default) the measurement
 #'   errors are allowed to be serially correlated and their autocorrelations
 #'   are drawn. If `FALSE` they are held at (effectively) zero.
+#' @param priors Prior specification from [dfm_priors()]. The default
+#'   reproduces the published priors exactly. Note that two of them -- the
+#'   target's measurement-error variance and serial correlation -- carry the
+#'   identification rather than being tuning knobs; see [dfm_priors()].
 #'
 #' @return An object of class `"ind_dfm"`: a list with components
 #'   \describe{
@@ -107,7 +111,10 @@ ind_dfm <- function(flows,
                     plots = FALSE,
                     extend_to = NULL,
                     stochastic_volatility = TRUE,
-                    serial_correlation = TRUE){
+                    serial_correlation = TRUE,
+                    priors = dfm_priors("ind_dfm")){
+
+  check_priors(priors, "ind_dfm")
 
   # create an inventory of the time series involved
   inventory <- create_inventory(flows = flows, stocks = stocks)
@@ -187,7 +194,8 @@ ind_dfm <- function(flows,
                            Gmat_prealloc = Gmat_prealloc,
                            fdat = flows,
                            stochastic_volatility = stochastic_volatility,
-                           serial_correlation = serial_correlation)
+                           serial_correlation = serial_correlation,
+                           priors = priors)
 
   message("processing output..")
 

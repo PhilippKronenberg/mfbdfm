@@ -59,6 +59,10 @@
 #'   measurement errors. If `FALSE`, the autocorrelations are fixed near zero.
 #' @param ncores Integer or `NULL`. Number of cores for the rotation step,
 #'   which is run in parallel via \pkg{doParallel} when supplied.
+#' @param priors Prior specification from [dfm_priors()]. The default
+#'   reproduces the published priors exactly. Note that the loading prior
+#'   carries the identification -- it must stay diffuse for the post-hoc
+#'   rotation to work; see [dfm_priors()].
 #'
 #' @return An object of class `"fcast_dfm"`: a list with components
 #'   \describe{
@@ -130,7 +134,10 @@ fcast_dfm <- function(flows = NULL,
                       extend = NULL,
                       stochastic_volatility = TRUE,
                       serial_correlation = TRUE,
-                      ncores = NULL){
+                      ncores = NULL,
+                      priors = dfm_priors("fcast_dfm")){
+
+  check_priors(priors, "fcast_dfm")
 
   # validate inputs early, naming the offending argument
   if(is.null(flows) && is.null(stocks)){
@@ -214,7 +221,8 @@ fcast_dfm <- function(flows = NULL,
                                plots = plots,
                                Gmat_prealloc = Gmat_prealloc,
                                stochastic_volatility = stochastic_volatility,
-                               serial_correlation = serial_correlation)
+                               serial_correlation = serial_correlation,
+                               priors = priors)
 
 
   # ROTATION ----------------------------------------------------------------
