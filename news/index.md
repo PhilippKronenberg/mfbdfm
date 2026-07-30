@@ -23,6 +23,20 @@ Bayesian dynamic factor model and WAI is one application of it
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
   for multi-factor estimation
   ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
+- Both fit classes now agree on their data components: `$data` is the
+  prepared (standardized) matrix and `$data_raw` the series as supplied.
+  Previously `$data` meant the prepared matrix for
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  but the raw input list for
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
+  so the same expression returned unrelated things – e.g.
+  `length(fit$data)` gave 1250 for one and 5 for the other, with no
+  error.
+  **[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  is unaffected**; for
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
+  `$data` changes meaning and `$data_missings` is renamed to `$data`
+  ([\#50](https://github.com/PhilippKronenberg/mfbdfm/issues/50)).
 
 ### New features
 

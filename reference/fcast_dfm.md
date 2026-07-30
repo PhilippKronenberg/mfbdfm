@@ -131,11 +131,12 @@ An object of class `"fcast_dfm"`: a list with components
 
 - data:
 
-  The input series.
+  `ts` matrix of the prepared (standardized) data, in which `0` encodes
+  a missing observation.
 
-- data_missings:
+- data_raw:
 
-  `ts` matrix of the prepared (standardized) data.
+  The input series, as supplied.
 
 - data_hf:
 

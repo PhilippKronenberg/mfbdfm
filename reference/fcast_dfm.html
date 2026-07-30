@@ -168,10 +168,11 @@ nowcast for <code>target</code>, extracted from <code>ncst</code>.</p></dd>
 for every input series at its own frequency.</p></dd>
 
 <dt>data</dt>
-<dd><p>The input series.</p></dd>
+<dd><p><code>ts</code> matrix of the prepared (standardized) data, in which
+<code>0</code> encodes a missing observation.</p></dd>
 
-<dt>data_missings</dt>
-<dd><p><code>ts</code> matrix of the prepared (standardized) data.</p></dd>
+<dt>data_raw</dt>
+<dd><p>The input series, as supplied.</p></dd>
 
 <dt>data_hf</dt>
 <dd><p>List with <code>mean</code> and <code>var</code>, each a named list of

@@ -160,7 +160,11 @@ identification rather than being tuning knobs; see <code><a href="dfm_priors.htm
 <code>sigma</code>, <code>omega</code>, <code>rho</code>, <code>rho_var</code>).</p></dd>
 
 <dt>data</dt>
-<dd><p><code>ts</code> matrix of the prepared (standardized) data.</p></dd>
+<dd><p><code>ts</code> matrix of the prepared (standardized) data, in which
+<code>0</code> encodes a missing observation.</p></dd>
+
+<dt>data_raw</dt>
+<dd><p>The input series, as supplied.</p></dd>
 
 <dt>data_augmented</dt>
 <dd><p><code>ts</code> matrix of the augmented dataset.</p></dd>

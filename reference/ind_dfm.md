@@ -124,7 +124,12 @@ An object of class `"ind_dfm"`: a list with components
 
 - data:
 
-  `ts` matrix of the prepared (standardized) data.
+  `ts` matrix of the prepared (standardized) data, in which `0` encodes
+  a missing observation.
+
+- data_raw:
+
+  The input series, as supplied.
 
 - data_augmented:
 
