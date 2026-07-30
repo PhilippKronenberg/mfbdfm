@@ -272,7 +272,54 @@ test_that("a weekly `ts` supplied directly is converted too, and round-trips", {
 })
 
 
-test_that("`aggregate` selects how observations sharing a slot are combined", {
+test_that("weekly series are converted via daily, giving every slot even support", {
+
+  # 48 does not divide 52, so mapping weekly points straight onto the grid gives
+  # each slot 1 or 2 of them. Expanding to daily first gives every slot 7-8
+  # days, which is what makes the slot value an overlap-weighted blend rather
+  # than a nearest-point pick.
+  x <- stats::ts(as.numeric(1:157), start = c(2020, 1), frequency = 52)
+
+  z <- expand_to_daily(x)
+  expect_s3_class(z, "zoo")
+  expect_equal(length(z), 157L * 7L)
+  expect_equal(anyDuplicated(zoo::index(z)), 0L)
+  # repeated, not divided, so the values are the weekly ones
+  expect_setequal(unique(as.numeric(z)), as.numeric(1:157))
+  # each weekly value covers the 7 days ENDING on its label date
+  ends <- ts_to_dates(x)
+  expect_equal(max(zoo::index(z)), ends[157])
+  expect_equal(min(zoo::index(z)), ends[1] - 6)
+
+  slot_of <- function(dt) plyr::round_any(
+    as.numeric(format(dt, "%Y")) + (as.numeric(format(dt, "%m")) - 1)/12 +
+      as.numeric(format(dt, "%d"))/365, accuracy = 1/48, f = floor)
+
+  # lumpy before, evenly supported after
+  expect_setequal(names(table(table(slot_of(ends)))), c("1", "2"))
+  expect_gt(stats::median(table(slot_of(zoo::index(z)))), 6)
+
+  # On a linear ramp the correct constant rate is 52/48 per slot. Asserted as an
+  # improvement over the direct route rather than against an absolute threshold,
+  # since the residual unevenness comes from the 48-grid itself: daily2weekly()
+  # indexes on (month-1)/12 + day/365, which gives 12 slots per calendar month
+  # regardless of its length, so a short month's last slot is 6 days not 8.
+  d <- suppressMessages(mfbdfm_data(list(w = x),
+                                    data.frame(series = "w", type = "flow",
+                                               stringsAsFactors = FALSE)))
+  interior <- function(v) v[-c(1, length(v))]
+  dev_via <- abs(interior(diff(as.numeric(d$flows$w))) - 52/48)
+
+  direct <- daily2weekly(zoo::zoo(as.numeric(x), order.by = ends))
+  dev_direct <- abs(interior(diff(as.numeric(direct))) - 52/48)
+
+  expect_equal(mean(interior(diff(as.numeric(d$flows$w)))), 52/48, tolerance = 0.02)
+  expect_lt(max(dev_via), max(dev_direct))            # 0.18 vs 0.42
+  expect_lt(stats::median(dev_via), stats::median(dev_direct))
+})
+
+
+test_that("`aggregate` selects how days sharing a slot are combined", {
 
   wk <- seq(as.Date("2020-01-06"), by = "week", length.out = 157)
   long <- data.frame(series = "w", date = wk, value = rep(1, length(wk)))
@@ -281,13 +328,16 @@ test_that("`aggregate` selects how observations sharing a slot are combined", {
   a <- suppressMessages(mfbdfm_data(long, meta, aggregate = "mean"))
   b <- suppressMessages(mfbdfm_data(long, meta, aggregate = "sum"))
 
-  # with a constant series of 1s, mean gives 1 in every slot; sum gives 2 in the
-  # slots that received two weekly observations, and conserves the total - no
-  # observation is dropped or counted twice
+  # With a constant series of 1s and the daily expansion repeating (not
+  # dividing) the value, mean is 1 in EVERY slot including the partial ones -
+  # the overlap-weighted average of a constant is that constant, which is the
+  # property that makes mean the right default for a rate. sum instead counts
+  # days, so it reports each slot's width (6-8 in the interior), and the total
+  # equals the number of days covered.
   expect_true(all(stats::na.omit(as.numeric(a$flows$w)) == 1))
-  expect_setequal(unique(stats::na.omit(as.numeric(b$flows$w))), c(1, 2))
-  expect_equal(sum(b$flows$w, na.rm = TRUE), length(wk))
-  expect_gt(sum(stats::na.omit(as.numeric(b$flows$w)) == 2), 0)
+  mid <- function(v) v[-c(1, length(v))]
+  expect_true(all(mid(stats::na.omit(as.numeric(b$flows$w))) %in% 6:8))
+  expect_equal(sum(b$flows$w, na.rm = TRUE), 157 * 7)
 
   expect_error(mfbdfm_data(long, meta, aggregate = "median"), "'arg'")
 })

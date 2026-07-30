@@ -111,20 +111,38 @@ series retained \strong{20 of its 60 observations} -- and the fit completed
 without any error or warning.
 
 So any series arriving at a frequency finer than 48 -- 52 (weekly) or 365
-(daily) -- is aggregated onto the 48-week grid with \code{\link[=daily2weekly]{daily2weekly()}}, which
-is the same function the analysis scripts use for this. A \code{message()} names
-the series converted, \code{print()} shows the original frequency alongside the
-new one, and \code{meta$frequency_in} records it.
+(daily) -- is aggregated onto the 48-week grid with \code{\link[=daily2weekly]{daily2weekly()}}, the
+same function the analysis scripts use for this. A \code{message()} names the
+series converted, \code{print()} shows the original frequency alongside the new
+one, and \code{meta$frequency_in} records it.
+
+For a weekly series this goes \strong{via daily}: the observations are first
+expanded to the calendar days their weeks cover, and those days are then
+aggregated onto the 48 grid. The reason is that 48 does not divide 52, so
+mapping weekly points straight onto the grid gives each slot either one or
+two of them -- a nearest-point pick rather than a resampling, which leaves
+occasional empty slots and a handful of slots a year that blend two weeks
+while the rest blend one. Routing through a common finer grid gives every
+slot 7-8 days and makes its value an overlap-weighted blend of the weeks it
+straddles. On a linear ramp the direct route yields steps of
+\verb{1.5, 1.5, 1, 1, ...} where the correct constant rate is \code{52/48 = 1.083},
+which the daily route reproduces. Daily input is already on that grid and is
+passed straight through.
+
+A weekly observation's date is taken to label the \strong{end} of its week, which
+is this package's own convention (see \code{\link[=dec2week]{dec2week()}}).
 
 Note this is one of the things you get by going through \code{mfbdfm_data()}:
 passing \code{flows}/\code{stocks} straight to a model does no such conversion, and a
 frequency-52 series there will still quietly cost you most of your monthly
 observations.
 
-\code{aggregate} chooses how observations sharing a slot are combined (roughly
-four slots a year receive two weekly observations). The default \code{"mean"}
-matches \code{\link[=daily2weekly]{daily2weekly()}} and is the per-period rate, which is what these
-models want, since they are estimated on growth rates.
+\code{aggregate} chooses how the days falling in one slot are combined. Because
+the expansion repeats each weekly value across its days rather than dividing
+it, \code{"mean"} (the default) is exactly the overlap-weighted average of the
+weekly rates -- what these models want, being estimated on growth rates --
+and \code{"sum"} is exactly proportional to the period total, the constant being
+the days per period, which \code{\link[=prepare_data]{prepare_data()}}'s standardization removes.
 }
 
 \examples{

@@ -45,6 +45,14 @@ application of it (#37).
   20-quarter / 60-month / 260-week panel the monthly series retained only 20 of
   its 60 observations, with no error or warning. The conversion is reported by
   `message()`, shown by `print()`, and recorded in `meta$frequency_in` (#56).
+  Weekly series go **via daily**: since 48 does not divide 52, mapping weekly
+  points straight onto the grid gives each slot one or two of them -- a
+  nearest-point pick that leaves occasional empty slots and a few slots a year
+  blending two weeks while the rest blend one. Expanding to daily first gives
+  every slot 6-8 days and makes its value an overlap-weighted blend. On a linear
+  ramp the direct route steps `1.5, 1.5, 1, 1, ...` against a correct constant
+  rate of `52/48 = 1.083`; via daily the worst deviation falls from 0.42 to 0.18
+  and the median from 0.08 to 0.04.
 * `daily2weekly()` gains a `FUN` argument (default `mean`, so existing calls are
   unaffected) selecting how observations sharing a 48-week slot are combined.
 * `fcast_dfm()` estimates the multi-factor mixed-frequency dynamic factor

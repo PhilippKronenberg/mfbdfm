@@ -82,20 +82,38 @@
 #' without any error or warning.
 #'
 #' So any series arriving at a frequency finer than 48 -- 52 (weekly) or 365
-#' (daily) -- is aggregated onto the 48-week grid with [daily2weekly()], which
-#' is the same function the analysis scripts use for this. A `message()` names
-#' the series converted, `print()` shows the original frequency alongside the
-#' new one, and `meta$frequency_in` records it.
+#' (daily) -- is aggregated onto the 48-week grid with [daily2weekly()], the
+#' same function the analysis scripts use for this. A `message()` names the
+#' series converted, `print()` shows the original frequency alongside the new
+#' one, and `meta$frequency_in` records it.
+#'
+#' For a weekly series this goes **via daily**: the observations are first
+#' expanded to the calendar days their weeks cover, and those days are then
+#' aggregated onto the 48 grid. The reason is that 48 does not divide 52, so
+#' mapping weekly points straight onto the grid gives each slot either one or
+#' two of them -- a nearest-point pick rather than a resampling, which leaves
+#' occasional empty slots and a handful of slots a year that blend two weeks
+#' while the rest blend one. Routing through a common finer grid gives every
+#' slot 7-8 days and makes its value an overlap-weighted blend of the weeks it
+#' straddles. On a linear ramp the direct route yields steps of
+#' `1.5, 1.5, 1, 1, ...` where the correct constant rate is `52/48 = 1.083`,
+#' which the daily route reproduces. Daily input is already on that grid and is
+#' passed straight through.
+#'
+#' A weekly observation's date is taken to label the **end** of its week, which
+#' is this package's own convention (see [dec2week()]).
 #'
 #' Note this is one of the things you get by going through `mfbdfm_data()`:
 #' passing `flows`/`stocks` straight to a model does no such conversion, and a
 #' frequency-52 series there will still quietly cost you most of your monthly
 #' observations.
 #'
-#' `aggregate` chooses how observations sharing a slot are combined (roughly
-#' four slots a year receive two weekly observations). The default `"mean"`
-#' matches [daily2weekly()] and is the per-period rate, which is what these
-#' models want, since they are estimated on growth rates.
+#' `aggregate` chooses how the days falling in one slot are combined. Because
+#' the expansion repeats each weekly value across its days rather than dividing
+#' it, `"mean"` (the default) is exactly the overlap-weighted average of the
+#' weekly rates -- what these models want, being estimated on growth rates --
+#' and `"sum"` is exactly proportional to the period total, the constant being
+#' the days per period, which [prepare_data()]'s standardization removes.
 #'
 #' @param data The input series, in any of the forms above.
 #' @param meta A data frame with one row per series and at least the columns
@@ -421,7 +439,14 @@ harmonise_to_week48 <- function(series, aggregate = "mean"){
 
   for(nm in todo){
     x <- series[[nm]]
-    z <- zoo::zoo(as.numeric(x), order.by = ts_to_dates(x))
+    # 48 does not divide 52, so mapping weekly points straight onto the grid
+    # gives each slot either one or two of them - a lumpy nearest-point pick,
+    # not a resampling. Expanding to daily first puts both frequencies on a
+    # common finer grid, after which every slot draws on 7-8 days and its value
+    # is a proper overlap-weighted blend of the weeks it straddles. Daily input
+    # is already on that grid and is passed through.
+    z <- if(stats::frequency(x) < 365) expand_to_daily(x) else
+      zoo::zoo(as.numeric(x), order.by = ts_to_dates(x))
     out <- daily2weekly(z, FUN = fun)
     if(stats::frequency(out) != 48){
       stop("Failed to put series ", sQuote(nm), " on the 48-week grid: got ",
@@ -435,6 +460,41 @@ harmonise_to_week48 <- function(series, aggregate = "mean"){
 
   list(series = series,
        frequency_in = stats::setNames(as.integer(freqs[todo]), todo))
+
+}
+
+
+#' Expand a sub-daily-frequency `ts` to a daily `zoo`
+#'
+#' Each observation is repeated across the calendar days its period covers. The
+#' label date is taken as the **end** of the period, which is this package's own
+#' convention -- [dec2week()] puts week `k` of the 48-grid on day `7k`, the last
+#' day of the period, and [prepare_data()] likewise shifts low-frequency
+#' observations to the end of their period.
+#'
+#' Repeating (rather than dividing) keeps the value interpretable as a rate, so
+#' a later `mean` over a 48-slot is the overlap-weighted average of the periods
+#' it straddles. A later `sum` is then proportional to the period total, the
+#' constant of proportionality being the number of days per period -- which
+#' [prepare_data()]'s standardization removes.
+#'
+#' @noRd
+expand_to_daily <- function(x){
+
+  ends <- ts_to_dates(x)
+  span <- max(1L, round(365 / stats::frequency(x)))     # days per period
+
+  days <- rep(ends, each = span) - rep(seq.int(span - 1L, 0L), times = length(ends))
+  value <- rep(as.numeric(x), each = span)
+
+  ord <- order(days)
+  days <- days[ord]
+  value <- value[ord]
+
+  # contiguous periods should not overlap, but guard rather than let zoo build a
+  # duplicated index
+  keep <- !duplicated(days)
+  zoo::zoo(value[keep], order.by = days[keep])
 
 }
 
