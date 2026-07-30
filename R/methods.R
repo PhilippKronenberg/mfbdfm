@@ -5,16 +5,9 @@
 # sense - nowcasts are computed during fitting and stored - so a predict()
 # returning stored values would advertise a capability that does not exist.
 
-#' The prepared (standardized) data matrix, whatever the class calls it
-#'
-#' `ind_dfm` stores it as `$data`; `fcast_dfm` stores it as `$data_missings`
-#' and uses `$data` for the raw input series. See #50.
-#'
-#' @noRd
-prepared_data <- function(object){
-  if(inherits(object, "fcast_dfm")) object$data_missings else object$data
-}
-
+# Both classes store the prepared matrix as `$data` and the series as supplied
+# as `$data_raw` (#50), so the methods below read `$data` directly. The
+# accessor that used to reconcile the two names is gone with the discrepancy.
 
 #' Model dimensions, whatever the class calls them
 #'
@@ -162,7 +155,7 @@ residuals.fcast_dfm <- function(object, ...) fit_residuals(object)
 #' @noRd
 fit_residuals <- function(object){
 
-  obs <- prepared_data(object)
+  obs <- object$data
   fit <- object$data_augmented
 
   res <- obs - fit

@@ -293,8 +293,12 @@ run_evaluation_fcast <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, i
                              "t" = t,
                              "k" = k),
               "ncst" = ncst,
-              "data" = c(stocks,flows),
-              "data_missings" = Ymat,
+              # `data` is the prepared matrix in BOTH fit classes and
+              # `data_raw` the series as supplied (#50). This used to be the
+              # other way round here, so `fit$data` meant a matrix for
+              # ind_dfm and a list for fcast_dfm.
+              "data" = Ymat,
+              "data_raw" = c(stocks,flows),
               "data_hf" = hfts,
               "data_augmented" = ts(th_mean$Xmat,
                                     start = time(Ymat)[1],
@@ -342,7 +346,7 @@ get_target_series_fcast <- function(out, target){
                         upper = as.numeric(ncst_mean + z * ncst_sd))
 
   # observed input values, aligned onto the same time axis where they exist
-  observed <- out$data[[target]]
+  observed <- out$data_raw[[target]]
   if(!is.null(observed)){
     obs_df <- data.frame(time = round(as.numeric(time(observed)), 5),
                          observed = as.numeric(observed))

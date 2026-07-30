@@ -39,6 +39,7 @@ dim(Ymat)
 }
 \seealso{
 Other data preparation functions: 
-\code{\link{create_inventory}()}
+\code{\link{create_inventory}()},
+\code{\link{mfbdfm_data}()}
 }
 \concept{data preparation functions}

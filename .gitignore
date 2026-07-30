@@ -65,3 +65,9 @@ analysis/benchmarks/*.pdf
 *.pdf
 paper_text.rds
 appendix_text.rds
+
+# dev/ scratch: MC run drivers, logs and result caches (regenerated on demand)
+dev/mc_log*.txt
+dev/mc_err*.txt
+dev/mc_results*.rds
+dev/run_mc*.R

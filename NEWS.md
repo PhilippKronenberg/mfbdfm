@@ -14,9 +14,47 @@ application of it (#37).
 * `ind_dfm()` no longer takes a `q` argument. It was accepted and silently
   ignored, so `hfdfm(q = 2)` returned a one-factor model without complaint.
   Use `fcast_dfm()` for multi-factor estimation (#48).
+* Both fit classes now agree on their data components: `$data` is the prepared
+  (standardized) matrix and `$data_raw` the series as supplied. Previously
+  `$data` meant the prepared matrix for `ind_dfm()` but the raw input list for
+  `fcast_dfm()`, so the same expression returned unrelated things -- e.g.
+  `length(fit$data)` gave 1250 for one and 5 for the other, with no error.
+  **`ind_dfm()` is unaffected**; for `fcast_dfm()`, `$data` changes meaning and
+  `$data_missings` is renamed to `$data` (#50).
 
 ## New features
 
+* `mfbdfm_data()` assembles the model input from a long or wide data frame, an
+  `mts`, or a named list of `ts`, and can be passed straight to `ind_dfm()` or
+  `fcast_dfm()` as the first argument (`flows`/`stocks` keep working unchanged).
+  Its real purpose is to make the flow/stock classification inspectable:
+  previously a series' type was expressed by *which argument it was passed in*,
+  so there was nowhere to check it, and misclassifying a lower-frequency series
+  silently changed its temporal aggregation weights (a monthly series gets 7
+  nonzero lags as a flow against 4 as a stock; quarterly, 23 against 12).
+  `mfbdfm_data()` requires `type` for exactly the series where it can change
+  the answer -- those below the highest frequency, since at the highest
+  frequency the two sets of weights are provably identical -- and `print()`
+  shows the resolved classification and frequencies before you commit to a run
+  that takes minutes to hours (#56).
+* `mfbdfm_data()` also puts weekly (52) and daily (365) series onto the
+  48-periods-per-year grid the models are built on, using `daily2weekly()`.
+  This is not cosmetic: `prepare_data()` matches observations onto a
+  `1/max(freq)` grid by an exact join, and a frequency-52 series raises
+  `max(freq)` so that shifted *monthly* observations no longer land on it. On a
+  20-quarter / 60-month / 260-week panel the monthly series retained only 20 of
+  its 60 observations, with no error or warning. The conversion is reported by
+  `message()`, shown by `print()`, and recorded in `meta$frequency_in` (#56).
+  Weekly series go **via daily**: since 48 does not divide 52, mapping weekly
+  points straight onto the grid gives each slot one or two of them -- a
+  nearest-point pick that leaves occasional empty slots and a few slots a year
+  blending two weeks while the rest blend one. Expanding to daily first gives
+  every slot 6-8 days and makes its value an overlap-weighted blend. On a linear
+  ramp the direct route steps `1.5, 1.5, 1, 1, ...` against a correct constant
+  rate of `52/48 = 1.083`; via daily the worst deviation falls from 0.42 to 0.18
+  and the median from 0.08 to 0.04.
+* `daily2weekly()` gains a `FUN` argument (default `mean`, so existing calls are
+  unaffected) selecting how observations sharing a 48-week slot are combined.
 * `fcast_dfm()` estimates the multi-factor mixed-frequency dynamic factor
   model of Eckert, Kronenberg, Mikosch & Neuwirth (2025), with post-hoc
   rotation and varimax identification. This is a **different model** from

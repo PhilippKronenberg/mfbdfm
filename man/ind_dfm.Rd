@@ -20,10 +20,13 @@ ind_dfm(
 )
 }
 \arguments{
-\item{flows}{Named list of \code{ts} objects treated as flow variables. Must
-contain \code{target}.}
+\item{flows}{Either an \code{\link[=mfbdfm_data]{mfbdfm_data()}} object carrying every series with its
+flow/stock classification -- in which case \code{stocks} is left empty -- or a
+named list of \code{ts} objects treated as flow variables. Must contain
+\code{target}.}
 
-\item{stocks}{Named list of \code{ts} objects treated as stock variables.}
+\item{stocks}{Named list of \code{ts} objects treated as stock variables, or
+\code{NULL}. Ignored when \code{flows} is an \code{\link[=mfbdfm_data]{mfbdfm_data()}} object.}
 
 \item{target}{Character, name of the low-frequency target series in
 \code{flows} (e.g. \code{"ch.seco.gdp.real.gdp.ssa"}).}
@@ -67,7 +70,9 @@ An object of class \code{"ind_dfm"}: a list with components
 \item{target}{Character, the target series name.}
 \item{pars}{List of posterior parameter means (\code{h}, \code{lambda}, \code{phi},
 \code{sigma}, \code{omega}, \code{rho}, \code{rho_var}).}
-\item{data}{\code{ts} matrix of the prepared (standardized) data.}
+\item{data}{\code{ts} matrix of the prepared (standardized) data, in which
+\code{0} encodes a missing observation.}
+\item{data_raw}{The input series, as supplied.}
 \item{data_augmented}{\code{ts} matrix of the augmented dataset.}
 \item{inventory}{Data frame describing the series (see
 \code{\link[=create_inventory]{create_inventory()}}).}

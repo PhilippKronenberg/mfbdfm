@@ -30,8 +30,8 @@ test_that("both classes support the same generics", {
     expect_true(is.numeric(as.matrix(coef(fit))))
     expect_equal(nrow(as.matrix(coef(fit))), nrow(fit$inventory))
 
-    expect_equal(dim(fitted(fit)), dim(prepared_data(fit)))
-    expect_equal(dim(residuals(fit)), dim(prepared_data(fit)))
+    expect_equal(dim(fitted(fit)), dim(fit$data))
+    expect_equal(dim(residuals(fit)), dim(fit$data))
 
     df <- as.data.frame(fit)
     expect_s3_class(df, "data.frame")
@@ -41,12 +41,40 @@ test_that("both classes support the same generics", {
   }
 })
 
+test_that("both classes agree on what $data and $data_raw mean (#50)", {
+  fl <- fits()
+
+  for (nm in names(fl)) {
+    fit <- fl[[nm]]
+
+    # $data is the PREPARED matrix in both classes
+    expect_true(is.matrix(fit$data) || inherits(fit$data, "mts"))
+    expect_false(is.null(colnames(fit$data)))
+    expect_equal(ncol(fit$data), nrow(fit$inventory))
+
+    # $data_raw is the series as supplied, in both classes
+    expect_true(is.list(fit$data_raw))
+    expect_false(is.null(names(fit$data_raw)))
+    expect_setequal(names(fit$data_raw), fit$inventory$key)
+    expect_true(all(vapply(fit$data_raw, stats::is.ts, logical(1))))
+
+    # the old fcast_dfm-only name is gone
+    expect_null(fit$data_missings)
+  }
+
+  # and the same expression means the same thing for both - the failure mode
+  # that motivated this was length(fit$data) returning 1250 for one class and
+  # 5 for the other
+  expect_equal(ncol(fl$ind_dfm$data), ncol(fl$fcast_dfm$data))
+  expect_equal(length(fl$ind_dfm$data_raw), length(fl$fcast_dfm$data_raw))
+})
+
 test_that("residuals are NA exactly where the series was not observed", {
   fl <- fits()
 
   for (nm in names(fl)) {
     fit <- fl[[nm]]
-    obs <- prepared_data(fit)
+    obs <- fit$data
     res <- residuals(fit)
 
     # 0 encodes "missing" in the prepared data - a residual there would be

@@ -22,7 +22,9 @@ fcast_dfm(
 )
 }
 \arguments{
-\item{flows}{Named list of \code{ts} objects treated as flow variables, or
+\item{flows}{Either an \code{\link[=mfbdfm_data]{mfbdfm_data()}} object carrying all series and
+their flow/stock classification, or a named list of \code{ts} objects treated
+as flow variables, or
 \code{NULL}. Must contain \code{target} if \code{stocks} does not.}
 
 \item{stocks}{Named list of \code{ts} objects treated as stock variables, or
@@ -76,8 +78,9 @@ nowcast for \code{target}, extracted from \code{ncst}.}
 \code{k}).}
 \item{ncst}{List with \code{mean} and \code{var}, each a named list of nowcasts
 for every input series at its own frequency.}
-\item{data}{The input series.}
-\item{data_missings}{\code{ts} matrix of the prepared (standardized) data.}
+\item{data}{\code{ts} matrix of the prepared (standardized) data, in which
+\code{0} encodes a missing observation.}
+\item{data_raw}{The input series, as supplied.}
 \item{data_hf}{List with \code{mean} and \code{var}, each a named list of
 high-frequency growth-rate estimates for every input series.}
 \item{data_augmented}{\code{ts} matrix of the augmented dataset.}

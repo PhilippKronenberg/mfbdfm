@@ -32,6 +32,7 @@ head(inv)
 }
 \seealso{
 Other data preparation functions: 
+\code{\link{mfbdfm_data}()},
 \code{\link{prepare_data}()}
 }
 \concept{data preparation functions}
