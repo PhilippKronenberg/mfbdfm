@@ -40,6 +40,20 @@ Bayesian dynamic factor model and WAI is one application of it
 
 ### New features
 
+- [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)’s
+  sampler is now validated by simulation recovery. Data generated from a
+  known `q`-factor process is recovered at the trace R-squared values
+  published for this model (Eckert et al. 2025, Table 1), with the
+  paper’s figure inside the 95% interval of the Monte Carlo mean in all
+  three cells – 0.717 vs 0.68, 0.856 vs 0.84, and 0.408 vs 0.39 for the
+  misspecified cell that serves as a negative control. Tooling and the
+  committed result snapshot are in `dev/mc_recovery.R` and
+  `dev/mc_results.rds`;
+  [`?fcast_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)’s
+  Maturity section is updated to say what is and is not established,
+  since the rotation-invariant metric cannot validate the post-hoc
+  rotation
+  ([\#52](https://github.com/PhilippKronenberg/mfbdfm/issues/52)).
 - [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
   assembles the model input from a long or wide data frame, an `mts`, or
   a named list of `ts`, and can be passed straight to
