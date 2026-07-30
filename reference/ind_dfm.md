@@ -22,7 +22,8 @@ ind_dfm(
   extend_to = NULL,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
-  priors = dfm_priors("ind_dfm")
+  priors = dfm_priors("ind_dfm"),
+  control = NULL
 )
 ```
 
@@ -94,6 +95,16 @@ ind_dfm(
   them – the target's measurement-error variance and serial correlation
   – carry the identification rather than being tuning knobs; see
   [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md).
+
+- control:
+
+  Optional numerical and algorithmic settings from
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md),
+  or a named list of them. Bundles the stability bounds and numerical
+  guards that were previously hard-coded – the stationarity screen on
+  the measurement-error autocorrelations, the caps on `phi` and `sigma`,
+  and the numerical jitter. Omit it (the default) and the published
+  behaviour is reproduced exactly.
 
 ## Value
 

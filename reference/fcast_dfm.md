@@ -23,7 +23,8 @@ fcast_dfm(
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
   ncores = NULL,
-  priors = dfm_priors("fcast_dfm")
+  priors = dfm_priors("fcast_dfm"),
+  control = NULL
 )
 ```
 
@@ -100,6 +101,16 @@ fcast_dfm(
   loading prior carries the identification – it must stay diffuse for
   the post-hoc rotation to work; see
   [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md).
+
+- control:
+
+  Optional numerical and algorithmic settings from
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md),
+  or a named list of them. Bundles the rotation stopping rule and the
+  stability bounds that were previously hard-coded. Omit it (the
+  default) and the published behaviour is reproduced exactly;
+  `dfm_control("fcast_dfm", strict = TRUE)` switches the rotation to the
+  algorithm as specified in the online appendix.
 
 ## Value
 

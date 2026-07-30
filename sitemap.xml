@@ -23,6 +23,7 @@
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset_test.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/dec2week.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/decimal_date_local.html</loc></url>
+<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/drop_financial.html</loc></url>
@@ -50,6 +51,7 @@
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/plot_comparison.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/prepare_wai_qoq_series.html</loc></url>
+<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_control.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_priors.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/print.mfbdfm_data.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/print.summary.mfbdfm_fit.html</loc></url>

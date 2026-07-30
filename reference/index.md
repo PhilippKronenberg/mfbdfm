@@ -15,6 +15,10 @@ the helpers that prepare their input data.
   : Specify the prior distributions for a dynamic factor model
 - [`print(`*`<dfm_priors>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_priors.md)
   : Print a prior specification
+- [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+  : Numerical and algorithmic settings for the samplers
+- [`print(`*`<dfm_control>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_control.md)
+  : Print a dfm_control object
 - [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
   : Assemble and check the input data for a dynamic factor model
 - [`print(`*`<mfbdfm_data>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.mfbdfm_data.md)

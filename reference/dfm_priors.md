@@ -91,6 +91,9 @@ carry, and `d0 / c0` is roughly the prior's guess at the variance.
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
 
+Other model specification:
+[`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+
 ## Examples
 
 ``` r

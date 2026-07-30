@@ -40,6 +40,28 @@ Bayesian dynamic factor model and WAI is one application of it
 
 ### New features
 
+- [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+  bundles the numerical and algorithmic settings that were previously
+  hard-coded inside the samplers, as an **optional** `control` argument
+  on both entry points – omit it and the published behaviour is
+  reproduced exactly (verified: all four `dev/baseline.rds`
+  configurations identical). Covers the rotation stopping rule, the
+  stationarity screen on the measurement-error autocorrelations, the
+  caps on `phi`/`sigma`/`omega`, and two numerical guards.
+  `dfm_control("fcast_dfm", strict = TRUE)` switches the rotation to the
+  algorithm as published in the online appendix to Eckert et al.
+
+  2025. – the **sum** of squared deviations rather than the mean
+        ([\#46](https://github.com/PhilippKronenberg/mfbdfm/issues/46)).
+
+- The rotation’s iteration caps are now finite by construction. `Inf` is
+  refused: an unbounded loop has no termination guarantee. The defaults
+  are safety valves rather than targets – measured convergence is 5-7
+  iterations at roughly an order of magnitude per iteration, against a
+  strict cap of 100. `initialize_theta_star_fcast()`, which previously
+  had **no cap at all**, now has one
+  ([\#46](https://github.com/PhilippKronenberg/mfbdfm/issues/46)).
+
 - [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)’s
   sampler is now validated by simulation recovery. Data generated from a
   known `q`-factor process is recovered at the trace R-squared values
@@ -54,6 +76,7 @@ Bayesian dynamic factor model and WAI is one application of it
   since the rotation-invariant metric cannot validate the post-hoc
   rotation
   ([\#52](https://github.com/PhilippKronenberg/mfbdfm/issues/52)).
+
 - [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
   assembles the model input from a long or wide data frame, an `mts`, or
   a named list of `ts`, and can be passed straight to
@@ -75,6 +98,7 @@ Bayesian dynamic factor model and WAI is one application of it
   classification and frequencies before you commit to a run that takes
   minutes to hours
   ([\#56](https://github.com/PhilippKronenberg/mfbdfm/issues/56)).
+
 - [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
   also puts weekly (52) and daily (365) series onto the
   48-periods-per-year grid the models are built on, using
@@ -99,10 +123,12 @@ Bayesian dynamic factor model and WAI is one application of it
   `1.5, 1.5, 1, 1, ...` against a correct constant rate of
   `52/48 = 1.083`; via daily the worst deviation falls from 0.42 to 0.18
   and the median from 0.08 to 0.04.
+
 - [`daily2weekly()`](https://philippkronenberg.github.io/mfbdfm/reference/daily2weekly.md)
   gains a `FUN` argument (default `mean`, so existing calls are
   unaffected) selecting how observations sharing a 48-week slot are
   combined.
+
 - [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
   estimates the multi-factor mixed-frequency dynamic factor model of
   Eckert, Kronenberg, Mikosch & Neuwirth (2025), with post-hoc rotation
@@ -114,6 +140,7 @@ Bayesian dynamic factor model and WAI is one application of it
   [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md).
   Marked experimental until validated by simulation recovery
   ([\#45](https://github.com/PhilippKronenberg/mfbdfm/issues/45)).
+
 - [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
   makes the priors a first-class, inspectable object with a
   [`print()`](https://rdrr.io/r/base/print.html) method, and
@@ -121,6 +148,7 @@ Bayesian dynamic factor model and WAI is one application of it
   those that are genuinely tunable. `type` moves only the latter;
   overriding a structural prior warns
   ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
+
 - [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
   and
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
@@ -134,6 +162,7 @@ Bayesian dynamic factor model and WAI is one application of it
   a variance fixed at one in
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
   ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
+
 - Both fit classes support
   [`print()`](https://rdrr.io/r/base/print.html),
   [`summary()`](https://rdrr.io/r/base/summary.html),
@@ -147,6 +176,7 @@ Bayesian dynamic factor model and WAI is one application of it
   encode missingness. There is deliberately no
   [`predict()`](https://rdrr.io/r/stats/predict.html) method
   ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
+
 - Exported functions validate their inputs and report the offending
   argument
   ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
@@ -172,6 +202,17 @@ Bayesian dynamic factor model and WAI is one application of it
   times against a grid where low-frequency observations have been
   shifted to the end of their period
   ([\#45](https://github.com/PhilippKronenberg/mfbdfm/issues/45)).
+- The rotation’s two convergence loops disagreed with each other:
+  `initialize_theta_star_fcast()` tested the **sum** of squared
+  deviations, as the appendix specifies, while the main loop in
+  `run_rotation_fcast()` tested the **mean**. The default is unchanged
+  for backwards compatibility and is now documented and selectable via
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md).
+  Separately, the default cap of 5 iterations was measured to sit
+  *exactly* on the observed convergence point, so it can bind and
+  truncate the loop on other data; a binding cap now warns, or errors
+  under `strict = TRUE`
+  ([\#46](https://github.com/PhilippKronenberg/mfbdfm/issues/46)).
 
 ### Converting the research scripts into a package
 
