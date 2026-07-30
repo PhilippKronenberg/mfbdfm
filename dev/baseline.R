@@ -21,12 +21,29 @@
 BASELINE_PATH <- "dev/baseline.rds"
 
 
+#' Make the package available, whether or not it is installed
+#'
+#' So `source("dev/baseline.R"); baseline_check()` works from a bare session in
+#' the package root without a prior load_all() or install.
+baseline_load <- function(){
+  if("mfbdfm" %in% loadedNamespaces()) return(invisible())
+  if(requireNamespace("mfbdfm", quietly = TRUE)){
+    requireNamespace("mfbdfm", quietly = TRUE)
+  } else {
+    devtools::load_all(".", quiet = TRUE)
+  }
+  invisible()
+}
+
+
 #' The fits the snapshot covers
 #'
 #' Deliberately small and fast, but chosen to exercise the branches that
 #' matter: both models, and the stochastic-volatility and serial-correlation
 #' paths that only run when those flags are FALSE.
 baseline_fits <- function(){
+
+  baseline_load()
 
   e <- new.env()
   utils::data("data_ch_dataset_test", package = "mfbdfm", envir = e)

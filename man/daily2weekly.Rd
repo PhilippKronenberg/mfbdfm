@@ -2,19 +2,30 @@
 % Please edit documentation in R/date-utils.R
 \name{daily2weekly}
 \alias{daily2weekly}
-\title{Aggregate a daily series to the 48-week grid}
+\title{Aggregate a higher-frequency series to the 48-week grid}
 \usage{
-daily2weekly(x)
+daily2weekly(x, FUN = mean)
 }
 \arguments{
-\item{x}{Daily series (\code{zoo} indexed by \code{Date}).}
+\item{x}{Series to aggregate (\code{zoo} indexed by \code{Date}).}
+
+\item{FUN}{Function used to combine the observations falling into one
+48-week slot. Defaults to \code{mean}. Which is appropriate depends on the
+series: these models are estimated on growth rates, for which the mean is
+the per-period rate, whereas \code{sum} would preserve the total but leave a
+visible spike in the roughly four slots per year that receive two weekly
+observations.}
 }
 \value{
-A \code{ts} with frequency 48; weeks without observations are \code{NA}.
+A \code{ts} with frequency 48; slots with no observation are \code{NA}.
 }
 \description{
-Averages a daily \code{zoo} series into the project's 48-periods-per-year
-weekly grid.
+Aggregates a date-indexed \code{zoo} series into the project's
+48-periods-per-year weekly grid. Despite the name it is not restricted to
+daily input -- the aggregation is driven entirely by the date index, so a
+true weekly (52-per-year) series is handled the same way. That is how
+\code{\link[=mfbdfm_data]{mfbdfm_data()}} puts weekly and daily input onto the grid the models use;
+see its "Frequency" section.
 }
 \examples{
 daily <- zoo::zoo(rnorm(120),

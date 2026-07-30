@@ -123,6 +123,40 @@ construction:
 fit$pars$lambda[which(fit$inventory$key == target)]
 ```
 
+## Bringing your own data
+
+Above, the series were passed as two lists split by type, which is what
+the models use internally. When the data comes from somewhere else — a
+spreadsheet, a database query — `mfbdfm_data()` builds that structure
+from a long or wide data frame, an `mts`, or a list of `ts`, and takes
+the flow/stock classification from a `meta` table:
+
+```{r data-input}
+series <- c(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+            data_ch_dataset_test$stocks[1:2])
+meta <- data.frame(series = names(series),
+                   type = rep(c("flow", "stock"), each = 2))
+
+d <- mfbdfm_data(series, meta, target = target)
+d
+```
+
+The reason to prefer this over assembling the two lists by hand is the
+printout. Whether a series is a flow or a stock selects its temporal
+aggregation weights, so getting it wrong changes the results — and when
+the type is expressed by *which argument the series was passed in*,
+there is nothing to inspect. Printing the object shows the resolved
+classification and the frequencies actually in use *before* committing
+to a run that can take minutes to hours. It is then passed as the first
+argument:
+
+```{r fit-from-data, eval = FALSE}
+fit2 <- ind_dfm(d, length_sample = 200, burn_in = 50)
+```
+
+`flows`/`stocks` continue to work exactly as before; this is an
+additional entry point, not a replacement.
+
 ## Real-time GDP vintages
 
 The full `data_ch_dataset` deliberately ships *without* a GDP target

@@ -6,6 +6,34 @@
 # exported functions only - never inside the draw_*() samplers, which run once
 # per MCMC iteration and would pay the cost for nothing.
 
+#' Unpack an mfbdfm_data object into flows/stocks, if one was given
+#'
+#' Lets both model entry points accept either
+#' `model(mfbdfm_data(...), target = )` or the original
+#' `model(flows = , stocks = , target = )`, without either path knowing about
+#' the other. Returns the resolved arguments as a list.
+#'
+#' @noRd
+resolve_data_arg <- function(flows, stocks, target){
+
+  if(inherits(flows, "mfbdfm_data")){
+    if(!is.null(stocks)){
+      stop("When the first argument is an `mfbdfm_data` object, `stocks` must ",
+           "not also be supplied - the object already carries both.",
+           call. = FALSE)
+    }
+    d <- flows
+    # a target given here wins over one stored on the object, so the call site
+    # stays authoritative
+    if(is.null(target) || (is.character(target) && !length(target))) target <- d$target
+    return(list(flows = d$flows, stocks = d$stocks, target = target))
+  }
+
+  list(flows = flows, stocks = stocks, target = target)
+
+}
+
+
 #' Validate the arguments common to ind_dfm() and fcast_dfm()
 #'
 #' Errors name the offending argument and what was expected.
