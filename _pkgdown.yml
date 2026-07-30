@@ -15,6 +15,8 @@ reference:
   - fcast_dfm
   - dfm_priors
   - print.dfm_priors
+  - mfbdfm_data
+  - print.mfbdfm_data
   - create_inventory
   - prepare_data
 

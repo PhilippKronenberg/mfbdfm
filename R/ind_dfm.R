@@ -33,9 +33,12 @@
 #' scale in different places, so switching the same option off means
 #' something different in each.)
 #'
-#' @param flows Named list of `ts` objects treated as flow variables. Must
-#'   contain `target`.
-#' @param stocks Named list of `ts` objects treated as stock variables.
+#' @param flows Either an [mfbdfm_data()] object carrying every series with its
+#'   flow/stock classification -- in which case `stocks` is left empty -- or a
+#'   named list of `ts` objects treated as flow variables. Must contain
+#'   `target`.
+#' @param stocks Named list of `ts` objects treated as stock variables, or
+#'   `NULL`. Ignored when `flows` is an [mfbdfm_data()] object.
 #' @param target Character, name of the low-frequency target series in
 #'   `flows` (e.g. `"ch.seco.gdp.real.gdp.ssa"`).
 #' @param p Integer, number of factor lags in the factor state equation.
@@ -121,6 +124,12 @@ ind_dfm <- function(flows = NULL,
                     stochastic_volatility = TRUE,
                     serial_correlation = TRUE,
                     priors = dfm_priors("ind_dfm")){
+
+  # accept either an mfbdfm_data object as the first argument, or the original
+  # flows/stocks pair
+  if(missing(target)) target <- NULL
+  .d <- resolve_data_arg(flows, stocks, target)
+  flows <- .d$flows; stocks <- .d$stocks; target <- .d$target
 
   # validate inputs early, naming the offending argument
   validate_model_inputs(flows = flows, stocks = stocks, target = target,

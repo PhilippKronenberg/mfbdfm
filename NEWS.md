@@ -24,6 +24,19 @@ application of it (#37).
 
 ## New features
 
+* `mfbdfm_data()` assembles the model input from a long or wide data frame, an
+  `mts`, or a named list of `ts`, and can be passed straight to `ind_dfm()` or
+  `fcast_dfm()` as the first argument (`flows`/`stocks` keep working unchanged).
+  Its real purpose is to make the flow/stock classification inspectable:
+  previously a series' type was expressed by *which argument it was passed in*,
+  so there was nowhere to check it, and misclassifying a lower-frequency series
+  silently changed its temporal aggregation weights (a monthly series gets 7
+  nonzero lags as a flow against 4 as a stock; quarterly, 23 against 12).
+  `mfbdfm_data()` requires `type` for exactly the series where it can change
+  the answer -- those below the highest frequency, since at the highest
+  frequency the two sets of weights are provably identical -- and `print()`
+  shows the resolved classification and frequencies before you commit to a run
+  that takes minutes to hours (#56).
 * `fcast_dfm()` estimates the multi-factor mixed-frequency dynamic factor
   model of Eckert, Kronenberg, Mikosch & Neuwirth (2025), with post-hoc
   rotation and varimax identification. This is a **different model** from

@@ -22,7 +22,9 @@ fcast_dfm(
 )
 }
 \arguments{
-\item{flows}{Named list of \code{ts} objects treated as flow variables, or
+\item{flows}{Either an \code{\link[=mfbdfm_data]{mfbdfm_data()}} object carrying all series and
+their flow/stock classification, or a named list of \code{ts} objects treated
+as flow variables, or
 \code{NULL}. Must contain \code{target} if \code{stocks} does not.}
 
 \item{stocks}{Named list of \code{ts} objects treated as stock variables, or

@@ -45,7 +45,9 @@
 #' is surfaced at the top level of the return value for convenience; results
 #' for every series remain available in `ncst` and `data_hf`.
 #'
-#' @param flows Named list of `ts` objects treated as flow variables, or
+#' @param flows Either an [mfbdfm_data()] object carrying all series and
+#'   their flow/stock classification, or a named list of `ts` objects treated
+#'   as flow variables, or
 #'   `NULL`. Must contain `target` if `stocks` does not.
 #' @param stocks Named list of `ts` objects treated as stock variables, or
 #'   `NULL`.
@@ -151,6 +153,12 @@ fcast_dfm <- function(flows = NULL,
                       priors = dfm_priors("fcast_dfm")){
 
   check_priors(priors, "fcast_dfm")
+
+  # accept either an mfbdfm_data object as the first argument, or the original
+  # flows/stocks pair
+  if(missing(target)) target <- NULL
+  .d <- resolve_data_arg(flows, stocks, target)
+  flows <- .d$flows; stocks <- .d$stocks; target <- .d$target
 
   # validate inputs early, naming the offending argument
   validate_model_inputs(flows = flows, stocks = stocks, target = target,
