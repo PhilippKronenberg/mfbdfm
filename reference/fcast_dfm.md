@@ -31,7 +31,10 @@ fcast_dfm(
 
 - flows:
 
-  Named list of `ts` objects treated as flow variables, or `NULL`. Must
+  Either an
+  [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+  object carrying all series and their flow/stock classification, or a
+  named list of `ts` objects treated as flow variables, or `NULL`. Must
   contain `target` if `stocks` does not.
 
 - stocks:

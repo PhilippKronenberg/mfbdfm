@@ -30,12 +30,18 @@ ind_dfm(
 
 - flows:
 
-  Named list of `ts` objects treated as flow variables. Must contain
-  `target`.
+  Either an
+  [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+  object carrying every series with its flow/stock classification – in
+  which case `stocks` is left empty – or a named list of `ts` objects
+  treated as flow variables. Must contain `target`.
 
 - stocks:
 
-  Named list of `ts` objects treated as stock variables.
+  Named list of `ts` objects treated as stock variables, or `NULL`.
+  Ignored when `flows` is an
+  [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+  object.
 
 - target:
 

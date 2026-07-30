@@ -76,12 +76,15 @@ weekly GDP nowcasts are derived.</p>
 
 
 <dl><dt id="arg-flows">flows<a class="anchor" aria-label="anchor" href="#arg-flows"></a></dt>
-<dd><p>Named list of <code>ts</code> objects treated as flow variables. Must
-contain <code>target</code>.</p></dd>
+<dd><p>Either an <code><a href="mfbdfm_data.html">mfbdfm_data()</a></code> object carrying every series with its
+flow/stock classification – in which case <code>stocks</code> is left empty – or a
+named list of <code>ts</code> objects treated as flow variables. Must contain
+<code>target</code>.</p></dd>
 
 
 <dt id="arg-stocks">stocks<a class="anchor" aria-label="anchor" href="#arg-stocks"></a></dt>
-<dd><p>Named list of <code>ts</code> objects treated as stock variables.</p></dd>
+<dd><p>Named list of <code>ts</code> objects treated as stock variables, or
+<code>NULL</code>. Ignored when <code>flows</code> is an <code><a href="mfbdfm_data.html">mfbdfm_data()</a></code> object.</p></dd>
 
 
 <dt id="arg-target">target<a class="anchor" aria-label="anchor" href="#arg-target"></a></dt>

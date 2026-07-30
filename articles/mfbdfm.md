@@ -142,6 +142,59 @@ fit$pars$lambda[which(fit$inventory$key == target)]
 #> [1] 1
 ```
 
+## Bringing your own data
+
+Above, the series were passed as two lists split by type, which is what
+the models use internally. When the data comes from somewhere else — a
+spreadsheet, a database query —
+[`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+builds that structure from a long or wide data frame, an `mts`, or a
+list of `ts`, and takes the flow/stock classification from a `meta`
+table:
+
+``` r
+
+series <- c(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+            data_ch_dataset_test$stocks[1:2])
+meta <- data.frame(series = names(series),
+                   type = rep(c("flow", "stock"), each = 2))
+
+d <- mfbdfm_data(series, meta, target = target)
+d
+#> <mfbdfm_data>  4 series  (2 flow, 2 stock)
+#> target: ch.seco.gdp.real.gdp.ssa
+#> 
+#>   by frequency:
+#>         4   1 flow   0 stock
+#>        12   0 flow   2 stock
+#>        48   1 flow   0 stock   <- highest; flow/stock has no effect here
+#> 
+#>   series (first 10):
+#>     ch.seco.gdp.real.gdp.ssa     flow   freq    4  n   144
+#>     SWISSMI                      flow   freq   48  n  1738
+#>     SWCONPRCE                    stock  freq   12  n   434
+#>     SWPROPRCE                    stock  freq   12  n   433
+#> 
+#> Pass to ind_dfm() or fcast_dfm() as the first argument.
+```
+
+The reason to prefer this over assembling the two lists by hand is the
+printout. Whether a series is a flow or a stock selects its temporal
+aggregation weights, so getting it wrong changes the results — and when
+the type is expressed by *which argument the series was passed in*,
+there is nothing to inspect. Printing the object shows the resolved
+classification and the frequencies actually in use *before* committing
+to a run that can take minutes to hours. It is then passed as the first
+argument:
+
+``` r
+
+fit2 <- ind_dfm(d, length_sample = 200, burn_in = 50)
+```
+
+`flows`/`stocks` continue to work exactly as before; this is an
+additional entry point, not a replacement.
+
 ## Real-time GDP vintages
 
 The full `data_ch_dataset` deliberately ships *without* a GDP target

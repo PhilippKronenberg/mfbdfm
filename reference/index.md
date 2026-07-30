@@ -15,6 +15,10 @@ the helpers that prepare their input data.
   : Specify the prior distributions for a dynamic factor model
 - [`print(`*`<dfm_priors>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_priors.md)
   : Print a prior specification
+- [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+  : Assemble and check the input data for a dynamic factor model
+- [`print(`*`<mfbdfm_data>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.mfbdfm_data.md)
+  : Print an mfbdfm_data object
 - [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md)
   : Build an inventory of the model input series
 - [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
@@ -87,7 +91,7 @@ Converting between weekly/monthly/daily frequencies and decimal dates.
 - [`is_crisis_period()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period.md)
   : Flag dates falling into the crisis periods
 - [`daily2weekly()`](https://philippkronenberg.github.io/mfbdfm/reference/daily2weekly.md)
-  : Aggregate a daily series to the 48-week grid
+  : Aggregate a higher-frequency series to the 48-week grid
 - [`aggregate_predictor_to_quarterly()`](https://philippkronenberg.github.io/mfbdfm/reference/aggregate_predictor_to_quarterly.md)
   : Aggregate a predictor data frame to quarterly frequency
 - [`get_next_target_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/get_next_target_vintage.md)

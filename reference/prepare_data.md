@@ -41,7 +41,8 @@ series; missing values are encoded as `0`.
 ## See also
 
 Other data preparation functions:
-[`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md)
+[`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md),
+[`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
 
 ## Examples
 
