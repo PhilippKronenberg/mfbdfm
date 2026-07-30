@@ -67,7 +67,9 @@ An object of class \code{"ind_dfm"}: a list with components
 \item{target}{Character, the target series name.}
 \item{pars}{List of posterior parameter means (\code{h}, \code{lambda}, \code{phi},
 \code{sigma}, \code{omega}, \code{rho}, \code{rho_var}).}
-\item{data}{\code{ts} matrix of the prepared (standardized) data.}
+\item{data}{\code{ts} matrix of the prepared (standardized) data, in which
+\code{0} encodes a missing observation.}
+\item{data_raw}{The input series, as supplied.}
 \item{data_augmented}{\code{ts} matrix of the augmented dataset.}
 \item{inventory}{Data frame describing the series (see
 \code{\link[=create_inventory]{create_inventory()}}).}
