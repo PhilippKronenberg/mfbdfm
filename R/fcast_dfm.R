@@ -85,8 +85,9 @@
 #'       `k`).}
 #'     \item{ncst}{List with `mean` and `var`, each a named list of nowcasts
 #'       for every input series at its own frequency.}
-#'     \item{data}{The input series.}
-#'     \item{data_missings}{`ts` matrix of the prepared (standardized) data.}
+#'     \item{data}{`ts` matrix of the prepared (standardized) data, in which
+#'       `0` encodes a missing observation.}
+#'     \item{data_raw}{The input series, as supplied.}
 #'     \item{data_hf}{List with `mean` and `var`, each a named list of
 #'       high-frequency growth-rate estimates for every input series.}
 #'     \item{data_augmented}{`ts` matrix of the augmented dataset.}

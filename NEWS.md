@@ -14,6 +14,13 @@ application of it (#37).
 * `ind_dfm()` no longer takes a `q` argument. It was accepted and silently
   ignored, so `hfdfm(q = 2)` returned a one-factor model without complaint.
   Use `fcast_dfm()` for multi-factor estimation (#48).
+* Both fit classes now agree on their data components: `$data` is the prepared
+  (standardized) matrix and `$data_raw` the series as supplied. Previously
+  `$data` meant the prepared matrix for `ind_dfm()` but the raw input list for
+  `fcast_dfm()`, so the same expression returned unrelated things -- e.g.
+  `length(fit$data)` gave 1250 for one and 5 for the other, with no error.
+  **`ind_dfm()` is unaffected**; for `fcast_dfm()`, `$data` changes meaning and
+  `$data_missings` is renamed to `$data` (#50).
 
 ## New features
 

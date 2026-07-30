@@ -68,7 +68,9 @@
 #'     \item{target}{Character, the target series name.}
 #'     \item{pars}{List of posterior parameter means (`h`, `lambda`, `phi`,
 #'       `sigma`, `omega`, `rho`, `rho_var`).}
-#'     \item{data}{`ts` matrix of the prepared (standardized) data.}
+#'     \item{data}{`ts` matrix of the prepared (standardized) data, in which
+#'       `0` encodes a missing observation.}
+#'     \item{data_raw}{The input series, as supplied.}
 #'     \item{data_augmented}{`ts` matrix of the augmented dataset.}
 #'     \item{inventory}{Data frame describing the series (see
 #'       [create_inventory()]).}
@@ -304,7 +306,11 @@ ind_dfm <- function(flows = NULL,
                             "omega" = omega_out,
                             "rho" = rho_out,
                             "rho_var" = rho_var),
+              # `data` is the prepared matrix and `data_raw` the series as
+              # supplied. Both fit classes use these names for these meanings
+              # (#50); `data_raw` is new here, added so the two agree.
               "data" = Ymat,
+              "data_raw" = c(flows, stocks),
               "data_augmented" = Xmat_full,
               "inventory" = inventory)
 
