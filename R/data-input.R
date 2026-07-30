@@ -64,6 +64,39 @@
 #' the inference. Declaring one that contradicts an input that is already a
 #' `ts` is an error rather than a silent override.
 #'
+#' # Weekly and daily series are put on the 48-week grid
+#'
+#' 48 is not an arbitrary house convention -- it is the grid the models are
+#' built on, and a series at a finer frequency **silently loses most of the
+#' lower-frequency data**.
+#'
+#' [prepare_data()] shifts each series' observations to the end of their period
+#' by `(max(freq)/frequency(x) - 1)/max(freq)` and then matches them onto a
+#' `1/max(freq)` grid by an exact join. When the highest frequency is 48 that
+#' ratio is a whole number for monthly (4) and quarterly (12) series, so every
+#' observation lands on a grid point. When a frequency-52 series raises the
+#' maximum to 52, `52/12` is 4.33: the shifted monthly observations no longer
+#' fall on the grid, the join does not match them, and they are recorded as
+#' missing. Measured on a 20-quarter / 60-month / 260-week panel, the monthly
+#' series retained **20 of its 60 observations** -- and the fit completed
+#' without any error or warning.
+#'
+#' So any series arriving at a frequency finer than 48 -- 52 (weekly) or 365
+#' (daily) -- is aggregated onto the 48-week grid with [daily2weekly()], which
+#' is the same function the analysis scripts use for this. A `message()` names
+#' the series converted, `print()` shows the original frequency alongside the
+#' new one, and `meta$frequency_in` records it.
+#'
+#' Note this is one of the things you get by going through `mfbdfm_data()`:
+#' passing `flows`/`stocks` straight to a model does no such conversion, and a
+#' frequency-52 series there will still quietly cost you most of your monthly
+#' observations.
+#'
+#' `aggregate` chooses how observations sharing a slot are combined (roughly
+#' four slots a year receive two weekly observations). The default `"mean"`
+#' matches [daily2weekly()] and is the per-period rate, which is what these
+#' models want, since they are estimated on growth rates.
+#'
 #' @param data The input series, in any of the forms above.
 #' @param meta A data frame with one row per series and at least the columns
 #'   `series` and `type` (`"flow"` or `"stock"`). May carry further columns
@@ -73,11 +106,15 @@
 #'   series, so a typo surfaces here rather than deep in the sampler. It is
 #'   stored on the object and used as the default `target` by [ind_dfm()] and
 #'   [fcast_dfm()].
+#' @param aggregate How to combine observations that fall into the same
+#'   48-week slot when a weekly or daily series is put on the grid, either
+#'   `"mean"` (the default) or `"sum"`. See the "Weekly and daily series"
+#'   section.
 #'
 #' @return An object of class `"mfbdfm_data"`: a list with `flows`, `stocks`
 #'   (named lists of `ts`, ready to pass to a model), `meta` (the resolved
-#'   per-series table, with the frequency and observation count actually used)
-#'   and `target`.
+#'   per-series table, with the frequency and observation count actually used,
+#'   plus `frequency_in` where a series was converted) and `target`.
 #'
 #' @examples
 #' # from a long data frame
@@ -90,6 +127,18 @@
 #' d <- mfbdfm_data(long, meta)
 #' d
 #'
+#' # a true weekly series is aggregated onto the 48-week grid the models use,
+#' # and the original frequency is reported
+#' wk <- seq(as.Date("2020-01-06"), by = "week", length.out = 157)
+#' d <- mfbdfm_data(
+#'   rbind(data.frame(series = "weekly", date = wk, value = rnorm(length(wk))),
+#'         data.frame(series = "monthly",
+#'                    date = seq(as.Date("2020-01-01"), by = "month",
+#'                               length.out = 36),
+#'                    value = rnorm(36))),
+#'   data.frame(series = c("weekly", "monthly"), type = c("flow", "stock")))
+#' d$meta
+#'
 #' # from the shipped dataset, which is already a list of `ts`
 #' data(data_ch_dataset_test)
 #' series <- c(data_ch_dataset_test$flows, data_ch_dataset_test$stocks)
@@ -101,7 +150,10 @@
 #' @seealso [ind_dfm()], [fcast_dfm()], [create_inventory()], [prepare_data()]
 #' @family data preparation functions
 #' @export
-mfbdfm_data <- function(data, meta, target = NULL){
+mfbdfm_data <- function(data, meta, target = NULL,
+                        aggregate = c("mean", "sum")){
+
+  aggregate <- match.arg(aggregate)
 
   # `meta` is checked before the data is touched, because a declared frequency
   # has to be available while the series are being built.
@@ -121,7 +173,11 @@ mfbdfm_data <- function(data, meta, target = NULL){
          paste(sQuote(dup), collapse = ", "), ".", call. = FALSE)
   }
 
-  meta <- resolve_meta(meta, series)
+  # weekly/daily series go onto the 48-week grid the models require
+  conv <- harmonise_to_week48(series, aggregate)
+  series <- conv$series
+
+  meta <- resolve_meta(meta, series, conv$frequency_in)
 
   if(!is.null(target)){
     if(!is.character(target) || length(target) != 1){
@@ -342,6 +398,62 @@ infer_freq_dates <- function(tm, nm){
 }
 
 
+#' Put any series finer than 48 onto the 48-week grid
+#'
+#' A frequency finer than 48 raises `max(freq)` above the grid `prepare_data()`
+#' can align monthly and quarterly observations onto, which silently drops most
+#' of them (see the "Weekly and daily series" section of [mfbdfm_data()] for the
+#' measurement). Conversion goes through [daily2weekly()], the same function the
+#' analysis scripts use, and is reported rather than done quietly.
+#'
+#' Returns the series plus a named integer vector of the original frequencies
+#' of whatever was converted, so `print()` can show both.
+#'
+#' @noRd
+harmonise_to_week48 <- function(series, aggregate = "mean"){
+
+  freqs <- vapply(series, stats::frequency, numeric(1))
+  todo <- names(series)[freqs > 48]
+
+  if(!length(todo)) return(list(series = series, frequency_in = integer()))
+
+  fun <- switch(aggregate, mean = mean, sum = sum)
+
+  for(nm in todo){
+    x <- series[[nm]]
+    z <- zoo::zoo(as.numeric(x), order.by = ts_to_dates(x))
+    out <- daily2weekly(z, FUN = fun)
+    if(stats::frequency(out) != 48){
+      stop("Failed to put series ", sQuote(nm), " on the 48-week grid: got ",
+           "frequency ", stats::frequency(out), ".", call. = FALSE)
+    }
+    series[[nm]] <- out
+  }
+
+  message("Aggregated to the 48-week grid the models use (by ", aggregate, "): ",
+          paste0(sQuote(todo), " (", freqs[todo], " -> 48)", collapse = ", "), ".")
+
+  list(series = series,
+       frequency_in = stats::setNames(as.integer(freqs[todo]), todo))
+
+}
+
+
+#' Calendar dates for the observations of a `ts`
+#'
+#' Needed because [daily2weekly()] aggregates on a `Date` index, while a `ts`
+#' carries only decimal time. Inverts the mapping [make_ts()] uses, so a series
+#' that came in as dates round-trips.
+#'
+#' @noRd
+ts_to_dates <- function(x){
+  tm <- as.numeric(stats::time(x))
+  yr <- floor(tm + 1e-8)
+  frac <- tm - yr
+  as.Date(paste0(yr, "-01-01")) + round(frac * 365)
+}
+
+
 #' Convert a first date into a `ts` start value
 #'
 #' @noRd
@@ -428,7 +540,7 @@ declared_freq <- function(meta){
 #' building them or checked against them.
 #'
 #' @noRd
-resolve_meta <- function(meta, series){
+resolve_meta <- function(meta, series, frequency_in = integer()){
 
   extra <- setdiff(meta$series, names(series))
   if(length(extra)){
@@ -463,7 +575,13 @@ resolve_meta <- function(meta, series){
   }
   out$type[missing_type] <- "flow"
 
-  carry <- setdiff(names(meta), c("series", "type", "frequency"))
+  # only present when something was actually converted, so the common case
+  # keeps a clean table
+  if(length(frequency_in)){
+    out$frequency_in <- unname(frequency_in[out$series])
+  }
+
+  carry <- setdiff(names(meta), c("series", "type", "frequency", "frequency_in"))
   for(cl in carry) out[[cl]] <- meta[[cl]][match(out$series, meta$series)]
 
   out
@@ -508,12 +626,22 @@ print.mfbdfm_data <- function(x, ...){
                 if(f == mx) "   <- highest; flow/stock has no effect here" else ""))
   }
 
+  conv <- if("frequency_in" %in% names(m)) !is.na(m$frequency_in) else rep(FALSE, nrow(m))
+  if(any(conv)){
+    cat("\n  aggregated onto the 48-week grid the models use:\n")
+    for(i in which(conv)){
+      cat(sprintf("    %-28s %d -> 48\n", substr(m$series[i], 1, 28),
+                  m$frequency_in[i]))
+    }
+  }
+
   cat("\n  series (first 10):\n")
   show <- utils::head(m, 10)
   for(i in seq_len(nrow(show))){
-    cat(sprintf("    %-28s %-6s freq %4d  n %5d\n",
+    cat(sprintf("    %-28s %-6s freq %4d  n %5d%s\n",
                 substr(show$series[i], 1, 28), show$type[i],
-                show$frequency[i], show$n_obs[i]))
+                show$frequency[i], show$n_obs[i],
+                if(conv[i]) sprintf("  (from %d)", show$frequency_in[i]) else ""))
   }
   if(nrow(m) > 10) cat("    ... and ", nrow(m) - 10, " more\n", sep = "")
 

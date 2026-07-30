@@ -37,6 +37,16 @@ application of it (#37).
   frequency the two sets of weights are provably identical -- and `print()`
   shows the resolved classification and frequencies before you commit to a run
   that takes minutes to hours (#56).
+* `mfbdfm_data()` also puts weekly (52) and daily (365) series onto the
+  48-periods-per-year grid the models are built on, using `daily2weekly()`.
+  This is not cosmetic: `prepare_data()` matches observations onto a
+  `1/max(freq)` grid by an exact join, and a frequency-52 series raises
+  `max(freq)` so that shifted *monthly* observations no longer land on it. On a
+  20-quarter / 60-month / 260-week panel the monthly series retained only 20 of
+  its 60 observations, with no error or warning. The conversion is reported by
+  `message()`, shown by `print()`, and recorded in `meta$frequency_in` (#56).
+* `daily2weekly()` gains a `FUN` argument (default `mean`, so existing calls are
+  unaffected) selecting how observations sharing a 48-week slot are combined.
 * `fcast_dfm()` estimates the multi-factor mixed-frequency dynamic factor
   model of Eckert, Kronenberg, Mikosch & Neuwirth (2025), with post-hoc
   rotation and varimax identification. This is a **different model** from

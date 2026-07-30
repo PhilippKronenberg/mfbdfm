@@ -43,14 +43,24 @@ is_crisis_period <- function(date_vec) {
 }
 
 
-#' Aggregate a daily series to the 48-week grid
+#' Aggregate a higher-frequency series to the 48-week grid
 #'
-#' Averages a daily `zoo` series into the project's 48-periods-per-year
-#' weekly grid.
+#' Aggregates a date-indexed `zoo` series into the project's
+#' 48-periods-per-year weekly grid. Despite the name it is not restricted to
+#' daily input -- the aggregation is driven entirely by the date index, so a
+#' true weekly (52-per-year) series is handled the same way. That is how
+#' [mfbdfm_data()] puts weekly and daily input onto the grid the models use;
+#' see its "Frequency" section.
 #'
-#' @param x Daily series (`zoo` indexed by `Date`).
+#' @param x Series to aggregate (`zoo` indexed by `Date`).
+#' @param FUN Function used to combine the observations falling into one
+#'   48-week slot. Defaults to `mean`. Which is appropriate depends on the
+#'   series: these models are estimated on growth rates, for which the mean is
+#'   the per-period rate, whereas `sum` would preserve the total but leave a
+#'   visible spike in the roughly four slots per year that receive two weekly
+#'   observations.
 #'
-#' @return A `ts` with frequency 48; weeks without observations are `NA`.
+#' @return A `ts` with frequency 48; slots with no observation are `NA`.
 #'
 #' @importFrom stats time as.ts aggregate
 #' @examples
@@ -59,7 +69,7 @@ is_crisis_period <- function(date_vec) {
 #' weekly <- daily2weekly(daily)
 #' stats::frequency(weekly)
 #' @export
-daily2weekly <- function(x){
+daily2weekly <- function(x, FUN = mean){
 
   idx <- plyr::round_any(x = as.numeric(format(time(x), "%Y")) +
                            (as.numeric(format(time(x), "%m"))-1)/12 +
@@ -69,7 +79,7 @@ daily2weekly <- function(x){
 
   ts_weekly <- as.ts(aggregate(x = x,
                                by = idx,
-                               FUN = mean,
+                               FUN = FUN,
                                na.rm=TRUE))
   ts_weekly[is.nan(ts_weekly)] <- NA
   ts_weekly

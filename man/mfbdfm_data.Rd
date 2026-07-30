@@ -4,7 +4,7 @@
 \alias{mfbdfm_data}
 \title{Assemble and check the input data for a dynamic factor model}
 \usage{
-mfbdfm_data(data, meta, target = NULL)
+mfbdfm_data(data, meta, target = NULL, aggregate = c("mean", "sum"))
 }
 \arguments{
 \item{data}{The input series, in any of the forms above.}
@@ -18,12 +18,17 @@ column, if present, declares the frequency instead of inferring it.}
 series, so a typo surfaces here rather than deep in the sampler. It is
 stored on the object and used as the default \code{target} by \code{\link[=ind_dfm]{ind_dfm()}} and
 \code{\link[=fcast_dfm]{fcast_dfm()}}.}
+
+\item{aggregate}{How to combine observations that fall into the same
+48-week slot when a weekly or daily series is put on the grid, either
+\code{"mean"} (the default) or \code{"sum"}. See the "Weekly and daily series"
+section.}
 }
 \value{
 An object of class \code{"mfbdfm_data"}: a list with \code{flows}, \code{stocks}
 (named lists of \code{ts}, ready to pass to a model), \code{meta} (the resolved
-per-series table, with the frequency and observation count actually used)
-and \code{target}.
+per-series table, with the frequency and observation count actually used,
+plus \code{frequency_in} where a series was converted) and \code{target}.
 }
 \description{
 Converts the data you have into the form the models need, and -- more
@@ -89,6 +94,39 @@ the inference. Declaring one that contradicts an input that is already a
 \code{ts} is an error rather than a silent override.
 }
 
+\section{Weekly and daily series are put on the 48-week grid}{
+48 is not an arbitrary house convention -- it is the grid the models are
+built on, and a series at a finer frequency \strong{silently loses most of the
+lower-frequency data}.
+
+\code{\link[=prepare_data]{prepare_data()}} shifts each series' observations to the end of their period
+by \code{(max(freq)/frequency(x) - 1)/max(freq)} and then matches them onto a
+\code{1/max(freq)} grid by an exact join. When the highest frequency is 48 that
+ratio is a whole number for monthly (4) and quarterly (12) series, so every
+observation lands on a grid point. When a frequency-52 series raises the
+maximum to 52, \code{52/12} is 4.33: the shifted monthly observations no longer
+fall on the grid, the join does not match them, and they are recorded as
+missing. Measured on a 20-quarter / 60-month / 260-week panel, the monthly
+series retained \strong{20 of its 60 observations} -- and the fit completed
+without any error or warning.
+
+So any series arriving at a frequency finer than 48 -- 52 (weekly) or 365
+(daily) -- is aggregated onto the 48-week grid with \code{\link[=daily2weekly]{daily2weekly()}}, which
+is the same function the analysis scripts use for this. A \code{message()} names
+the series converted, \code{print()} shows the original frequency alongside the
+new one, and \code{meta$frequency_in} records it.
+
+Note this is one of the things you get by going through \code{mfbdfm_data()}:
+passing \code{flows}/\code{stocks} straight to a model does no such conversion, and a
+frequency-52 series there will still quietly cost you most of your monthly
+observations.
+
+\code{aggregate} chooses how observations sharing a slot are combined (roughly
+four slots a year receive two weekly observations). The default \code{"mean"}
+matches \code{\link[=daily2weekly]{daily2weekly()}} and is the per-period rate, which is what these
+models want, since they are estimated on growth rates.
+}
+
 \examples{
 # from a long data frame
 long <- data.frame(
@@ -99,6 +137,18 @@ meta <- data.frame(series = c("a_flow", "b_stock"),
                    type = c("flow", "stock"))
 d <- mfbdfm_data(long, meta)
 d
+
+# a true weekly series is aggregated onto the 48-week grid the models use,
+# and the original frequency is reported
+wk <- seq(as.Date("2020-01-06"), by = "week", length.out = 157)
+d <- mfbdfm_data(
+  rbind(data.frame(series = "weekly", date = wk, value = rnorm(length(wk))),
+        data.frame(series = "monthly",
+                   date = seq(as.Date("2020-01-01"), by = "month",
+                              length.out = 36),
+                   value = rnorm(36))),
+  data.frame(series = c("weekly", "monthly"), type = c("flow", "stock")))
+d$meta
 
 # from the shipped dataset, which is already a list of `ts`
 data(data_ch_dataset_test)

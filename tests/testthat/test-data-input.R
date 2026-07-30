@@ -171,6 +171,138 @@ test_that("a declared frequency is applied to data frames and checked against ts
 })
 
 
+test_that("the reason for converting: frequency 52 silently discards monthly observations", {
+
+  # This is what the conversion exists to prevent, so it is measured rather than
+  # asserted in prose. prepare_data() shifts observations by
+  # (max(freq)/frequency(x) - 1)/max(freq) and matches them onto a 1/max(freq)
+  # grid by an exact join. With max(freq) = 48 the ratio is a whole number for
+  # monthly and quarterly series; with 52 it is 52/12 = 4.33, the shifted
+  # monthly observations miss the grid, and the join records them as missing.
+  # Crucially this raises no error - the fit completes on mangled data.
+  observed <- function(wk_freq){
+    n_wk <- if(wk_freq == 52) 260 else 240
+    raw <- list(gdp  = stats::ts(rnorm(20), start = c(2018, 1), frequency = 4),
+                surv = stats::ts(rnorm(60), start = c(2018, 1), frequency = 12),
+                wk   = stats::ts(rnorm(n_wk), start = c(2018, 1), frequency = wk_freq))
+    inv <- create_inventory(flows = raw["gdp"], stocks = raw[c("surv", "wk")])
+    Y <- prepare_data(flows = raw["gdp"], stocks = raw[c("surv", "wk")],
+                      inventory = inv, target = "gdp")
+    # 0 encodes missing in the prepared data
+    vapply(colnames(Y), function(nm) sum(Y[, nm] != 0), integer(1))
+  }
+
+  set.seed(7)
+  at48 <- observed(48)
+  set.seed(7)
+  at52 <- observed(52)
+
+  # on the 48-grid every observation survives
+  expect_equal(unname(at48[c("gdp", "surv")]), c(20L, 60L))
+  # at 52 the monthly series loses most of its observations, silently
+  expect_equal(unname(at52["surv"]), 20L)
+  expect_lt(at52[["surv"]], at48[["surv"]])
+})
+
+
+test_that("weekly and daily series are put on the 48-week grid", {
+
+  wk <- seq(as.Date("2020-01-06"), by = "week", length.out = 157)
+  mon <- seq(as.Date("2020-01-01"), by = "month", length.out = 36)
+  long <- rbind(
+    data.frame(series = "w52", date = wk, value = as.numeric(seq_along(wk))),
+    data.frame(series = "m", date = mon, value = as.numeric(1:36)))
+  meta <- data.frame(series = c("w52", "m"), type = c("flow", "stock"),
+                     stringsAsFactors = FALSE)
+
+  expect_message(d <- mfbdfm_data(long, meta), "48-week grid")
+  expect_message(mfbdfm_data(long, meta), "w52.*52 -> 48")
+
+  expect_equal(stats::frequency(d$flows$w52), 48)
+  expect_equal(d$meta$frequency[d$meta$series == "w52"], 48L)
+  expect_equal(d$meta$frequency_in[d$meta$series == "w52"], 52L)
+  # the untouched series carries no original frequency
+  expect_true(is.na(d$meta$frequency_in[d$meta$series == "m"]))
+
+  # and the ratios the model needs are now whole numbers
+  expect_equal(max(d$meta$frequency) %% min(d$meta$frequency), 0)
+
+  # daily too: the same incompatibility, the same function
+  dy <- seq(as.Date("2020-01-01"), by = "day", length.out = 500)
+  long_d <- rbind(
+    data.frame(series = "d365", date = dy, value = as.numeric(seq_along(dy))),
+    data.frame(series = "m", date = mon, value = as.numeric(1:36)))
+  d2 <- suppressMessages(mfbdfm_data(long_d, meta = data.frame(
+    series = c("d365", "m"), type = c("flow", "stock"), stringsAsFactors = FALSE)))
+  expect_equal(stats::frequency(d2$flows$d365), 48)
+  expect_equal(d2$meta$frequency_in[d2$meta$series == "d365"], 365L)
+})
+
+
+test_that("series already on the 48-week grid are left alone", {
+
+  # a 48-grid series must not be re-aggregated, which is why the 48-vs-52
+  # distinction still has to be drawn
+  wk48 <- dec2week(2020 + (0:143)/48)
+  long <- data.frame(series = "w48", date = wk48, value = as.numeric(1:144))
+  meta <- data.frame(series = "w48", type = "flow", stringsAsFactors = FALSE)
+
+  d <- expect_silent(mfbdfm_data(long, meta))
+  expect_equal(stats::frequency(d$flows$w48), 48)
+  expect_equal(as.numeric(d$flows$w48), as.numeric(1:144))
+  expect_false("frequency_in" %in% names(d$meta))
+})
+
+
+test_that("a weekly `ts` supplied directly is converted too, and round-trips", {
+
+  # no Dates here - they are reconstructed from the ts's decimal time
+  x <- stats::ts(as.numeric(1:104), start = c(2020, 1), frequency = 52)
+  d <- suppressMessages(mfbdfm_data(list(w = x),
+                                    data.frame(series = "w", type = "flow",
+                                               stringsAsFactors = FALSE)))
+  expect_equal(stats::frequency(d$flows$w), 48)
+  expect_equal(d$meta$frequency_in, 52L)
+  # roughly 48/52 of the observations survive, values in the original range
+  expect_gt(length(d$flows$w), 90)
+  expect_lt(length(d$flows$w), 104)
+  rng <- range(d$flows$w, na.rm = TRUE)
+  expect_gte(rng[1], 1)
+  expect_lte(rng[2], 104)
+})
+
+
+test_that("`aggregate` selects how observations sharing a slot are combined", {
+
+  wk <- seq(as.Date("2020-01-06"), by = "week", length.out = 157)
+  long <- data.frame(series = "w", date = wk, value = rep(1, length(wk)))
+  meta <- data.frame(series = "w", type = "flow", stringsAsFactors = FALSE)
+
+  a <- suppressMessages(mfbdfm_data(long, meta, aggregate = "mean"))
+  b <- suppressMessages(mfbdfm_data(long, meta, aggregate = "sum"))
+
+  # with a constant series of 1s, mean gives 1 in every slot; sum gives 2 in the
+  # slots that received two weekly observations, and conserves the total - no
+  # observation is dropped or counted twice
+  expect_true(all(stats::na.omit(as.numeric(a$flows$w)) == 1))
+  expect_setequal(unique(stats::na.omit(as.numeric(b$flows$w))), c(1, 2))
+  expect_equal(sum(b$flows$w, na.rm = TRUE), length(wk))
+  expect_gt(sum(stats::na.omit(as.numeric(b$flows$w)) == 2), 0)
+
+  expect_error(mfbdfm_data(long, meta, aggregate = "median"), "'arg'")
+})
+
+
+test_that("daily2weekly()'s new FUN argument defaults to the old behaviour", {
+
+  d <- seq(as.Date("2024-01-01"), by = "day", length.out = 200)
+  z <- zoo::zoo(as.numeric(seq_along(d)), order.by = d)
+  expect_equal(daily2weekly(z), daily2weekly(z, FUN = mean))
+  expect_false(isTRUE(all.equal(as.numeric(daily2weekly(z)),
+                                as.numeric(daily2weekly(z, FUN = sum)))))
+})
+
+
 test_that("an unmodelled frequency is an error, not a guess", {
 
   # 10-day spacing matches nothing this package models
@@ -180,12 +312,14 @@ test_that("an unmodelled frequency is an error, not a guess", {
                                             stringsAsFactors = FALSE)),
                "Could not infer a frequency")
 
-  # 7-day spacing off the 48-grid convention is weekly (52)
+  # 7-day spacing off the 48-grid convention is read as weekly (52), and then
+  # aggregated onto the 48-week grid
   tm <- seq(as.Date("2020-01-02"), by = "week", length.out = 60)
   wide <- data.frame(date = tm, a = as.numeric(1:60))
-  d <- mfbdfm_data(wide, data.frame(series = "a", type = "flow",
-                                    stringsAsFactors = FALSE))
-  expect_equal(stats::frequency(d$flows$a), 52)
+  d <- suppressMessages(mfbdfm_data(wide, data.frame(series = "a", type = "flow",
+                                                     stringsAsFactors = FALSE)))
+  expect_equal(d$meta$frequency_in, 52L)
+  expect_equal(stats::frequency(d$flows$a), 48)
 })
 
 
