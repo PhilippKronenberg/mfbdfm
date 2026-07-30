@@ -88,6 +88,12 @@
 #'   reproduces the published priors exactly. Note that the loading prior
 #'   carries the identification -- it must stay diffuse for the post-hoc
 #'   rotation to work; see [dfm_priors()].
+#' @param control Optional numerical and algorithmic settings from
+#'   [dfm_control()], or a named list of them. Bundles the rotation stopping
+#'   rule and the stability bounds that were previously hard-coded. Omit it (the
+#'   default) and the published behaviour is reproduced exactly;
+#'   `dfm_control("fcast_dfm", strict = TRUE)` switches the rotation to the
+#'   algorithm as specified in the online appendix.
 #'
 #' @return An object of class `"fcast_dfm"`: a list with components
 #'   \describe{
@@ -164,9 +170,11 @@ fcast_dfm <- function(flows = NULL,
                       stochastic_volatility = TRUE,
                       serial_correlation = TRUE,
                       ncores = NULL,
-                      priors = dfm_priors("fcast_dfm")){
+                      priors = dfm_priors("fcast_dfm"),
+                      control = NULL){
 
   check_priors(priors, "fcast_dfm")
+  control <- resolve_control(control, "fcast_dfm")
 
   # accept either an mfbdfm_data object as the first argument, or the original
   # flows/stocks pair
@@ -245,13 +253,15 @@ fcast_dfm <- function(flows = NULL,
                                Gmat_prealloc = Gmat_prealloc,
                                stochastic_volatility = stochastic_volatility,
                                serial_correlation = serial_correlation,
-                               priors = priors)
+                               priors = priors,
+                               control = control)
 
 
   # ROTATION ----------------------------------------------------------------
 
   message("running rotation of each draw..")
-  D_save <- run_rotation_fcast(theta_out, n = n, q = q, p = p, s = s, t = t, ncores = ncores)
+  D_save <- run_rotation_fcast(theta_out, n = n, q = q, p = p, s = s, t = t,
+                               ncores = ncores, control = control)
 
 
   # IDENTIFICATION ----------------------------------------------------------

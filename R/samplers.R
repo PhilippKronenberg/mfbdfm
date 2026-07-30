@@ -20,7 +20,8 @@ NMIX_SD   <- sqrt(NMIX_VAR)
 run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, thinning,
                          inventory, plots,Gmat_prealloc, fdat,
                          stochastic_volatility = TRUE, serial_correlation = TRUE,
-                         priors = dfm_priors("ind_dfm")){
+                         priors = dfm_priors("ind_dfm"),
+                         control = dfm_control("ind_dfm")){
 
   # fill in the priors whose published default is a rule in terms of t or p
   priors <- resolve_priors(priors, t = t, p = p)
@@ -130,10 +131,11 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                            omega = omega,
                            indicators = indicators,
                            h_old = h,
-                           NtN = NtN)
+                           NtN = NtN,
+                           control = control)
     } else {
       h <- draw_factor_variance(f = f, phi = phi, p = p, s = s, t = t,
-                                prior = priors$factor_var)
+                                prior = priors$factor_var, control = control)
     }
 
     # 3. draw model parameters (conditional on factors and volatility)
@@ -150,23 +152,24 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
     sigma <- draw_sigma(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
                         inventory = inventory, target = target, sigma = sigma,
                         prior_target = priors$sigma_target,
-                        prior_other = priors$sigma_other)
-    phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi, prior = priors$phi)
+                        prior_other = priors$sigma_other, control = control)
+    phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi, prior = priors$phi, control = control)
 
     # omega (the variance of h's own innovations) and the mixture indicators
     # exist solely to draw a volatility PATH; with a constant variance they are
     # meaningless. Each conditional is kept in its original position in the
     # sequence so that with the defaults the RNG is consumed exactly as before.
     if(stochastic_volatility) omega <- draw_omega(h = h, t = t, s = s, p = p,
-                                                  prior = priors$omega)
+                                                  prior = priors$omega, control = control)
 
     if(serial_correlation){
       rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
                       lambda = lambda, Llist = Llist, inventory = inventory, target = target,
-                      prior_target = priors$rho_target, prior_other = priors$rho_other)
+                      prior_target = priors$rho_target, prior_other = priors$rho_other,
+                      control = control)
     }
 
-    if(stochastic_volatility) indicators = draw_indicators(h, f, phi, n, p, s, t)
+    if(stochastic_volatility) indicators = draw_indicators(h, f, phi, n, p, s, t, control)
 
     # 3. check convergence
     if(plots == TRUE){
@@ -273,7 +276,7 @@ draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN){
+draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN, control){
 
   #  See appendix A.2 Stochastic Volatility
   err <- c(rep(0,p),f[seq(1+p,t+s),] - Reduce('+', lapply(1:p, function(px){
@@ -283,7 +286,7 @@ draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN){
   # err[which(err<qs[1])] <- qs[1]
   # err[which(err>qs[2])] <- qs[2]
 
-  w <- log(err^2 + 0.001)
+  w <- log(err^2 + control$sv_offset)
 
   W <- Diagonal(x = 2, n = t+s)
 
@@ -302,7 +305,7 @@ draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN){
   Q1 <-  forceSymmetric(Q0 + t(W) %*% solve(xi) %*% W)
   q1 <- solve(Q1,  t(W) %*% solve(xi) %*% (w - mu))
 
-  h <- as.matrix(q1 + solve(chol(Q1), rnorm((t+s))) + 1e-9)
+  h <- as.matrix(q1 + solve(chol(Q1), rnorm((t+s))) + control$jitter)
 
   # numerical stability, discard draws that are above the upper bound
   ubound <- -2.15
@@ -338,7 +341,7 @@ draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_factor_variance <- function(f, phi, p, s, t, prior){
+draw_factor_variance <- function(f, phi, p, s, t, prior, control){
 
   # residuals of the factor state equation, computed exactly as in
   # draw_volatility(); the first p entries are the zero padding it also uses
@@ -353,7 +356,7 @@ draw_factor_variance <- function(f, phi, p, s, t, prior){
   c1 <- c0 + length(v)
   d1 <- d0 + sum(v^2)
 
-  sigma_f2 <- 1/rgamma(n = 1, shape = c1/2, rate = d1/2) + 1e-9
+  sigma_f2 <- 1/rgamma(n = 1, shape = c1/2, rate = d1/2) + control$jitter
 
   matrix(0.5 * log(sigma_f2), t+s, 1)
 
@@ -364,13 +367,13 @@ draw_factor_variance <- function(f, phi, p, s, t, prior){
 #'
 #' @noRd
 #' @importFrom stats dnorm
-draw_indicators <- function(h, f, phi, n, p, s, t){
+draw_indicators <- function(h, f, phi, n, p, s, t, control){
 
   #  See appendix A.2 Stochastic Volatility
   err <- c(rep(0,p),f[seq(1+p,t+s),] - Reduce('+', lapply(1:p, function(px){
     f[seq(from = 1+p-px, t+s-px),,drop=FALSE] %*% phi[px]})))
 
-  w <- log(err^2 + 0.001)
+  w <- log(err^2 + control$sv_offset)
 
   # component densities as a (t+s) x 7 matrix, built with one vectorized dnorm()
   # call per mixture component instead of (t+s)*7 scalar calls - dnorm is fully
@@ -463,7 +466,7 @@ draw_lambda <- function(Xvec_tilde, Zmat, sigma, n, t, inventory, target, prior)
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma,
+draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma, control,
                        prior_target, prior_other){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Measurement Error Covariance Matrix
 
@@ -502,12 +505,12 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma,
     # sample from inverse gamma distribution
     1/rgamma(n = 1,
              shape = c1/2,
-             rate = d1/2) + 1e-9 # add tiny amount of noise to avoid singularities
+             rate = d1/2) + control$jitter # avoid singularities
 
   }))
 
-  # numerical stability in beginning
-  diag(sigma)[which(diag(sigma) > 5)] <- 5
+  # numerical stability in beginning; bound from dfm_control()
+  diag(sigma)[which(diag(sigma) > control$sigma_max)] <- control$sigma_max
 
   return(sigma)
 
@@ -519,6 +522,7 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma,
 #' @noRd
 #' @importFrom stats rnorm
 draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
+                    control,
                      prior_target, prior_other){
 
   # See appendix A.4 Conditional distributions of Remaining Parameters: Autocorrelation of Measurement Errors
@@ -589,15 +593,15 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
     while(!check){
 
       # draw rho_i
-      rho_i = rnorm(1, r1, sqrt(R1)) + 1e-9 # add tiny amount of noise to avoid zeros
+      rho_i = rnorm(1, r1, sqrt(R1)) + control$jitter # avoid exact zeros
       count <- count + 1
 
       # run checks
-      if(count > 10) {
-        rho_i <- 0.98
+      if(count > control$rho_max_tries) {
+        rho_i <- control$rho_fallback
         #print(paste0("rho adjusted: ",inventory$key[nx]))
       }
-      check = abs(rho_i) < 0.99
+      check = abs(rho_i) < control$rho_max
 
     }
 
@@ -611,7 +615,7 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_phi = function(f, h, p, t, phi_old, prior){
+draw_phi = function(f, h, p, t, phi_old, prior, control){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Autoregressive Coefficients
 
   m = f[(p+1):(nrow(f)),]
@@ -632,7 +636,7 @@ draw_phi = function(f, h, p, t, phi_old, prior){
 
   # discard draw if not stationary or negatively autocorrelated
   phi[which(phi < 0)] <- 0
-  if(sum(phi) > 0.9 | sum(diff(phi) > 0) > 0){
+  if(sum(phi) > control$phi_sum_max | sum(diff(phi) > 0) > 0){
 
     phi <-  phi_old
   # repeat {
@@ -651,7 +655,7 @@ draw_phi = function(f, h, p, t, phi_old, prior){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_omega <- function(h, t, s, p, prior){
+draw_omega <- function(h, t, s, p, prior, control){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Stochastic Volatility Variance
   v <- h[2:nrow(h),] - h[seq(from = 1, nrow(h)-1),,drop=FALSE]
 
@@ -666,7 +670,7 @@ draw_omega <- function(h, t, s, p, prior){
   # sample stochastic volatility state equation error variance
   omega = 1/rgamma(n = 1,
                    shape = 0.5 * k1,
-                   rate = 0.5 * l1) + 1e-9 # add tiny amount of noise to avoid singularity
+                   rate = 0.5 * l1) + control$jitter # avoid singularity
 
   # if(omega > 0.1)  omega <- 0.1
 

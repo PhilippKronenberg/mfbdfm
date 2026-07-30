@@ -23,7 +23,8 @@
 run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thinning,
                             inventory, plots, Gmat_prealloc,
                             stochastic_volatility, serial_correlation,
-                            priors = dfm_priors("fcast_dfm")){
+                            priors = dfm_priors("fcast_dfm"),
+                            control = dfm_control("fcast_dfm")){
 
   # fill in the priors whose published default is a rule in terms of t
   priors <- resolve_priors(priors, t = t, p = p)
@@ -81,7 +82,8 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
     if(stochastic_volatility){
 
       h <- draw_volatility_fcast(f = f, phi = phi, n = n, q = q, p = p, s = s, t = t,
-                              omega = omega, indicators = indicators, Ymat = Ymat)
+                              omega = omega, indicators = indicators, Ymat = Ymat,
+                              control = control)
 
     }
 
@@ -93,7 +95,7 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
 
     sigma <- draw_sigma_fcast(Xmat = Xmat, Ymat = Ymat, Gmat = Gmat, f = f, n = n, t = t,
                            inventory = inventory, rho = rho, sigma = sigma,
-                           prior = priors$sigma)
+                           prior = priors$sigma, control = control)
     phi <- draw_phi_fcast(f = f, h = h, p = p, q = q, t = t, s = s, phi_old = phi)
 
     # omega (the variance of h's own innovations) and the mixture indicators
@@ -103,15 +105,15 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
     # the sequence so that with stochastic_volatility = TRUE the RNG is
     # consumed exactly as before.
     if(stochastic_volatility) omega <- draw_omega_fcast(h, t, p, s, omega_old = omega,
-                                                        prior = priors$omega)
+                                                        prior = priors$omega, control = control)
 
     if(serial_correlation){
       rho <- draw_rho_fcast(Xmat = Xmat, f = f, n = n, t = t, s = s, sigma = sigma,
                          lambda = lambda, Llist = Llist, inventory = inventory,
-                         prior = priors$rho)
+                         prior = priors$rho, control = control)
     }
 
-    if(stochastic_volatility) indicators <- draw_indicators_fcast(h, f, phi, n, p, q, s, t)
+    if(stochastic_volatility) indicators <- draw_indicators_fcast(h, f, phi, n, p, q, s, t, control)
 
     # 4. track a fixed random subset of the augmented data as a convergence check
     check_sample <- Xmat[checks]
@@ -202,14 +204,14 @@ draw_factors_fcast <- function(Xmat, Gmat, n, q, p, s, t, lambda, phi, sigma, h,
 #'
 #' @noRd
 #' @importFrom stats rnorm quantile
-draw_volatility_fcast <- function(f, phi, n, q, p, s, t, omega, indicators, Ymat){
+draw_volatility_fcast <- function(f, phi, n, q, p, s, t, omega, indicators, Ymat, control){
 
   #  See appendix A.2 Stochastic Volatility
   err <- rbind(matrix(0,p,q),
                f[seq(1+p,t+s),] - Reduce('+', lapply(1:p, function(px){
                  f[seq(from = 1+p-px, t+s-px),,drop=FALSE] %*% phi[[px]]})))
 
-  w <- log(matrix(t(err))^2 + 0.001)
+  w <- log(matrix(t(err))^2 + control$sv_offset)
 
   # maps the single volatility path onto all q factor errors
   W <- Diagonal(n = (t+s)) %x% Matrix(2,q,1)
@@ -230,7 +232,7 @@ draw_volatility_fcast <- function(f, phi, n, q, p, s, t, omega, indicators, Ymat
   Q1 <- forceSymmetric(Q0 + t(W) %*% solve(xi) %*% W)
   q1 <- solve(Q1, t(W) %*% solve(xi) %*% (w - mu))
 
-  h <- as.matrix(q1 + solve(chol(Q1), rnorm((t+s))) + 1e-9)
+  h <- as.matrix(q1 + solve(chol(Q1), rnorm((t+s))) + control$jitter)
 
   # center and scale volatility which is necessary for identification
   h <- (h - quantile(h)[2]) * (0.01 / (quantile(h)[4] - quantile(h)[2]))
@@ -244,14 +246,14 @@ draw_volatility_fcast <- function(f, phi, n, q, p, s, t, omega, indicators, Ymat
 #'
 #' @noRd
 #' @importFrom stats dnorm
-draw_indicators_fcast <- function(h, f, phi, n, p, q, s, t){
+draw_indicators_fcast <- function(h, f, phi, n, p, q, s, t, control){
 
   #  See appendix A.2 Stochastic Volatility
   err <- rbind(matrix(0,p,q),
                f[seq(1+p,t+s),] - Reduce('+', lapply(1:p, function(px){
                  f[seq(from = 1+p-px, t+s-px),,drop=FALSE] %*% phi[[px]]})))
 
-  w <- log(matrix(t(err))^2 + 0.001)
+  w <- log(matrix(t(err))^2 + control$sv_offset)
 
   # component densities as a (q*(t+s)) x 7 matrix, built with one vectorized
   # dnorm() call per mixture component. h is indexed by ceiling(tx/q) because
@@ -338,7 +340,7 @@ draw_lambda_fcast <- function(Xmat, Ymat, Zmat, sigma, rho, n, q, t, inventory, 
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_sigma_fcast <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma, prior){
+draw_sigma_fcast <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma, prior, control){
   # See appendix A.4: Measurement Error Covariance Matrix
 
   Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
@@ -365,7 +367,7 @@ draw_sigma_fcast <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma, p
     # sample from inverse gamma distribution
     1/rgamma(n = 1,
              shape = c1/2,
-             rate = d1/2) + 1e-9 # add tiny amount of noise to avoid singularities
+             rate = d1/2) + control$jitter # add tiny amount of noise to avoid singularities
 
   }))
 
@@ -376,7 +378,7 @@ draw_sigma_fcast <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma, p
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_rho_fcast <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, prior){
+draw_rho_fcast <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, prior, control){
 
   # See appendix A.4: Autocorrelation of Measurement Errors
   Xfit <- Reduce("+", lapply(0:s, function(sx){
@@ -403,12 +405,12 @@ draw_rho_fcast <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, pr
     while(!check){
 
       # draw rho_i
-      rho_i <- rnorm(1, r1, sqrt(R1)) + 1e-9 # add tiny amount of noise to avoid zeros
+      rho_i <- rnorm(1, r1, sqrt(R1)) + control$jitter # avoid exact zeros
       count <- count + 1
 
       # run checks
-      if(count > 10) rho_i <- 0.98
-      check <- abs(rho_i) < 0.99
+      if(count > control$rho_max_tries) rho_i <- control$rho_fallback
+      check <- abs(rho_i) < control$rho_max
 
     }
 
@@ -499,7 +501,7 @@ draw_phi_fcast <- function(f, h, p, q, t, s, phi_old){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_omega_fcast <- function(h, t, p, s, omega_old, prior){
+draw_omega_fcast <- function(h, t, p, s, omega_old, prior, control){
 
   m <- matrix(h[(s+1):nrow(h),] - h[s:(nrow(h)-1),])
 
@@ -514,9 +516,9 @@ draw_omega_fcast <- function(h, t, p, s, omega_old, prior){
   # sample from inverse gamma distribution
   omega <- 1/rgamma(n = 1,
                     shape = c1/2,
-                    rate = d1/2) + 1e-9 # add tiny amount of noise to avoid singularities
+                    rate = d1/2) + control$jitter # add tiny amount of noise to avoid singularities
 
-  if(omega > 1) omega <- 1
+  if(omega > control$omega_max) omega <- control$omega_max
 
   return(omega)
 
