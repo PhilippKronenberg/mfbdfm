@@ -130,12 +130,26 @@ Because identification differs, \code{fcast_dfm(q = 1)} is \strong{not} equivale
 Kronenberg (2026), and \code{fcast_dfm()} for the multi-factor model.
 }
 \section{Maturity}{
-This function is \strong{experimental}. It reproduces the published sampler and
-is covered by structural tests, but it has not yet been validated by
-simulation recovery -- generating data from a known \code{q}-factor process and
-checking that the estimated factors and loadings recover it up to rotation.
-Until that exists, treat multi-factor results (\code{q > 1}) as provisional.
-\code{\link[=ind_dfm]{ind_dfm()}} is the settled entry point.
+The \strong{sampler is validated by simulation recovery}: data generated from a
+known \code{q}-factor process is recovered at the trace R-squared values published
+for this model (Eckert et al. 2025, Table 1, columns 6-8), with the paper's
+figure inside the 95\% interval of the Monte Carlo mean in all three cells --
+including the misspecified \verb{q_f = 2, q_hat = 1} cell, which acts as a negative
+control by scoring around 0.4 rather than high. (\code{dev/mc_recovery.R}, #52.)
+
+The \strong{post-hoc rotation is not} so validated, and cannot be by that measure:
+the trace R-squared is rotation-invariant by construction, so it is blind to
+the rotation step -- measured directly, unrotated 0.868 against rotated 0.869.
+A test that does exercise it, agreement of the loading matrix across seeds,
+shows the rotation doing real work (0.62 to 0.88 in the worst case) but not
+reaching uniqueness: runs at different seeds still settle on visibly different
+rotations. The likely cause is the stopping rule, which uses the mean of the
+Givens angles where the online appendix specifies the sum; see #46.
+
+So the factors and the nowcasts are on solid ground, while the \emph{sign and
+scale of individual loadings} should not be read as unique across runs.
+\code{\link[=ind_dfm]{ind_dfm()}}, whose factor is identified during sampling rather than
+afterwards, remains the settled entry point.
 
 \code{target} does not enter the estimation. It names the series whose nowcast
 is surfaced at the top level of the return value for convenience; results

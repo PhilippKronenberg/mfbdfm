@@ -66,8 +66,12 @@ analysis/benchmarks/*.pdf
 paper_text.rds
 appendix_text.rds
 
-# dev/ scratch: MC run drivers, logs and result caches (regenerated on demand)
+# dev/ scratch: MC run drivers, logs and interim result caches
 dev/mc_log*.txt
 dev/mc_err*.txt
 dev/mc_results*.rds
+# ...except the canonical snapshot, which is committed for the same reason
+# dev/baseline.rds is: so it can be compared across commits, and so
+# regenerating it shows up in the diff. See dev/mc_recovery.R.
+!dev/mc_results.rds
 dev/run_mc*.R

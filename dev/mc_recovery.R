@@ -25,8 +25,45 @@
 # would indicate a bug just as clearly as scoring low everywhere.
 #
 #   source("dev/mc_recovery.R")
-#   mc_one()                 # a single replication, to gauge cost
-#   mc_recovery(n_rep = 20)  # a grid
+#   mc_one()          # a single replication, to gauge cost (~40s)
+#   mc_recovery()     # the three published cells; reproduces MC_RESULTS_PATH
+#   mc_report()       # summarise the stored run without recomputing it
+#
+# mc_recovery()'s defaults ARE the run reported on #52 - the same cells, the
+# same per-cell replication counts and the same seeds - so it reproduces those
+# numbers rather than merely similar ones. That costs 40+ minutes; it saves
+# incrementally to dev/mc_results.rds after every replication, so it can be
+# interrupted and resumed, and mc_report() reads that file back.
+#
+# Like dev/baseline.R this is deliberately NOT a CI test. MCMC output is not
+# bit-identical across platforms and BLAS implementations, the run takes tens of
+# minutes, and the quantity being checked is a Monte Carlo mean with a standard
+# error - a pass/fail threshold on it would be either vacuous or flaky. The
+# result snapshot is committed for the same reason baseline.rds is: so it can be
+# compared across commits, and so regenerating it is a visible act in the diff.
+
+
+MC_RESULTS_PATH <- "dev/mc_results.rds"
+
+
+#' The cells reported on #52
+#'
+#' Replication counts differ by cell because the q_f = 1 cell came out 3.3
+#' standard errors above the paper's value on the first 10 replications, which
+#' needed more data before it could be called signal or noise. It settled at
+#' 0.717 with the paper's 0.68 inside the 95% interval.
+MC_CELLS <- list(
+  list(tag = "qf1_qhat1", q_f = 1, q_hat = 1, cut_obs = 0.5, paper = 0.68, n_rep = 40),
+  list(tag = "qf2_qhat2", q_f = 2, q_hat = 2, cut_obs = 0.5, paper = 0.84, n_rep = 20),
+  list(tag = "qf2_qhat1", q_f = 2, q_hat = 1, cut_obs = 0.5, paper = 0.39, n_rep = 20)
+)
+
+
+#' Seed for one replication
+#'
+#' Fixed as a function of the cell and replication index, so the reported run is
+#' reproducible and resuming an interrupted run repeats the same draws.
+mc_seed <- function(q_f, q_hat, k) 90000 + 1000 * q_f + 100 * q_hat + k
 
 
 #' Simulate one dataset from the paper's Monte Carlo DGP
@@ -213,38 +250,88 @@ mc_one <- function(q_f = 1, q_hat = q_f, n = 25, T_m = 120, cut_obs = 0.5,
 }
 
 
-#' Average the trace R-squared over replications, for one or more cells
-mc_recovery <- function(cells = NULL, n_rep = 20, seed0 = 100, ...){
+#' Run the replications and write the result snapshot
+#'
+#' Defaults reproduce the run reported on #52. Saves after every replication, so
+#' an interrupted run resumes where it stopped rather than starting over; pass
+#' `resume = FALSE` to discard what is stored and start clean.
+#'
+#' @param cells List of cell specifications; see `MC_CELLS`.
+#' @param path Where to write the snapshot.
+#' @param resume Keep replications already stored in `path`.
+#'
+#' @return The summary table, invisibly (also printed).
+mc_recovery <- function(cells = MC_CELLS, path = MC_RESULTS_PATH,
+                        resume = TRUE, ...){
 
-  if(is.null(cells)){
-    cells <- list(
-      list(q_f = 1, q_hat = 1, cut_obs = 0.5, target_r2 = 0.68),
-      list(q_f = 2, q_hat = 2, cut_obs = 0.5, target_r2 = 0.84),
-      list(q_f = 2, q_hat = 1, cut_obs = 0.5, target_r2 = 0.39)
-    )
+  res <- if(resume && file.exists(path)) readRDS(path) else list()
+
+  for(cl in cells){
+
+    have <- if(is.null(res[[cl$tag]])) numeric(0) else res[[cl$tag]]$r2
+    todo <- seq_len(cl$n_rep)[-seq_along(have)]
+
+    cat(sprintf("\n=== %s (paper %.2f, %d reps, %d already stored) ===\n",
+                cl$tag, cl$paper, cl$n_rep, length(have)))
+
+    for(k in todo){
+      one <- mc_one(q_f = cl$q_f, q_hat = cl$q_hat, cut_obs = cl$cut_obs,
+                    seed = mc_seed(cl$q_f, cl$q_hat, k), verbose = FALSE, ...)
+      have <- c(have, one$trace_r2)
+      # store after each replication: a 40-minute run should not be all-or-nothing
+      res[[cl$tag]] <- list(paper = cl$paper, r2 = have)
+      saveRDS(res, path)
+
+      if(k %% 5 == 0){
+        ok <- have[!is.na(have)]
+        cat(sprintf("  %2d reps: mean %.3f  se %.3f  (paper %.2f)\n",
+                    length(ok), mean(ok), stats::sd(ok)/sqrt(length(ok)), cl$paper))
+      }
+    }
   }
 
-  out <- lapply(seq_along(cells), function(i){
+  mc_report(path)
 
-    cl <- cells[[i]]
-    cat(sprintf("\ncell %d: q_f=%d q_hat=%d cut=%.0f%%  (paper: %.2f)\n",
-                i, cl$q_f, cl$q_hat, 100*cl$cut_obs, cl$target_r2))
+}
 
-    r <- vapply(seq_len(n_rep), function(k){
-      mc_one(q_f = cl$q_f, q_hat = cl$q_hat, cut_obs = cl$cut_obs,
-             seed = seed0 + 1000*i + k, verbose = FALSE, ...)$trace_r2
-    }, numeric(1))
 
-    cat(sprintf("  mean %.3f   sd %.3f   se %.3f   n_ok %d/%d   paper %.2f\n",
-                mean(r, na.rm = TRUE), stats::sd(r, na.rm = TRUE),
-                stats::sd(r, na.rm = TRUE)/sqrt(sum(!is.na(r))),
-                sum(!is.na(r)), n_rep, cl$target_r2))
+#' Summarise a stored run, without recomputing it
+#'
+#' Reports the Monte Carlo mean against the paper's value with a 95% interval,
+#' which is the form the comparison has to take: the target is a mean with a
+#' standard error, not a fixed number to match.
+#'
+#' @return A data frame, invisibly (also printed).
+mc_report <- function(path = MC_RESULTS_PATH){
 
-    data.frame(q_f = cl$q_f, q_hat = cl$q_hat, cut_obs = cl$cut_obs,
-               mean = mean(r, na.rm = TRUE), sd = stats::sd(r, na.rm = TRUE),
-               n_ok = sum(!is.na(r)), paper = cl$target_r2)
-  })
+  if(!file.exists(path)){
+    stop("No stored run at ", path, ". Run mc_recovery() first.", call. = FALSE)
+  }
+  res <- readRDS(path)
 
-  do.call(rbind, out)
+  out <- do.call(rbind, lapply(names(res), function(tag){
+    r <- res[[tag]]$r2
+    r <- r[!is.na(r)]
+    se <- stats::sd(r)/sqrt(length(r))
+    ci <- mean(r) + c(-1.96, 1.96)*se
+    data.frame(cell = tag, n = length(r), paper = res[[tag]]$paper,
+               mean = mean(r), sd = stats::sd(r), se = se,
+               lo = ci[1], hi = ci[2],
+               paper_inside = res[[tag]]$paper >= ci[1] & res[[tag]]$paper <= ci[2],
+               stringsAsFactors = FALSE)
+  }))
+
+  cat("\nSimulation recovery, trace R-squared (Eckert et al. 2025, Eq. 17)\n\n")
+  cat(sprintf("%-11s %4s %7s %8s %7s   %-18s %s\n",
+              "cell", "n", "paper", "mean", "sd", "95% CI for mean", "paper inside?"))
+  for(i in seq_len(nrow(out))){
+    cat(sprintf("%-11s %4d %7.2f %8.3f %7.3f   [%.3f, %.3f]     %s\n",
+                out$cell[i], out$n[i], out$paper[i], out$mean[i], out$sd[i],
+                out$lo[i], out$hi[i], if(out$paper_inside[i]) "yes" else "NO"))
+  }
+  cat("\n", if(all(out$paper_inside)) "All published values inside the 95% interval."
+      else "SOME published values fall outside the interval.", "\n", sep = "")
+
+  invisible(out)
 
 }
