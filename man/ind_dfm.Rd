@@ -16,7 +16,8 @@ ind_dfm(
   extend_to = NULL,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
-  priors = dfm_priors("ind_dfm")
+  priors = dfm_priors("ind_dfm"),
+  control = NULL
 )
 }
 \arguments{
@@ -58,6 +59,13 @@ are drawn. If \code{FALSE} they are held at (effectively) zero.}
 reproduces the published priors exactly. Note that two of them -- the
 target's measurement-error variance and serial correlation -- carry the
 identification rather than being tuning knobs; see \code{\link[=dfm_priors]{dfm_priors()}}.}
+
+\item{control}{Optional numerical and algorithmic settings from
+\code{\link[=dfm_control]{dfm_control()}}, or a named list of them. Bundles the stability bounds and
+numerical guards that were previously hard-coded -- the stationarity screen
+on the measurement-error autocorrelations, the caps on \code{phi} and \code{sigma},
+and the numerical jitter. Omit it (the default) and the published behaviour
+is reproduced exactly.}
 }
 \value{
 An object of class \code{"ind_dfm"}: a list with components

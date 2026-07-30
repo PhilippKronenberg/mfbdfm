@@ -24,6 +24,22 @@ application of it (#37).
 
 ## New features
 
+* `dfm_control()` bundles the numerical and algorithmic settings that were
+  previously hard-coded inside the samplers, as an **optional** `control`
+  argument on both entry points -- omit it and the published behaviour is
+  reproduced exactly (verified: all four `dev/baseline.rds` configurations
+  identical). Covers the rotation stopping rule, the stationarity screen on the
+  measurement-error autocorrelations, the caps on `phi`/`sigma`/`omega`, and two
+  numerical guards. `dfm_control("fcast_dfm", strict = TRUE)` switches the
+  rotation to the algorithm as published in the online appendix to Eckert et al.
+  (2025) -- the **sum** of squared deviations rather than the mean (#46).
+* The rotation's iteration caps are now finite by construction. `Inf` is
+  refused: an unbounded loop has no termination guarantee. The defaults are
+  safety valves rather than targets -- measured convergence is 5-7 iterations at
+  roughly an order of magnitude per iteration, against a strict cap of 100.
+  `initialize_theta_star_fcast()`, which previously had **no cap at all**, now
+  has one (#46).
+
 * `fcast_dfm()`'s sampler is now validated by simulation recovery. Data
   generated from a known `q`-factor process is recovered at the trace R-squared
   values published for this model (Eckert et al. 2025, Table 1), with the
@@ -101,6 +117,14 @@ application of it (#37).
   dropped the most recent low-frequency observation, because it compared
   pre-shift times against a grid where low-frequency observations have been
   shifted to the end of their period (#45).
+* The rotation's two convergence loops disagreed with each other:
+  `initialize_theta_star_fcast()` tested the **sum** of squared deviations, as
+  the appendix specifies, while the main loop in `run_rotation_fcast()` tested
+  the **mean**. The default is unchanged for backwards compatibility and is now
+  documented and selectable via `dfm_control()`. Separately, the default cap of
+  5 iterations was measured to sit *exactly* on the observed convergence point,
+  so it can bind and truncate the loop on other data; a binding cap now warns,
+  or errors under `strict = TRUE` (#46).
 
 ## Converting the research scripts into a package
 

@@ -85,5 +85,8 @@ dfm_priors("fcast_dfm", sigma = list(c0 = 3, d0 = 1e-6))
 }
 \seealso{
 \code{\link[=ind_dfm]{ind_dfm()}}, \code{\link[=fcast_dfm]{fcast_dfm()}}
+
+Other model specification: 
+\code{\link{dfm_control}()}
 }
 \concept{model specification}

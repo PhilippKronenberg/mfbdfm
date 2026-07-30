@@ -61,6 +61,13 @@
 #'   target's measurement-error variance and serial correlation -- carry the
 #'   identification rather than being tuning knobs; see [dfm_priors()].
 #'
+#' @param control Optional numerical and algorithmic settings from
+#'   [dfm_control()], or a named list of them. Bundles the stability bounds and
+#'   numerical guards that were previously hard-coded -- the stationarity screen
+#'   on the measurement-error autocorrelations, the caps on `phi` and `sigma`,
+#'   and the numerical jitter. Omit it (the default) and the published behaviour
+#'   is reproduced exactly.
+#'
 #' @return An object of class `"ind_dfm"`: a list with components
 #'   \describe{
 #'     \item{factor}{`ts`, posterior mean of the annualized activity factor.}
@@ -123,7 +130,8 @@ ind_dfm <- function(flows = NULL,
                     extend_to = NULL,
                     stochastic_volatility = TRUE,
                     serial_correlation = TRUE,
-                    priors = dfm_priors("ind_dfm")){
+                    priors = dfm_priors("ind_dfm"),
+                    control = NULL){
 
   # accept either an mfbdfm_data object as the first argument, or the original
   # flows/stocks pair
@@ -136,6 +144,7 @@ ind_dfm <- function(flows = NULL,
                         p = p, length_sample = length_sample, burn_in = burn_in,
                         thinning = thinning, call = "ind_dfm")
   check_priors(priors, "ind_dfm")
+  control <- resolve_control(control, "ind_dfm")
 
   # create an inventory of the time series involved
   inventory <- create_inventory(flows = flows, stocks = stocks)
@@ -216,7 +225,8 @@ ind_dfm <- function(flows = NULL,
                            fdat = flows,
                            stochastic_volatility = stochastic_volatility,
                            serial_correlation = serial_correlation,
-                           priors = priors)
+                           priors = priors,
+                       control = control)
 
   message("processing output..")
 

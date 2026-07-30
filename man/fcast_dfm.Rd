@@ -18,7 +18,8 @@ fcast_dfm(
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
   ncores = NULL,
-  priors = dfm_priors("fcast_dfm")
+  priors = dfm_priors("fcast_dfm"),
+  control = NULL
 )
 }
 \arguments{
@@ -64,6 +65,13 @@ which is run in parallel via \pkg{doParallel} when supplied.}
 reproduces the published priors exactly. Note that the loading prior
 carries the identification -- it must stay diffuse for the post-hoc
 rotation to work; see \code{\link[=dfm_priors]{dfm_priors()}}.}
+
+\item{control}{Optional numerical and algorithmic settings from
+\code{\link[=dfm_control]{dfm_control()}}, or a named list of them. Bundles the rotation stopping
+rule and the stability bounds that were previously hard-coded. Omit it (the
+default) and the published behaviour is reproduced exactly;
+\code{dfm_control("fcast_dfm", strict = TRUE)} switches the rotation to the
+algorithm as specified in the online appendix.}
 }
 \value{
 An object of class \code{"fcast_dfm"}: a list with components

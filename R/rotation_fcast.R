@@ -40,8 +40,12 @@
 #' @importFrom foreach foreach %do% %dopar%
 #' @importFrom parallel makeCluster stopCluster
 #' @importFrom doParallel registerDoParallel
-run_rotation_fcast <- function(theta_out, n, q, p, s, t, ncores = NULL, max_iter = 5,
-                         tol = 1e-9){
+run_rotation_fcast <- function(theta_out, n, q, p, s, t, ncores = NULL,
+                               control = dfm_control("fcast_dfm")){
+
+  criterion <- control$rotation_criterion
+  tol <- control$rotation_tol
+  max_iter <- control$rotation_max_iter
 
   length_sample <- nrow(theta_out)
   check_convergence <- FALSE
@@ -51,7 +55,8 @@ run_rotation_fcast <- function(theta_out, n, q, p, s, t, ncores = NULL, max_iter
   # Initialize theta star from SVD
   theta_star <- initialize_theta_star_fcast(theta_out = theta_out,
                                       length_sample = length_sample,
-                                      n = n, q = q, p = p, s = s, t = t)
+                                      n = n, q = q, p = p, s = s, t = t,
+                                      control = control)
 
   if(!is.null(ncores)){
     cl <- makeCluster(ncores)
@@ -84,12 +89,14 @@ run_rotation_fcast <- function(theta_out, n, q, p, s, t, ncores = NULL, max_iter
 
     # 3. Status message
     i <- i + 1
-    delta <- mean((theta_star_new - theta_star)^2)
+    #    `criterion` selects the MEAN squared deviation (the long-standing
+    #    default) or the SUM, which is what the appendix specifies. See
+    #    dfm_control() and the deviations note at the top of this file (#46).
+    sq <- (theta_star_new - theta_star)^2
+    delta <- if(identical(criterion, "sum")) sum(sq) else mean(sq)
     message("Rotation iteration ", as.integer(i), ": convergence ", signif(delta, 3))
 
     # 4. Convergence check
-    #    NOTE: `delta` is the MEAN squared deviation; the appendix specifies
-    #    the SUM. See the deviations note at the top of this file (issue #46).
     converged <- delta < tol
     check_convergence <- converged | i >= max_iter
     theta_star <- theta_star_new
@@ -99,10 +106,15 @@ run_rotation_fcast <- function(theta_out, n, q, p, s, t, ncores = NULL, max_iter
   # The loop also exits on the iteration cap. Say so rather than returning a
   # not-yet-converged rotation silently.
   if(!converged){
-    warning("Rotation did not converge after ", max_iter, " iterations ",
-            "(last change ", signif(delta, 3), ", tolerance ", tol, "). ",
-            "Factor draws may not be rotated onto a common reference; ",
-            "consider raising `max_iter`.", call. = FALSE)
+    msg <- paste0("Rotation did not converge after ", max_iter, " iterations ",
+                  "(last change ", signif(delta, 3), ", criterion \"", criterion,
+                  "\", tolerance ", tol, "). Factor draws may not be rotated ",
+                  "onto a common reference; consider raising ",
+                  "`rotation_max_iter` in dfm_control().")
+    switch(control$rotation_on_failure,
+           error = stop(msg, call. = FALSE),
+           warning = warning(msg, call. = FALSE),
+           ignore = invisible(NULL))
   }
 
   return(D_save)
@@ -173,13 +185,20 @@ run_identification_fcast <- function(theta_out, D_save, n, q, p, s, t){
 #' Starting value for the common rotation reference
 #'
 #' @noRd
-initialize_theta_star_fcast <- function(theta_out, length_sample, n, q, p, s, t){
+initialize_theta_star_fcast <- function(theta_out, length_sample, n, q, p, s, t,
+                                        control = dfm_control("fcast_dfm")){
+
+  tol <- control$rotation_init_tol
+  max_iter <- control$rotation_init_max_iter
 
   theta_star <- matrix(theta_out[length_sample,])
 
   check_convergence <- TRUE
+  i <- 0
 
   while(check_convergence){
+
+    i <- i + 1
 
     lam_bar_star <- theta2list_fcast(theta_star, n, p, q, t)$lambda
 
@@ -206,11 +225,24 @@ initialize_theta_star_fcast <- function(theta_out, length_sample, n, q, p, s, t)
 
     theta_star_new <- matrix(Reduce("+",rlist)/length(rlist))
 
-    # Convergence check on the loading block only
+    # Convergence check on the loading block only. Note this test is the SUM of
+    # squared deviations (t(d) %*% d), i.e. the criterion the appendix specifies
+    # - so this loop has always matched the paper while the main loop above did
+    # not. Kept as-is; `rotation_init_tol` exposes the threshold.
     check_convergence <- t(theta_star_new[c(1:(n*q))] - theta_star[c(1:(n*q))]) %*%
-      (theta_star_new[c(1:(n*q))] - theta_star[c(1:(n*q))]) > 1e-9
+      (theta_star_new[c(1:(n*q))] - theta_star[c(1:(n*q))]) > tol
 
     theta_star <- theta_star_new
+
+    # This loop was previously uncapped, so it had no termination guarantee.
+    # The cap is a safety valve, not a target: 100 against 7 observed.
+    if(i >= max_iter && check_convergence){
+      warning("Rotation initialization did not converge after ", max_iter,
+              " iterations (tolerance ", tol, "). Raise ",
+              "`rotation_init_max_iter` in dfm_control() if this is expected.",
+              call. = FALSE)
+      break
+    }
 
   }
 
