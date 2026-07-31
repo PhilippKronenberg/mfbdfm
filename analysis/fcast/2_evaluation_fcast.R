@@ -144,7 +144,7 @@ tab <- tab %>% arrange(dataset, date, period)
 tab$in_sample <- tab$horizon <= 0
 
 # The published evaluation window is the 12 weeks before publication - one
-# quarter. Verified against the paper's own panel (analysis/fcast/figures/
+# quarter. Verified against the paper's own panel (analysis/fcast/reference/rda/
 # results_tab_2f.Rda): its horizon runs exactly 1 to 12, with no rows at or
 # below zero. Kept as a flag rather than a filter so the wider panel stays
 # available, but the summaries and figures use this window.

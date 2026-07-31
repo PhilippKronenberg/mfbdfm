@@ -6,7 +6,8 @@
 # Reads the panel from 2_evaluation_fcast.R and the fits from
 # 1_backcast_fcast.R, and writes the figure families to figures_dir.
 #
-# ONE script rather than the five in old_code_fcast_dfm/, by decision on #53.
+# ONE script rather than the five now in analysis/fcast/archive/, by the
+# collapse decision on #53.
 # Measured overlap of the originals, on non-blank non-comment lines:
 #
 #   plots_nowcast_scores_IC.R    1 unique line of 288   (0%)
@@ -126,7 +127,7 @@ emit("logscore_by_horizon", by_h, function(d) {
 # plots_nowcast_scores.R's crisis/normal split, using the package's own
 # is_crisis_period() rather than re-hardcoding the date ranges.
 
-# Form follows the paper's own figures (analysis/fcast/figures/
+# Form follows the paper's own figures (analysis/fcast/reference/figures/
 # RMSFE_CrisisAndNormal_*.pdf): faceted "Crisis Periods" / "Non-Crisis Periods",
 # horizon counted DOWN to publication on the x axis, and - the part that carries
 # the comparison - a second panel of log-ratios against a benchmark, with a

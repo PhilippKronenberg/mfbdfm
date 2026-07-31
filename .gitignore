@@ -61,6 +61,13 @@ outputs/
 # Benchmark literature PDFs (see the References section of vignette("mfbdfm"))
 analysis/benchmarks/*.pdf
 
+# Eckert et al. (2025) replication material: the paper's own stored results
+# (7.7 MB) and the superseded scripts they came with. Kept locally, not
+# committed - see analysis/fcast/README.md for what they are and what the
+# scripts absorbed from them.
+analysis/fcast/reference/
+analysis/fcast/archive/
+
 # reference papers (copyrighted; kept locally, not committed)
 *.pdf
 paper_text.rds

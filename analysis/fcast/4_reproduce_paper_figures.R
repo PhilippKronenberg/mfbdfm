@@ -4,9 +4,9 @@
 # Reproduce the Eckert et al. (2025) evaluation figures
 # -----------------------------------------------------------------------------
 # Runs this repository's plotting code over the paper's own evaluation panels
-# (analysis/fcast/figures/results_tab_<n>f.Rda) and writes the figure set to
+# (analysis/fcast/reference/rda/) and writes the figure set to
 # analysis/outputs/fcast/paper_repro/figures/, so each output can be held next
-# to the published PDF in analysis/fcast/figures/.
+# to the published PDF in analysis/fcast/reference/figures/.
 #
 # This is the validation step for the port: same inputs, our code, and the
 # question is whether the figures come out the same. It does NOT re-estimate
@@ -23,12 +23,13 @@ library(ggpubr)
 library(tibble)
 library(tidyr)
 
-ref_dir <- "analysis/fcast/figures"
+ref_dir <- "analysis/fcast/reference/rda"          # the paper's inputs
+pub_dir <- "analysis/fcast/reference/figures"      # the paper's published PDFs
 if (!dir.exists(ref_dir)) {
   stop("No reference panels at ", ref_dir, ".", call. = FALSE)
 }
 
-out_dir <- file.path("analysis", "outputs", "fcast", "paper_repro", "figures")
+out_dir <- file.path("analysis", "outputs", "fcast", "replication", "figures")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 # LOAD --------------------------------------------------------------------
@@ -86,7 +87,7 @@ panel <- panel %>%
          regime = ifelse(is_crisis_period_fcast(period),
                          "Crisis Periods", "Non-Crisis Periods"))
 
-n_factors <- "IC"   # used only in output file names
+
 
 message("reference panel: ", nrow(panel), " rows, ",
         length(unique(panel$series)), " series, horizons ",
@@ -119,11 +120,11 @@ message("reference panel: ", nrow(panel), " rows, ",
 # value is 0. That looks like a leftover from a ratio panel; we use 0.
 metrics <- list(
   RMSFE = list(fn = function(d) sqrt(mean(d$sqerror, na.rm = TRUE)),
-               lab = "RMSFE", rel = "log_ratio"),
+               lab = "RMSFE", rel = "log_ratio", prefix = "RMSFE"),
   MAE   = list(fn = function(d) mean(abs(d$error), na.rm = TRUE),
-               lab = "MAE", rel = "log_ratio"),
+               lab = "MAE", rel = "log_ratio", prefix = "MAE"),
   LOG   = list(fn = function(d) mean(d$logs, na.rm = TRUE),
-               lab = "Log Score", rel = "difference")
+               lab = "Log Score", rel = "difference", prefix = "Scores")
 )
 
 # The comparisons the published figures make, and the benchmark each
@@ -220,7 +221,7 @@ make_figure <- function(cmp_name, metric, by_regime = TRUE) {
 
   tag <- if (by_regime) "CrisisAndNormal" else "FullSample"
   path <- file.path(out_dir,
-                    sprintf("%s_%s_%s_%s.pdf", metric, tag, cmp_name, n_factors))
+                    sprintf("%s_%s_%s.pdf", metrics[[metric]]$prefix, tag, cmp_name))
   ggsave(path, p, width = 20, height = 14, units = "cm")
   message("  wrote ", basename(path))
   path
