@@ -20,6 +20,8 @@
 
 source("analysis/fcast/_setup.R")
 library(ggpubr)
+library(tibble)
+library(tidyr)
 
 ref_dir <- "analysis/fcast/figures"
 if (!dir.exists(ref_dir)) {
@@ -29,32 +31,62 @@ if (!dir.exists(ref_dir)) {
 out_dir <- file.path("analysis", "outputs", "fcast", "paper_repro", "figures")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-# Which reference panel to use. NOT 1, despite the published files being named
-# *_BN1f.pdf - that label refers to a benchmark specification, not the panel's
-# factor count. Identified by matching the figure rather than the filename:
-# the published EKMN (Weekly) vs BM (Monthly) log-ratio is about -0.25 in
-# crisis periods, and across the four panels that comes out
-#
-#   1f -0.034    2f -0.250    3f -0.079    4f +0.050
-#
-# so 2f is the one, unambiguously. Reading the filename cost a full set of
-# figures that had the right layout and visibly wrong magnitudes.
-n_factors <- 2
-
-
 # LOAD --------------------------------------------------------------------
-
-f <- file.path(ref_dir, sprintf("results_tab_%df.Rda", n_factors))
-e <- new.env(); load(f, envir = e)
+#
+# Built from results_backcast.Rda + results_backcast_var.Rda - the main run,
+# whose factor count is chosen by information criterion (see tab_IC_full.Rda and
+# 3a_evaluation_full.R line 38ff), not one of the fixed-q results_tab_<n>f.Rda
+# files. Those cover a different exercise (WAI against BMDFM/GRSDFM at a fixed
+# factor count) and reproduce a different figure.
+#
+# The rebuild is verified exact: pooled RMSFE from this panel matches the stored
+# tables_crisisvsnormal in results_evaluation.Rda on all 12 model x dataset x
+# regime cells to five significant figures, with identical row counts
+# (240 crisis, 564 non-crisis).
 
 model_lbl <- c(ar = "AR", bmdfm = "BM", grsdfm = "GRS", wai = "EKMN")
 data_lbl <- c(only_monthly = "Monthly", aggr_weekly = "Time Agg.", full = "Weekly")
 
-panel <- as.data.frame(e$tab) %>%
+e <- new.env(); load(file.path(ref_dir, "results_backcast.Rda"), envir = e)
+v <- new.env(); load(file.path(ref_dir, "results_backcast_var.Rda"), envir = v)
+
+# 3a_evaluation_full.R lines 192-222, verbatim in effect
+gather_nested <- function(lst, val_name) {
+  do.call(rbind, lapply(names(lst), function(dx)
+    do.call(rbind, lapply(names(lst[[dx]]), function(mx) {
+      ts_all <- do.call(cbind, lst[[dx]][[mx]])
+      df <- as_tibble(ts_all) %>%
+        add_column(period = time(ts_all)) %>%
+        pivot_longer(-period, names_to = "date")
+      df <- df[-which(is.na(df$value)), ] %>%
+        add_column(model = mx, dataset = dx)
+      df$date <- as.numeric(df$date)
+      names(df)[names(df) == "value"] <- val_name
+      df
+    }))))
+}
+
+panel <- gather_nested(e$out, "value")
+panel$sd <- sqrt(gather_nested(v$var, "var")$var)
+
+load(file.path(ref_dir, "data_ch.Rda"))         # the vintage the paper evaluated against
+gdp <- dat$flows$ch.seco.gdp.real.gdp.ssa
+panel$realization <- as.numeric(gdp)[match(round(panel$period, 3),
+                                           round(as.numeric(time(gdp)), 3))]
+
+panel <- panel %>%
+  mutate(logs = -dnorm(realization, value, sd, log = TRUE),
+         error = value - realization,
+         sqerror = error^2,
+         observed = round(period + 1/4 + 8/48, 3),
+         horizon = round((observed - date) * 48)) %>%
+  # the paper's own filters, 3a_evaluation_full.R lines 225 and 230
+  filter(period >= 2005, period <= 2021.5, horizon %in% 1:12) %>%
   mutate(series = paste0(model_lbl[model], " (", data_lbl[dataset], ")"),
-         # the paper's split, on the target quarter - see ?is_crisis_period_fcast
          regime = ifelse(is_crisis_period_fcast(period),
                          "Crisis Periods", "Non-Crisis Periods"))
+
+n_factors <- "IC"   # used only in output file names
 
 message("reference panel: ", nrow(panel), " rows, ",
         length(unique(panel$series)), " series, horizons ",
@@ -65,11 +97,26 @@ message("reference panel: ", nrow(panel), " rows, ",
 
 # RMSFE, MAE and the log score, matching the three figure prefixes in the
 # published set (RMSFE_*, MAE_*, LOG_*).
-# `rel` says how the lower panel compares a series with the benchmark. A log
-# RATIO only makes sense for a strictly positive metric: the log score is
-# negative, so log(value/base) is NaN wherever the two straddle zero - the first
-# run produced 72 such rows. Differences are the standard comparison for scores
-# anyway, so the log score uses one.
+# `rel` says how the lower panel compares a series with the benchmark. These are
+# NOT a judgement call - both are taken from the paper's own plotting code:
+#
+#   RMSFE / MAE   old_code_fcast_dfm/plots_nowcast.R:179
+#                   log(series$err_meas) - log(benchmark$err_meas)
+#                 i.e. a log RATIO, which is what the published axes say.
+#
+#   Log score     old_code_fcast_dfm/plots_nowcast_scores.R:186
+#                   mutate(rmsfe = wai$rmsfe - ar$rmsfe)
+#                 where `rmsfe` holds mean(logs) (line 166), i.e. a plain
+#                 DIFFERENCE, and their panel is labelled "Log Score
+#                 Difference" to match.
+#
+# The distinction is not cosmetic: the log score is negative, so log(value/base)
+# is NaN wherever the two straddle zero - taking a ratio there produced 72 such
+# rows on the first run and silently dropped them from the figure.
+#
+# One deviation, deliberate: their score panel draws its reference line at
+# y = 1 (plots_nowcast_scores.R:204) on what is a difference, where the neutral
+# value is 0. That looks like a leftover from a ratio panel; we use 0.
 metrics <- list(
   RMSFE = list(fn = function(d) sqrt(mean(d$sqerror, na.rm = TRUE)),
                lab = "RMSFE", rel = "log_ratio"),
@@ -82,10 +129,9 @@ metrics <- list(
 # The comparisons the published figures make, and the benchmark each
 # log-ratio panel is taken against.
 comparisons <- list(
-  WAIVSBMDFM = list(
-    series = c("BM (Monthly)", "BM (Time Agg.)",
-               "EKMN (Monthly)", "EKMN (Time Agg.)", "EKMN (Weekly)"),
-    base = "BM (Monthly)"),
+  FullVsAR = list(
+    series = c("AR (Weekly)", "EKMN (Weekly)"),
+    base = "AR (Weekly)"),
   FullVsOnlyMonthly = list(
     series = c("EKMN (Weekly)", "EKMN (Monthly)"),
     base = "EKMN (Monthly)"),
@@ -112,7 +158,7 @@ theme_paper <- function() {
 # no legend, and this is exactly the kind of error a figure carries silently.
 SERIES_PALETTE <- c(
   "AR (Monthly)"     = "#7f7f7f", "AR (Time Agg.)"   = "#bdbdbd",
-  "AR (Weekly)"      = "#d9d9d9",
+  "AR (Weekly)"      = "#000000",
   "BM (Monthly)"     = "#000000", "BM (Time Agg.)"   = "#9ecae1",
   "GRS (Monthly)"    = "#e6550d", "GRS (Time Agg.)"  = "#fdae6b",
   "EKMN (Monthly)"   = "#6baed6", "EKMN (Time Agg.)" = "#3182bd",
@@ -174,7 +220,7 @@ make_figure <- function(cmp_name, metric, by_regime = TRUE) {
 
   tag <- if (by_regime) "CrisisAndNormal" else "FullSample"
   path <- file.path(out_dir,
-                    sprintf("%s_%s_%s_BN%df.pdf", metric, tag, cmp_name, n_factors))
+                    sprintf("%s_%s_%s_%s.pdf", metric, tag, cmp_name, n_factors))
   ggsave(path, p, width = 20, height = 14, units = "cm")
   message("  wrote ", basename(path))
   path
@@ -190,14 +236,14 @@ for (metric in names(metrics)) {
   }
 }
 # the one full-sample (no crisis split) figure in the published set
-written <- c(written, make_figure("WAIVSBMDFM", "RMSFE", by_regime = FALSE))
+written <- c(written, make_figure("FullVsAR", "RMSFE", by_regime = FALSE))
 
 
 # HEADLINE NUMBERS --------------------------------------------------------
 
 cat("\nRMSFE by regime, pooled over horizons (compare with the published PDFs):\n")
 panel %>%
-  filter(series %in% comparisons$WAIVSBMDFM$series) %>%
+  filter(model %in% c("ar","wai")) %>%
   group_by(series, regime) %>%
   summarise(rmsfe = sqrt(mean(sqerror, na.rm = TRUE)), n = n(), .groups = "drop") %>%
   arrange(regime, series) %>% as.data.frame() %>% print(digits = 3)
