@@ -131,25 +131,15 @@ emit("logscore_by_horizon", by_h, function(d) {
 # horizon counted DOWN to publication on the x axis, and - the part that carries
 # the comparison - a second panel of log-ratios against a benchmark, with a
 # reference line at zero so "below the line is better" reads directly.
-# CAUTION: is_crisis_period() is NOT the split Eckert et al. (2025) used, and
-# the difference is large enough to change the figures. Measured against their
-# own `tables_crisisvsnormal` in analysis/fcast/figures/results_evaluation_2f.Rda:
-#
-#   their crisis set          240 dates, 2008.917-2021.896
-#   is_crisis_period() agrees 124 of those 240  (it misses 116)
-#   and it calls crisis        28 of their 564 non-crisis dates
-#
-# so the two disagree on roughly 18% of dates. Recomputing their panel with
-# their split reproduces the published figure (crisis BM (Monthly) RMSFE 0.0210
-# against ~0.020 read off the PDF, EKMN (Weekly) 0.0169 against ~0.017);
-# recomputing it with is_crisis_period() gives 0.0262 and misses.
-#
-# The package definition is kept here because it is the package's own and is
-# what a user without the paper's files has. If you are reproducing the paper's
-# figures, take the split from their file instead.
+# is_crisis_period_fcast(), NOT is_crisis_period(). The two are different
+# definitions and are not interchangeable: this one classifies the target
+# QUARTER and covers four episodes, the other classifies the nowcast DATE and
+# covers two. On the paper's own panel they agree on only 124 of its 240 crisis
+# rows, and using the wrong one puts crisis RMSFE for the monthly benchmark at
+# 0.0262 instead of the 0.0210 the paper plots. See ?is_crisis_period_fcast.
 crisis <- oos %>% filter(in_window)
 if (nrow(crisis)) {
-  crisis$regime <- ifelse(is_crisis_period(dec2week(crisis$date)),
+  crisis$regime <- ifelse(is_crisis_period_fcast(crisis$period),
                           "Crisis Periods", "Non-Crisis Periods")
 }
 

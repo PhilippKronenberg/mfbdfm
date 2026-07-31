@@ -176,11 +176,65 @@ cat("\nOut-of-sample rows (horizon > 0): ", n_oos, " of ", nrow(tab), "\n", sep 
 if (nrow(by_horizon)) print(by_horizon, n = 20)
 
 
+# SUBPERIODS --------------------------------------------------------------
+
+# The paper's `tables_subperiods`, from 3a_evaluation_full.R. Windows are on
+# `period` (the target quarter) and inclusive at both ends, matching
+# is_crisis_period_fcast(). Q1 = .00, Q2 = .25, Q3 = .50, Q4 = .75.
+EVAL_SUBPERIODS <- list(
+  "2000Q1-2021Q3" = c(2000,    2021.5),
+  "2005Q1-2021Q3" = c(2005,    2021.5),
+  "2000Q1-2021Q1" = c(2000,    2021),
+  "2000Q1-2020Q2" = c(2000,    2020.25),
+  "2005Q1-2020Q2" = c(2005,    2020.25),
+  "2005Q1-2021Q1" = c(2005,    2021),
+  "2007Q1-2021Q1" = c(2007,    2021),
+  "2000Q1-2004Q3" = c(2000,    2004.5),
+  "2005Q1-2008Q3" = c(2005,    2008.5),   # pre-Great-Recession
+  "2008Q4-2009Q3" = c(2008.75, 2009.5),   # global financial crisis
+  "2009Q4-2011Q2" = c(2009.75, 2011.25),  # euro crisis
+  "2011Q3-2013Q1" = c(2011.5,  2013),
+  "2013Q2-2014Q4" = c(2013.25, 2014.75),
+  "2015Q1-2015Q2" = c(2015,    2015.25),  # Swiss franc shock
+  "2015Q3-2018Q2" = c(2015.5,  2018.25),
+  "2018Q3-2018Q4" = c(2018.75, 2018.75),
+  "2019Q1-2019Q4" = c(2019,    2019.75),
+  "2020Q1-2021Q1" = c(2020,    2021)      # Covid-19
+)
+
+scored <- tab %>% filter(!is.na(realization), !in_sample, in_window)
+
+by_subperiod <- bind_rows(lapply(names(EVAL_SUBPERIODS), function(nm){
+  w <- EVAL_SUBPERIODS[[nm]]
+  s <- scored %>% filter(period >= w[1], period <= w[2])
+  if (!nrow(s)) return(NULL)
+  s %>%
+    group_by(dataset) %>%
+    summarise(subperiod = nm, n = n(),
+              rmse = sqrt(mean(sqerror, na.rm = TRUE)),
+              mae = mean(abs(error), na.rm = TRUE),
+              logs = mean(logs, na.rm = TRUE), .groups = "drop")
+}))
+
+by_regime <- scored %>%
+  mutate(regime = ifelse(is_crisis_period_fcast(period),
+                         "Crisis Periods", "Non-Crisis Periods")) %>%
+  group_by(dataset, regime) %>%
+  summarise(n = n(),
+            rmse = sqrt(mean(sqerror, na.rm = TRUE)),
+            mae = mean(abs(error), na.rm = TRUE),
+            logs = mean(logs, na.rm = TRUE), .groups = "drop")
+
+if (nrow(by_regime)) { cat("\nBy regime:\n"); print(as.data.frame(by_regime)) }
+
+
 # SAVE --------------------------------------------------------------------
 
 # save_result_output() uses the filename verbatim, so the extension is ours to
 # supply; .Rda matches the rest of analysis/
 save_result_output(tab, "fcast_evaluation_tab.Rda", results_dir)
 save_result_output(by_horizon, "fcast_evaluation_by_horizon.Rda", results_dir)
+save_result_output(by_subperiod, "fcast_evaluation_by_subperiod.Rda", results_dir)
+save_result_output(by_regime, "fcast_evaluation_by_regime.Rda", results_dir)
 
 message("evaluation panel written to ", results_dir)

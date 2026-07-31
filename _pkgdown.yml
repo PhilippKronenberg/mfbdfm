@@ -57,6 +57,7 @@ reference:
   - dec2week
   - decimal_date_local
   - is_crisis_period
+  - is_crisis_period_fcast
   - daily2weekly
   - aggregate_predictor_to_quarterly
   - get_next_target_vintage

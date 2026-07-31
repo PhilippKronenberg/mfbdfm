@@ -8,6 +8,44 @@ test_that("is_crisis_period flags the two crisis windows", {
   expect_equal(is_crisis_period(dates), c(TRUE, FALSE, TRUE, FALSE))
 })
 
+test_that("is_crisis_period_fcast flags the four Eckert et al. windows", {
+
+  # Windows are inclusive at both ends, so the boundaries are pinned explicitly:
+  # a shifted edge would silently reclassify whole quarters of the evaluation.
+  expect_true(all(is_crisis_period_fcast(
+    c(2008.75, 2009.5,      # global financial crisis, both edges
+      2011.5,  2013,        # euro crisis
+      2015,    2015.25,     # Swiss franc shock
+      2020,    2021.5))))   # Covid-19
+
+  # just outside each window
+  expect_false(any(is_crisis_period_fcast(
+    c(2008.5, 2009.75, 2011.25, 2013.25, 2014.75, 2015.5, 2019.75, 2021.75))))
+
+  expect_equal(is_crisis_period_fcast(c(2019, 2020, 2021.25, 2022)),
+               c(FALSE, TRUE, TRUE, FALSE))
+})
+
+
+test_that("the two crisis definitions are different and not interchangeable", {
+
+  # This is the trap the _fcast suffix exists to prevent. 2012 is a crisis
+  # quarter for Eckert et al. (euro crisis) but is not in is_crisis_period()'s
+  # windows at all; 2015Q1 likewise. Measured on the paper's own panel the two
+  # agree on only 124 of its 240 crisis rows.
+  expect_true(is_crisis_period_fcast(2012))
+  expect_false(is_crisis_period(as.Date("2012-06-01")))
+
+  expect_true(is_crisis_period_fcast(2015))
+  expect_false(is_crisis_period(as.Date("2015-02-01")))
+
+  # and they take different inputs, so a mixed-up call is an error rather than
+  # a silently wrong classification
+  expect_error(is_crisis_period_fcast(as.Date("2020-04-01")),
+               "must be numeric decimal time")
+})
+
+
 test_that("daily2weekly averages onto the 48-period grid", {
   daily <- zoo::zoo(rep(2, 96), order.by = seq(as.Date("2022-01-01"), by = "day", length.out = 96))
   weekly <- daily2weekly(daily)
