@@ -143,6 +143,14 @@ tab <- tab %>% arrange(dataset, date, period)
 # silently filtered, so the distinction is visible in the saved panel too.
 tab$in_sample <- tab$horizon <= 0
 
+# The published evaluation window is the 12 weeks before publication - one
+# quarter. Verified against the paper's own panel (analysis/fcast/figures/
+# results_tab_2f.Rda): its horizon runs exactly 1 to 12, with no rows at or
+# below zero. Kept as a flag rather than a filter so the wider panel stays
+# available, but the summaries and figures use this window.
+HORIZON_WINDOW <- 1:12
+tab$in_window <- tab$horizon %in% HORIZON_WINDOW
+
 n_oos <- sum(!tab$in_sample & !is.na(tab$realization))
 if (!n_oos) {
   warning("No out-of-sample rows (every horizon <= 0).\n",
@@ -155,7 +163,7 @@ if (!n_oos) {
 }
 
 by_horizon <- tab %>%
-  filter(!is.na(realization), !in_sample) %>%
+  filter(!is.na(realization), !in_sample, in_window) %>%
   group_by(dataset, horizon) %>%
   summarise(n = n(),
             rmse = sqrt(mean(sqerror, na.rm = TRUE)),

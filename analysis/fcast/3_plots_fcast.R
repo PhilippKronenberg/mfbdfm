@@ -36,6 +36,9 @@ if (!file.exists(panel_path)) {
 e <- new.env(); load(panel_path, envir = e)
 tab <- e$tab
 
+# tolerate a panel written before in_window existed
+if (!"in_window" %in% names(tab)) tab$in_window <- tab$horizon %in% 1:12
+
 oos <- tab %>% filter(!in_sample, !is.na(realization))
 message("panel: ", nrow(tab), " rows, ", nrow(oos), " out-of-sample, ",
         length(unique(tab$dataset)), " dataset(s)")
@@ -123,29 +126,78 @@ emit("logscore_by_horizon", by_h, function(d) {
 # plots_nowcast_scores.R's crisis/normal split, using the package's own
 # is_crisis_period() rather than re-hardcoding the date ranges.
 
-crisis <- oos
+# Form follows the paper's own figures (analysis/fcast/figures/
+# RMSFE_CrisisAndNormal_*.pdf): faceted "Crisis Periods" / "Non-Crisis Periods",
+# horizon counted DOWN to publication on the x axis, and - the part that carries
+# the comparison - a second panel of log-ratios against a benchmark, with a
+# reference line at zero so "below the line is better" reads directly.
+# CAUTION: is_crisis_period() is NOT the split Eckert et al. (2025) used, and
+# the difference is large enough to change the figures. Measured against their
+# own `tables_crisisvsnormal` in analysis/fcast/figures/results_evaluation_2f.Rda:
+#
+#   their crisis set          240 dates, 2008.917-2021.896
+#   is_crisis_period() agrees 124 of those 240  (it misses 116)
+#   and it calls crisis        28 of their 564 non-crisis dates
+#
+# so the two disagree on roughly 18% of dates. Recomputing their panel with
+# their split reproduces the published figure (crisis BM (Monthly) RMSFE 0.0210
+# against ~0.020 read off the PDF, EKMN (Weekly) 0.0169 against ~0.017);
+# recomputing it with is_crisis_period() gives 0.0262 and misses.
+#
+# The package definition is kept here because it is the package's own and is
+# what a user without the paper's files has. If you are reproducing the paper's
+# figures, take the split from their file instead.
+crisis <- oos %>% filter(in_window)
 if (nrow(crisis)) {
   crisis$regime <- ifelse(is_crisis_period(dec2week(crisis$date)),
-                          "crisis", "normal")
+                          "Crisis Periods", "Non-Crisis Periods")
 }
 
-emit("rmse_crisis_vs_normal",
-     if (nrow(crisis)) {
-       crisis %>%
-         group_by(dataset, regime, horizon) %>%
-         summarise(rmse = sqrt(mean(sqerror, na.rm = TRUE)),
-                   .groups = "drop")
-     } else crisis,
-     function(d) {
-       d %>%
-         ggplot(aes(x = horizon, y = rmse, colour = dataset)) +
-         geom_line() +
-         facet_wrap(~regime) +
-         scale_x_reverse() +
-         labs(x = "weeks before GDP publication", y = "RMSE",
-              title = "Accuracy in crisis and normal periods") +
-         theme_fcast()
-     })
+rmse_regime <- if (nrow(crisis)) {
+  crisis %>%
+    group_by(dataset, regime, horizon) %>%
+    summarise(rmse = sqrt(mean(sqerror, na.rm = TRUE)), .groups = "drop")
+} else crisis
+
+emit("rmse_crisis_vs_normal", rmse_regime, function(d) {
+  d %>%
+    ggplot(aes(x = horizon, y = rmse, colour = dataset)) +
+    geom_line() + geom_point(size = 0.9) +
+    facet_wrap(~regime) +
+    scale_x_reverse(breaks = seq(12, 2, by = -2)) +
+    labs(x = "Nowcast Horizon (in Weeks)", y = "RMSFE") +
+    theme_fcast()
+})
+
+# The log-ratio panel. `baseline_dataset` is the denominator; with a single
+# dataset there is nothing to compare against, so it is skipped rather than
+# plotted as a flat zero line.
+baseline_dataset <- sort(unique(rmse_regime$dataset))[1]
+
+rmse_ratio <- if (nrow(rmse_regime) &&
+                  length(unique(rmse_regime$dataset)) > 1) {
+  base <- rmse_regime %>%
+    filter(dataset == baseline_dataset) %>%
+    select(regime, horizon, rmse_base = rmse)
+  rmse_regime %>%
+    filter(dataset != baseline_dataset) %>%
+    inner_join(base, by = c("regime", "horizon")) %>%
+    mutate(log_ratio = log(rmse / rmse_base))
+} else {
+  rmse_regime[0, ]
+}
+
+emit("rmse_log_ratio_crisis_vs_normal", rmse_ratio, function(d) {
+  d %>%
+    ggplot(aes(x = horizon, y = log_ratio, colour = dataset)) +
+    geom_hline(yintercept = 0, colour = "grey40") +
+    geom_line() + geom_point(size = 0.9) +
+    facet_wrap(~regime) +
+    scale_x_reverse(breaks = seq(12, 2, by = -2)) +
+    labs(x = "Nowcast Horizon (in Weeks)",
+         y = paste0("RMSFE log-ratio vs ", baseline_dataset)) +
+    theme_fcast()
+})
 
 
 # 4. FACTORS --------------------------------------------------------------
