@@ -12,6 +12,7 @@ The `fcast_dfm()` counterpart of the WAI scripts in `analysis/` and
 | `2_evaluation_fcast.R` | turns fits into the scored evaluation panel | `analysis/outputs/fcast/<id>/results/` |
 | `3_plots_fcast.R` | figures from that panel | `analysis/outputs/fcast/<id>/figures/` |
 | `4_reproduce_paper_figures.R` | replicates the published figures from the paper's own inputs | `analysis/outputs/fcast/replication/figures/` |
+| `5_error_tables_fcast.R` | RMSFE/MAE/log-score tables by subsample + Diebold-Mariano | `analysis/outputs/fcast/<id>/tables/` |
 
 `1_backcast_fcast.R` has a `quick_check` switch: `TRUE` runs a short chain in
 minutes to prove the wiring, `FALSE` is the real vintage sweep and is an
@@ -62,8 +63,17 @@ What has been absorbed from them:
 - `plots_nowcast*.R` (five files, ~90% duplicated) → collapsed into
   `3_plots_fcast.R` and `4_reproduce_paper_figures.R`.
 
-Not yet ported: `factor_plot.R`, `error_table.R`, `plots_insample.R`,
-`3b_evaluation_current_edge.R`.
+- `error_table.R` -> `5_error_tables_fcast.R`. Uses the package's
+  `dm_test_modified()` (Harvey-Leybourne-Newbold correction) rather than
+  `forecast::dm.test()`, so the two papers' tables stay comparable.
+
+Not yet ported, and why:
+
+| script | blocker |
+| --- | --- |
+| `plots_insample.R` | needs `testlauf_05_14.Rda`, a fitted object not in the reference material. Portable once `1_backcast_fcast.R` has run - it wants the same `data_hf`/`pars$h` shape `run_fcast()` writes. |
+| `factor_plot.R` | needs per-factor-count fits from a network drive (`L:/Groups/...`). Portable after a sweep over `q = 1..4`. |
+| `3b_evaluation_current_edge.R` | every `ggsave()` in it is commented out, so it produces no output. Not worth porting as-is. |
 
 ## Verification status
 
