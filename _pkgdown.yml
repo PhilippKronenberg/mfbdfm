@@ -38,6 +38,7 @@ reference:
   contents:
   - run_ar
   - run_wai_adj
+  - run_fcast
   - retrieve_nowcast
   - retrieve_nowcast_var
   - extract_wai_data

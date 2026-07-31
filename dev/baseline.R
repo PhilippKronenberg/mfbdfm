@@ -24,15 +24,30 @@ BASELINE_PATH <- "dev/baseline.rds"
 #' Make the package available, whether or not it is installed
 #'
 #' So `source("dev/baseline.R"); baseline_check()` works from a bare session in
-#' the package root without a prior load_all() or install.
+#' the package root without a prior load_all().
+#'
+#' Loads the WORKING TREE by preference, not the installed package. That
+#' distinction is the whole point of this tool: baseline_check() exists to test
+#' the code you are editing, and if it silently tested an installed copy instead
+#' it would report "identical" for changes it never ran. Only when there is no
+#' package source here does it fall back to the installed version.
 baseline_load <- function(){
-  if("mfbdfm" %in% loadedNamespaces()) return(invisible())
-  if(requireNamespace("mfbdfm", quietly = TRUE)){
-    requireNamespace("mfbdfm", quietly = TRUE)
-  } else {
+
+  if("package:mfbdfm" %in% search()) return(invisible())
+
+  in_source_tree <- file.exists("DESCRIPTION") &&
+    any(grepl("^Package:\\s*mfbdfm\\s*$", readLines("DESCRIPTION", warn = FALSE)))
+
+  if(in_source_tree && requireNamespace("devtools", quietly = TRUE)){
     devtools::load_all(".", quiet = TRUE)
+  } else {
+    # attach, not requireNamespace(): the fits below call ind_dfm()/fcast_dfm()
+    # by bare name, which a loaded-but-unattached namespace does not provide
+    library("mfbdfm", character.only = TRUE)
   }
+
   invisible()
+
 }
 
 
