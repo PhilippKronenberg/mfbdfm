@@ -155,6 +155,14 @@ trim_to <- function(x, end){
 #' @inheritParams run_wai_adj
 #' @inheritParams fcast_dfm
 #' @param q Integer, number of factors, passed to [fcast_dfm()].
+#' @param extend Numeric, years by which to extend the dataset past its end
+#'   before estimating, passed to [fcast_dfm()]. **Required for this function to
+#'   nowcast at all**, and the reason it defaults to a non-`NULL` value here.
+#'   At a real-time evaluation date the target's last observation is one or two
+#'   quarters old, so the quarter actually being nowcast lies beyond the data;
+#'   without extending, [fcast_dfm()] produces values only over the observed
+#'   span and every result is an in-sample fit rather than a forecast. The
+#'   default of half a year covers the current quarter and the next.
 #' @param ncores Integer or `NULL`, passed to [fcast_dfm()] to parallelise
 #'   the rotation step.
 #' @param control Optional settings from [dfm_control()], passed to
@@ -189,6 +197,7 @@ run_fcast <- function(flows, stocks, target, date, dataset_used,
                       q = 2, p = 1,
                       length_sample = 1000, burn_in = 1000, thinning = 1,
                       stochastic_volatility = TRUE, serial_correlation = TRUE,
+                      extend = 0.5,
                       ncores = NULL, control = NULL, output_dir = NULL){
 
   mod <- fcast_dfm(flows = flows,
@@ -200,6 +209,7 @@ run_fcast <- function(flows, stocks, target, date, dataset_used,
                    length_sample = length_sample,
                    thinning = thinning,
                    plots = FALSE,
+                   extend = extend,
                    stochastic_volatility = stochastic_volatility,
                    serial_correlation = serial_correlation,
                    ncores = ncores,

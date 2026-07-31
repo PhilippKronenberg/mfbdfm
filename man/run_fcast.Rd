@@ -17,6 +17,7 @@ run_fcast(
   thinning = 1,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
+  extend = 0.5,
   ncores = NULL,
   control = NULL,
   output_dir = NULL
@@ -50,6 +51,15 @@ without effect there).}
 
 \item{serial_correlation}{Logical, model serial correlation in the
 measurement errors. If \code{FALSE}, the autocorrelations are fixed near zero.}
+
+\item{extend}{Numeric, years by which to extend the dataset past its end
+before estimating, passed to \code{\link[=fcast_dfm]{fcast_dfm()}}. \strong{Required for this function to
+nowcast at all}, and the reason it defaults to a non-\code{NULL} value here.
+At a real-time evaluation date the target's last observation is one or two
+quarters old, so the quarter actually being nowcast lies beyond the data;
+without extending, \code{\link[=fcast_dfm]{fcast_dfm()}} produces values only over the observed
+span and every result is an in-sample fit rather than a forecast. The
+default of half a year covers the current quarter and the next.}
 
 \item{ncores}{Integer or \code{NULL}, passed to \code{\link[=fcast_dfm]{fcast_dfm()}} to parallelise
 the rotation step.}

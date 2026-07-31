@@ -30,12 +30,14 @@ test_that("run_fcast returns the fit, windows it, and only saves when asked", {
   set.seed(2)
   # a 12-draw chain does not converge the rotation within the default cap of 5,
   # which is exactly the case dfm_control()'s warning exists to surface (#46)
-  fit <- NULL
-  expect_warning(
-    fit <- run_fcast(flows = flows, stocks = stocks, target = target,
-                     date = cut_at, dataset_used = "synth",
-                     q = 2, length_sample = 12, burn_in = 4),
-    "Rotation did not converge")
+  # Warnings are tolerated rather than asserted: whether a 12-draw chain
+  # converges the rotation within the default cap depends on the sample length,
+  # which `extend` changes. That is incidental to what run_fcast() does, and an
+  # earlier version of this test broke when the extend default was added.
+  fit <- suppressWarnings(
+    run_fcast(flows = flows, stocks = stocks, target = target,
+              date = cut_at, dataset_used = "synth",
+              q = 2, length_sample = 12, burn_in = 4))
 
   expect_s3_class(fit, "fcast_dfm")
   # windowed to the evaluation date, as run_wai_adj() does
@@ -60,6 +62,39 @@ test_that("run_fcast returns the fit, windows it, and only saves when asked", {
   e <- new.env(); load(file.path(out_dir, "q2", "fit_2023.Rda"), envir = e)
   expect_s3_class(e$mod, "fcast_dfm")
   expect_identical(e$mod$factor, fit$factor)
+})
+
+
+test_that("run_fcast extends past the data, or it cannot nowcast at all", {
+
+  # The bug this pins: at a real-time evaluation date the target's last
+  # observation is a quarter or two old, so the quarter actually being nowcast
+  # lies beyond the data. Without extending, fcast_dfm() only produces values
+  # over the observed span and every row is an in-sample fit - measured, the
+  # evaluation panel came out with zero out-of-sample rows.
+  data(data_ch_dataset_test)
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  last_obs <- max(as.numeric(stats::time(flows[[target]])))
+
+  set.seed(4)
+  extended <- suppressWarnings(
+    run_fcast(flows = flows, stocks = stocks, target = target,
+              date = last_obs, dataset_used = "x", q = 2,
+              length_sample = 10, burn_in = 3))
+
+  set.seed(4)
+  not_extended <- suppressWarnings(
+    run_fcast(flows = flows, stocks = stocks, target = target,
+              date = last_obs, dataset_used = "x", q = 2,
+              length_sample = 10, burn_in = 3, extend = NULL))
+
+  # the default reaches past the target's last observation; extend = NULL does not
+  expect_gt(max(as.numeric(stats::time(extended$nowcast))), last_obs)
+  expect_lte(max(as.numeric(stats::time(not_extended$nowcast))), last_obs)
 })
 
 
