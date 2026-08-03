@@ -4,13 +4,15 @@
 \alias{latest_fit_file}
 \title{Find the newest fit file up to a cutoff date}
 \usage{
-latest_fit_file(folder, cutoff_decimal)
+latest_fit_file(folder, cutoff_decimal = Inf)
 }
 \arguments{
 \item{folder}{Directory containing \verb{fit_<decimal-date>.Rda} files.}
 
 \item{cutoff_decimal}{Numeric decimal date; only fits at or before this
-cutoff are considered.}
+cutoff are considered. Defaults to \code{Inf}, i.e. no cutoff -- the most recent
+fit in \code{folder}, which is what the name promises and what a one-argument
+call should give.}
 }
 \value{
 Full path of the selected fit file.

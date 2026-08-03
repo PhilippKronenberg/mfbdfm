@@ -130,7 +130,9 @@ read_sheet_info <- function(file_path, has_dates) {
 #' @param current_date Numeric (decimal time), the evaluation date.
 #' @param GDP_gr_vintages Vintage table from [get_real_time_gdp_vintages()].
 #'
-#' @return The selected vintage column (numeric vector).
+#' @return The selected vintage **column** -- a numeric vector of GDP growth
+#'   rates, one per quarter -- not the name of that vintage. Use
+#'   [get_latest_numeric_vintage()] if you want the name.
 #' @examples
 #' \donttest{
 #' vintages <- get_real_time_gdp_vintages("quarterly")
@@ -139,6 +141,27 @@ read_sheet_info <- function(file_path, has_dates) {
 #' }
 #' @export
 select_most_recent_GDP_vintage <- function(current_date, GDP_gr_vintages){
+
+  # The argument order is (date, table), which is easy to get backwards. Without
+  # these checks the reversed call reaches round() on a data frame and fails
+  # with "non-numeric variable(s) in data frame: time" - an error that names
+  # neither argument and points at the wrong place entirely.
+  if (is.data.frame(current_date) || is.matrix(current_date)) {
+    stop("`current_date` must be a single number (decimal time), not a ",
+         class(current_date)[1], ". The argument order is ",
+         "select_most_recent_GDP_vintage(current_date, GDP_gr_vintages) - it ",
+         "looks like the two were passed the other way round.", call. = FALSE)
+  }
+  if (!is.numeric(current_date) || length(current_date) != 1 ||
+      is.na(current_date)) {
+    stop("`current_date` must be a single, non-missing number in decimal time ",
+         "(e.g. 2024.5).", call. = FALSE)
+  }
+  if (!is.data.frame(GDP_gr_vintages) || ncol(GDP_gr_vintages) < 2) {
+    stop("`GDP_gr_vintages` must be a vintage table from ",
+         "get_real_time_gdp_vintages(): a data frame with a `time` column and ",
+         "one column per vintage.", call. = FALSE)
+  }
 
   vintage_names <- names(GDP_gr_vintages)[-1]
   column_names_numeric <- round(as.numeric(vintage_names), 3)

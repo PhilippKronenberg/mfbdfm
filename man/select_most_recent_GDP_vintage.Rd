@@ -12,7 +12,9 @@ select_most_recent_GDP_vintage(current_date, GDP_gr_vintages)
 \item{GDP_gr_vintages}{Vintage table from \code{\link[=get_real_time_gdp_vintages]{get_real_time_gdp_vintages()}}.}
 }
 \value{
-The selected vintage column (numeric vector).
+The selected vintage \strong{column} -- a numeric vector of GDP growth
+rates, one per quarter -- not the name of that vintage. Use
+\code{\link[=get_latest_numeric_vintage]{get_latest_numeric_vintage()}} if you want the name.
 }
 \description{
 Select the newest GDP vintage available at a given date

@@ -98,6 +98,27 @@ test_that("run_fcast extends past the data, or it cannot nowcast at all", {
 })
 
 
+test_that("run_wai_adj does not warn about a no-op window", {
+
+  # Parity with run_fcast(): the evaluation date is usually past the series end,
+  # where window() emits "'end' value not changed" four times per call. trim_to()
+  # skips the no-op. A wrapper that warns on ordinary use trains people to ignore
+  # its warnings.
+  data(data_ch_dataset_test)
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  set.seed(6)
+  expect_no_warning(
+    fit <- run_wai_adj(flows = flows, stocks = stocks, target = target,
+                       date = 2030, dataset_used = "x")   # well past the data
+  )
+  expect_s3_class(fit, "ind_dfm")
+})
+
+
 test_that("retrieve_nowcast and retrieve_nowcast_var dispatch on model type", {
   fit <- list(nowcast = stats::ts(c(0.1, 0.7), start = c(2024, 1), frequency = 4),
               nowcast_var = stats::ts(c(0.02, 0.05), start = c(2024, 1), frequency = 4))

@@ -96,10 +96,16 @@ run_wai_adj <- function(flows, stocks, target, date, dataset_used, stochastic_vo
                  stochastic_volatility = stochastic_volatility,
                  serial_correlation = TRUE)
 
-  mod$factor <- window(mod$factor, end = date)
-  mod$factor_var <- window(mod$factor_var, end = date)
-  mod$nowcast <- window(mod$nowcast, end = as.numeric(tail(time(flows[[target]]),1)) + 0.25)
-  mod$nowcast_var <- window(mod$nowcast_var, end = as.numeric(tail(time(flows[[target]]),1)) + 0.25)
+  # trim_to() rather than window(): the requested end is often past the series,
+  # where window() leaves it untouched but warns "'end' value not changed".
+  # Four such warnings per call, carrying no information. Same treatment as
+  # run_fcast(), per the parity rule - the two wrappers should not differ in
+  # how noisy they are.
+  target_end <- as.numeric(tail(time(flows[[target]]), 1)) + 0.25
+  mod$factor <- trim_to(mod$factor, date)
+  mod$factor_var <- trim_to(mod$factor_var, date)
+  mod$nowcast <- trim_to(mod$nowcast, target_end)
+  mod$nowcast_var <- trim_to(mod$nowcast_var, target_end)
 
   if(!is.null(output_dir)){
     fit_dir <- file.path(output_dir, dataset_used)

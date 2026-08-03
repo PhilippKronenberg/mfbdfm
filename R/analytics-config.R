@@ -72,7 +72,9 @@ wai_sample_config <- function(sample_id = "sample_2025Q4",
 #'
 #' @param folder Directory containing `fit_<decimal-date>.Rda` files.
 #' @param cutoff_decimal Numeric decimal date; only fits at or before this
-#'   cutoff are considered.
+#'   cutoff are considered. Defaults to `Inf`, i.e. no cutoff -- the most recent
+#'   fit in `folder`, which is what the name promises and what a one-argument
+#'   call should give.
 #'
 #' @return Full path of the selected fit file.
 #' @examples
@@ -82,7 +84,14 @@ wai_sample_config <- function(sample_id = "sample_2025Q4",
 #' save(mod, file = file.path(dir, "fit_2021.25.Rda"))
 #' latest_fit_file(dir, cutoff_decimal = 2020.9)
 #' @export
-latest_fit_file <- function(folder, cutoff_decimal) {
+latest_fit_file <- function(folder, cutoff_decimal = Inf) {
+
+  if (!is.numeric(cutoff_decimal) || length(cutoff_decimal) != 1 ||
+      is.na(cutoff_decimal)) {
+    stop("`cutoff_decimal` must be a single number (decimal time, e.g. 2024.5), ",
+         "or `Inf` for no cutoff.", call. = FALSE)
+  }
+
   files <- list.files(folder, pattern = "^fit_[0-9.]+\\.Rda$", full.names = TRUE)
   if (length(files) == 0) {
     stop(sprintf("No fit files found in '%s'.", folder))
