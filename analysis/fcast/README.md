@@ -91,6 +91,25 @@ groups. That is not a defect in either set. It is the post-hoc rotation failing
 to reach uniqueness across runs, documented under `?fcast_dfm` and #46, and it
 is the reason the alignment is derived here rather than hardcoded.
 
+## BMDFM benchmark
+
+The Banbura-Modugno (JAE 2014) mixed-frequency DFM used as the benchmark in the
+paper lives in `analysis/benchmarks/functions_package_nowcasting/` (23 files).
+`_setup.R` exposes `bmdfm_functions_dir` and `source_bmdfm_functions()`;
+the latter is not called on load because it needs `DBI` and `RCurl`, which
+nothing else here requires.
+
+The files are vendored rather than installed from
+<https://github.com/nmecsys/nowcasting> because the published package errors for
+the one-factor case: line 233 of its `nowcast.R` was changed from
+`colnames(factors`dollar`dynamic_factors)` to `names(...)`. That edit is present in
+this copy.
+
+Not yet wired into `1_backcast_fcast.R`. The archived `run_bmdfm()` calls
+`prepare_data(flows, stocks, inventory, model = model)`, and `model` is no
+longer an argument of `prepare_data()` - it takes `target`. That call needs
+updating before the benchmark will run.
+
 ## Verification status
 
 The replication in script 4 is checked against the paper's stored output:
