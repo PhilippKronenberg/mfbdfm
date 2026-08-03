@@ -68,6 +68,13 @@ analysis/benchmarks/*.pdf
 analysis/fcast/reference/
 analysis/fcast/archive/
 
+# The BMDFM benchmark's vendored source: 23 files taken from the `nowcasting`
+# package (github.com/nmecsys/nowcasting) with a local edit. Third-party code,
+# kept locally like the rest of the replication material rather than
+# redistributed here. run_bmdfm() will not run without it - see
+# analysis/fcast/README.md.
+analysis/benchmarks/functions_package_nowcasting/
+
 # reference papers (copyrighted; kept locally, not committed)
 *.pdf
 paper_text.rds
