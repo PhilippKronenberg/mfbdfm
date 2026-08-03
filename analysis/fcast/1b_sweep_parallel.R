@@ -16,10 +16,11 @@
 # Default here is the year 2020 - 48 weekly evaluation dates, about 10 hours on
 # 4 workers.
 #
-# NOTE on 2020: every target quarter it reaches (2020Q1 through 2021Q1) is
-# inside the Covid window of is_crisis_period_fcast(), so a 2020-only sweep
-# yields NO non-crisis rows and the crisis-vs-normal figures will have one empty
-# panel. Extend `years` to include 2019 if that comparison is wanted.
+# 2019 is in the range for a reason. Every target quarter a 2020-only sweep
+# reaches (2020Q1 to 2021Q1) is inside the Covid window of
+# is_crisis_period_fcast(), so on its own it produces NO non-crisis rows: the
+# crisis-vs-normal figures lose a panel and the Diebold-Mariano tests have
+# nothing to compare crisis performance against. 2019 supplies the other side.
 # -----------------------------------------------------------------------------
 
 source("analysis/fcast/_setup.R")
