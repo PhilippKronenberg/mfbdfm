@@ -124,14 +124,32 @@ cat("  q = 4 rows are self-comparisons and are excluded from the score.\n")
 
 tm <- round(as.numeric(stats::time(fits[[4]]$factor)), 3)
 
+# Panels are numbered by how many runs contribute to them, descending, which
+# gives the nested structure the original figure has:
+#
+#   Factor 1  one factor from each of the 1f, 2f, 3f and 4f runs   (4 lines)
+#   Factor 2  from 2f, 3f, 4f                                       (3 lines)
+#   Factor 3  from 3f, 4f                                           (2 lines)
+#   Factor 4  the remaining factor of the 4f run                    (1 line)
+#
+# Numbering them by the reference column index instead - which is what the
+# derivation produces - gives the same panels in a scrambled order, because the
+# 4-factor run's column order carries no meaning of its own.
+panel_size <- sort(table(map$ref_col), decreasing = TRUE)
+panel_num <- stats::setNames(seq_along(panel_size), names(panel_size))
+
 long <- do.call(rbind, lapply(seq_len(nrow(map)), function(i) {
   r <- map[i, ]
   data.frame(time = tm,
              value = as.numeric(facs[[r$q]][, r$col]) * r$sign,
              run = paste0("q = ", r$q),
-             group = paste("Factor", r$ref_col),
+             group = paste("Factor", panel_num[[as.character(r$ref_col)]]),
              stringsAsFactors = FALSE)
 }))
+long$group <- factor(long$group, levels = paste("Factor", seq_along(panel_size)))
+
+cat("\nPanel composition:\n")
+print(table(long$group, long$run) > 0)
 
 p <- ggplot(long, aes(x = time, y = value, colour = run)) +
   geom_line(linewidth = 0.3) +
