@@ -104,10 +104,20 @@ cmp <- merge(map[, c("q", "col", "ref_col", "sign")], hardcoded,
              by = c("q", "col"), suffixes = c("_derived", "_paper"))
 cmp$same_group <- cmp$ref_col_derived == cmp$ref_col_paper
 cmp$same_sign <- cmp$sign_derived == cmp$sign_paper
+
+# The q = 4 rows compare the reference run with ITSELF: they cannot disagree on
+# group and their sign is +1 by construction, so they carry no evidence. Scored
+# separately, because counting them inflates the denominator and makes the one
+# trivial sign difference - the display negation the original applies in
+# group_4 - look like a real discrepancy.
+cmp$informative <- cmp$q != 4
+inf <- cmp[cmp$informative, ]
+
 cat("\nDerived vs the original's hardcoded alignment:\n")
-print(cmp, row.names = FALSE)
-cat("  groups agree:", sum(cmp$same_group), "of", nrow(cmp),
-    " | signs agree:", sum(cmp$same_sign), "of", nrow(cmp), "\n")
+print(cmp[, setdiff(names(cmp), "informative")], row.names = FALSE)
+cat("\n  informative rows (q = 1..3): groups ", sum(inf$same_group), "/", nrow(inf),
+    ", signs ", sum(inf$same_sign), "/", nrow(inf), "\n", sep = "")
+cat("  q = 4 rows are self-comparisons and are excluded from the score.\n")
 
 
 # PLOT --------------------------------------------------------------------

@@ -87,7 +87,7 @@ once the one presentational negation in `group_4` is set aside.
 
 The similarly-named `testlauf_<n>f.Rda` files are a **different run** of the
 same model (1611 periods against 1558) and do **not** reproduce it: 5 of 10
-groups. That is not a defect in either set. It is the post-hoc rotation failing
+groups on the same informative rows. That is not a defect in either set. It is the post-hoc rotation failing
 to reach uniqueness across runs, documented under `?fcast_dfm` and #46, and it
 is the reason the alignment is derived here rather than hardcoded.
 
