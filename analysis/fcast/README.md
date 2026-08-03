@@ -102,13 +102,35 @@ nothing else here requires.
 The files are vendored rather than installed from
 <https://github.com/nmecsys/nowcasting> because the published package errors for
 the one-factor case: line 233 of its `nowcast.R` was changed from
-`colnames(factors`dollar`dynamic_factors)` to `names(...)`. That edit is present in
+`colnames(factors$dynamic_factors)` to `names(...)`. That edit is present in
 this copy.
 
-Not yet wired into `1_backcast_fcast.R`. The archived `run_bmdfm()` calls
-`prepare_data(flows, stocks, inventory, model = model)`, and `model` is no
-longer an argument of `prepare_data()` - it takes `target`. That call needs
-updating before the benchmark will run.
+**They are gitignored**, like the rest of the replication material — third-party
+code, not redistributed here. A clean clone therefore cannot run `run_bmdfm()`
+or build the WAIVSBMDFM comparison; `source_bmdfm_functions()` fails by name
+rather than obscurely. To restore them, take the files from the repository
+above, apply the one-factor edit, and place them in
+`analysis/benchmarks/functions_package_nowcasting/`.
+
+Wired in: `analysis/fcast/bmdfm_benchmark.R` defines `run_bmdfm()` with the same
+shape as `run_fcast()`, and `1_backcast_fcast.R` runs it when
+`run_benchmark <- TRUE` (roughly 150 s per fit).
+
+One adaptation, made on the replication side deliberately: the archived version
+called `prepare_data(..., model = model)`, and `model` is no longer an argument
+— it takes `target`. `prepare_data()` is package API used by both models, so it
+is left untouched and the call is updated here instead.
+
+The BMDFM is a **monthly** model, so `run_bmdfm()` refuses weekly input and the
+driver aggregates with `week2mon()` first. That is also why the paper reports no
+BMDFM on the weekly dataset. Its fits carry no forecast variance, so those rows
+score on errors but not on the log score — matching the published panel, where
+`bmdfm` has no `sd` either.
+
+Extra packages it needs beyond the workflow's own: `DBI`, `RCurl`, `MASS`,
+`corpcor`, `httr`, `magic`, `matlab`, `R.matlab`, `vars`, `xts`. (`RMySQL`
+appears in `get.series.bacen.R`, a Brazilian central-bank fetcher on no path
+used here.)
 
 ## Verification status
 
