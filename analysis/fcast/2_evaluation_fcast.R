@@ -1,0 +1,256 @@
+# Run from the repository root.
+
+# -----------------------------------------------------------------------------
+# Multi-factor out-of-sample evaluation (Eckert et al. 2025)
+# -----------------------------------------------------------------------------
+# Turns the fits written by 1_backcast_fcast.R into the evaluation panel the
+# plotting scripts consume: one row per (evaluation date, target period), with
+# the nowcast, its standard deviation, the realised value, and the scores.
+#
+# This is a port of old_code_fcast_dfm/3a_evaluation_full.R's evaluation core,
+# rebuilt against the actual fcast_dfm() fit structure rather than the old
+# `out`/`var` nested lists it read - those were produced by a gathering step
+# whose inputs no longer exist. The column semantics are kept identical so the
+# figures remain comparable with the paper:
+#
+#   period      target period (quarterly GDP date)
+#   date        nowcast date, i.e. the evaluation date (weekly, 48/year)
+#   value, sd   posterior mean nowcast and its standard deviation
+#   realization the GDP growth rate actually observed for `period`
+#   observed    week in which that GDP figure is published
+#   horizon     weeks between the nowcast and publication
+#
+# -----------------------------------------------------------------------------
+
+source("analysis/fcast/_setup.R")
+
+
+# GATHER FITS -------------------------------------------------------------
+
+gather_fits <- function(fit_root){
+
+  if (!dir.exists(fit_root)) {
+    stop("No fits at ", fit_root, ".\n",
+         "  Run analysis/fcast/1_backcast_fcast.R first - it writes the fits ",
+         "this script reads.", call. = FALSE)
+  }
+
+  datasets <- list.dirs(fit_root, full.names = FALSE, recursive = FALSE)
+  if (!length(datasets)) {
+    stop("No dataset sub-directories under ", fit_root, ".", call. = FALSE)
+  }
+
+  rows <- list()
+
+  for (dx in datasets) {
+    files <- list.files(file.path(fit_root, dx), pattern = "^fit_.*\\.Rda$",
+                        full.names = TRUE)
+    if (!length(files)) {
+      warning("No fits in ", file.path(fit_root, dx), ", skipping.", call. = FALSE)
+      next
+    }
+
+    for (f in files) {
+      # each file holds a single object `mod`, as written by run_fcast()
+      e <- new.env()
+      load(f, envir = e)
+      mod <- e$mod
+
+      # the evaluation date is in the file name, which is what run_fcast()
+      # rounds to 3 digits - not recoverable from the fit itself
+      eval_date <- as.numeric(sub("^fit_(.*)\\.Rda$", "\\1", basename(f)))
+
+      # Two fit shapes. run_fcast() writes $nowcast/$nowcast_var; the BMDFM
+      # benchmark from run_bmdfm() writes the vendored nowcast() object, whose
+      # forecast is the "out" column of $yfcst and which carries no variance -
+      # so its rows score on errors but not on the log score, exactly as in the
+      # published panel where bmdfm has no sd either.
+      is_bmdfm <- !is.null(mod$yfcst) && is.null(mod$nowcast)
+
+      if (is_bmdfm) {
+        y <- mod$yfcst
+        ncst <- stats::ts(y[, "out"], start = stats::start(y),
+                          frequency = stats::frequency(y))
+        ncst_var <- NULL
+      } else {
+        ncst <- mod$nowcast
+        ncst_var <- mod$nowcast_var
+      }
+
+      keep <- !is.na(ncst)
+      if (!any(keep)) next
+
+      rows[[length(rows) + 1]] <- tibble(
+        dataset = dx,
+        model = if (is_bmdfm) "bmdfm" else "fcast",
+        date = eval_date,
+        period = round(as.numeric(time(ncst))[keep], 3),
+        value = as.numeric(ncst)[keep],
+        sd = if (is.null(ncst_var)) NA_real_ else sqrt(as.numeric(ncst_var)[keep])
+      )
+    }
+  }
+
+  bind_rows(rows)
+
+}
+
+tab <- gather_fits(fcast_fit_root)
+message("gathered ", nrow(tab), " nowcast rows from ",
+        length(unique(tab$date)), " evaluation date(s), ",
+        length(unique(tab$dataset)), " dataset(s)")
+
+
+# REALISATIONS ------------------------------------------------------------
+
+# The realised GDP growth rate for each target period, from the same real-time
+# vintage source the backcast used.
+GDP_gr_vintages_quarterly <- get_real_time_gdp_vintages("quarterly")
+latest_vintage <- get_latest_numeric_vintage(
+  GDP_gr_vintages_quarterly,
+  lower_bound = 2005.438,
+  upper_bound = round(decimal_date_local(Sys.Date()), 3)
+)
+gdp_actual <- na.trim(ts(
+  GDP_gr_vintages_quarterly[[as.character(latest_vintage)]],
+  start = c(1990, 1), frequency = 4
+))
+
+gdp_time <- round(as.numeric(time(gdp_actual)), 3)
+tab$realization <- as.numeric(gdp_actual)[match(tab$period, gdp_time)]
+
+n_missing <- sum(is.na(tab$realization))
+if (n_missing) {
+  message("  ", n_missing, " row(s) have no realisation yet (period beyond the ",
+          "latest GDP vintage); these are kept but score to NA.")
+}
+
+
+# SCORES ------------------------------------------------------------------
+
+# Logarithmic score: the negative log predictive density. Identical to
+# scoringRules::logs(y, family = "normal", mean, sd), which the original script
+# used - written out here rather than taking a dependency for one line.
+tab$logs <- -dnorm(tab$realization, mean = tab$value, sd = tab$sd, log = TRUE)
+
+tab$error <- tab$value - tab$realization
+tab$sqerror <- tab$error^2
+
+# GDP is published in the first week of the third month after the quarter ends,
+# e.g. 2019Q4 = 2019.75 is observed at 2020.000 + 8/48.
+tab$observed <- round(tab$period + 1/4 + 8/48, 3)
+tab$horizon <- round((tab$observed - tab$date) * 48)
+tab$year <- floor(tab$date)
+tab$week <- round(tab$date %% 1 * 48 + 1)
+
+tab <- tab %>% arrange(dataset, date, period)
+
+
+# IN-SAMPLE VS OUT-OF-SAMPLE ----------------------------------------------
+
+# A fit at evaluation date `d` produces a value for every period its nowcast
+# series covers, including periods whose GDP was already published before `d`.
+# Those rows have horizon <= 0 and are NOT forecasts - the model saw that GDP as
+# an input, so it reproduces it almost exactly. Mixing them into an evaluation
+# gives an RMSE near zero and a model that looks perfect.
+#
+# This bit us on the first run of this script: a single evaluation date produced
+# 31 rows, all with negative horizons and RMSE ~1e-7. Flagged rather than
+# silently filtered, so the distinction is visible in the saved panel too.
+tab$in_sample <- tab$horizon <= 0
+
+# The published evaluation window is the 12 weeks before publication - one
+# quarter. Verified against the paper's own panel (analysis/fcast/reference/rda/
+# results_tab_2f.Rda): its horizon runs exactly 1 to 12, with no rows at or
+# below zero. Kept as a flag rather than a filter so the wider panel stays
+# available, but the summaries and figures use this window.
+HORIZON_WINDOW <- 1:12
+tab$in_window <- tab$horizon %in% HORIZON_WINDOW
+
+n_oos <- sum(!tab$in_sample & !is.na(tab$realization))
+if (!n_oos) {
+  warning("No out-of-sample rows (every horizon <= 0).\n",
+          "  Every nowcast here is for a period whose GDP was already ",
+          "published at the evaluation date, so the model had it as an input ",
+          "and the errors are meaningless as a forecast evaluation.\n",
+          "  A real evaluation needs a sweep of evaluation dates - set ",
+          "`quick_check <- FALSE` in 1_backcast_fcast.R and widen `date_vec`.",
+          call. = FALSE)
+}
+
+by_horizon <- tab %>%
+  filter(!is.na(realization), !in_sample, in_window) %>%
+  group_by(dataset, horizon) %>%
+  summarise(n = n(),
+            rmse = sqrt(mean(sqerror, na.rm = TRUE)),
+            mae = mean(abs(error), na.rm = TRUE),
+            logs = mean(logs, na.rm = TRUE),
+            .groups = "drop") %>%
+  arrange(dataset, desc(horizon))
+
+cat("\nOut-of-sample rows (horizon > 0): ", n_oos, " of ", nrow(tab), "\n", sep = "")
+if (nrow(by_horizon)) print(by_horizon, n = 20)
+
+
+# SUBPERIODS --------------------------------------------------------------
+
+# The paper's `tables_subperiods`, from 3a_evaluation_full.R. Windows are on
+# `period` (the target quarter) and inclusive at both ends, matching
+# is_crisis_period_fcast(). Q1 = .00, Q2 = .25, Q3 = .50, Q4 = .75.
+EVAL_SUBPERIODS <- list(
+  "2000Q1-2021Q3" = c(2000,    2021.5),
+  "2005Q1-2021Q3" = c(2005,    2021.5),
+  "2000Q1-2021Q1" = c(2000,    2021),
+  "2000Q1-2020Q2" = c(2000,    2020.25),
+  "2005Q1-2020Q2" = c(2005,    2020.25),
+  "2005Q1-2021Q1" = c(2005,    2021),
+  "2007Q1-2021Q1" = c(2007,    2021),
+  "2000Q1-2004Q3" = c(2000,    2004.5),
+  "2005Q1-2008Q3" = c(2005,    2008.5),   # pre-Great-Recession
+  "2008Q4-2009Q3" = c(2008.75, 2009.5),   # global financial crisis
+  "2009Q4-2011Q2" = c(2009.75, 2011.25),  # euro crisis
+  "2011Q3-2013Q1" = c(2011.5,  2013),
+  "2013Q2-2014Q4" = c(2013.25, 2014.75),
+  "2015Q1-2015Q2" = c(2015,    2015.25),  # Swiss franc shock
+  "2015Q3-2018Q2" = c(2015.5,  2018.25),
+  "2018Q3-2018Q4" = c(2018.75, 2018.75),
+  "2019Q1-2019Q4" = c(2019,    2019.75),
+  "2020Q1-2021Q1" = c(2020,    2021)      # Covid-19
+)
+
+scored <- tab %>% filter(!is.na(realization), !in_sample, in_window)
+
+by_subperiod <- bind_rows(lapply(names(EVAL_SUBPERIODS), function(nm){
+  w <- EVAL_SUBPERIODS[[nm]]
+  s <- scored %>% filter(period >= w[1], period <= w[2])
+  if (!nrow(s)) return(NULL)
+  s %>%
+    group_by(dataset) %>%
+    summarise(subperiod = nm, n = n(),
+              rmse = sqrt(mean(sqerror, na.rm = TRUE)),
+              mae = mean(abs(error), na.rm = TRUE),
+              logs = mean(logs, na.rm = TRUE), .groups = "drop")
+}))
+
+by_regime <- scored %>%
+  mutate(regime = ifelse(is_crisis_period_fcast(period),
+                         "Crisis Periods", "Non-Crisis Periods")) %>%
+  group_by(dataset, regime) %>%
+  summarise(n = n(),
+            rmse = sqrt(mean(sqerror, na.rm = TRUE)),
+            mae = mean(abs(error), na.rm = TRUE),
+            logs = mean(logs, na.rm = TRUE), .groups = "drop")
+
+if (nrow(by_regime)) { cat("\nBy regime:\n"); print(as.data.frame(by_regime)) }
+
+
+# SAVE --------------------------------------------------------------------
+
+# save_result_output() uses the filename verbatim, so the extension is ours to
+# supply; .Rda matches the rest of analysis/
+save_result_output(tab, "fcast_evaluation_tab.Rda", results_dir)
+save_result_output(by_horizon, "fcast_evaluation_by_horizon.Rda", results_dir)
+save_result_output(by_subperiod, "fcast_evaluation_by_subperiod.Rda", results_dir)
+save_result_output(by_regime, "fcast_evaluation_by_regime.Rda", results_dir)
+
+message("evaluation panel written to ", results_dir)

@@ -96,15 +96,150 @@ run_wai_adj <- function(flows, stocks, target, date, dataset_used, stochastic_vo
                  stochastic_volatility = stochastic_volatility,
                  serial_correlation = TRUE)
 
-  mod$factor <- window(mod$factor, end = date)
-  mod$factor_var <- window(mod$factor_var, end = date)
-  mod$nowcast <- window(mod$nowcast, end = as.numeric(tail(time(flows[[target]]),1)) + 0.25)
-  mod$nowcast_var <- window(mod$nowcast_var, end = as.numeric(tail(time(flows[[target]]),1)) + 0.25)
+  # trim_to() rather than window(): the requested end is often past the series,
+  # where window() leaves it untouched but warns "'end' value not changed".
+  # Four such warnings per call, carrying no information. Same treatment as
+  # run_fcast(), per the parity rule - the two wrappers should not differ in
+  # how noisy they are.
+  target_end <- as.numeric(tail(time(flows[[target]]), 1)) + 0.25
+  mod$factor <- trim_to(mod$factor, date)
+  mod$factor_var <- trim_to(mod$factor_var, date)
+  mod$nowcast <- trim_to(mod$nowcast, target_end)
+  mod$nowcast_var <- trim_to(mod$nowcast_var, target_end)
 
   if(!is.null(output_dir)){
     fit_dir <- file.path(output_dir, dataset_used)
     dir.create(fit_dir, recursive = TRUE, showWarnings = FALSE)
     save(mod, file = file.path(fit_dir, paste0("fit_",round(date,3),".Rda")))
+  }
+
+  invisible(mod)
+
+}
+
+
+#' Cut a series at `end`, but only when that actually trims something
+#'
+#' `window(x, end = e)` warns "'end' value not changed" when `e` is at or past
+#' the end of `x`. That is the normal case when an evaluation date sits beyond
+#' the available data, and the warning carries no information, so it is avoided
+#' rather than suppressed.
+#'
+#' @noRd
+#' @importFrom stats window time
+trim_to <- function(x, end){
+
+  if(is.null(x) || !length(x)) return(x)
+
+  last <- as.numeric(tail(time(x), 1))
+  if(!is.finite(end) || end >= last) return(x)
+
+  window(x, end = end)
+
+}
+
+
+#' Fit the multi-factor model at a given evaluation date
+#'
+#' Runs [fcast_dfm()] at one evaluation date and windows the factor and
+#' nowcast output to it. The multi-factor counterpart of [run_wai_adj()],
+#' with the same arguments, the same file layout and the same
+#' no-side-effects-by-default rule, so the two can be driven by the same
+#' backcasting loop.
+#'
+#' @details
+#' Note what `target` does and does not do here. [fcast_dfm()] estimates every
+#' series jointly and `target` only selects which nowcast is surfaced at the top
+#' level -- unlike [run_wai_adj()], where the target is what identifies the
+#' factor. Results for every series remain in `ncst` and `data_hf` on the
+#' returned object.
+#'
+#' `q` is the setting that has no counterpart in [run_wai_adj()]: the
+#' single-factor model has exactly one factor by construction, so a
+#' multi-factor sweep varies `q` where the WAI sweep varies the dataset.
+#'
+#' @inheritParams run_wai_adj
+#' @inheritParams fcast_dfm
+#' @param q Integer, number of factors, passed to [fcast_dfm()].
+#' @param extend Numeric, years by which to extend the dataset past its end
+#'   before estimating, passed to [fcast_dfm()]. **Required for this function to
+#'   nowcast at all**, and the reason it defaults to a non-`NULL` value here.
+#'   At a real-time evaluation date the target's last observation is one or two
+#'   quarters old, so the quarter actually being nowcast lies beyond the data;
+#'   without extending, [fcast_dfm()] produces values only over the observed
+#'   span and every result is an in-sample fit rather than a forecast. The
+#'   default of half a year covers the current quarter and the next.
+#' @param ncores Integer or `NULL`, passed to [fcast_dfm()] to parallelise
+#'   the rotation step.
+#' @param control Optional settings from [dfm_control()], passed to
+#'   [fcast_dfm()]. Use `dfm_control("fcast_dfm", strict = TRUE)` to run the
+#'   rotation as specified in the online appendix.
+#'
+#' @return Invisibly, the windowed `fcast_dfm` fit object.
+#'
+#' @seealso [run_wai_adj()] for the single-factor equivalent, [fcast_dfm()]
+#'   for the model itself.
+#'
+#' @importFrom stats window time
+#' @examples
+#' \donttest{
+#' # Short chain on the shipped data; a real evaluation uses the defaults.
+#' data(data_ch_dataset_test)
+#' target <- "ch.seco.gdp.real.gdp.ssa"
+#' flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+#'                 stats::window, start = 2021)
+#' stocks <- lapply(data_ch_dataset_test$stocks[1:2],
+#'                  stats::window, start = 2021)
+#' set.seed(1)
+#' fit <- run_fcast(flows = flows, stocks = stocks, target = target,
+#'                  date = 2023, dataset_used = "example",
+#'                  q = 2, length_sample = 20, burn_in = 5)
+#' fit$nowcast
+#' }
+#'
+#' @family model fitting functions
+#' @export
+run_fcast <- function(flows, stocks, target, date, dataset_used,
+                      q = 2, p = 1,
+                      length_sample = 1000, burn_in = 1000, thinning = 1,
+                      stochastic_volatility = TRUE, serial_correlation = TRUE,
+                      extend = 0.5,
+                      ncores = NULL, control = NULL, output_dir = NULL){
+
+  mod <- fcast_dfm(flows = flows,
+                   stocks = stocks,
+                   target = target,
+                   q = q,
+                   p = p,
+                   burn_in = burn_in,
+                   length_sample = length_sample,
+                   thinning = thinning,
+                   plots = FALSE,
+                   extend = extend,
+                   stochastic_volatility = stochastic_volatility,
+                   serial_correlation = serial_correlation,
+                   ncores = ncores,
+                   control = control)
+
+  # Window to the evaluation date, as run_wai_adj() does. The factor is a
+  # q-column matrix here rather than a single series, but window() handles both.
+  #
+  # trim_to() rather than window() directly: the requested end often lies beyond
+  # the series, in which case window() leaves it untouched but emits
+  # "'end' value not changed". That warning carries no information here - there
+  # was simply nothing to trim - and a wrapper that warns on ordinary use trains
+  # people to ignore its warnings.
+  mod$factor <- trim_to(mod$factor, date)
+  mod$factor_var <- trim_to(mod$factor_var, date)
+
+  target_end <- as.numeric(tail(time(flows[[target]]), 1)) + 0.25
+  mod$nowcast <- trim_to(mod$nowcast, target_end)
+  mod$nowcast_var <- trim_to(mod$nowcast_var, target_end)
+
+  if(!is.null(output_dir)){
+    fit_dir <- file.path(output_dir, dataset_used)
+    dir.create(fit_dir, recursive = TRUE, showWarnings = FALSE)
+    save(mod, file = file.path(fit_dir, paste0("fit_", round(date, 3), ".Rda")))
   }
 
   invisible(mod)

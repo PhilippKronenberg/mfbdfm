@@ -20,6 +20,45 @@ test_that("select_most_recent_GDP_vintage picks the newest available vintage", {
   expect_error(select_most_recent_GDP_vintage(2020.0, vint), "No GDP vintage")
 })
 
+test_that("select_most_recent_GDP_vintage names the problem when args are swapped", {
+
+  v <- make_synth_vintages()
+
+  # The reversed call used to reach round() on a data frame and fail with
+  # "non-numeric variable(s) in data frame: time" - naming neither argument and
+  # pointing at the wrong place entirely.
+  expect_error(select_most_recent_GDP_vintage(v, 2024),
+               "the other way round")
+  expect_error(select_most_recent_GDP_vintage("2024", v),
+               "single, non-missing number")
+  expect_error(select_most_recent_GDP_vintage(2024, "not a table"),
+               "must be a vintage table")
+
+  # the working call still returns the vintage COLUMN, not its name
+  out <- select_most_recent_GDP_vintage(2024.3, v)
+  expect_type(out, "double")
+  expect_equal(length(out), nrow(v))
+})
+
+
+test_that("latest_fit_file defaults to no cutoff", {
+
+  d <- tempfile(); dir.create(d); on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  for (x in c("2023", "2023.5", "2024.25")) {
+    file.create(file.path(d, paste0("fit_", x, ".Rda")))
+  }
+
+  # a one-argument call used to fail with "argument \"cutoff_decimal\" is
+  # missing, with no default" - the name promises the latest fit, so that is
+  # what no argument now gives
+  expect_equal(basename(latest_fit_file(d)), "fit_2024.25.Rda")
+  expect_equal(basename(latest_fit_file(d, cutoff_decimal = 2023.6)),
+               "fit_2023.5.Rda")
+  expect_error(latest_fit_file(d, cutoff_decimal = "2024"),
+               "must be a single number")
+})
+
+
 test_that("cut_data_real_time substitutes the target with the right vintage", {
   dat <- make_synth_dat()
   vint <- make_synth_vintages()

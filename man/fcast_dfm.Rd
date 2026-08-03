@@ -165,8 +165,6 @@ for every series remain available in \code{ncst} and \code{data_hf}.
 }
 
 \examples{
-# \donttest, not \dontrun: this works on the shipped data, it is only slow -
-# the post-hoc rotation step scales with the number of retained draws.
 \donttest{
 data(data_ch_dataset_test)
 target <- "ch.seco.gdp.real.gdp.ssa"
@@ -194,6 +192,7 @@ Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.
 \code{\link[=ind_dfm]{ind_dfm()}} for the single-factor, target-anchored model.
 
 Other model fitting functions: 
-\code{\link{ind_dfm}()}
+\code{\link{ind_dfm}()},
+\code{\link{run_fcast}()}
 }
 \concept{model fitting functions}

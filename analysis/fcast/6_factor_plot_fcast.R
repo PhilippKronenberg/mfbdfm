@@ -1,0 +1,165 @@
+# Run from the repository root.
+
+# -----------------------------------------------------------------------------
+# Factors across factor counts (Eckert et al. 2025)
+# -----------------------------------------------------------------------------
+# Port of archive/factor_plot.R, which plots the estimated factors from the
+# q = 1..4 runs together, grouped so that the "same" factor from each run is
+# drawn in one panel.
+#
+# The alignment is the interesting part. The original hardcoded it:
+#
+#   group_1 <- ts.union(-factor_1, factor_2[,1], factor_3[,2],  factor_4[,4])
+#   group_2 <- ts.union(            factor_2[,2], -factor_3[,3], factor_4[,2])
+#   group_3 <- ts.union(                          -factor_3[,1], factor_4[,1])
+#   group_4 <-                                                   -factor_4[,3]
+#
+# i.e. which column of each run matches which reference factor, and which needs
+# its sign flipped - matched by eye. That is exactly the rotational
+# indeterminacy documented in ?fcast_dfm: factors are identified only up to
+# rotation and sign, so column 1 of the 3-factor run need not be "the same"
+# factor as column 1 of the 4-factor run.
+#
+# This derives the alignment by correlation instead, and reports whether the
+# result agrees with the hardcoded one. Hardcoded indices are specific to the
+# objects they were written against; derived ones travel.
+# -----------------------------------------------------------------------------
+
+source("analysis/fcast/_setup.R")
+
+ref_dir <- "analysis/fcast/reference/rda"
+out_dir <- file.path("analysis", "outputs", "fcast", "replication", "figures")
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+
+# LOAD --------------------------------------------------------------------
+
+# <n>f_fit_2021.979.Rda are the fits the published figure was actually built
+# from. The testlauf_<n>f.Rda files are a DIFFERENT run of the same model - 1611
+# periods against 1558 - and using them does not reproduce the alignment (5 of
+# 10 groups, against 10 of 10 here). Kept as the fallback, with a warning,
+# because the difference is instructive rather than fatal: it is the post-hoc
+# rotation failing to reach uniqueness across runs, per #46.
+fits <- list()
+for (q in 1:4) {
+  f <- file.path(ref_dir, sprintf("%df_fit_2021.979.Rda", q))
+  fallback <- file.path(ref_dir, sprintf("testlauf_%df.Rda", q))
+
+  if (file.exists(f)) {
+    e <- new.env(); load(f, envir = e)
+    fits[[q]] <- e$mod
+  } else if (file.exists(fallback)) {
+    warning("Using ", basename(fallback), " - a different run from the one the ",
+            "published figure used. The factor alignment will not match.",
+            call. = FALSE)
+    e <- new.env(); load(fallback, envir = e)
+    fits[[q]] <- e$out
+  } else {
+    stop("Missing ", f, ".\n  These are the paper's fitted objects and are not ",
+         "committed - see analysis/fcast/README.md.", call. = FALSE)
+  }
+}
+
+facs <- lapply(fits, function(x) as.matrix(x$factor))
+message("factor counts loaded: ",
+        paste(vapply(facs, ncol, integer(1)), collapse = ", "),
+        "; ", nrow(facs[[1]]), " periods")
+
+
+# ALIGN -------------------------------------------------------------------
+
+# Reference set: the 4-factor run, which spans the most directions. Every column
+# of every other run is matched to whichever reference column it correlates with
+# most strongly in absolute value, and its sign flipped if that correlation is
+# negative.
+ref <- facs[[4]]
+
+align <- function(mat, ref) {
+  out <- lapply(seq_len(ncol(mat)), function(j) {
+    r <- vapply(seq_len(ncol(ref)), function(k)
+      suppressWarnings(stats::cor(mat[, j], ref[, k], use = "complete.obs")),
+      numeric(1))
+    k <- which.max(abs(r))
+    list(col = j, ref_col = k, cor = r[k], sign = sign(r[k]))
+  })
+  do.call(rbind, lapply(out, as.data.frame))
+}
+
+map <- do.call(rbind, lapply(1:4, function(q)
+  cbind(q = q, align(facs[[q]], ref))))
+
+cat("\nDerived alignment (each run's columns matched to the 4-factor run):\n")
+print(map, digits = 3, row.names = FALSE)
+
+# What the original hardcoded, expressed the same way: run q, its column, the
+# reference (4-factor) column it was grouped with, and whether it was negated.
+hardcoded <- data.frame(
+  q       = c(1, 2, 2, 3, 3, 3, 4, 4, 4, 4),
+  col     = c(1, 1, 2, 1, 2, 3,  1, 2, 3, 4),
+  ref_col = c(4, 4, 2, 1, 4, 2,  1, 2, 3, 4),
+  sign    = c(-1, 1, 1, -1, 1, -1, 1, 1, -1, 1)
+)
+
+cmp <- merge(map[, c("q", "col", "ref_col", "sign")], hardcoded,
+             by = c("q", "col"), suffixes = c("_derived", "_paper"))
+cmp$same_group <- cmp$ref_col_derived == cmp$ref_col_paper
+cmp$same_sign <- cmp$sign_derived == cmp$sign_paper
+
+# The q = 4 rows compare the reference run with ITSELF: they cannot disagree on
+# group and their sign is +1 by construction, so they carry no evidence. Scored
+# separately, because counting them inflates the denominator and makes the one
+# trivial sign difference - the display negation the original applies in
+# group_4 - look like a real discrepancy.
+cmp$informative <- cmp$q != 4
+inf <- cmp[cmp$informative, ]
+
+cat("\nDerived vs the original's hardcoded alignment:\n")
+print(cmp[, setdiff(names(cmp), "informative")], row.names = FALSE)
+cat("\n  informative rows (q = 1..3): groups ", sum(inf$same_group), "/", nrow(inf),
+    ", signs ", sum(inf$same_sign), "/", nrow(inf), "\n", sep = "")
+cat("  q = 4 rows are self-comparisons and are excluded from the score.\n")
+
+
+# PLOT --------------------------------------------------------------------
+
+tm <- round(as.numeric(stats::time(fits[[4]]$factor)), 3)
+
+# Panels are numbered by how many runs contribute to them, descending, which
+# gives the nested structure the original figure has:
+#
+#   Factor 1  one factor from each of the 1f, 2f, 3f and 4f runs   (4 lines)
+#   Factor 2  from 2f, 3f, 4f                                       (3 lines)
+#   Factor 3  from 3f, 4f                                           (2 lines)
+#   Factor 4  the remaining factor of the 4f run                    (1 line)
+#
+# Numbering them by the reference column index instead - which is what the
+# derivation produces - gives the same panels in a scrambled order, because the
+# 4-factor run's column order carries no meaning of its own.
+panel_size <- sort(table(map$ref_col), decreasing = TRUE)
+panel_num <- stats::setNames(seq_along(panel_size), names(panel_size))
+
+long <- do.call(rbind, lapply(seq_len(nrow(map)), function(i) {
+  r <- map[i, ]
+  data.frame(time = tm,
+             value = as.numeric(facs[[r$q]][, r$col]) * r$sign,
+             run = paste0("q = ", r$q),
+             group = paste("Factor", panel_num[[as.character(r$ref_col)]]),
+             stringsAsFactors = FALSE)
+}))
+long$group <- factor(long$group, levels = paste("Factor", seq_along(panel_size)))
+
+cat("\nPanel composition:\n")
+print(table(long$group, long$run) > 0)
+
+p <- ggplot(long, aes(x = time, y = value, colour = run)) +
+  geom_line(linewidth = 0.3) +
+  facet_wrap(~group, ncol = 1, scales = "free_y") +
+  labs(x = NULL, y = NULL,
+       title = "Estimated factors across factor counts, sign- and order-aligned") +
+  theme_minimal(base_size = 9) +
+  theme(panel.grid.minor = element_blank(),
+        legend.position = "bottom", legend.title = element_blank())
+
+path <- file.path(out_dir, "factor_plot_wai.pdf")
+ggsave(path, p, width = 20, height = 28, units = "cm")
+message("\nwrote ", path)

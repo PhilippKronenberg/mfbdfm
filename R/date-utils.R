@@ -43,6 +43,69 @@ is_crisis_period <- function(date_vec) {
 }
 
 
+#' Flag target quarters falling into the Eckert et al. (2025) crisis periods
+#'
+#' The crisis/non-crisis split used in the out-of-sample evaluation of Eckert,
+#' Kronenberg, Mikosch & Neuwirth (2025). Carries the `_fcast` suffix for the
+#' same reason the multi-factor internals do: it is the counterpart of
+#' [is_crisis_period()] for that paper, and the two are **not** interchangeable.
+#'
+#' @details
+#' Two differences from [is_crisis_period()], both of which matter:
+#'
+#' \describe{
+#'   \item{What is classified}{This takes the **target quarter** being nowcast,
+#'     as decimal time (`2020.25` for 2020Q2). [is_crisis_period()] takes the
+#'     **date the nowcast was made**. In a real-time evaluation those are weeks
+#'     or months apart, so the two label different rows.}
+#'   \item{Which episodes}{Four windows here -- the global financial crisis, the
+#'     euro crisis, the 2015 Swiss franc shock and Covid-19. [is_crisis_period()]
+#'     covers only the first and last.}
+#' }
+#'
+#' Measured on the paper's own evaluation panel, the two agree on only 124 of
+#' its 240 crisis dates, and substituting [is_crisis_period()] does not
+#' reproduce the published figures: crisis RMSFE for the monthly benchmark comes
+#' out at 0.0262 against the 0.0210 this definition gives, which is what the
+#' paper plots.
+#'
+#' @param period Numeric vector of target quarters in decimal time, e.g.
+#'   `2020.25` for 2020Q2. This is the `period` column of the evaluation panel,
+#'   not the nowcast date.
+#'
+#' @return Logical vector, `TRUE` for quarters inside a crisis window.
+#'
+#' @examples
+#' # 2020Q1-2021Q3 are crisis quarters; 2019 and 2022 are not
+#' is_crisis_period_fcast(c(2019, 2020, 2021.25, 2022))
+#'
+#' @references
+#' Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
+#' Tracking economic activity with alternative high-frequency data.
+#' *Journal of Applied Econometrics*, 40(3), 270-290.
+#'
+#' @seealso [is_crisis_period()] for the date-based definition used by the
+#'   Weekly Activity Index analysis.
+#' @export
+is_crisis_period_fcast <- function(period) {
+
+  if (!is.numeric(period)) {
+    stop("`period` must be numeric decimal time (e.g. 2020.25 for 2020Q2), ",
+         "not a ", class(period)[1], ". This function classifies the target ",
+         "quarter, not the nowcast date - see is_crisis_period() for the ",
+         "latter.", call. = FALSE)
+  }
+
+  # Verbatim from 3a_evaluation_full.R of the paper's replication code; the
+  # windows are inclusive at both ends.
+  (period >= 2008.75 & period <= 2009.5)    |   # global financial crisis
+    (period >= 2011.5  & period <= 2013)    |   # euro crisis
+    (period >= 2015    & period <= 2015.25) |   # Swiss franc shock
+    (period >= 2020    & period <= 2021.5)      # Covid-19
+
+}
+
+
 #' Aggregate a higher-frequency series to the 48-week grid
 #'
 #' Aggregates a date-indexed `zoo` series into the project's
