@@ -9,6 +9,7 @@ The `fcast_dfm()` counterpart of the WAI scripts in `analysis/` and
 | --- | --- | --- |
 | `_setup.R` | shared prelude (sourced by the others, not run directly) | — |
 | `1_backcast_fcast.R` | fits `fcast_dfm()` over evaluation dates × factor counts | `fits/fcast/<q>/fit_<date>.Rda` |
+| `1b_sweep_parallel.R` | the same fits over many dates, distributed across workers | `fits/fcast_sweep/` |
 | `2_evaluation_fcast.R` | turns fits into the scored evaluation panel | `analysis/outputs/fcast/<id>/results/` |
 | `3_plots_fcast.R` | figures from that panel | `analysis/outputs/fcast/<id>/figures/` |
 | `4_reproduce_paper_figures.R` | replicates the published figures from the paper's own inputs | `analysis/outputs/fcast/replication/figures/` |
@@ -16,8 +17,15 @@ The `fcast_dfm()` counterpart of the WAI scripts in `analysis/` and
 | `6_factor_plot_fcast.R` | factors from the q = 1..4 runs, aligned and overlaid | `analysis/outputs/fcast/replication/figures/` |
 
 `1_backcast_fcast.R` has a `quick_check` switch: `TRUE` runs a short chain in
-minutes to prove the wiring, `FALSE` is the real vintage sweep and is an
-overnight job.
+minutes to prove the wiring, `FALSE` fits one date properly.
+
+For a sweep use **`1b_sweep_parallel.R`**, which distributes dates across
+workers. Do not run a sweep through `1_backcast_fcast.R`: a single fit takes
+about 49 minutes, so the paper's weekly range of 816 dates is roughly 28 days
+serial. Dates are the right axis to parallelise on — `fcast_dfm()`'s `ncores`
+only affects the post-hoc rotation, while the sampler is inherently serial.
+`1b_sweep_parallel.R` skips fits already on disk, so an interrupted sweep
+resumes.
 
 Scripts 1–3 are the pipeline for *new* estimates. Script 4 is independent of
 them: it reads the paper's stored results and needs no fitting.
@@ -82,8 +90,14 @@ Deliberately not ported — the list is now closed; everything else has been:
 
 `6_factor_plot_fcast.R` reads `<n>f_fit_2021.979.Rda`. Those are the fits the
 published figure was built from, and with them the derived alignment reproduces
-the paper's hardcoded grouping exactly - 10 of 10 groups, and 10 of 10 signs
-once the one presentational negation in `group_4` is set aside.
+the paper's hardcoded grouping exactly: **6 of 6 groups and 6 of 6 signs** on
+the informative rows.
+
+The score counts only `q = 1..3`. The `q = 4` rows compare the reference run
+with itself — they cannot disagree on group, and their sign is `+1` by
+construction — so including them would inflate the denominator and make the one
+trivial sign difference (a display negation the original applies in `group_4`)
+read as a real discrepancy.
 
 The similarly-named `testlauf_<n>f.Rda` files are a **different run** of the
 same model (1611 periods against 1558) and do **not** reproduce it: 5 of 10
