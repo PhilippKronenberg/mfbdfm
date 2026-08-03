@@ -61,6 +61,8 @@ handling real-time GDP vintages.
   : Fit an AR(1) benchmark model and nowcast the target
 - [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
   : Fit the WAI dynamic factor model at a given evaluation date
+- [`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
+  : Fit the multi-factor model at a given evaluation date
 - [`retrieve_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast.md)
   : Extract the nowcast from a fit object
 - [`retrieve_nowcast_var()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast_var.md)
@@ -94,6 +96,9 @@ Converting between weekly/monthly/daily frequencies and decimal dates.
   : Convert dates to decimal years (day-of-year convention)
 - [`is_crisis_period()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period.md)
   : Flag dates falling into the crisis periods
+- [`is_crisis_period_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period_fcast.md)
+  : Flag target quarters falling into the Eckert et al. (2025) crisis
+  periods
 - [`daily2weekly()`](https://philippkronenberg.github.io/mfbdfm/reference/daily2weekly.md)
   : Aggregate a higher-frequency series to the 48-week grid
 - [`aggregate_predictor_to_quarterly()`](https://philippkronenberg.github.io/mfbdfm/reference/aggregate_predictor_to_quarterly.md)

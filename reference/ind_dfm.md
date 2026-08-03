@@ -210,7 +210,8 @@ for the `print`, `summary`, `plot`, `coef`, `fitted`, `residuals` and
 `as.data.frame` methods.
 
 Other model fitting functions:
-[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
+[`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
 
 ## Examples
 

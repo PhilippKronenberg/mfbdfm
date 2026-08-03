@@ -280,14 +280,13 @@ Switzerland. <em>Swiss Journal of Economics and Statistics</em>, 162, 10.
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="ind_dfm.html">ind_dfm()</a></code> for the single-factor, target-anchored model.</p>
 <p>Other model fitting functions:
-<code><a href="ind_dfm.html">ind_dfm()</a></code></p></div>
+<code><a href="ind_dfm.html">ind_dfm()</a></code>,
+<code><a href="run_fcast.html">run_fcast()</a></code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest, not \dontrun: this works on the shipped data, it is only slow -</span></span></span>
-<span class="r-in"><span><span class="co"># the post-hoc rotation step scales with the number of retained draws.</span></span></span>
-<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">target</span> <span class="op">&lt;-</span> <span class="st">"ch.seco.gdp.real.gdp.ssa"</span></span></span>
 <span class="r-in"><span><span class="va">flows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">]</span>,</span></span>

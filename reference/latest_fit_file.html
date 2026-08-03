@@ -40,7 +40,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">latest_fit_file</span><span class="op">(</span><span class="va">folder</span>, <span class="va">cutoff_decimal</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">latest_fit_file</span><span class="op">(</span><span class="va">folder</span>, cutoff_decimal <span class="op">=</span> <span class="cn">Inf</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -53,7 +53,9 @@
 
 <dt id="arg-cutoff-decimal">cutoff_decimal<a class="anchor" aria-label="anchor" href="#arg-cutoff-decimal"></a></dt>
 <dd><p>Numeric decimal date; only fits at or before this
-cutoff are considered.</p></dd>
+cutoff are considered. Defaults to <code>Inf</code>, i.e. no cutoff – the most recent
+fit in <code>folder</code>, which is what the name promises and what a one-argument
+call should give.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -68,7 +70,7 @@ cutoff are considered.</p></dd>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/save.html" class="external-link">save</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">dir</span>, <span class="st">"fit_2020.5.Rda"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/save.html" class="external-link">save</a></span><span class="op">(</span><span class="va">mod</span>, file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">dir</span>, <span class="st">"fit_2021.25.Rda"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">latest_fit_file</span><span class="op">(</span><span class="va">dir</span>, cutoff_decimal <span class="op">=</span> <span class="fl">2020.9</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/Rtmpe0hbmn/file1adc6e855de7/fit_2020.5.Rda"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpOXhLwR/file1a4673b26cde/fit_2020.5.Rda"</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

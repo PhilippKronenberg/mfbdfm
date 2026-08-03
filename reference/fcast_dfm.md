@@ -270,13 +270,12 @@ Kronenberg, P. (2026). A high-frequency GDP indicator for Switzerland.
 for the single-factor, target-anchored model.
 
 Other model fitting functions:
-[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+[`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
 
 ## Examples
 
 ``` r
-# \donttest, not \dontrun: this works on the shipped data, it is only slow -
-# the post-hoc rotation step scales with the number of retained draws.
 # \donttest{
 data(data_ch_dataset_test)
 target <- "ch.seco.gdp.real.gdp.ssa"

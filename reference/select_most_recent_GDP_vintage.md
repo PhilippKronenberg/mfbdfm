@@ -21,7 +21,10 @@ select_most_recent_GDP_vintage(current_date, GDP_gr_vintages)
 
 ## Value
 
-The selected vintage column (numeric vector).
+The selected vintage **column** – a numeric vector of GDP growth rates,
+one per quarter – not the name of that vintage. Use
+[`get_latest_numeric_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/get_latest_numeric_vintage.md)
+if you want the name.
 
 ## Examples
 
