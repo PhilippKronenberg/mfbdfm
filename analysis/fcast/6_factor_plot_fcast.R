@@ -34,15 +34,30 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 # LOAD --------------------------------------------------------------------
 
+# <n>f_fit_2021.979.Rda are the fits the published figure was actually built
+# from. The testlauf_<n>f.Rda files are a DIFFERENT run of the same model - 1611
+# periods against 1558 - and using them does not reproduce the alignment (5 of
+# 10 groups, against 10 of 10 here). Kept as the fallback, with a warning,
+# because the difference is instructive rather than fatal: it is the post-hoc
+# rotation failing to reach uniqueness across runs, per #46.
 fits <- list()
 for (q in 1:4) {
-  f <- file.path(ref_dir, sprintf("testlauf_%df.Rda", q))
-  if (!file.exists(f)) {
+  f <- file.path(ref_dir, sprintf("%df_fit_2021.979.Rda", q))
+  fallback <- file.path(ref_dir, sprintf("testlauf_%df.Rda", q))
+
+  if (file.exists(f)) {
+    e <- new.env(); load(f, envir = e)
+    fits[[q]] <- e$mod
+  } else if (file.exists(fallback)) {
+    warning("Using ", basename(fallback), " - a different run from the one the ",
+            "published figure used. The factor alignment will not match.",
+            call. = FALSE)
+    e <- new.env(); load(fallback, envir = e)
+    fits[[q]] <- e$out
+  } else {
     stop("Missing ", f, ".\n  These are the paper's fitted objects and are not ",
          "committed - see analysis/fcast/README.md.", call. = FALSE)
   }
-  e <- new.env(); load(f, envir = e)
-  fits[[q]] <- e$out
 }
 
 facs <- lapply(fits, function(x) as.matrix(x$factor))

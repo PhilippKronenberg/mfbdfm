@@ -68,13 +68,28 @@ What has been absorbed from them:
   `dm_test_modified()` (Harvey-Leybourne-Newbold correction) rather than
   `forecast::dm.test()`, so the two papers' tables stay comparable.
 
-Not yet ported, and why:
+- `factor_plot.R` -> `6_factor_plot_fcast.R`, with the cross-run factor
+  alignment derived by correlation rather than hardcoded.
 
-| script | blocker |
+Deliberately not ported:
+
+| script | why |
 | --- | --- |
-| `plots_insample.R` | inputs now available (`testlauf_05_14.Rda`); not yet ported. |
+| `plots_insample.R` | superseded - the in-sample figures come from the indicator paper (Kronenberg 2026) and are produced by `analysis/5_plots/`. |
+| `3b_evaluation_current_edge.R` | every `ggsave()` in it is commented out, so it produces no output. |
 
-| `3b_evaluation_current_edge.R` | every `ggsave()` in it is commented out, so it produces no output. Not worth porting as-is. |
+### A note on which fitted objects to use
+
+`6_factor_plot_fcast.R` reads `<n>f_fit_2021.979.Rda`. Those are the fits the
+published figure was built from, and with them the derived alignment reproduces
+the paper's hardcoded grouping exactly - 10 of 10 groups, and 10 of 10 signs
+once the one presentational negation in `group_4` is set aside.
+
+The similarly-named `testlauf_<n>f.Rda` files are a **different run** of the
+same model (1611 periods against 1558) and do **not** reproduce it: 5 of 10
+groups. That is not a defect in either set. It is the post-hoc rotation failing
+to reach uniqueness across runs, documented under `?fcast_dfm` and #46, and it
+is the reason the alignment is derived here rather than hardcoded.
 
 ## Verification status
 
