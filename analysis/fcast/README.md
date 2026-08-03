@@ -52,20 +52,21 @@ Note the `BN1f` in the published file names refers to an information criterion,
 **not** to the number of factors in the panel. Reading it as a factor count
 produces figures with the right layout and wrong magnitudes.
 
-## `archive/` — superseded code (local only, **gitignored**)
+## What was ported, and from where
 
-The original scripts, kept locally after being replicated but **not committed**.
-Their paths (`code/Rda/...`, `L:/Groups/...`) are stale and they are not
-expected to run.
+The original Eckert et al. scripts have been **deleted** now that the port is
+complete. They were never committed, so nothing is recoverable from git history;
+they came from the paper's own replication material and can be obtained again
+from there if ever needed.
 
-Comments in the scripts here cite them by line number (e.g.
+Comments in the scripts here still cite them by line number (e.g.
 `plots_nowcast_scores.R:186` for the log-score definition). Those citations
-record *where a decision came from*; the file itself will not be in a clean
-clone. The decisions themselves are reproduced in this README and in the
-package documentation, so nothing is lost by not having them — see
-`?is_crisis_period_fcast` for the crisis windows in particular.
+record *where a decision came from*, not a file you can open. Every decision
+they encode is written out below, in the Verification section, or in the package
+documentation — `?is_crisis_period_fcast` for the crisis windows in particular —
+so the citations are provenance, not a dependency.
 
-What has been absorbed from them:
+What was absorbed:
 
 - `3a_evaluation_full.R` → the evaluation core, the 18 named subperiods, and the
   crisis/non-crisis split, now `is_crisis_period_fcast()` in the package.
@@ -79,11 +80,11 @@ What has been absorbed from them:
 - `factor_plot.R` -> `6_factor_plot_fcast.R`, with the cross-run factor
   alignment derived by correlation rather than hardcoded.
 
-Deliberately not ported — the list is now closed; everything else has been:
+Deliberately not ported — the list is closed; everything else has been:
 
 | script | why |
 | --- | --- |
-| `plots_insample.R` | superseded - the in-sample figures come from the indicator paper (Kronenberg 2026) and are produced by `analysis/5_plots/`. |
+| `plots_insample.R` | superseded — the in-sample figures come from the indicator paper (Kronenberg 2026) and are produced by `analysis/5_plots/`. |
 | `3b_evaluation_current_edge.R` | superseded. It evaluates the model at the current edge of the sample, which `2_evaluation_fcast.R` already covers — the panel it builds carries every horizon from 1 to 12, and the shortest of those *is* the current edge. Its own `ggsave()` calls were all commented out, so it had stopped producing output well before this port. |
 
 ### A note on which fitted objects to use

@@ -66,7 +66,6 @@ analysis/benchmarks/*.pdf
 # committed - see analysis/fcast/README.md for what they are and what the
 # scripts absorbed from them.
 analysis/fcast/reference/
-analysis/fcast/archive/
 
 # The BMDFM benchmark's vendored source: 23 files taken from the `nowcasting`
 # package (github.com/nmecsys/nowcasting) with a local edit. Third-party code,
