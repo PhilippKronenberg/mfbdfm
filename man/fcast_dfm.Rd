@@ -165,8 +165,6 @@ for every series remain available in \code{ncst} and \code{data_hf}.
 }
 
 \examples{
-# \donttest, not \dontrun: this works on the shipped data, it is only slow -
-# the post-hoc rotation step scales with the number of retained draws.
 \donttest{
 data(data_ch_dataset_test)
 target <- "ch.seco.gdp.real.gdp.ssa"

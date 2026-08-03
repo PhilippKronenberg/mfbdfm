@@ -125,9 +125,12 @@
 #'     \item{call}{The matched call.}
 #'   }
 #'
+# NOTE (not part of the example): \donttest rather than \dontrun, because this
+# does work on the shipped data - it is only slow, since the post-hoc rotation
+# scales with the number of retained draws. \donttest is run under
+# --run-donttest, so the example stays checked; see the documentation
+# conventions in CLAUDE.md.
 #' @examples
-#' # \donttest, not \dontrun: this works on the shipped data, it is only slow -
-#' # the post-hoc rotation step scales with the number of retained draws.
 #' \donttest{
 #' data(data_ch_dataset_test)
 #' target <- "ch.seco.gdp.real.gdp.ssa"
