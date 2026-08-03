@@ -26,7 +26,7 @@ source("analysis/fcast/_setup.R")
 library(foreach)
 library(doParallel)
 
-years <- 2020
+years <- 2019:2020
 q_x <- 2
 n_workers <- 4
 run_benchmark <- TRUE
