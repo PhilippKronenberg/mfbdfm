@@ -71,12 +71,12 @@ What has been absorbed from them:
 - `factor_plot.R` -> `6_factor_plot_fcast.R`, with the cross-run factor
   alignment derived by correlation rather than hardcoded.
 
-Deliberately not ported:
+Deliberately not ported — the list is now closed; everything else has been:
 
 | script | why |
 | --- | --- |
 | `plots_insample.R` | superseded - the in-sample figures come from the indicator paper (Kronenberg 2026) and are produced by `analysis/5_plots/`. |
-| `3b_evaluation_current_edge.R` | every `ggsave()` in it is commented out, so it produces no output. |
+| `3b_evaluation_current_edge.R` | superseded. It evaluates the model at the current edge of the sample, which `2_evaluation_fcast.R` already covers — the panel it builds carries every horizon from 1 to 12, and the shortest of those *is* the current edge. Its own `ggsave()` calls were all commented out, so it had stopped producing output well before this port. |
 
 ### A note on which fitted objects to use
 
