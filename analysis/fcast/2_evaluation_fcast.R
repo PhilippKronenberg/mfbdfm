@@ -60,17 +60,33 @@ gather_fits <- function(fit_root){
       # rounds to 3 digits - not recoverable from the fit itself
       eval_date <- as.numeric(sub("^fit_(.*)\\.Rda$", "\\1", basename(f)))
 
-      ncst <- mod$nowcast
-      ncst_var <- mod$nowcast_var
+      # Two fit shapes. run_fcast() writes $nowcast/$nowcast_var; the BMDFM
+      # benchmark from run_bmdfm() writes the vendored nowcast() object, whose
+      # forecast is the "out" column of $yfcst and which carries no variance -
+      # so its rows score on errors but not on the log score, exactly as in the
+      # published panel where bmdfm has no sd either.
+      is_bmdfm <- !is.null(mod$yfcst) && is.null(mod$nowcast)
+
+      if (is_bmdfm) {
+        y <- mod$yfcst
+        ncst <- stats::ts(y[, "out"], start = stats::start(y),
+                          frequency = stats::frequency(y))
+        ncst_var <- NULL
+      } else {
+        ncst <- mod$nowcast
+        ncst_var <- mod$nowcast_var
+      }
+
       keep <- !is.na(ncst)
+      if (!any(keep)) next
 
       rows[[length(rows) + 1]] <- tibble(
         dataset = dx,
-        model = "fcast",
+        model = if (is_bmdfm) "bmdfm" else "fcast",
         date = eval_date,
         period = round(as.numeric(time(ncst))[keep], 3),
         value = as.numeric(ncst)[keep],
-        sd = sqrt(as.numeric(ncst_var)[keep])
+        sd = if (is.null(ncst_var)) NA_real_ else sqrt(as.numeric(ncst_var)[keep])
       )
     }
   }

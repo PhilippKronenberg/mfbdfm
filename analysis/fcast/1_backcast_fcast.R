@@ -24,6 +24,16 @@ source("analysis/fcast/_setup.R")
 # FALSE for a real run (hours).
 quick_check <- TRUE
 
+# Also fit the BMDFM benchmark of Banbura & Modugno (JAE 2014), which is what
+# the WAIVSBMDFM figures compare against. Roughly 150 s per fit on top of
+# fcast_dfm, so it is opt-out for a quick wiring check.
+run_benchmark <- TRUE
+
+if (run_benchmark) {
+  source_bmdfm_functions()
+  source("analysis/fcast/bmdfm_benchmark.R")
+}
+
 
 # IMPORT DATA -------------------------------------------------------------
 
@@ -115,6 +125,21 @@ for (ix in date_vec) {
               length_sample = mcmc$length_sample,
               burn_in = mcmc$burn_in,
               output_dir = fcast_fit_root)
+
+    # BMDFM benchmark, for the WAIVSBMDFM comparison. Monthly by construction,
+    # so the weekly series are aggregated first - which is also why the paper
+    # reports no BMDFM on the weekly dataset.
+    if (run_benchmark) {
+      message("bmdfm:     q = ", q_x, ", date = ", round(ix, 3))
+      mon <- week2mon(dat_realtime)
+      run_bmdfm(flows = mon$flows,
+                stocks = mon$stocks,
+                target = target,
+                date = ix,
+                dataset_used = paste0("bmdfm_q", q_x),
+                n_f = q_x,
+                output_dir = fcast_fit_root)
+    }
 
   }
 }
