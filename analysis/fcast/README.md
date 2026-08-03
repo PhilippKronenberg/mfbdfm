@@ -13,6 +13,7 @@ The `fcast_dfm()` counterpart of the WAI scripts in `analysis/` and
 | `3_plots_fcast.R` | figures from that panel | `analysis/outputs/fcast/<id>/figures/` |
 | `4_reproduce_paper_figures.R` | replicates the published figures from the paper's own inputs | `analysis/outputs/fcast/replication/figures/` |
 | `5_error_tables_fcast.R` | RMSFE/MAE/log-score tables by subsample + Diebold-Mariano | `analysis/outputs/fcast/<id>/tables/` |
+| `6_factor_plot_fcast.R` | factors from the q = 1..4 runs, aligned and overlaid | `analysis/outputs/fcast/replication/figures/` |
 
 `1_backcast_fcast.R` has a `quick_check` switch: `TRUE` runs a short chain in
 minutes to prove the wiring, `FALSE` is the real vintage sweep and is an
@@ -71,8 +72,8 @@ Not yet ported, and why:
 
 | script | blocker |
 | --- | --- |
-| `plots_insample.R` | needs `testlauf_05_14.Rda`, a fitted object not in the reference material. Portable once `1_backcast_fcast.R` has run - it wants the same `data_hf`/`pars$h` shape `run_fcast()` writes. |
-| `factor_plot.R` | needs per-factor-count fits from a network drive (`L:/Groups/...`). Portable after a sweep over `q = 1..4`. |
+| `plots_insample.R` | inputs now available (`testlauf_05_14.Rda`); not yet ported. |
+
 | `3b_evaluation_current_edge.R` | every `ggsave()` in it is commented out, so it produces no output. Not worth porting as-is. |
 
 ## Verification status
