@@ -70,6 +70,109 @@ dat <- cut_data_real_time(data_ch_dataset_test, current_date = 2024.5,
                           GDP_gr_vintages = vintages)
 ```
 
+## How to apply the package
+
+The sequence below is the whole user-facing workflow, using only exported
+functions. `demo/run_package_demo.R` runs exactly this end to end — install,
+fit, inspect, save — in about five minutes on the shipped data, and is the
+quickest way to confirm an installation is sound:
+
+``` sh
+Rscript demo/run_package_demo.R
+```
+
+### 1. Assemble and check the input
+
+Series go in as `ts` objects split into flows and stocks. `mfbdfm_data()` builds
+that from a long or wide data frame, an `mts`, or a list of `ts`, and — more
+usefully — makes the classification inspectable *before* a run that can take
+hours:
+
+``` r
+library(mfbdfm)
+data(data_ch_dataset_test)
+target <- "ch.seco.gdp.real.gdp.ssa"
+
+series <- lapply(c(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                   data_ch_dataset_test$stocks[1:2]),
+                 window, start = 2018)
+meta <- data.frame(series = names(series), type = rep(c("flow", "stock"), each = 2))
+
+d <- mfbdfm_data(series, meta, target = target)
+d   # prints the flow/stock split and the frequency of every series
+```
+
+Flow versus stock selects the temporal aggregation weights, so getting it wrong
+changes results silently. `mfbdfm_data()` requires `type` only where it can
+matter — below the highest frequency — and puts weekly or daily series onto the
+48-periods-per-year grid the models are built on.
+
+### 2. Choose priors and numerical settings (optional)
+
+Both are optional; the defaults reproduce the published behaviour.
+
+``` r
+priors  <- dfm_priors("ind_dfm")                       # or type = "tight"/"loose"
+control <- dfm_control("ind_dfm")                      # stability bounds, tolerances
+strict  <- dfm_control("fcast_dfm", strict = TRUE)     # the paper's rotation rule
+```
+
+### 3. Fit
+
+Two models, two entry points — **not one model with a `q` argument**. They
+differ in identification, priors and how the dynamics are drawn:
+
+``` r
+fit  <- ind_dfm(d, length_sample = 5000, burn_in = 1000)   # single factor, GDP-anchored
+mfit <- fcast_dfm(d, q = 2, length_sample = 1000)          # multi-factor, rotation-identified
+```
+
+### 4. Inspect
+
+Both fit classes support the usual generics:
+
+``` r
+print(fit); summary(fit); plot(fit)
+coef(fit); fitted(fit); residuals(fit); as.data.frame(fit)
+
+fit$factor     # weekly activity factor
+fit$nowcast    # aggregated to the target's own frequency
+```
+
+### 5. Real-time evaluation
+
+`get_real_time_gdp_vintages()` ships with the package, so a real-time exercise
+needs no external data. `cut_data()` trims every series to what was available at
+a given date, and the `run_*()` wrappers fit one model at one evaluation date
+and write the fit:
+
+``` r
+vintages <- get_real_time_gdp_vintages("quarterly")
+rt <- cut_data(d, current_date = 2024.5)
+
+run_ar     (rt$flows, rt$stocks, target, date = 2024.5, dataset_used = "demo")
+run_wai_adj(rt$flows, rt$stocks, target, date = 2024.5, dataset_used = "demo")
+run_fcast  (rt$flows, rt$stocks, target, date = 2024.5, dataset_used = "demo", q = 2)
+```
+
+Add `output_dir =` to write them; without it nothing touches the disk.
+
+### 6. Outputs and evaluation
+
+`wai_sample_config()` fixes the output layout, and the evaluation helpers work
+off it:
+
+``` r
+cfg <- wai_sample_config(sample_id = "my_run")
+dm_test_modified(errors_model, errors_benchmark, alternative = "less")
+write_table_output("table.csv", contents, cfg$tables_dir)
+save_result_output(fit, "fit.Rda", cfg$results_dir)
+```
+
+Frequency and date helpers used throughout: `week2mon()`, `daily2weekly()`,
+`dec2week()`, `decimal_date_local()`, `drop_weekly()`, `drop_financial()`,
+`drop_retail()`, `is_crisis_period()` and `is_crisis_period_fcast()`.
+
 ## The analysis pipeline
 
 The `analysis/` directory contains the scripts of the full research

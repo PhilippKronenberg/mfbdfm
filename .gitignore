@@ -89,3 +89,6 @@ dev/mc_results*.rds
 # regenerating it shows up in the diff. See dev/mc_recovery.R.
 !dev/mc_results.rds
 dev/run_mc*.R
+
+# demo/ run artefacts (the script is committed, its output is not)
+demo/outputs/
