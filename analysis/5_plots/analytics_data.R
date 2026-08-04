@@ -199,10 +199,7 @@ x_hist_gr_yoy_lag1_df <- x_hist_gr_yoy_lag1_df %>% pivot_longer(-c(time))
 # Main WAI Fit Objects
 # -----------------------------------------------------------------------------
 # Load the fixed baseline WAI fit used for the core data objects in this script.
-#load("fits/full/testlauf5_20_04_2026.Rda")
-load(file.path(sample_config$fit_rt_dir, "fit_2025.979.Rda"))
-#load(file.path(sample_config$fit_root, "full", "fit_2021.979.Rda"))
-out <- mod
+load(file.path(sample_config$fit_rt_dir, "fit_2025.979.Rda"))  # the fit files save their object as `mod`
 start_date <- 1990
 end_date <- 2025 + 47/48
 # Rebuild the weekly calendar that corresponds to the model's internal decimal
@@ -210,12 +207,12 @@ end_date <- 2025 + 47/48
 date_vec <- seq(start_date, end_date, 1/48)
 dates <- dec2week(date_vec)
 last(dates)
-ryear <- floor(time(out$factor))
-rmon <- as.numeric(format(as.yearmon(time(out$factor)), "%m"))
-rday <- (round((time(out$factor) %% 1) * 48) %% 4 + 1) * 7
-res_gr <- zoo(x = cbind(out$factor,
-                        out$factor + 1.96 * sqrt(out$factor_var),
-                        out$factor - 1.96 * sqrt(out$factor_var)),
+ryear <- floor(time(mod$factor))
+rmon <- as.numeric(format(as.yearmon(time(mod$factor)), "%m"))
+rday <- (round((time(mod$factor) %% 1) * 48) %% 4 + 1) * 7
+res_gr <- zoo(x = cbind(mod$factor,
+                        mod$factor + 1.96 * sqrt(mod$factor_var),
+                        mod$factor - 1.96 * sqrt(mod$factor_var)),
               order.by = as.Date(paste0(ryear,"-",sprintf("%02d", rmon),"-",sprintf("%02d", rday)), format = "%Y-%m-%d"))
 # Turn the latent factor and uncertainty bands into a tidy plotting table.
 tab_gr <- data.frame("mean" = as.numeric(res_gr[,1]),
@@ -230,8 +227,8 @@ tab_gr <- tab_gr %>%
 
 # Convert the weekly growth signal into a normalized level index so it can be
 # compared with a GDP level path on the same chart.
-gr <- (1+out$factor/100)^(1/48)-1
-gr <- window(gr,start=time(out$factor)[[1]],end=time(out$factor)[length(out$factor)])
+gr <- (1+mod$factor/100)^(1/48)-1
+gr <- window(gr,start=time(mod$factor)[[1]],end=time(mod$factor)[length(mod$factor)])
 lev <- 100
 idx <- rep(NA,length(gr))
 for(jx in 1:length(gr)){
@@ -239,7 +236,7 @@ for(jx in 1:length(gr)){
   idx[jx]<- exp(gr[jx]) * lev
   lev <- idx[jx]
 }
-idx_ts <- ts(idx, start = time(out$factor)[1], frequency = frequency(out$factor))
+idx_ts <- ts(idx, start = time(mod$factor)[1], frequency = frequency(mod$factor))
 # Normalize the level index so that Q4 2019 averages to 100.
 idx_dates <- as.Date(dates)
 q4_2019_mask <- idx_dates >= as.Date("2019-10-01") & idx_dates <= as.Date("2019-12-31")
@@ -250,11 +247,11 @@ rmon <- as.numeric(format(as.yearmon(time(idx_ts)), "%m"))
 rday <- (round((time(idx_ts) %% 1) * 48) %% 4 + 1) * 7
 merged_max <- merge(zoo(idx_ts, order.by = dates),(1+res_gr[,2]/100)^(1/48), all = FALSE)
 merged_min <- merge(zoo(idx_ts, order.by = dates),(1+res_gr[,3]/100)^(1/48), all = FALSE)
-lv_max <- ts(merged_max[,1]*merged_max[,2], start = time(out$factor)[1], frequency = frequency(out$factor))
-lv_min <- ts(merged_min[,1]*merged_min[,2], start = time(out$factor)[1], frequency = frequency(out$factor))
+lv_max <- ts(merged_max[,1]*merged_max[,2], start = time(mod$factor)[1], frequency = frequency(mod$factor))
+lv_min <- ts(merged_min[,1]*merged_min[,2], start = time(mod$factor)[1], frequency = frequency(mod$factor))
 res_lv <- zoo(x = cbind(idx_ts,
-                        lv_max,          #                     out$factor + 1.96 * sqrt(out$factor_var),
-                        lv_min           #                     out$factor - 1.96 * sqrt(out$factor_var)
+                        lv_max,          #                     mod$factor + 1.96 * sqrt(mod$factor_var),
+                        lv_min           #                     mod$factor - 1.96 * sqrt(mod$factor_var)
 ),
 order.by = as.Date(paste0(ryear,"-",sprintf("%02d", rmon),"-",sprintf("%02d", rday)), format = "%Y-%m-%d"))
 # Build the WAI level table used in the history comparison figure.
@@ -268,7 +265,7 @@ tab_gr_lv <- tab_gr_lv %>% pivot_longer(-c(time))
 
 
 gr <- x_hist_gr/100
-gr <- window(gr,start=time(out$factor)[[1]],end=time(out$factor)[length(out$factor)])
+gr <- window(gr,start=time(mod$factor)[[1]],end=time(mod$factor)[length(mod$factor)])
 lev <- 100
 idx <- rep(NA,length(gr))
 for(jx in 1:length(gr)){
@@ -311,7 +308,7 @@ tab_wai_yoy <- tab_wai_yoy %>%
          time <= sample_end_date)
 
 # Extract the stochastic-volatility path from the fitted model for the history panel.
-tab_gr_vol <- data.frame("vol" = exp(out$pars$h[1:length(out$factor)]),
+tab_gr_vol <- data.frame("vol" = exp(mod$pars$h[1:length(mod$factor)]),
                        "time" = time(res_gr))
 
 
@@ -368,7 +365,7 @@ analytics_data_outputs <- list(
   tab_wai_yoy = tab_wai_yoy,
   tab_wai_yoy_full = tab_wai_yoy_full,
   tab_gr_vol = tab_gr_vol,
-  out = out
+  mod = mod
 )
 save_result_output(analytics_data_outputs, "analytics_data_outputs.rda", results_dir)
 

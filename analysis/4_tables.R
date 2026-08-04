@@ -202,8 +202,8 @@ var_names_only_monthly <- dat_only_monthly$inventory$key
 load(file.path(fit_root, "updated/no_financial/fit_2025.979.Rda"))
 dat_no_financial <- mod
 var_names_no_financial <- dat_no_financial$inventory$key
-# load(file.path(fit_root, "only_total_retail/fit_2025.979.Rda"))
-# dat_only_total_retail <- out
+# load(file.path(fit_root, "updated/only_total_retail/fit_2025.979.Rda"))
+# dat_only_total_retail <- mod
 # var_names_only_total_retail <- dat_only_total_retail$inventory$key
 
 #metadata <- utils::read.csv("data-raw/data_meta.csv")
