@@ -26,8 +26,25 @@ source("analysis/5_plots/_setup.R")  # figures_dir / tables_dir / results_dir
 
 fit_root <- "fits"  # root of the model fits (git-ignored)
 
-load("analysis/Rda/results_evaluation.Rda")
-load("analysis/Rda/data_ch_dataset_test.Rda")
+# The former path, analysis/Rda/results_evaluation.Rda, is written by no script
+# in this repository (issue #63). The file of that name is the paper's stored
+# evaluation panel, which lives with the other reference .Rda files.
+ref_dir <- "analysis/fcast/reference/rda"
+if (!dir.exists(ref_dir)) {
+  stop("No reference panels at ", ref_dir, ".\n",
+       "  These are the paper's stored results and are not committed - see ",
+       "analysis/fcast/README.md.", call. = FALSE)
+}
+evaluation_objects <- load(file.path(ref_dir, "results_evaluation.Rda"))
+message("results_evaluation.Rda supplied: ",
+        paste(evaluation_objects, collapse = ", "))
+
+dataset_test_file <- "analysis/Rda/data_ch_dataset_test.Rda"
+if (!file.exists(dataset_test_file)) {
+  stop("Missing ", dataset_test_file,
+       " - produced by analysis/1_data_prep_dataset.R.", call. = FALSE)
+}
+load(dataset_test_file)
 
 # Metadata Table ------------------------------------------------------------------
 
@@ -39,7 +56,12 @@ names(metadata)[names(metadata) == "Flow"] <- "Type"
 names(metadata)[names(metadata) == "keys"] <- "Keys"
 
 # Add End Date From Raw Data Availability File
-date_ranges <- read.csv("analysis/out/data_ch_dataset_raw_start_end.csv", stringsAsFactors = FALSE)
+date_ranges_file <- "analysis/out/data_ch_dataset_raw_start_end.csv"
+if (!file.exists(date_ranges_file)) {
+  stop("Missing ", date_ranges_file,
+       " - produced by analysis/1_data_prep_dataset.R.", call. = FALSE)
+}
+date_ranges <- read.csv(date_ranges_file, stringsAsFactors = FALSE)
 if (!"Keys" %in% names(date_ranges) && "series" %in% names(date_ranges)) {
   names(date_ranges)[names(date_ranges) == "series"] <- "Keys"
 }
@@ -294,7 +316,7 @@ xt_sorted <- xt %>%
   )
 
 
-# 3) print the LaTeX table
+# 3) write the LaTeX table
 print(
   xt,
   include.rownames    = FALSE,
@@ -303,7 +325,8 @@ print(
   sanitize.text.function = identity,
   floating            = TRUE,              # keeps the table float
   tabular.environment = "tabular*",        # use tabular* instead of tabular
-  width               = "\\textwidth"      # stretch to the full text width
+  width               = "\\textwidth",     # stretch to the full text width
+  file                = file.path(tables_dir, "table_lambda_samples.tex")
 )
 
 library(dplyr)
@@ -405,7 +428,7 @@ xt_bars$color_group <- ifelse(
 )
 
 # Plot
-ggplot(xt_bars, aes(x = reorder(short_name, lambda_last), y = lambda_last, fill = color_group)) +
+lambda_bars_fig <- ggplot(xt_bars, aes(x = reorder(short_name, lambda_last), y = lambda_last, fill = color_group)) +
   geom_bar(stat = "identity") +
   coord_flip(clip = "off") +
   facet_wrap(~panel, ncol = 2, scales = "free_y") +
@@ -427,8 +450,8 @@ ggplot(xt_bars, aes(x = reorder(short_name, lambda_last), y = lambda_last, fill 
     plot.title = element_text(face = "bold")
   )
 
-
-
+ggsave(output_figure_path("lambda_bars.pdf", figures_dir), lambda_bars_fig,
+       width = 33, height = 25, units = "cm")
 
 
 # 2) Wrap zeros in \textcolor{red}{0}
@@ -461,7 +484,8 @@ print(
   sanitize.text.function   = identity,   # so our \textcolor survives
   floating                 = TRUE,
   tabular.environment      = "tabular*",
-  width                    = "\\textwidth"
+  width                    = "\\textwidth",
+  file                     = file.path(tables_dir, "table_lambda_samples_zeros.tex")
 )
 
 
@@ -570,7 +594,7 @@ xt_sorted <- xt %>%
   )
 
 
-# 3) print the LaTeX table
+# 3) write the LaTeX table
 print(
   xt,
   include.rownames    = FALSE,
@@ -579,7 +603,8 @@ print(
   sanitize.text.function = identity,
   floating            = TRUE,              # keeps the table float
   tabular.environment = "tabular*",        # use tabular* instead of tabular
-  width               = "\\textwidth"      # stretch to the full text width
+  width               = "\\textwidth",     # stretch to the full text width
+  file                = file.path(tables_dir, "table_lambda_vintages.tex")
 )
 
 
@@ -623,7 +648,8 @@ print(
   sanitize.text.function   = identity,   # so our \textcolor survives
   floating                 = TRUE,
   tabular.environment      = "tabular*",
-  width                    = "\\textwidth"
+  width                    = "\\textwidth",
+  file                     = file.path(tables_dir, "table_lambda_vintages_zeros.tex")
 )
 
 # Serial Correlation Table ---------------------------------------------
@@ -632,7 +658,10 @@ print(
 metadata <- utils::read.csv("data-raw/data_meta.csv")
 
 # get in-sample results
+# The fit files store the object as `mod` (see R/backcast.R); `out` is the
+# pre-rename name this section was still using.
 load(file.path(fit_root, "updated/full_RT/fit_2025.979.Rda"))
+out <- mod
 
 # get variable names and sort them according to the in-sample results
 mod_var_names <- colnames(out$data)
@@ -774,7 +803,7 @@ opt_breaks[i] <- length(brp$breakpoints)
 
 # cumulative sums of standardized residuals.
 ols_cusum <- efp(y ~ y_lag1, data = tib, type = "OLS-CUSUM") # OLS based cumulative sums of standardized residuals
-plot(ols_cusum)
+#plot(ols_cusum)
 ols_cusum_p[i] <- sctest(ols_cusum)$p.value
 
 # moving sums of residuals
@@ -827,5 +856,10 @@ table_struc_break <- table_struc_break %>% mutate(nb_rec_cusum = ifelse(rec_cusu
 
 table_struc_break[is.na(table_struc_break)] <- 0
 
+# write table as latex output
+print(xtable(table_struc_break), include.rownames = FALSE, type = "latex",
+      file = file.path(tables_dir, "table_struc_break.tex"))
+
+# number of variables rejecting "no structural break" per test
 colSums(table_struc_break[,-(1:12)])
 
