@@ -28,21 +28,23 @@ test_that("list2theta_fcast and theta2list_fcast round-trip", {
   expect_equal(back$Xmat, Xmat)
   expect_equal(back$h, h)
 
-  # phi does NOT round-trip: list2theta_fcast() packs each block column-major
-  # via matrix(x), while theta2list_fcast() unpacks with byrow = TRUE, so it
-  # comes back transposed for q > 1. Pinned here rather than asserted away
-  # because it is a live inconsistency, not a convention - see #66, which has
-  # the measurement. Change this expectation only together with that decision.
-  expect_false(isTRUE(all.equal(back$phi, phi)))
-  expect_equal(back$phi, lapply(phi, t))
+  # phi included. It used to come back transposed for q > 1 (#66): the packer
+  # writes each block column-major, the unpacker read the whole region with
+  # byrow = TRUE. The transposed copy reached draw_factors_fcast() through
+  # run_evaluation_fcast() while the sampler passed the untransposed one, so
+  # this is the assertion that keeps the two callers agreeing.
+  expect_equal(back$phi, phi)
+
+  # asymmetric on purpose - a symmetric block would pass either way
+  expect_false(isTRUE(all.equal(phi[[1]], t(phi[[1]]))))
 })
 
 
 test_that("the round-trip holds exactly at q = 1, phi included", {
 
-  # the degenerate corner, and the reason #66 has gone unnoticed: a 1x1 phi
-  # block cannot transpose, so at q = 1 the round-trip is exact. Every WAI
-  # workflow runs at q = 1.
+  # the degenerate corner, and the reason #66 went unnoticed for so long: a 1x1
+  # phi block cannot transpose, so q = 1 was correct even before the fix. Every
+  # WAI workflow runs at q = 1.
   n <- 3; q <- 1; p <- 1; t <- 5; s <- 2
 
   lambda <- matrix(c(1.5, 2.5, 3.5), nrow = n, ncol = q)

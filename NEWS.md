@@ -127,6 +127,13 @@ application of it (#37).
 
 ## Bug fixes
 
+* `fcast_dfm()`'s `factor`, `factor_var` and `pars$phi` were computed from a
+  transposed VAR coefficient matrix when `q > 1`. The internal packer writes each
+  `q x q` block column-major and the unpacker read it back row-major, so the two
+  callers of the factor-drawing step disagreed about the orientation. **Results
+  change for `q > 1`**; `lambda`, `sigma`, `rho` and all nowcasts are unaffected,
+  as is `ind_dfm()`, and `q = 1` was never affected because a 1x1 block is its
+  own transpose (#66).
 * `run_fcast()` and `run_wai_adj()` returned a fit one period short whenever the
   evaluation date rounded down. Dates travel through the workflow rounded to
   three decimals, while the series' grid points do not: at frequency 48 the last

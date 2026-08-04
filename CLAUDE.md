@@ -184,6 +184,44 @@ Consequences worth knowing before changing anything in the samplers:
 - `samplers_fcast.R` **normalises h's level and spread away on every draw** (`h <- (h - Q1) * (0.01 / (Q3 - Q1))`, commented "necessary for identification") because only the *shape* of the volatility path is identified there. `samplers.R` has no such line — only a numerical clamp — because the level *is* identified by the anchoring. Do not "harmonise" these.
 - **Some priors are the identification, not tuning knobs.** In `ind_dfm`, the target's measurement variance (`c0 = t`, `d0 = t*1e-3`) and serial correlation (`R0 = 1e-9`) are what make the factor track GDP; relaxing them silently dissolves the anchoring. In `fcast_dfm`, the `lambda` prior must stay diffuse or it conflicts with the post-hoc rotation. `dfm_priors(type = ...)` therefore moves **tunable priors only**; changing a structural one requires an explicit argument that warns.
 
+## Where we knowingly differ from the published Eckert et al. (2025) results
+
+**Internal note, kept here deliberately and not in any package documentation.**
+It records a place where our code is correct and the published figures are not
+reproducible from it, so that nobody later "discovers" the discrepancy and
+tries to undo the fix.
+
+- **`phi` was transposed on unpacking (#66, fixed).** `list2theta_fcast()`
+  packs each `q x q` VAR block column-major; `theta2list_fcast()` read the whole
+  `phi` region back with `byrow = TRUE`, so every block came back **transposed
+  for `q > 1`**. The transposed copy was then handed to `draw_factors_fcast()`
+  by `run_evaluation_fcast()`, while `run_sampling_fcast()` passes the
+  untransposed one — the two callers of the same function disagreed, and
+  `phi[[px]]` enters a Kronecker product there, so orientation matters.
+  - **`q = 1` was never affected** (a 1x1 block is its own transpose), so every
+    WAI workflow and every `ind_dfm()` result is untouched. This is why it
+    survived so long.
+  - **Scope, confirmed by `baseline_check()` rather than argued**: after the
+    fix, `ind_default`, `ind_no_sv` and `ind_no_serial` are *identical*, and
+    `fcast_q2` differs in exactly `factor`, `factor_var` and `phi` — not
+    `lambda`, not `nowcast`, not `sigma`/`rho`.
+  - **Size of the change**, `q = 2` on the shipped test data, same seed, phi
+    orientation the only difference: factor 1 correlation 0.964, factor 2
+    correlation 0.807, max absolute differences 0.378 and 0.416 against series
+    standard deviations of 0.425 and 0.204. `pars$lambda` and `$nowcast` came
+    out bit-identical, which is what makes the attribution clean rather than
+    MCMC noise.
+  - **Consequence for replication.** The nowcast-based results are unaffected,
+    so `2_evaluation_fcast.R` still reproduces the paper's stored RMSFE and log
+    score tables exactly (max abs difference 0 across 12 cells) — that panel is
+    built from `$nowcast` and could never have caught this. The **factor**
+    figures (`3_plots_fcast.R`, `6_factor_plot_fcast.R`) no longer reproduce the
+    published ones for `q > 1`, and are not expected to.
+  - Whether the transposition originates in the paper's own replication code or
+    in our port was **not** established — the original scripts were deleted
+    after the port (see `analysis/fcast/README.md`). Checking the paper's
+    replication material would settle it.
+
 ## Documentation & release conventions
 
 - Every exported function has `@param`, `@return`, and `@examples` (runnable where feasible; `\donttest{}` for slow-but-working; `\dontrun{}` only for functions needing the private `fits/` data or a full `inputs` bundle).

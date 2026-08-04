@@ -27,12 +27,21 @@ list2theta_fcast <- function(lambda, phi, sigma, rho, Xmat, h){
 #'
 #' Inverse of [list2theta_fcast()].
 #'
+#' @details
+#' `phi` is read back **column-major, block by block**, which is how
+#' [list2theta_fcast()] writes it (`matrix(x)` on each `q x q` block). It
+#' previously used `matrix(..., byrow = TRUE)` across the whole `phi` region,
+#' which returned each block transposed for `q > 1` -- and that transposed copy
+#' was then handed to [draw_factors_fcast()] by [run_evaluation_fcast()], while
+#' the sampler itself passes the untransposed one. See #66 and the note in
+#' CLAUDE.md. `q = 1` was unaffected, a 1x1 block being its own transpose.
+#'
 #' @noRd
 theta2list_fcast <- function(theta, n, p, q, t){
 
   list(lambda = matrix(theta[c(1:(n*q)),], ncol = q),
        phi =  lapply(1:p, function(px){
-         matrix(theta[c((n*q+1):(n*q+p*q^2)),], ncol = q, byrow = TRUE)[((px-1)*q+1):((px-1)*q+q),]}),
+         matrix(theta[(n*q + (px-1)*q^2 + 1):(n*q + px*q^2), ], nrow = q, ncol = q)}),
        sigma = theta[c((n*q+p*q^2+1):(n*q+p*q^2+n)),],
        rho = theta[c((n*q+p*q^2+n+1):(n*q+p*q^2+2*n)),],
        Xmat = matrix(theta[c((n*q+p*q^2+2*n+1):(n*q+p*q^2+2*n+n*t)),], ncol = n),
