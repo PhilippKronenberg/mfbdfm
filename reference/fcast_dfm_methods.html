@@ -103,6 +103,77 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
     <div class="dont-index"><p><code><a href="fcast_dfm.html">fcast_dfm()</a></code>, <a href="ind_dfm_methods.html">ind_dfm_methods</a></p></div>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">target</span> <span class="op">&lt;-</span> <span class="st">"ch.seco.gdp.real.gdp.ssa"</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="fcast_dfm.html">fcast_dfm</a></span><span class="op">(</span>flows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>                                <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                 stocks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>                                 <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                 target <span class="op">=</span> <span class="va">target</span>, q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">20</span>, burn_in <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> preallocating..</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> simulating posterior distribution..</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> running rotation of each draw..</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 1: convergence 2.83e-05</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 2: convergence 2.05e-05</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 3: convergence 2.71e-06</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 4: convergence 1.09e-06</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 5: convergence 4.44e-06</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Rotation did not converge after 5 iterations (last change 4.44e-06, criterion "mean", tolerance 1e-09). Factor draws may not be rotated onto a common reference; consider raising `rotation_max_iter` in dfm_control().</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> running identification..</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> processing output..</span>
+<span class="r-in"><span><span class="va">fit</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multi-factor mixed-frequency dynamic factor model (Eckert et al. 2025)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Call: fcast_dfm(flows = lapply(data_ch_dataset_test$flows[c(target,     "SWISSMI")], stats::window, start = 2021), stocks = lapply(data_ch_dataset_test$stocks[1:2], </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   series (n)      : 4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   factors (q)     : 2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   factor lags (p) : 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   periods (t)     : 250</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Target series: ch.seco.gdp.real.gdp.ssa</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Most recent nowcasts (95% band):</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         time   observed    nowcast      lower      upper</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2024.000    -0.0012    -0.0012    -0.0012    -0.0012</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2024.250     0.0078     0.0078     0.0078     0.0078</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2024.500     0.0029     0.0029     0.0029     0.0029</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2024.750     0.0052     0.0052     0.0052     0.0052</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2025.000     0.0079     0.0079     0.0079     0.0079</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2025.250     0.0012     0.0012     0.0012     0.0012</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2025.500    -0.0044    -0.0044    -0.0044    -0.0044</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2025.750     0.0015     0.0015     0.0015     0.0015</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $ncst (all series), $data_hf, $target_series</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>          <span class="co"># a q-column matrix here, a vector for ind_dfm()</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                               factor1      factor2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ch.seco.gdp.real.gdp.ssa -0.006836276 -0.003745831</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SWISSMI                  -0.030761363 -0.011022397</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SWCONPRCE                 0.149391280  0.084153123</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SWPROPRCE                 0.029629679  0.065903122</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       time     factor1 factor1_lower factor1_upper     factor2 factor2_lower</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 2020.542 -0.23909098     -2.230828      1.752646 -0.16804491     -2.262626</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 2020.562  0.08903385     -2.247697      2.425765 -0.17912296     -2.315936</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 2020.583  0.49154136     -2.081632      3.064715 -0.27295845     -2.351980</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 2020.604  0.53385847     -1.525837      2.593554  0.07218768     -2.250751</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 2020.625  0.52847328     -1.826084      2.883031  0.13162465     -1.680698</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 2020.646  0.72151460     -2.085460      3.528489  0.30193638     -1.933885</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   factor2_upper</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1.926536</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      1.957690</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      1.806064</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4      2.395126</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5      1.943948</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      2.537758</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
+<span class="r-in"><span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

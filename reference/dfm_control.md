@@ -63,7 +63,7 @@ rotates, so `rotation_*` is ignored by
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md).
 
 Appendix E of the online appendix to Eckert et al. (2025), following
-Aßmann, Boysen-Hogrefe & Pape (2016), specifies convergence when the
+Assmann, Boysen-Hogrefe & Pape (2016), specifies convergence when the
 **sum** of squared deviations between successive `theta*` falls below
 `1e-9`. The implementation has always tested the **mean**, which over a
 packed vector of several thousand elements is a much weaker requirement,
@@ -97,7 +97,7 @@ used. The others cap or reject a draw for numerical stability:
 
 ## References
 
-Aßmann, C., Boysen-Hogrefe, J., & Pape, M. (2016). Bayesian analysis of
+Assmann, C., Boysen-Hogrefe, J., & Pape, M. (2016). Bayesian analysis of
 static and dynamic factor models with an unknown number of factors, and
 structural instability. *Journal of Applied Econometrics*, 31(8),
 1518-1533.
