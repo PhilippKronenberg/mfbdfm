@@ -15,6 +15,7 @@ The `fcast_dfm()` counterpart of the WAI scripts in `analysis/` and
 | `4_reproduce_paper_figures.R` | replicates the published figures from the paper's own inputs | `analysis/outputs/fcast/replication/figures/` |
 | `5_error_tables_fcast.R` | RMSFE/MAE/log-score tables by subsample + Diebold-Mariano | `analysis/outputs/fcast/<id>/tables/` |
 | `6_factor_plot_fcast.R` | factors from the q = 1..4 runs, aligned and overlaid | `analysis/outputs/fcast/replication/figures/` |
+| `6b_refit_factor_counts.R` | refits q = 1..4 at 2021.979, as a stand-in when the paper's fits are absent | `fits/fcast_replication/q<n>/fit_2021.979.Rda` |
 
 `1_backcast_fcast.R` has a `quick_check` switch: `TRUE` runs a short chain in
 minutes to prove the wiring, `FALSE` fits one date properly.
@@ -105,6 +106,15 @@ same model (1611 periods against 1558) and do **not** reproduce it: 5 of 10
 groups on the same informative rows. That is not a defect in either set. It is the post-hoc rotation failing
 to reach uniqueness across runs, documented under `?fcast_dfm` and #46, and it
 is the reason the alignment is derived here rather than hardcoded.
+
+Because `<n>f_fit_2021.979.Rda` is not committed, `6_factor_plot_fcast.R` falls
+back to **`fits/fcast_replication/q<n>/fit_2021.979.Rda`**, produced by
+`6b_refit_factor_counts.R` — our own refit at the same date on the same data.
+It warns when it uses them, for the reason above: a third run need not settle on
+the same rotation, so the derived alignment may differ from the published one.
+They replaced the `testlauf_<n>f.Rda` fallback, which was worse on both counts —
+a different sample as well as a different run, and the last objects in this
+workflow still saved under the pre-rename name `out` rather than `mod`.
 
 ## BMDFM benchmark
 

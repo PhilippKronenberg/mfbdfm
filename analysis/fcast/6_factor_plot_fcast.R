@@ -35,28 +35,36 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 # LOAD --------------------------------------------------------------------
 
 # <n>f_fit_2021.979.Rda are the fits the published figure was actually built
-# from. The testlauf_<n>f.Rda files are a DIFFERENT run of the same model - 1611
-# periods against 1558 - and using them does not reproduce the alignment (5 of
-# 10 groups, against 10 of 10 here). Kept as the fallback, with a warning,
-# because the difference is instructive rather than fatal: it is the post-hoc
-# rotation failing to reach uniqueness across runs, per #46.
+# from. They are not committed, so the fallback is our own refit at the same
+# date on the same data, produced by 6b_refit_factor_counts.R.
+#
+# The fallback is a DIFFERENT run, and the post-hoc rotation does not reach
+# uniqueness across runs (#46), so the derived alignment may not match the
+# published one. That is instructive rather than fatal, hence a warning and not
+# an error. (The paper's own testlauf_<n>f.Rda files were the fallback until
+# 442337c; they are a different run *and* a different sample - 1611 periods
+# against 1558 - reproducing 5 of 10 groups, and they are the last objects in
+# this workflow saved under the pre-rename name `out`.)
+refit_root <- file.path("fits", "fcast_replication")
+
 fits <- list()
 for (q in 1:4) {
   f <- file.path(ref_dir, sprintf("%df_fit_2021.979.Rda", q))
-  fallback <- file.path(ref_dir, sprintf("testlauf_%df.Rda", q))
+  fallback <- file.path(refit_root, paste0("q", q), "fit_2021.979.Rda")
 
   if (file.exists(f)) {
     e <- new.env(); load(f, envir = e)
     fits[[q]] <- e$mod
   } else if (file.exists(fallback)) {
-    warning("Using ", basename(fallback), " - a different run from the one the ",
-            "published figure used. The factor alignment will not match.",
-            call. = FALSE)
+    warning("Using ", fallback, " - our own refit, not the run the published ",
+            "figure used. The factor alignment may not match.", call. = FALSE)
     e <- new.env(); load(fallback, envir = e)
-    fits[[q]] <- e$out
+    fits[[q]] <- e$mod
   } else {
     stop("Missing ", f, ".\n  These are the paper's fitted objects and are not ",
-         "committed - see analysis/fcast/README.md.", call. = FALSE)
+         "committed - see analysis/fcast/README.md.\n",
+         "  Run analysis/fcast/6b_refit_factor_counts.R to produce a ",
+         "stand-in.", call. = FALSE)
   }
 }
 
