@@ -26,8 +26,35 @@ source("analysis/5_plots/_setup.R")  # figures_dir / tables_dir / results_dir
 
 fit_root <- "fits"  # root of the model fits (git-ignored)
 
-load("analysis/Rda/results_evaluation.Rda")
-load("analysis/Rda/data_ch_dataset_test.Rda")
+# The Eckert et al. (2025) paper's stored evaluation tables. Part of the
+# replication material under analysis/fcast/reference/, which is gitignored, so
+# a clean clone will not have it -- see analysis/fcast/README.md. The former
+# path here, analysis/Rda/results_evaluation.Rda, was written by no script in
+# this repository (#63).
+#
+# Nothing further down references an object from this file by name. The one
+# symbol in this script that no other line supplies was `out` in the Serial
+# Correlation section, and that is a WAI fit (`$data`, `$pars$rho`), not an
+# evaluation table -- it is read from `mod` in the fit file there now. The load
+# is kept, and reports what it brought in, so that claim can be checked against
+# the file rather than taken on trust.
+ref_rda_dir <- "analysis/fcast/reference/rda"
+ref_evaluation <- file.path(ref_rda_dir, "results_evaluation.Rda")
+if (!file.exists(ref_evaluation)) {
+  stop("No reference evaluation tables at ", ref_evaluation, ".\n",
+       "  These are the paper's stored results and are not committed - see ",
+       "analysis/fcast/README.md.", call. = FALSE)
+}
+loaded_evaluation <- load(ref_evaluation, envir = environment())
+message("Loaded ", length(loaded_evaluation), " object(s) from ", ref_evaluation,
+        ": ", paste(loaded_evaluation, collapse = ", "))
+
+dataset_test_rda <- file.path("analysis", "Rda", "data_ch_dataset_test.Rda")
+if (!file.exists(dataset_test_rda)) {
+  stop("No prepared dataset at ", dataset_test_rda, ".\n",
+       "  Run analysis/1_data_prep_dataset.R first.", call. = FALSE)
+}
+load(dataset_test_rda)
 
 # Metadata Table ------------------------------------------------------------------
 
@@ -39,7 +66,15 @@ names(metadata)[names(metadata) == "Flow"] <- "Type"
 names(metadata)[names(metadata) == "keys"] <- "Keys"
 
 # Add End Date From Raw Data Availability File
-date_ranges <- read.csv("analysis/out/data_ch_dataset_raw_start_end.csv", stringsAsFactors = FALSE)
+# Written by analysis/1_data_prep_dataset.R; analysis/out/ is gitignored, so a
+# clean checkout will not have it. Named explicitly so this is not mistaken for
+# the missing-producer bug on the reference file above (#63).
+raw_start_end_csv <- file.path("analysis", "out", "data_ch_dataset_raw_start_end.csv")
+if (!file.exists(raw_start_end_csv)) {
+  stop("No raw data availability file at ", raw_start_end_csv, ".\n",
+       "  Run analysis/1_data_prep_dataset.R first.", call. = FALSE)
+}
+date_ranges <- read.csv(raw_start_end_csv, stringsAsFactors = FALSE)
 if (!"Keys" %in% names(date_ranges) && "series" %in% names(date_ranges)) {
   names(date_ranges)[names(date_ranges) == "series"] <- "Keys"
 }
@@ -632,7 +667,12 @@ print(
 metadata <- utils::read.csv("data-raw/data_meta.csv")
 
 # get in-sample results
+# The fit files store the object as `mod` (R/backcast.R saves `save(mod, ...)`,
+# and extract_wai_data() errors if it is named anything else). This section still
+# read `out`, the pre-rename name, so it was the one genuinely dangling symbol in
+# the script -- not something the loaded evaluation tables supplied (#63).
 load(file.path(fit_root, "updated/full_RT/fit_2025.979.Rda"))
+out <- mod
 
 # get variable names and sort them according to the in-sample results
 mod_var_names <- colnames(out$data)
