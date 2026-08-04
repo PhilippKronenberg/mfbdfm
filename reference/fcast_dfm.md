@@ -270,6 +270,7 @@ Kronenberg, P. (2026). A high-frequency GDP indicator for Switzerland.
 for the single-factor, target-anchored model.
 
 Other model fitting functions:
+[`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md),
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
 [`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
 

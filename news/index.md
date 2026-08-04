@@ -183,10 +183,27 @@ Bayesian dynamic factor model and WAI is one application of it
 
 ### Performance
 
+- [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md)
+  estimates the peak memory of a
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  fit from the data dimensions and the chain length, and
+  [`dfm_workers()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md)
+  turns that into a worker count for a parallel sweep. Vintage sweeps
+  are memory-bound rather than core-bound, and the failure mode is an
+  opaque `CHOLMOD error 'out of memory'` hours into a run, so the worker
+  count is now derived rather than guessed. Fitted to six measured fits
+  (adjusted R-squared 0.98) and validated against a fit on different
+  data and a different code version to within 7%. Worth knowing: peak
+  memory is **linear** in the factor count `q`, not quadratic – the
+  sparse Cholesky term that would make it quadratic is an order of
+  magnitude smaller than the observation matrix’s working set
+  ([\#64](https://github.com/PhilippKronenberg/mfbdfm/issues/64)).
+
 - Peak memory during a fit is lower, without changing any result. All
   four `dev/baseline.rds` configurations remain identical after each of
   the changes below
   ([\#64](https://github.com/PhilippKronenberg/mfbdfm/issues/64)):
+
   - The observation matrix’s sparsity pattern, `Gmat_prealloc`, is built
     directly from index vectors instead of by `rbind`-ing one block per
     period. The old form allocated roughly ten times the size of the
