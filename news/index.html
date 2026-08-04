@@ -62,6 +62,13 @@
 <li><p>Exported functions validate their inputs and report the offending argument (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/48" class="external-link">#48</a>).</p></li>
 </ul></div>
 <div class="section level3">
+<h3 id="performance-0-0-0-9000">Performance<a class="anchor" aria-label="anchor" href="#performance-0-0-0-9000"></a></h3>
+<ul><li>Peak memory during a fit is lower, without changing any result. All four <code>dev/baseline.rds</code> configurations remain identical after each of the changes below (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/64" class="external-link">#64</a>):
+<ul><li>The observation matrix’s sparsity pattern, <code>Gmat_prealloc</code>, is built directly from index vectors instead of by <code>rbind</code>-ing one block per period. The old form allocated roughly ten times the size of the finished object: at the WAI’s dimensions it took the high-water mark from 168 MB to 285 MB to produce a 35 MB matrix, against 117 MB of transient allocation now. This cost is <em>fixed</em> – it does not scale with <code>length_sample</code> – so it set the floor under every fit regardless of chain length. Measured end to end on a two-factor fit with 200 retained draws, peak memory fell from 884 MB to 744 MB.</li>
+<li>The rotation accumulates its running sums instead of materialising a list of per-draw matrices first, and <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> releases the raw draws and the rotation matrices once identification is done. Both are bit-identical (<code>Reduce("+", ...)</code> sums in the same order as the accumulator), but be aware that <strong>neither moved the measured peak</strong> on its own – the peak was set elsewhere, by <code>Gmat_prealloc</code> above.</li>
+</ul></li>
+</ul></div>
+<div class="section level3">
 <h3 id="bug-fixes-0-0-0-9000">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-0-0-9000"></a></h3>
 <ul><li>
 <code><a href="../reference/retrieve_nowcast.html">retrieve_nowcast()</a></code> and <code><a href="../reference/retrieve_nowcast_var.html">retrieve_nowcast_var()</a></code> failed with “object ‘ncst’ not found” for any <code>model</code> other than <code>"ar"</code> or <code>"wai"</code>, naming neither the argument nor the expectation. Now use <code><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg()</a></code> (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/48" class="external-link">#48</a>).</li>

@@ -181,6 +181,30 @@ Bayesian dynamic factor model and WAI is one application of it
   argument
   ([\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48)).
 
+### Performance
+
+- Peak memory during a fit is lower, without changing any result. All
+  four `dev/baseline.rds` configurations remain identical after each of
+  the changes below
+  ([\#64](https://github.com/PhilippKronenberg/mfbdfm/issues/64)):
+  - The observation matrix’s sparsity pattern, `Gmat_prealloc`, is built
+    directly from index vectors instead of by `rbind`-ing one block per
+    period. The old form allocated roughly ten times the size of the
+    finished object: at the WAI’s dimensions it took the high-water mark
+    from 168 MB to 285 MB to produce a 35 MB matrix, against 117 MB of
+    transient allocation now. This cost is *fixed* – it does not scale
+    with `length_sample` – so it set the floor under every fit
+    regardless of chain length. Measured end to end on a two-factor fit
+    with 200 retained draws, peak memory fell from 884 MB to 744 MB.
+  - The rotation accumulates its running sums instead of materialising a
+    list of per-draw matrices first, and
+    [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+    releases the raw draws and the rotation matrices once identification
+    is done. Both are bit-identical (`Reduce("+", ...)` sums in the same
+    order as the accumulator), but be aware that **neither moved the
+    measured peak** on its own – the peak was set elsewhere, by
+    `Gmat_prealloc` above.
+
 ### Bug fixes
 
 - [`retrieve_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast.md)
