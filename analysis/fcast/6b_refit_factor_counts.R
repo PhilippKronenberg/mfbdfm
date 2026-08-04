@@ -33,12 +33,11 @@ library(doParallel)
 
 factor_counts <- 1:4
 
-# NOT round(2021 + 47/48, 3). run_fcast() trims the factor with
-# trim_to(mod$factor, date), and the grid point is 2021.97916..., so the rounded
-# 2021.979 is *below* it and window() drops the final week: measured 1557
-# periods against the paper's 1558, same start, one period short at the end.
-# run_fcast() rounds for the file name itself, so the output is still
-# fit_2021.979.Rda.
+# The exact grid point, not round(., 3). trim_to() now carries a tolerance so
+# the rounded form works too (#65), but passing the date the model is actually
+# being fitted at is the honest version, and it does not depend on that
+# tolerance staying wide enough. run_fcast() rounds for the file name itself,
+# so the output is still fit_2021.979.Rda.
 fit_date <- 2021 + 47/48
 fit_label <- round(fit_date, 3)
 

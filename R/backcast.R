@@ -125,16 +125,33 @@ run_wai_adj <- function(flows, stocks, target, date, dataset_used, stochastic_vo
 #' the available data, and the warning carries no information, so it is avoided
 #' rather than suppressed.
 #'
+#' @details
+#' The comparison carries a tolerance, because evaluation dates travel through
+#' this workflow rounded to three decimals -- `round(date, 3)` appears in the
+#' driver scripts and in the fit file names -- while a series' own grid points
+#' are not rounded. At frequency 48 the last week of 2021 is 2021.979167, which
+#' rounds *down* to 2021.979, so an exact comparison silently dropped the very
+#' observation the date names: fits came out one period short (measured 1557
+#' against 1558) with no warning, since the whole point of this function is that
+#' it does not warn.
+#'
+#' A tenth of a period is the tolerance. It is comfortably above the 5e-4 worst
+#' case from rounding to three decimals and far below the spacing between grid
+#' points, so it can pull a rounded date back onto the point it names but can
+#' never reach the next one.
+#'
 #' @noRd
-#' @importFrom stats window time
+#' @importFrom stats window time frequency
 trim_to <- function(x, end){
 
   if(is.null(x) || !length(x)) return(x)
 
-  last <- as.numeric(tail(time(x), 1))
-  if(!is.finite(end) || end >= last) return(x)
+  tol <- 0.1 / frequency(x)
 
-  window(x, end = end)
+  last <- as.numeric(tail(time(x), 1))
+  if(!is.finite(end) || end + tol >= last) return(x)
+
+  window(x, end = end + tol)
 
 }
 

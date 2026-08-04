@@ -127,6 +127,16 @@ application of it (#37).
 
 ## Bug fixes
 
+* `run_fcast()` and `run_wai_adj()` returned a fit one period short whenever the
+  evaluation date rounded down. Dates travel through the workflow rounded to
+  three decimals, while the series' grid points do not: at frequency 48 the last
+  week of 2021 is 2021.979167, which rounds to 2021.979, and the internal
+  `trim_to()` compared exactly and dropped the observation the date names.
+  Silent by construction, since `trim_to()` exists so that `window()`'s "'end'
+  value not changed" warning does not fire. It affected `$factor` only --
+  `$nowcast` is trimmed against the target series, not the date, so evaluation
+  results are unchanged. `trim_to()` now carries a tolerance of a tenth of a
+  period (#65).
 * `retrieve_nowcast()` and `retrieve_nowcast_var()` failed with
   "object 'ncst' not found" for any `model` other than `"ar"` or `"wai"`,
   naming neither the argument nor the expectation. Now use `match.arg()` (#48).

@@ -119,6 +119,31 @@ test_that("run_wai_adj does not warn about a no-op window", {
 })
 
 
+test_that("trim_to keeps the observation a rounded date names", {
+
+  # Evaluation dates travel through this workflow rounded to three decimals,
+  # while the series' grid points are not. At frequency 48 the last week of 2021
+  # is 2021.979167, which rounds DOWN to 2021.979, so the exact comparison this
+  # replaced dropped the observation the date names - silently, since trim_to()
+  # exists precisely so that it does not warn. Fits came out 1557 periods long
+  # against the paper's 1558.
+  x <- stats::ts(1:5, start = 2021 + 43/48, frequency = 48)
+  last_week <- 2021 + 47/48
+
+  expect_length(trim_to(x, round(last_week, 3)), 5L)
+  expect_length(trim_to(x, last_week), 5L)
+
+  # the tolerance pulls a rounded date back onto the point it names, and must
+  # never reach the next one
+  expect_length(trim_to(x, round(2021 + 46/48, 3)), 4L)
+  expect_length(trim_to(x, 2021 + 45/48), 3L)
+
+  # and it still trims when there is genuinely something to trim
+  expect_equal(max(as.numeric(stats::time(trim_to(x, 2021 + 44/48)))),
+               2021 + 44/48)
+})
+
+
 test_that("retrieve_nowcast and retrieve_nowcast_var dispatch on model type", {
   fit <- list(nowcast = stats::ts(c(0.1, 0.7), start = c(2024, 1), frequency = 4),
               nowcast_var = stats::ts(c(0.02, 0.05), start = c(2024, 1), frequency = 4))
