@@ -272,6 +272,15 @@ fcast_dfm <- function(flows = NULL,
   message("running identification..")
   rlist <- run_identification_fcast(theta_out, D_save, n = n, q = q, p = p, s = s, t = t)
 
+  # Nothing below reads theta_out or D_save - run_evaluation_fcast() works from
+  # rlist. Left in the frame they stay reachable through the whole evaluation
+  # phase, which is where peak memory occurs, and theta_out alone is
+  # length_sample x ~64,600 doubles: roughly 0.5 MB per retained draw. Dropping
+  # them here is not a change to any computation, only to when the collector is
+  # allowed to reclaim them. See #64.
+  rm(theta_out, D_save)
+  invisible(gc(verbose = FALSE))
+
 
   # EVALUATION --------------------------------------------------------------
 
