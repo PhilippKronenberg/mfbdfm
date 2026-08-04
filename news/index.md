@@ -207,6 +207,21 @@ Bayesian dynamic factor model and WAI is one application of it
 
 ### Bug fixes
 
+- [`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
+  and
+  [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
+  returned a fit one period short whenever the evaluation date rounded
+  down. Dates travel through the workflow rounded to three decimals,
+  while the series’ grid points do not: at frequency 48 the last week of
+  2021 is 2021.979167, which rounds to 2021.979, and the internal
+  `trim_to()` compared exactly and dropped the observation the date
+  names. Silent by construction, since `trim_to()` exists so that
+  [`window()`](https://rdrr.io/r/stats/window.html)’s “‘end’ value not
+  changed” warning does not fire. It affected `$factor` only –
+  `$nowcast` is trimmed against the target series, not the date, so
+  evaluation results are unchanged. `trim_to()` now carries a tolerance
+  of a tenth of a period
+  ([\#65](https://github.com/PhilippKronenberg/mfbdfm/issues/65)).
 - [`retrieve_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast.md)
   and
   [`retrieve_nowcast_var()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast_var.md)
