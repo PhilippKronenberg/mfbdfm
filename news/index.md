@@ -207,6 +207,17 @@ Bayesian dynamic factor model and WAI is one application of it
 
 ### Bug fixes
 
+- [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)’s
+  `factor`, `factor_var` and `pars$phi` were computed from a transposed
+  VAR coefficient matrix when `q > 1`. The internal packer writes each
+  `q x q` block column-major and the unpacker read it back row-major, so
+  the two callers of the factor-drawing step disagreed about the
+  orientation. **Results change for `q > 1`**; `lambda`, `sigma`, `rho`
+  and all nowcasts are unaffected, as is
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+  and `q = 1` was never affected because a 1x1 block is its own
+  transpose
+  ([\#66](https://github.com/PhilippKronenberg/mfbdfm/issues/66)).
 - [`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
   and
   [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)

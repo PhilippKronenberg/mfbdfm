@@ -284,6 +284,22 @@
 <strong>Some priors are the identification, not tuning knobs.</strong> In <code>ind_dfm</code>, the target’s measurement variance (<code>c0 = t</code>, <code>d0 = t*1e-3</code>) and serial correlation (<code>R0 = 1e-9</code>) are what make the factor track GDP; relaxing them silently dissolves the anchoring. In <code>fcast_dfm</code>, the <code>lambda</code> prior must stay diffuse or it conflicts with the post-hoc rotation. <code>dfm_priors(type = ...)</code> therefore moves <strong>tunable priors only</strong>; changing a structural one requires an explicit argument that warns.</li>
 </ul></div>
 <div class="section level2">
+<h2 id="where-we-knowingly-differ-from-the-published-eckert-et-al-2025-results">Where we knowingly differ from the published Eckert et al. (2025) results<a class="anchor" aria-label="anchor" href="#where-we-knowingly-differ-from-the-published-eckert-et-al-2025-results"></a></h2>
+<p><strong>Internal note, kept here deliberately and not in any package documentation.</strong> It records a place where our code is correct and the published figures are not reproducible from it, so that nobody later “discovers” the discrepancy and tries to undo the fix.</p>
+<ul><li>
+<strong><code>phi</code> was transposed on unpacking (#66, fixed).</strong> <code>list2theta_fcast()</code> packs each <code>q x q</code> VAR block column-major; <code>theta2list_fcast()</code> read the whole <code>phi</code> region back with <code>byrow = TRUE</code>, so every block came back <strong>transposed for <code>q &gt; 1</code></strong>. The transposed copy was then handed to <code>draw_factors_fcast()</code> by <code>run_evaluation_fcast()</code>, while <code>run_sampling_fcast()</code> passes the untransposed one — the two callers of the same function disagreed, and <code>phi[[px]]</code> enters a Kronecker product there, so orientation matters.
+<ul><li>
+<strong><code>q = 1</code> was never affected</strong> (a 1x1 block is its own transpose), so every WAI workflow and every <code><a href="reference/ind_dfm.html">ind_dfm()</a></code> result is untouched. This is why it survived so long.</li>
+<li>
+<strong>Scope, confirmed by <code>baseline_check()</code> rather than argued</strong>: after the fix, <code>ind_default</code>, <code>ind_no_sv</code> and <code>ind_no_serial</code> are <em>identical</em>, and <code>fcast_q2</code> differs in exactly <code>factor</code>, <code>factor_var</code> and <code>phi</code> — not <code>lambda</code>, not <code>nowcast</code>, not <code>sigma</code>/<code>rho</code>.</li>
+<li>
+<strong>Size of the change</strong>, <code>q = 2</code> on the shipped test data, same seed, phi orientation the only difference: factor 1 correlation 0.964, factor 2 correlation 0.807, max absolute differences 0.378 and 0.416 against series standard deviations of 0.425 and 0.204. <code>pars$lambda</code> and <code>$nowcast</code> came out bit-identical, which is what makes the attribution clean rather than MCMC noise.</li>
+<li>
+<strong>Consequence for replication.</strong> The nowcast-based results are unaffected, so <code>2_evaluation_fcast.R</code> still reproduces the paper’s stored RMSFE and log score tables exactly (max abs difference 0 across 12 cells) — that panel is built from <code>$nowcast</code> and could never have caught this. The <strong>factor</strong> figures (<code>3_plots_fcast.R</code>, <code>6_factor_plot_fcast.R</code>) no longer reproduce the published ones for <code>q &gt; 1</code>, and are not expected to.</li>
+<li>Whether the transposition originates in the paper’s own replication code or in our port was <strong>not</strong> established — the original scripts were deleted after the port (see <code>analysis/fcast/README.md</code>). Checking the paper’s replication material would settle it.</li>
+</ul></li>
+</ul></div>
+<div class="section level2">
 <h2 id="documentation--release-conventions">Documentation &amp; release conventions<a class="anchor" aria-label="anchor" href="#documentation--release-conventions"></a></h2>
 <ul><li>Every exported function has <code>@param</code>, <code>@return</code>, and <code>@examples</code> (runnable where feasible; <code>\donttest{}</code> for slow-but-working; <code>\dontrun{}</code> only for functions needing the private <code>fits/</code> data or a full <code>inputs</code> bundle).</li>
 <li>
