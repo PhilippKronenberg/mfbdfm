@@ -84,8 +84,25 @@ run_rotation_fcast <- function(theta_out, n, q, p, s, t, ncores = NULL,
     }
 
     # 2. Compute theta star  (step (2) of the appendix algorithm)
-    rlist <- lapply(1:length_sample, function(rx) apply_rotation_fcast(D_save[[rx]], theta_out[rx,], n, q, p))
-    theta_star_new <- matrix(Reduce("+",rlist)/length(rlist))
+    #
+    # Accumulated rather than materialised. This was
+    #   rlist <- lapply(seq_len(length_sample), function(rx) apply_rotation_fcast(...))
+    #   theta_star_new <- matrix(Reduce("+", rlist) / length(rlist))
+    # which holds every rotated draw at once purely to sum them: a full copy of
+    # theta_out, about 490 MB at 1000 draws, rebuilt on every iteration of this
+    # loop. Nothing else reads rlist here.
+    #
+    # Bit-identical, not merely close: Reduce("+", list) is ((x1 + x2) + x3)...,
+    # exactly the order this loop adds in, so the floating-point result is the
+    # same. Verified with baseline_check(). Do not "simplify" this to
+    # rowMeans() or mean() - those sum differently and would shift the last bits.
+    theta_sum <- apply_rotation_fcast(D_save[[1]], theta_out[1, ], n, q, p)
+    if(length_sample > 1){
+      for(rx in 2:length_sample){
+        theta_sum <- theta_sum + apply_rotation_fcast(D_save[[rx]], theta_out[rx, ], n, q, p)
+      }
+    }
+    theta_star_new <- matrix(theta_sum / length_sample)
 
     # 3. Status message
     i <- i + 1
@@ -211,19 +228,26 @@ initialize_theta_star_fcast <- function(theta_out, length_sample, n, q, p, s, t,
 
     W <- diag(unlist(W0))
 
-    rlist <- lapply(1:length_sample, function(rx){
+    # Accumulated rather than materialised, as in run_rotation_fcast() above -
+    # the list existed only to be summed. Same argument for bit-identity:
+    # Reduce("+", list) adds in exactly this order.
+    #
+    # D_bar_star does not depend on rx, so it is also lifted out of the loop
+    # instead of being recomputed length_sample times from the same theta_star.
+    D_bar_star <- theta2list_fcast(theta = theta_star, n = n, p = p, q = q, t = t)$lambda
 
+    rotate_one <- function(rx){
       D_bar <- theta2list_fcast(theta = matrix(theta_out[rx,]), n = n, p = p, q = q, t = t)$lambda
-      D_bar_star <- theta2list_fcast(theta = theta_star, n = n, p = p, q = q, t = t)$lambda
-
       S <- svd(t(D_bar) %*% W %*% D_bar_star)
-      D <- S$u %*% t(S$v)
+      apply_rotation_fcast(S$u %*% t(S$v), theta_out[rx,], n, q, p)
+    }
 
-      apply_rotation_fcast(D, theta_out[rx,], n, q, p)
+    theta_sum <- rotate_one(1)
+    if(length_sample > 1){
+      for(rx in 2:length_sample) theta_sum <- theta_sum + rotate_one(rx)
+    }
 
-    })
-
-    theta_star_new <- matrix(Reduce("+",rlist)/length(rlist))
+    theta_star_new <- matrix(theta_sum / length_sample)
 
     # Convergence check on the loading block only. Note this test is the SUM of
     # squared deviations (t(d) %*% d), i.e. the criterion the appendix specifies
