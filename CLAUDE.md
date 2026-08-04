@@ -221,6 +221,30 @@ tries to undo the fix.
     in our port was **not** established — the original scripts were deleted
     after the port (see `analysis/fcast/README.md`). Checking the paper's
     replication material would settle it.
+  - **How far the fix actually moves us from the published factors.** Refitting
+    `q = 1..4` at 2021.979 on the paper's own data (`6b_refit_factor_counts.R`,
+    post-fix) and matching each of our factors to whichever of the paper's it
+    correlates with most strongly in absolute value — the same rule
+    `6_factor_plot_fcast.R` uses, factors being identified only up to rotation
+    and sign:
+
+    | | best absolute correlation with the paper's factors | mean |
+    | --- | --- | --- |
+    | q = 1 | 0.980 | 0.980 |
+    | q = 2 | 0.975, 0.864 | 0.919 |
+    | q = 3 | 0.824, 0.964, 0.790 | 0.859 |
+    | q = 4 | 0.949, 0.813, 0.987, 0.951 | 0.925 |
+
+    **Read `q = 1` as the control.** It is untouched by this fix, so its 0.980
+    is what run-to-run variation *alone* produces — a different chain settling
+    on a different rotation (#46). The multi-factor rows sit in the same range,
+    so the fix does not push us dramatically further from the published factors
+    than simply re-running the model already does. Do not read these numbers as
+    the size of the bug; the isolated measurement of that is the same-seed
+    comparison above (0.964 / 0.807).
+  - The q = 2 **nowcast** correlates with the paper's at **0.9958** over 128
+    quarters, which is the other half of the same story: the nowcast path never
+    went through the transposed `phi`.
 
 ## Documentation & release conventions
 

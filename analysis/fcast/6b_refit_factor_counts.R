@@ -82,8 +82,16 @@ message(length(factor_counts), " fits (q = ",
 message("memory: ", round(attr(plan, "per_fit_mb")), " MB per fit at q = ",
         max(factor_counts), ", ", round(attr(plan, "available_mb")),
         " MB free -> ", n_workers, " workers")
-message("estimated wall-clock: at least ",
-        round(ceiling(length(factor_counts) / n_workers) * 49.2 / 60, 1), " h")
+# Runtime grows with q too, so a single per-fit constant understates it: the
+# first run of this predicted 0.8 h from the sweep's q = 2 figure of 49.2 min
+# and took 1.64 h. Measured wall clock for this exact configuration
+# (length_sample = 500, thinning = 2, 4 concurrent workers, the paper's data):
+# 27, 44, 68 and 99 minutes for q = 1..4.
+mins_per_fit <- c(27, 44, 68, 99)
+sched <- split(mins_per_fit[factor_counts],
+               rep_len(seq_len(n_workers), length(factor_counts)))
+message("estimated wall-clock: ",
+        round(max(vapply(sched, sum, numeric(1))) / 60, 1), " h")
 
 
 # REFIT -----------------------------------------------------------------------
