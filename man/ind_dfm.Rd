@@ -151,6 +151,7 @@ the priors, and \link{ind_dfm_methods} for the \code{print}, \code{summary}, \co
 \code{coef}, \code{fitted}, \code{residuals} and \code{as.data.frame} methods.
 
 Other model fitting functions: 
+\code{\link{dfm_memory}()},
 \code{\link{fcast_dfm}()},
 \code{\link{run_fcast}()}
 }

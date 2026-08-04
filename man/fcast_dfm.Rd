@@ -192,6 +192,7 @@ Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.
 \code{\link[=ind_dfm]{ind_dfm()}} for the single-factor, target-anchored model.
 
 Other model fitting functions: 
+\code{\link{dfm_memory}()},
 \code{\link{ind_dfm}()},
 \code{\link{run_fcast}()}
 }

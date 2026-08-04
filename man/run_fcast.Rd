@@ -115,6 +115,7 @@ fit$nowcast
 for the model itself.
 
 Other model fitting functions: 
+\code{\link{dfm_memory}()},
 \code{\link{fcast_dfm}()},
 \code{\link{ind_dfm}()}
 }

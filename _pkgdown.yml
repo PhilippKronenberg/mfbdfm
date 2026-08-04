@@ -17,6 +17,7 @@ reference:
   - print.dfm_priors
   - dfm_control
   - print.dfm_control
+  - dfm_memory
   - mfbdfm_data
   - print.mfbdfm_data
   - create_inventory

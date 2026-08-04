@@ -41,7 +41,6 @@ factor_counts <- 1:4
 fit_date <- 2021 + 47/48
 fit_label <- round(fit_date, 3)
 
-n_workers <- 3          # memory-bound, not core-bound; see 1b_sweep_parallel.R
 fit_root <- file.path("fits", "fcast_replication")
 
 # Same chain as the sweep: 1000 post-burn-in iterations, half of them retained.
@@ -63,9 +62,26 @@ e <- new.env(); load(ref_data, envir = e)
 dat <- cut_data(e$dat, fit_date)
 stopifnot(target %in% names(dat$flows))
 
+# Worker count derived, not guessed. Sized on the LARGEST q in the run, since
+# all of them may be in flight at once and memory grows with q. The first
+# attempt at this hard-coded 3 workers and lost q = 3 and q = 4 to
+# "CHOLMOD error 'out of memory'" after an hour. See ?dfm_memory.
+inv0 <- create_inventory(flows = dat$flows, stocks = dat$stocks)
+Ymat0 <- prepare_data(dat$flows, dat$stocks, inv0, target = target)
+k0 <- max(inv0$freq) / min(inv0$freq)
+dims <- list(n = ncol(Ymat0), t = nrow(Ymat0), s = 2 * (k0 - 1),
+             frequency = max(inv0$freq))
+rm(Ymat0)
+
+plan <- do.call(dfm_workers, c(dims, list(
+  q = max(factor_counts), length_sample = mcmc$length_sample, extend = 0.5)))
+n_workers <- min(as.integer(plan), length(factor_counts))
+
 message(length(factor_counts), " fits (q = ",
-        paste(factor_counts, collapse = ", "), ") at ", fit_label,
-        ", ", n_workers, " workers")
+        paste(factor_counts, collapse = ", "), ") at ", fit_label)
+message("memory: ", round(attr(plan, "per_fit_mb")), " MB per fit at q = ",
+        max(factor_counts), ", ", round(attr(plan, "available_mb")),
+        " MB free -> ", n_workers, " workers")
 message("estimated wall-clock: at least ",
         round(ceiling(length(factor_counts) / n_workers) * 49.2 / 60, 1), " h")
 
