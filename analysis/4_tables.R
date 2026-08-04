@@ -26,7 +26,29 @@ source("analysis/5_plots/_setup.R")  # figures_dir / tables_dir / results_dir
 
 fit_root <- "fits"  # root of the model fits (git-ignored)
 
-load("analysis/Rda/results_evaluation.Rda")
+# Inputs, checked up front rather than failing at whichever load() first needs
+# them. All of them are produced by other scripts here and none is tracked, so a
+# clean checkout has none of them; naming the producer is the point (#59, #63).
+inputs <- c(
+  "analysis/Rda/data_ch_dataset_test.Rda"           = "analysis/1_data_prep_dataset.R",
+  "analysis/out/data_ch_dataset_raw_start_end.csv"  = "analysis/1_data_prep_dataset.R",
+  "fits/updated/full_RT/fit_2025.979.Rda"           = "analysis/real_time_backcast.R",
+  "fits/updated/full_RT/fit_2008.833.Rda"           = "analysis/real_time_backcast.R",
+  "fits/updated/full_RT/fit_2009.771.Rda"           = "analysis/real_time_backcast.R",
+  "fits/updated/full_RT/fit_2020.Rda"               = "analysis/real_time_backcast.R",
+  "fits/updated/full_no_sv/fit_2025.979.Rda"        = "analysis/2_backcast.R",
+  "fits/updated/only_monthly_no_sv/fit_2025.979.Rda" = "analysis/2_backcast.R",
+  "fits/updated/only_monthly/fit_2025.979.Rda"      = "analysis/2_backcast.R",
+  "fits/updated/no_financial/fit_2025.979.Rda"      = "analysis/2_backcast.R"
+)
+missing_inputs <- names(inputs)[!file.exists(names(inputs))]
+if (length(missing_inputs)) {
+  stop("4_tables.R is missing ", length(missing_inputs), " input(s):\n",
+       paste0("  ", missing_inputs, "\n    produced by ", inputs[missing_inputs],
+              collapse = "\n"),
+       call. = FALSE)
+}
+
 load("analysis/Rda/data_ch_dataset_test.Rda")
 
 # Metadata Table ------------------------------------------------------------------
@@ -156,13 +178,14 @@ print(xtable(metadata), include.rownames=FALSE, type = "latex", file = file.path
 # Lambda Table ------------------------------------------------------------
 
 
-result_wai <- extract_wai_data(file.path(fit_root, "full/testlauf5_20_04_2026.Rda"))
-result_wai_no_sv <- extract_wai_data(file.path(fit_root, "updated/full_no_sv/fit_2025.979.Rda"))
-result_wai_only_monthly_no_sv <- extract_wai_data(file.path(fit_root, "updated/only_monthly_no_sv/fit_2025.979.Rda"))
-result_wai_no_hf <- extract_wai_data(file.path(fit_root, "updated/only_monthly/fit_2025.979.Rda"))
-result_wai_no_financial <- extract_wai_data(file.path(fit_root, "updated/no_financial/fit_2025.979.Rda"))
-#result_wai_only_total_retail <- extract_wai_data(file.path(fit_root, "updated/only_total_retail/fit_2025.979.Rda"))
-
+# The five extract_wai_data() calls that used to sit here were dead: nothing in
+# this script read result_wai, result_wai_no_sv, result_wai_only_monthly_no_sv,
+# result_wai_no_hf or result_wai_no_financial. The lambda table below is built
+# from the `mod` objects loaded immediately after, which are the same fits. The
+# block is a stale copy of analysis/5_plots/analytics_in_sample.R:360-368, where
+# those objects *are* used; it also carried the only other broken path in this
+# file, fits/full/testlauf5_20_04_2026.Rda, a directory that has not existed
+# since the fits/updated/ reorganisation (#63).
 
 load(file.path(fit_root, "updated/full_RT/fit_2025.979.Rda"))
 dat_last <- mod
@@ -635,7 +658,10 @@ metadata <- utils::read.csv("data-raw/data_meta.csv")
 load(file.path(fit_root, "updated/full_RT/fit_2025.979.Rda"))
 
 # get variable names and sort them according to the in-sample results
-mod_var_names <- colnames(out$data)
+# The fit files save their object as `mod`, not `out` -- every other load() in
+# this script already reads `mod`. This section still referred to `out` and so
+# failed with "object 'out' not found" (#63).
+mod_var_names <- colnames(mod$data)
 metadata_sorted <- metadata[match(mod_var_names,metadata$keys),]
 metadata_sorted[which(metadata_sorted$Name=="Credit Card Transactions, Swiss-Wide Frequency"),"Frequency"] <- 47
 var_names <- metadata_sorted$Name
@@ -643,9 +669,9 @@ alt <- metadata_sorted$Category
 freq <- metadata_sorted$Frequency
 
 # get rhos from model output
-sd_rho <- round(sqrt(out$pars$rho_var),2) #var_rho <- formatC(var_rho, format = "e", digits = 2)
-mean_rho <- format(round(out$pars$rho,2), nsmall = 2) 
-t_rho <- round(out$pars$rho/(sqrt(out$pars$rho_var)),2)
+sd_rho <- round(sqrt(mod$pars$rho_var),2) #var_rho <- formatC(var_rho, format = "e", digits = 2)
+mean_rho <- format(round(mod$pars$rho,2), nsmall = 2)
+t_rho <- round(mod$pars$rho/(sqrt(mod$pars$rho_var)),2)
 p_rho = round(2*pt(-abs(t_rho), df=4000-1),2)
 
 # create data-frame
