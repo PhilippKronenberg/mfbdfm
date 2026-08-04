@@ -22,7 +22,7 @@
 #'
 #' Only [fcast_dfm()] rotates, so `rotation_*` is ignored by [ind_dfm()].
 #'
-#' Appendix E of the online appendix to Eckert et al. (2025), following Aßmann,
+#' Appendix E of the online appendix to Eckert et al. (2025), following Assmann,
 #' Boysen-Hogrefe & Pape (2016), specifies convergence when the **sum** of
 #' squared deviations between successive `theta*` falls below `1e-9`. The
 #' implementation has always tested the **mean**, which over a packed vector of
@@ -76,7 +76,7 @@
 #' dfm_control("ind_dfm", sigma_max = 10)
 #'
 #' @references
-#' Aßmann, C., Boysen-Hogrefe, J., & Pape, M. (2016). Bayesian analysis of
+#' Assmann, C., Boysen-Hogrefe, J., & Pape, M. (2016). Bayesian analysis of
 #' static and dynamic factor models with an unknown number of factors, and
 #' structural instability. *Journal of Applied Econometrics*, 31(8), 1518-1533.
 #'

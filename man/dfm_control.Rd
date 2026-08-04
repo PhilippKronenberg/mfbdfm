@@ -45,7 +45,7 @@ guard on the Givens angles).
 \section{The rotation stopping rule}{
 Only \code{\link[=fcast_dfm]{fcast_dfm()}} rotates, so \verb{rotation_*} is ignored by \code{\link[=ind_dfm]{ind_dfm()}}.
 
-Appendix E of the online appendix to Eckert et al. (2025), following Aßmann,
+Appendix E of the online appendix to Eckert et al. (2025), following Assmann,
 Boysen-Hogrefe & Pape (2016), specifies convergence when the \strong{sum} of
 squared deviations between successive \verb{theta*} falls below \code{1e-9}. The
 implementation has always tested the \strong{mean}, which over a packed vector of
@@ -87,7 +87,7 @@ dfm_control("ind_dfm", sigma_max = 10)
 
 }
 \references{
-Aßmann, C., Boysen-Hogrefe, J., & Pape, M. (2016). Bayesian analysis of
+Assmann, C., Boysen-Hogrefe, J., & Pape, M. (2016). Bayesian analysis of
 static and dynamic factor models with an unknown number of factors, and
 structural instability. \emph{Journal of Applied Econometrics}, 31(8), 1518-1533.
 

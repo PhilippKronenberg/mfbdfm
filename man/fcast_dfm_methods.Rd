@@ -47,6 +47,21 @@ does and for why there is no \code{predict()} method.
 \code{coef()} returns an \verb{n x q} loading matrix here rather than a vector, and
 \code{as.data.frame()} returns one mean/lower/upper triple per factor.
 }
+\examples{
+\donttest{
+data(data_ch_dataset_test)
+target <- "ch.seco.gdp.real.gdp.ssa"
+fit <- fcast_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                                stats::window, start = 2021),
+                 stocks = lapply(data_ch_dataset_test$stocks[1:2],
+                                 stats::window, start = 2021),
+                 target = target, q = 2, length_sample = 20, burn_in = 5)
+fit
+coef(fit)          # a q-column matrix here, a vector for ind_dfm()
+head(as.data.frame(fit))
+}
+
+}
 \seealso{
 \code{\link[=fcast_dfm]{fcast_dfm()}}, \link{ind_dfm_methods}
 }

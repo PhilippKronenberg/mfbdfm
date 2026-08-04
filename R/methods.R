@@ -100,6 +100,20 @@ NULL
 #'
 #' @return As [ind_dfm_methods], except that `coef()` returns a matrix.
 #'
+#' @examples
+#' \donttest{
+#' data(data_ch_dataset_test)
+#' target <- "ch.seco.gdp.real.gdp.ssa"
+#' fit <- fcast_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+#'                                 stats::window, start = 2021),
+#'                  stocks = lapply(data_ch_dataset_test$stocks[1:2],
+#'                                  stats::window, start = 2021),
+#'                  target = target, q = 2, length_sample = 20, burn_in = 5)
+#' fit
+#' coef(fit)          # a q-column matrix here, a vector for ind_dfm()
+#' head(as.data.frame(fit))
+#' }
+#'
 #' @seealso [fcast_dfm()], [ind_dfm_methods]
 #' @name fcast_dfm_methods
 NULL
