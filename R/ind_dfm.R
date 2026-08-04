@@ -196,13 +196,8 @@ ind_dfm <- function(flows = NULL,
   }
 
   message("preallocating..")
-  Gmat_prealloc <- t(do.call(rbind,lapply(1:(t-1), function(tx){
-
-    cbind(Matrix(0,n,tx-1),
-          Matrix(1,n,s+2),
-          Matrix(0,n,t-tx-1))
-
-  })))
+  # q = 1 for this model
+  Gmat_prealloc <- get_gmat_prealloc(n = n, q = 1, s = s, t = t)
 
 
   # SAMPLING ----------------------------------------------------------------

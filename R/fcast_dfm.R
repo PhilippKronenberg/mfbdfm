@@ -234,13 +234,7 @@ fcast_dfm <- function(flows = NULL,
   }
 
   message("preallocating..")
-  Gmat_prealloc <- t(do.call(rbind,lapply(1:(t-1), function(tx){
-
-    cbind(Matrix(0,n,q*(tx-1)),
-          Matrix(1,n,q*(s+2)),
-          Matrix(0,n,q*(t-tx-1)))
-
-  })))
+  Gmat_prealloc <- get_gmat_prealloc(n = n, q = q, s = s, t = t)
 
 
   # SAMPLING ----------------------------------------------------------------

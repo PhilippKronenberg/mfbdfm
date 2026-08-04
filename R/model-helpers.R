@@ -140,6 +140,47 @@ prepare_data <- function(flows, stocks, inventory, target){
 }
 
 
+#' Preallocated sparsity pattern for the Gmat builder
+#'
+#' The block-diagonal band of ones that [get_gmat()] fills in. Shared by both
+#' model entry points: `ind_dfm()` is the `q = 1` case.
+#'
+#' @details
+#' Built directly from index vectors rather than as
+#'
+#'     t(do.call(rbind, lapply(1:(t-1), function(tx)
+#'       cbind(Matrix(0, n, q*(tx-1)), Matrix(1, n, q*(s+2)),
+#'             Matrix(0, n, q*(t-tx-1))))))
+#'
+#' which allocates `t-1` intermediate blocks and rbinds them. At the WAI's
+#' dimensions that peaked at 417 MB to produce a 35 MB result; this form peaks
+#' at 229 MB. The cost is fixed -- it does not scale with `length_sample` -- so
+#' it set the floor under every fit regardless of chain length.
+#'
+#' Block `tx` fills rows `q*(tx-1) + 1:(q*(s+2))` and columns
+#' `(tx-1)*n + 1:n` of the transposed result, entirely with ones. Verified
+#' `identical()` to the old construction across several `(n, q, s, t)`.
+#'
+#' Same technique as [get_zmat()]'s rewrite in #44, and the same caution
+#' applies: this is the documented `sparseMatrix()` API, not the `new()`
+#' internals.
+#'
+#' @noRd
+get_gmat_prealloc <- function(n, q, s, t){
+
+  rb <- q * (s + 2)          # rows per block
+  nb <- t - 1                # number of blocks
+
+  i <- rep(rep.int(seq_len(rb), n), nb) +
+    rep(q * (seq_len(nb) - 1L), each = rb * n)
+  j <- rep(rep(seq_len(n), each = rb), nb) +
+    rep((seq_len(nb) - 1L) * n, each = rb * n)
+
+  sparseMatrix(i = i, j = j, x = 1, dims = c(q * (t + s), nb * n))
+
+}
+
+
 #' Distributed lag matrices for the temporal aggregation rule
 #'
 #' @noRd
