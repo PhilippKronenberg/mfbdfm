@@ -288,15 +288,31 @@
 <p><strong>Internal note, kept here deliberately and not in any package documentation.</strong> It records a place where our code is correct and the published figures are not reproducible from it, so that nobody later “discovers” the discrepancy and tries to undo the fix.</p>
 <ul><li>
 <strong><code>phi</code> was transposed on unpacking (#66, fixed).</strong> <code>list2theta_fcast()</code> packs each <code>q x q</code> VAR block column-major; <code>theta2list_fcast()</code> read the whole <code>phi</code> region back with <code>byrow = TRUE</code>, so every block came back <strong>transposed for <code>q &gt; 1</code></strong>. The transposed copy was then handed to <code>draw_factors_fcast()</code> by <code>run_evaluation_fcast()</code>, while <code>run_sampling_fcast()</code> passes the untransposed one — the two callers of the same function disagreed, and <code>phi[[px]]</code> enters a Kronecker product there, so orientation matters.
-<ul><li>
-<strong><code>q = 1</code> was never affected</strong> (a 1x1 block is its own transpose), so every WAI workflow and every <code><a href="reference/ind_dfm.html">ind_dfm()</a></code> result is untouched. This is why it survived so long.</li>
+<ul><li><p><strong><code>q = 1</code> was never affected</strong> (a 1x1 block is its own transpose), so every WAI workflow and every <code><a href="reference/ind_dfm.html">ind_dfm()</a></code> result is untouched. This is why it survived so long.</p></li>
+<li><p><strong>Scope, confirmed by <code>baseline_check()</code> rather than argued</strong>: after the fix, <code>ind_default</code>, <code>ind_no_sv</code> and <code>ind_no_serial</code> are <em>identical</em>, and <code>fcast_q2</code> differs in exactly <code>factor</code>, <code>factor_var</code> and <code>phi</code> — not <code>lambda</code>, not <code>nowcast</code>, not <code>sigma</code>/<code>rho</code>.</p></li>
+<li><p><strong>Size of the change</strong>, <code>q = 2</code> on the shipped test data, same seed, phi orientation the only difference: factor 1 correlation 0.964, factor 2 correlation 0.807, max absolute differences 0.378 and 0.416 against series standard deviations of 0.425 and 0.204. <code>pars$lambda</code> and <code>$nowcast</code> came out bit-identical, which is what makes the attribution clean rather than MCMC noise.</p></li>
+<li><p><strong>Consequence for replication.</strong> The nowcast-based results are unaffected, so <code>2_evaluation_fcast.R</code> still reproduces the paper’s stored RMSFE and log score tables exactly (max abs difference 0 across 12 cells) — that panel is built from <code>$nowcast</code> and could never have caught this. The <strong>factor</strong> figures (<code>3_plots_fcast.R</code>, <code>6_factor_plot_fcast.R</code>) no longer reproduce the published ones for <code>q &gt; 1</code>, and are not expected to.</p></li>
+<li><p>Whether the transposition originates in the paper’s own replication code or in our port was <strong>not</strong> established — the original scripts were deleted after the port (see <code>analysis/fcast/README.md</code>). Checking the paper’s replication material would settle it.</p></li>
 <li>
-<strong>Scope, confirmed by <code>baseline_check()</code> rather than argued</strong>: after the fix, <code>ind_default</code>, <code>ind_no_sv</code> and <code>ind_no_serial</code> are <em>identical</em>, and <code>fcast_q2</code> differs in exactly <code>factor</code>, <code>factor_var</code> and <code>phi</code> — not <code>lambda</code>, not <code>nowcast</code>, not <code>sigma</code>/<code>rho</code>.</li>
-<li>
-<strong>Size of the change</strong>, <code>q = 2</code> on the shipped test data, same seed, phi orientation the only difference: factor 1 correlation 0.964, factor 2 correlation 0.807, max absolute differences 0.378 and 0.416 against series standard deviations of 0.425 and 0.204. <code>pars$lambda</code> and <code>$nowcast</code> came out bit-identical, which is what makes the attribution clean rather than MCMC noise.</li>
-<li>
-<strong>Consequence for replication.</strong> The nowcast-based results are unaffected, so <code>2_evaluation_fcast.R</code> still reproduces the paper’s stored RMSFE and log score tables exactly (max abs difference 0 across 12 cells) — that panel is built from <code>$nowcast</code> and could never have caught this. The <strong>factor</strong> figures (<code>3_plots_fcast.R</code>, <code>6_factor_plot_fcast.R</code>) no longer reproduce the published ones for <code>q &gt; 1</code>, and are not expected to.</li>
-<li>Whether the transposition originates in the paper’s own replication code or in our port was <strong>not</strong> established — the original scripts were deleted after the port (see <code>analysis/fcast/README.md</code>). Checking the paper’s replication material would settle it.</li>
+<p><strong>How far the fix actually moves us from the published factors.</strong> Refitting <code>q = 1..4</code> at 2021.979 on the paper’s own data (<code>6b_refit_factor_counts.R</code>, post-fix) and matching each of our factors to whichever of the paper’s it correlates with most strongly in absolute value — the same rule <code>6_factor_plot_fcast.R</code> uses, factors being identified only up to rotation and sign:</p>
+<table class="table"><thead><tr><th></th>
+<th>best absolute correlation with the paper’s factors</th>
+<th>mean</th>
+</tr></thead><tbody><tr><td>q = 1</td>
+<td>0.980</td>
+<td>0.980</td>
+</tr><tr><td>q = 2</td>
+<td>0.975, 0.864</td>
+<td>0.919</td>
+</tr><tr><td>q = 3</td>
+<td>0.824, 0.964, 0.790</td>
+<td>0.859</td>
+</tr><tr><td>q = 4</td>
+<td>0.949, 0.813, 0.987, 0.951</td>
+<td>0.925</td>
+</tr></tbody></table><p><strong>Read <code>q = 1</code> as the control.</strong> It is untouched by this fix, so its 0.980 is what run-to-run variation <em>alone</em> produces — a different chain settling on a different rotation (#46). The multi-factor rows sit in the same range, so the fix does not push us dramatically further from the published factors than simply re-running the model already does. Do not read these numbers as the size of the bug; the isolated measurement of that is the same-seed comparison above (0.964 / 0.807).</p>
+</li>
+<li><p>The q = 2 <strong>nowcast</strong> correlates with the paper’s at <strong>0.9958</strong> over 128 quarters, which is the other half of the same story: the nowcast path never went through the transposed <code>phi</code>.</p></li>
 </ul></li>
 </ul></div>
 <div class="section level2">
