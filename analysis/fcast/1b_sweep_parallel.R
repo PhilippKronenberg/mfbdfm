@@ -40,7 +40,19 @@ q_x <- 2
 n_workers <- 3
 run_benchmark <- TRUE
 fit_root <- file.path("fits", "fcast_sweep")
-mcmc <- list(length_sample = 1000, burn_in = 1000)
+# length_sample = 500 with thinning = 2, not 1000 with thinning = 1. Same 1000
+# post-burn-in iterations and the same chain, half as many draws retained.
+#
+# Measured at 200 iterations on the real dimensions: peak heap 884 MB retaining
+# every draw against 650 MB thinned by 2, a 27% reduction, and 4.1 minutes
+# against 5.6 - fewer retained draws also means less to rotate. Not the 50% a
+# look at theta_out alone suggests, because Gmat_prealloc, the sampler's working
+# objects and R's own overhead are a fixed floor; the proportion improves as
+# length_sample grows and theta_out comes to dominate. See #64.
+#
+# Nothing is traded away: thinned draws are less autocorrelated, so the
+# effective sample size per retained draw is higher.
+mcmc <- list(length_sample = 500, burn_in = 1000, thinning = 2)
 
 date_vec <- round(sort(unlist(lapply(years, function(y) seq(y, y + 47/48, 1/48)))), 3)
 
@@ -81,7 +93,7 @@ res <- foreach(ix = date_vec, .packages = c("mfbdfm", "Matrix", "zoo"),
   run_fcast(flows = rt$flows, stocks = rt$stocks, target = target,
             date = ix, dataset_used = paste0("q", q_x), q = q_x,
             length_sample = mcmc$length_sample, burn_in = mcmc$burn_in,
-            output_dir = fit_root)
+            thinning = mcmc$thinning, output_dir = fit_root)
 
   if (run_benchmark) {
     source("analysis/fcast/_setup.R", local = TRUE)
