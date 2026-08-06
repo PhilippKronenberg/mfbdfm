@@ -103,46 +103,79 @@ res <- foreach(ix = date_vec, .packages = c("mfbdfm", "Matrix", "zoo"),
 
   # Skip work already on disk, so an interrupted sweep resumes instead of
   # starting over - 10 hours is long enough that this matters.
-  f <- file.path(fit_root, paste0("q", q_x), paste0("fit_", round(ix, 3), ".Rda"))
-  if (file.exists(f)) return(paste("skip", ix))
+  #
+  # Resume per MODEL, not per date. The two fits go to different directories and
+  # can fail independently, so testing only the fcast fit meant a date whose
+  # benchmark was missing could never be retried: the early return skipped it
+  # while its fcast fit sat on disk.
+  f_fcast <- file.path(fit_root, paste0("q", q_x),
+                       paste0("fit_", round(ix, 3), ".Rda"))
+  f_bm <- file.path(fit_root, paste0("bmdfm_q", q_x),
+                    paste0("fit_", round(ix, 3), ".Rda"))
+  need_fcast <- !file.exists(f_fcast)
+  need_bm <- run_benchmark && !file.exists(f_bm)
+  if (!need_fcast && !need_bm) return(paste("skip", ix))
 
   rt <- cut_data(dat, ix)
   if (!target %in% names(rt$flows)) return(paste("no target at", ix))
 
-  run_fcast(flows = rt$flows, stocks = rt$stocks, target = target,
-            date = ix, dataset_used = paste0("q", q_x), q = q_x,
-            length_sample = mcmc$length_sample, burn_in = mcmc$burn_in,
-            thinning = mcmc$thinning, output_dir = fit_root)
+  if (need_fcast) {
+    run_fcast(flows = rt$flows, stocks = rt$stocks, target = target,
+              date = ix, dataset_used = paste0("q", q_x), q = q_x,
+              length_sample = mcmc$length_sample, burn_in = mcmc$burn_in,
+              thinning = mcmc$thinning, output_dir = fit_root)
+  }
 
-  if (run_benchmark) {
+  bm_note <- ""
+  if (need_bm) {
     source("analysis/fcast/_setup.R", local = TRUE)
     source_bmdfm_functions()
     source("analysis/fcast/bmdfm_benchmark.R", local = TRUE)
     mon <- week2mon(rt)
-    try(run_bmdfm(flows = mon$flows, stocks = mon$stocks, target = target,
-                  date = ix, dataset_used = paste0("bmdfm_q", q_x),
-                  n_f = q_x, output_dir = fit_root), silent = TRUE)
+    # try() is kept - a benchmark failure should not lose the fcast fit for that
+    # date - but NOT silently. It used to be try(silent = TRUE) with the result
+    # discarded, so a failed benchmark left the date counted as a success with
+    # half its output missing and nothing anywhere saying so.
+    bm <- try(run_bmdfm(flows = mon$flows, stocks = mon$stocks, target = target,
+                        date = ix, dataset_used = paste0("bmdfm_q", q_x),
+                        n_f = q_x, output_dir = fit_root), silent = TRUE)
+    if (inherits(bm, "try-error")) {
+      bm_note <- paste0("; bmdfm FAILED: ",
+                        conditionMessage(attr(bm, "condition")))
+    }
   }
 
-  paste("done", ix)
+  paste0("done ", ix, bm_note)
 }
 
 el <- round(as.numeric(difftime(Sys.time(), t0, units = "hours")), 2)
 errs <- vapply(res, function(x) inherits(x, "error"), logical(1))
-message("\nsweep finished in ", el, " h; ", sum(!errs), " ok, ", sum(errs), " failed")
+# a benchmark failure is reported in the returned string rather than as a
+# condition, since it does not fail the date's fcast fit
+bm_failed <- vapply(res, function(x)
+  is.character(x) && grepl("bmdfm FAILED", x), logical(1))
+message("\nsweep finished in ", el, " h; ", sum(!errs), " ok, ", sum(errs),
+        " failed", if (any(bm_failed)) paste0("; ", sum(bm_failed),
+        " benchmark failure(s)") else "")
 
 # Failures go to a FILE, not just a message(). A sweep runs for hours,
 # unattended, and its console output is usually piped through a filter - the
 # first run of this script lost the only diagnostic from 48 failed fits that
 # way. The log survives regardless of what the caller does with stdout.
 log_path <- file.path(fit_root, "sweep_failures.log")
-if (any(errs)) {
-  msgs <- vapply(res[errs], conditionMessage, character(1))
+if (any(errs) || any(bm_failed)) {
+  msgs <- if (any(errs)) vapply(res[errs], conditionMessage, character(1)) else character(0)
   writeLines(c(paste("sweep at", format(Sys.time())),
                paste(sum(errs), "of", length(res), "dates failed"),
-               "", paste0(date_vec[errs], ": ", msgs)), log_path)
+               if (any(bm_failed)) paste(sum(bm_failed),
+                 "date(s) fitted but their benchmark failed") else NULL,
+               "", paste0(date_vec[errs], ": ", msgs),
+               if (any(bm_failed)) c("", unlist(res[bm_failed])) else NULL),
+             log_path)
   message("failures written to ", log_path)
-  message("most common: ", names(sort(table(msgs), decreasing = TRUE))[1])
+  if (length(msgs)) {
+    message("most common: ", names(sort(table(msgs), decreasing = TRUE))[1])
+  }
 } else if (file.exists(log_path)) {
   unlink(log_path)
 }

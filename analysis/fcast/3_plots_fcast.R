@@ -40,9 +40,30 @@ tab <- e$tab
 # tolerate a panel written before in_window existed
 if (!"in_window" %in% names(tab)) tab$in_window <- tab$horizon %in% 1:12
 
+# Group and colour by `series`, not by `dataset`. These figures compare MODELS;
+# they used `dataset` and got away with it only because the sweep's fit
+# directories (q2/, bmdfm_q2/) made dataset and model collinear, so the two
+# models happened to land in separate "datasets". Once 2_evaluation_fcast.R
+# stopped conflating them - it had to, or the Diebold-Mariano loop pairs nothing
+# - colouring by dataset would have drawn both models in one colour, silently.
+#
+# `series` is the model on its own when there is a single dataset, and
+# dataset x model when there is more than one, so both the sweep's shape and the
+# paper's (three datasets x four models) read correctly.
+add_series <- function(d) {
+  if (length(unique(d$dataset)) > 1) {
+    dplyr::mutate(d, series = paste(dataset, model))
+  } else {
+    dplyr::mutate(d, series = model)
+  }
+}
+tab <- add_series(tab)
+
 oos <- tab %>% filter(!in_sample, !is.na(realization))
 message("panel: ", nrow(tab), " rows, ", nrow(oos), " out-of-sample, ",
-        length(unique(tab$dataset)), " dataset(s)")
+        length(unique(tab$dataset)), " dataset(s), ",
+        length(unique(tab$series)), " series: ",
+        paste(sort(unique(tab$series)), collapse = ", "))
 
 
 # HELPERS -----------------------------------------------------------------
@@ -83,7 +104,7 @@ emit("nowcast_vs_realisation", oos, function(d) {
                 alpha = 0.2, fill = "steelblue") +
     geom_line(aes(y = value, colour = "nowcast")) +
     geom_point(aes(y = realization, colour = "realised"), size = 1) +
-    facet_wrap(~dataset) +
+    facet_wrap(~series) +
     scale_colour_manual(values = c(nowcast = "steelblue", realised = "black")) +
     labs(x = NULL, y = "GDP growth", title = "Nowcast vs realisation") +
     theme_fcast()
@@ -95,7 +116,7 @@ emit("nowcast_vs_realisation", oos, function(d) {
 # uses to show information accumulating as the quarter progresses.
 
 by_h <- oos %>%
-  group_by(dataset, horizon) %>%
+  group_by(series, horizon) %>%
   summarise(rmse = sqrt(mean(sqerror, na.rm = TRUE)),
             mae = mean(abs(error), na.rm = TRUE),
             logs = mean(logs, na.rm = TRUE),
@@ -103,7 +124,7 @@ by_h <- oos %>%
 
 emit("rmse_by_horizon", by_h, function(d) {
   d %>%
-    ggplot(aes(x = horizon, y = rmse, colour = dataset)) +
+    ggplot(aes(x = horizon, y = rmse, colour = series)) +
     geom_line() + geom_point(size = 1) +
     scale_x_reverse() +          # count down to publication
     labs(x = "weeks before GDP publication", y = "RMSE",
@@ -113,7 +134,7 @@ emit("rmse_by_horizon", by_h, function(d) {
 
 emit("logscore_by_horizon", by_h, function(d) {
   d %>%
-    ggplot(aes(x = horizon, y = logs, colour = dataset)) +
+    ggplot(aes(x = horizon, y = logs, colour = series)) +
     geom_line() + geom_point(size = 1) +
     scale_x_reverse() +
     labs(x = "weeks before GDP publication",
@@ -146,13 +167,13 @@ if (nrow(crisis)) {
 
 rmse_regime <- if (nrow(crisis)) {
   crisis %>%
-    group_by(dataset, regime, horizon) %>%
+    group_by(series, regime, horizon) %>%
     summarise(rmse = sqrt(mean(sqerror, na.rm = TRUE)), .groups = "drop")
 } else crisis
 
 emit("rmse_crisis_vs_normal", rmse_regime, function(d) {
   d %>%
-    ggplot(aes(x = horizon, y = rmse, colour = dataset)) +
+    ggplot(aes(x = horizon, y = rmse, colour = series)) +
     geom_line() + geom_point(size = 0.9) +
     facet_wrap(~regime) +
     scale_x_reverse(breaks = seq(12, 2, by = -2)) +
@@ -160,18 +181,21 @@ emit("rmse_crisis_vs_normal", rmse_regime, function(d) {
     theme_fcast()
 })
 
-# The log-ratio panel. `baseline_dataset` is the denominator; with a single
-# dataset there is nothing to compare against, so it is skipped rather than
-# plotted as a flat zero line.
-baseline_dataset <- sort(unique(rmse_regime$dataset))[1]
+# The log-ratio panel: this is the WAIVSBMDFM comparison, so the denominator is
+# the BENCHMARK SERIES, not a dataset. Keyed on dataset it produced nothing once
+# dataset stopped standing in for model - there was then only one dataset and the
+# panel skipped itself. Same benchmark rule as 5_error_tables_fcast.R, so the
+# figure and the table answer the same question.
+baseline_series <- if ("ar" %in% rmse_regime$series) "ar" else
+  sort(unique(rmse_regime$series))[1]
 
 rmse_ratio <- if (nrow(rmse_regime) &&
-                  length(unique(rmse_regime$dataset)) > 1) {
+                  length(unique(rmse_regime$series)) > 1) {
   base <- rmse_regime %>%
-    filter(dataset == baseline_dataset) %>%
+    filter(series == baseline_series) %>%
     select(regime, horizon, rmse_base = rmse)
   rmse_regime %>%
-    filter(dataset != baseline_dataset) %>%
+    filter(series != baseline_series) %>%
     inner_join(base, by = c("regime", "horizon")) %>%
     mutate(log_ratio = log(rmse / rmse_base))
 } else {
@@ -180,13 +204,13 @@ rmse_ratio <- if (nrow(rmse_regime) &&
 
 emit("rmse_log_ratio_crisis_vs_normal", rmse_ratio, function(d) {
   d %>%
-    ggplot(aes(x = horizon, y = log_ratio, colour = dataset)) +
+    ggplot(aes(x = horizon, y = log_ratio, colour = series)) +
     geom_hline(yintercept = 0, colour = "grey40") +
     geom_line() + geom_point(size = 0.9) +
     facet_wrap(~regime) +
     scale_x_reverse(breaks = seq(12, 2, by = -2)) +
     labs(x = "Nowcast Horizon (in Weeks)",
-         y = paste0("RMSFE log-ratio vs ", baseline_dataset)) +
+         y = paste0("RMSFE log-ratio vs ", baseline_series)) +
     theme_fcast()
 })
 
@@ -208,7 +232,16 @@ factor_frame <- function(fit_root) {
     f <- files[which.max(as.numeric(sub("^fit_(.*)\\.Rda$", "\\1",
                                         basename(files))))]
     en <- new.env(); load(f, envir = en)
-    fac <- en$mod$factor
+    # [["factor", exact = TRUE]] and NOT $factor. The BMDFM benchmark writes the
+    # vendored nowcast() object, which has no `factor` but does have `factors` -
+    # and `$` partial-matches, so `mod$factor` silently returns that list of
+    # eigen/dynamic-factor objects instead of NULL. An is.null() guard therefore
+    # does not catch it; the failure surfaces later as time() on a list.
+    # A fit tree holding both models is the normal case whenever run_benchmark
+    # is TRUE, and before the first sweep completed this loop had only ever seen
+    # fcast_dfm fits.
+    fac <- en$mod[["factor", exact = TRUE]]
+    if (is.null(fac)) next
     out[[length(out) + 1]] <- tibble(
       dataset = dx,
       time = rep(as.numeric(time(fac)), ncol(fac)),

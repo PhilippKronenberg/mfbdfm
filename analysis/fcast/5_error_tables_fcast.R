@@ -23,7 +23,14 @@
 
 source("analysis/fcast/_setup.R")
 
-source_panel <- "replication"     # "replication" or "own"
+# "replication" (the paper's stored panel) or "own" (whatever
+# 2_evaluation_fcast.R last wrote). Guarded so a driver script can pre-set it,
+# the same way _setup.R guards fcast_config - without the guard, sourcing this
+# from 1c_evaluate_sweep.R silently reverted to the paper's panel and produced
+# tables for models the sweep never fitted.
+if (!exists("source_panel") || is.null(source_panel)) {
+  source_panel <- "replication"
+}
 
 
 # LOAD --------------------------------------------------------------------

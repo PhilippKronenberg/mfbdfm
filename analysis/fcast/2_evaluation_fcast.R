@@ -63,8 +63,16 @@ gather_fits <- function(fit_root){
       # Two fit shapes. run_fcast() writes $nowcast/$nowcast_var; the BMDFM
       # benchmark from run_bmdfm() writes the vendored nowcast() object, whose
       # forecast is the "out" column of $yfcst and which carries no variance -
-      # so its rows score on errors but not on the log score, exactly as in the
-      # published panel where bmdfm has no sd either.
+      # so its rows score on errors but not on the log score.
+      #
+      # This is a DELIBERATE divergence from the paper, not a match to it. The
+      # original retrieve_nowcast_var() substituted a literal 999 for the BMDFM
+      # variance ("as we actually do not have variances for bmdfm"), and the
+      # published panel carries it: every bmdfm and grsdfm row has
+      # sd = sqrt(999) = 31.607 and a finite log score computed from it - 3216
+      # rows of results_tab_2f.Rda. Those log scores are arithmetic on a
+      # placeholder, so NA is recorded here instead and bmdfm simply does not
+      # appear in log-score comparisons. See CLAUDE.md.
       is_bmdfm <- !is.null(mod$yfcst) && is.null(mod$nowcast)
 
       if (is_bmdfm) {
@@ -77,11 +85,30 @@ gather_fits <- function(fit_root){
         ncst_var <- mod$nowcast_var
       }
 
+      # Every non-NA value is kept and the horizon filter downstream decides
+      # which one scores. The original instead took one value per vintage,
+      # head(na.omit(fit$yfcst[,"out"]), 1) in retrieve_nowcast(). The two are
+      # equivalent, and not by luck: at a fixed vintage the earliest
+      # out-of-sample quarter has the SMALLEST horizon and later quarters have
+      # larger ones, so the first non-NA value is the only one that can fall
+      # inside `horizon %in% 1:12`. Verified over the 2019-2020 sweep - the
+      # selected target period and value are identical to the original's at all
+      # 96 vintages. Keeping them all is what lets the panel also carry the
+      # longer horizons the by-horizon figures use.
       keep <- !is.na(ncst)
       if (!any(keep)) next
 
+      # `dataset` is the fit directory with any model prefix stripped, NOT the
+      # directory itself. The sweep writes q<n>/ and bmdfm_q<n>/, so using the
+      # directory made `dataset` and `model` collinear - bmdfm existed only in
+      # dataset "bmdfm_q2" and fcast only in "q2". Everything downstream that
+      # compares models *within* a dataset then silently produced nothing: the
+      # Diebold-Mariano loop in 5_error_tables_fcast.R pairs each model against
+      # the benchmark at the same dataset, found zero matching rows for every
+      # pair, and wrote no table at all. The paper's panel has each dataset
+      # carrying all four models, which is the shape that has to be matched.
       rows[[length(rows) + 1]] <- tibble(
-        dataset = dx,
+        dataset = sub("^bmdfm_", "", dx),
         model = if (is_bmdfm) "bmdfm" else "fcast",
         date = eval_date,
         period = round(as.numeric(time(ncst))[keep], 3),
