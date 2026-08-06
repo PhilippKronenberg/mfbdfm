@@ -484,6 +484,7 @@ published figures are not reproducible from it, so that nobody later
   `run_evaluation_fcast()`, while `run_sampling_fcast()` passes the
   untransposed one — the two callers of the same function disagreed, and
   `phi[[px]]` enters a Kronecker product there, so orientation matters.
+
   - **`q = 1` was never affected** (a 1x1 block is its own transpose),
     so every WAI workflow and every
     [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
@@ -510,10 +511,15 @@ published figures are not reproducible from it, so that nobody later
     `6_factor_plot_fcast.R`) no longer reproduce the published ones for
     `q > 1`, and are not expected to.
 
-  - Whether the transposition originates in the paper’s own replication
-    code or in our port was **not** established — the original scripts
-    were deleted after the port (see `analysis/fcast/README.md`).
-    Checking the paper’s replication material would settle it.
+  - **It originates in the paper’s own code, not in our port** —
+    established 2026-08-06 against the original `functions_model.R`,
+    which the user supplied and which has been inspected and removed
+    again. Its `theta2list()` (line 1032) unpacks with `byrow = T` while
+    its `list2theta()` (line 1044) packs each block column-major via
+    `matrix(x)` — the identical mismatch. So the published multi-factor
+    factors carry it, our fix is a genuine divergence from them, and
+    this note is the reason not to “restore” the old behaviour on the
+    grounds that it reproduced the paper.
 
   - **How far the fix actually moves us from the published factors.**
     Refitting `q = 1..4` at 2021.979 on the paper’s own data
@@ -541,6 +547,41 @@ published figures are not reproducible from it, so that nobody later
   - The q = 2 **nowcast** correlates with the paper’s at **0.9958** over
     128 quarters, which is the other half of the same story: the nowcast
     path never went through the transposed `phi`.
+
+- **BMDFM log scores are computed from a placeholder variance in the
+  paper, and are `NA` here.** The original
+  [`retrieve_nowcast_var()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast_var.md)
+  substituted a literal `999` for the BMDFM (and GRSDFM) variance,
+  commented “as we actually do not have variances for bmdfm”. The
+  published panel carries it: all 3216 bmdfm and grsdfm rows of
+  `results_tab_2f.Rda` have `sd = sqrt(999) = 31.607` and a finite log
+  score derived from it. `2_evaluation_fcast.R` records `NA` instead, so
+  BMDFM appears in error tables but not in log-score comparisons.
+  Deliberate: a log score computed from a placeholder is arithmetic, not
+  evidence.
+
+- **[`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+  standardises for every model; the original skipped it for BMDFM,
+  because `nowcast()` standardises itself.** The original took a `model`
+  argument whose `"bmdfm"`/`"grsdfm"` branch passed the data through
+  unstandardised (`functions_model.R:860-863`). The reason is in the
+  vendored benchmark: `method_EM.r` standardises internally at lines
+  377-380 and converts back at line 464 (`Res$X_sm <- Wx * x_sm + Mx`),
+  so the EM returns output on whatever scale it was given.
+  Pre-standardising is therefore *redundant*, not wrong — measured,
+  pre-standardising and un-standardising `yfcst` afterwards agrees with
+  feeding raw data to 1.1e-11. What is wrong is pre-standardising and
+  not converting back, which is what our first version of
+  `bmdfm_benchmark.R` did: nowcasts came out in standard deviations,
+  RMSE 3.52 against `fcast_dfm`’s 0.021, and nothing downstream checks
+  units. `bmdfm_benchmark.R` now un-standardises the prepared matrix to
+  match the original — exact to 8.7e-19, since it inverts
+  [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)’s
+  own arithmetic with the same inventory.
+
+  - The vendored `nowcast()` accepts `Ymat` and `inventory` and **never
+    uses them anywhere in its body**. They look like the missing
+    rescaler and are not; do not go looking for a bug there.
 
 ## Documentation & release conventions
 
