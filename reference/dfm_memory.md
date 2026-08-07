@@ -118,8 +118,8 @@ where \\G\\ is the footprint of the observation matrix `Gmat`
 (`q(t-1)n(s+2)` nonzeros at 12 bytes each) and \\D\\ is the footprint of
 the retained draws (`length_sample` rows of
 `nq + pq^2 + 2n + nt + t + s` doubles). The fitted coefficients say the
-fit holds about **6.2 live copies of `Gmat`** and **1.9 copies of the
-draw matrix**, over a fixed **267 MB** of R and package overhead.
+fit holds about **6.3 live copies of `Gmat`** and **1.65 copies of the
+draw matrix**, over a fixed **270 MB** of R and package overhead.
 
 **Memory is linear in `q`, not quadratic.** The natural guess is that
 the sparse Cholesky of the `q(t+s)` square factor precision matrix
@@ -128,24 +128,54 @@ that term to the regression does not improve it, because the `Gmat`
 working set is an order of magnitude larger. Doubling the factor count
 costs roughly one extra `Gmat` worth of working set, not four.
 
+**The relationship is convex in `length_sample`, and the linear fit is
+therefore corrected upward.** Peak memory is really a *maximum* over
+phases – sampling, rotation, evaluation – and which phase binds depends
+on the chain length: the sampler dominates short chains, the evaluation
+dominates long ones. Measured, the peak per MB of retained draws rises
+from 1.35 (30 to 120 draws) through 1.97 (120 to 240) to 3.94 (240 to
+500), so no single slope fits it. Refitting the line over the whole
+range does not help: it still under-predicts at 500 draws while
+over-predicting the middle by 15%.
+
+Under-prediction is the harmful direction here – it hands out too many
+workers and the run dies hours in – so the linear fit is multiplied by
+`MEM_SAFETY_FACTOR`, chosen as the largest measured/fitted ratio over
+the calibration points. That makes the estimate an **upper bound**
+across the measured range rather than a best fit, at the cost of
+over-estimating short chains by around a third. Short chains are cheap;
+the tool exists for the long ones.
+
+This was found the hard way. Before the correction the model predicted
+1128 MB at 500 draws against **1538 MB measured** – 27% low. That is
+very likely why the 2019-2020 sweep lost two dates to `R_Calloc`
+out-of-memory: five workers were allocated against a budget computed
+from the under-estimate. I had attributed those failures to contention
+with a concurrent `R CMD check`, which was at best only part of it.
+
 ## Calibration
 
-Fitted to six fits measured one per fresh R process (the GC high-water
+Fitted to seven fits measured one per fresh R process (the GC high-water
 mark is per process, so several in one session would report only their
 maximum) at `n = 53`, `t = 1559`, `s = 22`: `q = 1..4` at
-`length_sample = 30`, and `q = 2` at `length_sample = 30, 120, 240`.
-Adjusted R-squared 0.98, largest residual 34 MB.
+`length_sample = 30`, and `q = 2` at
+`length_sample = 30, 120, 240, 500`. The line is fitted on the first six
+and then scaled by `MEM_SAFETY_FACTOR` so that it covers the seventh,
+which is the setting the sweeps actually use.
 
 Validated out of sample against a fit on a **different** dataset and a
 different version of the code (`n = 43`, `t = 1464`, `q = 2`,
-`length_sample = 200`): 690 MB predicted against 744 MB measured, a 7%
-error.
+`length_sample = 200`): 744 MB measured, covered.
 
-Treat it as accurate to roughly 10%, which is why `dfm_workers()`
-applies a safety factor rather than dividing exactly. The constants are
-specific to this package's samplers; they were measured on x86_64
-Windows and will drift if the samplers' allocation pattern changes.
-`dev/calibrate-memory.R` regenerates them.
+**Known gap: there is no measurement at both high `q` and long chains.**
+The `q = 1..4` points are all at 30 draws and the long-chain points are
+all at `q = 2`, so the interaction is assumed rather than measured, and
+`q = 4` with 500 draws – what `analysis/fcast/6b_refit_factor_counts.R`
+runs – is an extrapolation in both arguments.
+
+The constants are specific to this package's samplers; they were
+measured on x86_64 Windows and will drift if the samplers' allocation
+pattern changes. `dev/calibrate-memory.R` regenerates them.
 
 Calibrated on
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
@@ -167,14 +197,14 @@ Other model fitting functions:
 ``` r
 # from dimensions
 dfm_memory(n = 53, t = 1535, s = 22, q = 2, length_sample = 500)
-#> [1] 1128.27
+#> [1] 1545.73
 
 # the whole point: how many workers fit in 24 GB
 dfm_workers(n = 53, t = 1535, s = 22, q = 4, length_sample = 500,
             available_mb = 24 * 1024)
 #> [1] 4
 #> attr(,"per_fit_mb")
-#> [1] 1430.12
+#> [1] 1959.264
 #> attr(,"available_mb")
 #> [1] 24576
 #> attr(,"budget_mb")
@@ -185,5 +215,5 @@ data(data_ch_dataset_test)
 dfm_memory(flows = data_ch_dataset_test$flows,
            stocks = data_ch_dataset_test$stocks,
            q = 2, length_sample = 1000)
-#> [1] 1664.424
+#> [1] 2280.26
 ```

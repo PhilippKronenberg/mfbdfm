@@ -153,8 +153,8 @@ guessed.</p>
 <p>where \(G\) is the footprint of the observation matrix <code>Gmat</code>
 (<code>q(t-1)n(s+2)</code> nonzeros at 12 bytes each) and \(D\) is the footprint of
 the retained draws (<code>length_sample</code> rows of <code>nq + pq^2 + 2n + nt + t + s</code>
-doubles). The fitted coefficients say the fit holds about <strong>6.2 live copies
-of <code>Gmat</code></strong> and <strong>1.9 copies of the draw matrix</strong>, over a fixed <strong>267 MB</strong> of
+doubles). The fitted coefficients say the fit holds about <strong>6.3 live copies
+of <code>Gmat</code></strong> and <strong>1.65 copies of the draw matrix</strong>, over a fixed <strong>270 MB</strong> of
 R and package overhead.</p>
 <p><strong>Memory is linear in <code>q</code>, not quadratic.</strong> The natural guess is that the
 sparse Cholesky of the <code>q(t+s)</code> square factor precision matrix dominates,
@@ -162,22 +162,47 @@ which would scale with <code>q^2</code>. Measured, it does not: adding that term
 regression does not improve it, because the <code>Gmat</code> working set is an order of
 magnitude larger. Doubling the factor count costs roughly one extra <code>Gmat</code>
 worth of working set, not four.</p>
+<p><strong>The relationship is convex in <code>length_sample</code>, and the linear fit is
+therefore corrected upward.</strong> Peak memory is really a <em>maximum</em> over phases –
+sampling, rotation, evaluation – and which phase binds depends on the chain
+length: the sampler dominates short chains, the evaluation dominates long
+ones. Measured, the peak per MB of retained draws rises from 1.35 (30 to 120
+draws) through 1.97 (120 to 240) to 3.94 (240 to 500), so no single slope fits
+it. Refitting the line over the whole range does not help: it still
+under-predicts at 500 draws while over-predicting the middle by 15%.</p>
+<p>Under-prediction is the harmful direction here – it hands out too many
+workers and the run dies hours in – so the linear fit is multiplied by
+<code>MEM_SAFETY_FACTOR</code>, chosen as the largest measured/fitted ratio over the
+calibration points. That makes the estimate an <strong>upper bound</strong> across the
+measured range rather than a best fit, at the cost of over-estimating short
+chains by around a third. Short chains are cheap; the tool exists for the long
+ones.</p>
+<p>This was found the hard way. Before the correction the model predicted 1128 MB
+at 500 draws against <strong>1538 MB measured</strong> – 27% low. That is very likely why
+the 2019-2020 sweep lost two dates to <code>R_Calloc</code> out-of-memory: five workers
+were allocated against a budget computed from the under-estimate. I had
+attributed those failures to contention with a concurrent <code>R CMD check</code>, which
+was at best only part of it.</p>
     </div>
     <div class="section level2">
     <h2 id="calibration">Calibration<a class="anchor" aria-label="anchor" href="#calibration"></a></h2>
-    <p>Fitted to six fits measured one per fresh R process (the GC high-water mark
+    <p>Fitted to seven fits measured one per fresh R process (the GC high-water mark
 is per process, so several in one session would report only their maximum) at
 <code>n = 53</code>, <code>t = 1559</code>, <code>s = 22</code>: <code>q = 1..4</code> at <code>length_sample = 30</code>, and
-<code>q = 2</code> at <code>length_sample = 30, 120, 240</code>. Adjusted R-squared 0.98, largest
-residual 34 MB.</p>
+<code>q = 2</code> at <code>length_sample = 30, 120, 240, 500</code>. The line is fitted on the
+first six and then scaled by <code>MEM_SAFETY_FACTOR</code> so that it covers the
+seventh, which is the setting the sweeps actually use.</p>
 <p>Validated out of sample against a fit on a <strong>different</strong> dataset and a
 different version of the code (<code>n = 43</code>, <code>t = 1464</code>, <code>q = 2</code>,
-<code>length_sample = 200</code>): 690 MB predicted against 744 MB measured, a 7% error.</p>
-<p>Treat it as accurate to roughly 10%, which is why <code>dfm_workers()</code> applies a
-safety factor rather than dividing exactly. The constants are specific to
-this package's samplers; they were measured on x86_64 Windows and will drift
-if the samplers' allocation pattern changes. <code>dev/calibrate-memory.R</code>
-regenerates them.</p>
+<code>length_sample = 200</code>): 744 MB measured, covered.</p>
+<p><strong>Known gap: there is no measurement at both high <code>q</code> and long chains.</strong> The
+<code>q = 1..4</code> points are all at 30 draws and the long-chain points are all at
+<code>q = 2</code>, so the interaction is assumed rather than measured, and <code>q = 4</code> with
+500 draws – what <code>analysis/fcast/6b_refit_factor_counts.R</code> runs – is an
+extrapolation in both arguments.</p>
+<p>The constants are specific to this package's samplers; they were measured on
+x86_64 Windows and will drift if the samplers' allocation pattern changes.
+<code>dev/calibrate-memory.R</code> regenerates them.</p>
 <p>Calibrated on <code><a href="fcast_dfm.html">fcast_dfm()</a></code>. <code><a href="ind_dfm.html">ind_dfm()</a></code> is a different sampler with no
 post-hoc rotation and no packed draw matrix, and has <strong>not</strong> been measured
 here.</p>
@@ -195,14 +220,14 @@ here.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># from dimensions</span></span></span>
 <span class="r-in"><span><span class="fu">dfm_memory</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">53</span>, t <span class="op">=</span> <span class="fl">1535</span>, s <span class="op">=</span> <span class="fl">22</span>, q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1128.27</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1545.73</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the whole point: how many workers fit in 24 GB</span></span></span>
 <span class="r-in"><span><span class="fu">dfm_workers</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">53</span>, t <span class="op">=</span> <span class="fl">1535</span>, s <span class="op">=</span> <span class="fl">22</span>, q <span class="op">=</span> <span class="fl">4</span>, length_sample <span class="op">=</span> <span class="fl">500</span>,</span></span>
 <span class="r-in"><span>            available_mb <span class="op">=</span> <span class="fl">24</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 4</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"per_fit_mb")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1430.12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1959.264</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"available_mb")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 24576</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"budget_mb")</span>
@@ -213,7 +238,7 @@ here.</p>
 <span class="r-in"><span><span class="fu">dfm_memory</span><span class="op">(</span>flows <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span>,</span></span>
 <span class="r-in"><span>           stocks <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span>,</span></span>
 <span class="r-in"><span>           q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1664.424</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 2280.26</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

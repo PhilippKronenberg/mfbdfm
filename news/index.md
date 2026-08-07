@@ -238,6 +238,20 @@ Bayesian dynamic factor model and WAI is one application of it
 
 ### Bug fixes
 
+- [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md)
+  under-predicted peak memory by 27% at the chain length the sweeps
+  actually use, and so
+  [`dfm_workers()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md)
+  handed out too many workers: 1128 MB estimated against 1538 MB
+  measured at 500 retained draws. The cause is that peak memory is
+  **convex** in `length_sample` – the peak per MB of retained draws
+  rises from 1.35 to 3.94 across the measured range, because which phase
+  binds changes with chain length – so the linear fit could not span it,
+  and a least-squares line under-predicts exactly where it matters. The
+  estimate is now scaled to an **upper bound** over all measured points
+  instead of a best fit. This is very likely why the 2019-2020 sweep
+  lost two dates to `R_Calloc` out-of-memory
+  ([\#64](https://github.com/PhilippKronenberg/mfbdfm/issues/64)).
 - [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)’s
   `factor`, `factor_var` and `pars$phi` were computed from a transposed
   VAR coefficient matrix when `q > 1`. The internal packer writes each
