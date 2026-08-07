@@ -1,21 +1,27 @@
 test_that("dfm_memory reproduces its own calibration points", {
 
-  # The six fits the constants were fitted to (?dfm_memory), at n = 53,
-  # t = 1535, s = 22, extend = 0.5. If the constants or the regressors are
-  # edited without re-measuring, this is what catches it.
-  meas <- data.frame(q = c(1, 2, 3, 4, 2, 2),
-                     L = c(30, 30, 30, 30, 120, 240),
-                     peak = c(465, 604, 745, 916, 686, 846))
+  # The seven measured fits behind the constants (?dfm_memory), at n = 53,
+  # t = 1535, s = 22, extend = 0.5.
+  meas <- data.frame(q = c(1, 2, 3, 4, 2, 2, 2),
+                     L = c(30, 30, 30, 30, 120, 240, 500),
+                     peak = c(465, 604, 745, 916, 686, 846, 1538))
 
   est <- vapply(seq_len(nrow(meas)), function(i)
     dfm_memory(n = 53, t = 1535, s = 22, q = meas$q[i],
                length_sample = meas$L[i], extend = 0.5), numeric(1))
 
-  expect_true(all(abs(est - meas$peak) / meas$peak < 0.10))
+  # COVERAGE, not closeness. dfm_memory() is a safety bound: under-predicting
+  # hands out too many workers and kills a sweep hours in, so no measured point
+  # may sit above the estimate. Asserting |error| < 10% instead would pass while
+  # the estimate was 27% low at 500 draws, which is exactly what happened.
+  expect_true(all(est >= meas$peak))
 
-  # and the out-of-sample point: a different dataset, a different code version
-  expect_lt(abs(dfm_memory(n = 43, t = 1464, s = 22, q = 2,
-                           length_sample = 200, extend = 0) - 744) / 744, 0.10)
+  # and not so loose as to be useless
+  expect_true(all(est / meas$peak < 1.6))
+
+  # out-of-sample point: a different dataset and a different version of the code
+  expect_gte(dfm_memory(n = 43, t = 1464, s = 22, q = 2,
+                        length_sample = 200, extend = 0), 744)
 })
 
 

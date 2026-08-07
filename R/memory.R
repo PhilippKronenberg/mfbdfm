@@ -32,36 +32,52 @@
 #' magnitude larger. Doubling the factor count costs roughly one extra `Gmat`
 #' worth of working set, not four.
 #'
-#' **The model is a deliberate simplification, and here is where it bites.** Peak
-#' memory is really a *maximum* over phases -- sampling, rotation, evaluation --
-#' and which phase binds depends on the chain length: the sampler dominates short
-#' chains, the evaluation dominates long ones. A sum of linear terms cannot
-#' represent a maximum of two lines, so the fit is good inside the calibrated
-#' range and only indicative outside it. This showed up concretely when
-#' `get_nowcast_fcast()` was rewritten to drop a 313 MB intermediate (#64): the
-#' saving is worth 315 MB at `length_sample = 500`, but moved the measured peak
-#' by 0 to 42 MB at `length_sample` of 30 to 240, because at those lengths the
-#' evaluation phase was not the binding one. The coefficients therefore
-#' understate the saving at long chains.
+#' **The relationship is convex in `length_sample`, and the linear fit is
+#' therefore corrected upward.** Peak memory is really a *maximum* over phases --
+#' sampling, rotation, evaluation -- and which phase binds depends on the chain
+#' length: the sampler dominates short chains, the evaluation dominates long
+#' ones. Measured, the peak per MB of retained draws rises from 1.35 (30 to 120
+#' draws) through 1.97 (120 to 240) to 3.94 (240 to 500), so no single slope fits
+#' it. Refitting the line over the whole range does not help: it still
+#' under-predicts at 500 draws while over-predicting the middle by 15%.
+#'
+#' Under-prediction is the harmful direction here -- it hands out too many
+#' workers and the run dies hours in -- so the linear fit is multiplied by
+#' `MEM_SAFETY_FACTOR`, chosen as the largest measured/fitted ratio over the
+#' calibration points. That makes the estimate an **upper bound** across the
+#' measured range rather than a best fit, at the cost of over-estimating short
+#' chains by around a third. Short chains are cheap; the tool exists for the long
+#' ones.
+#'
+#' This was found the hard way. Before the correction the model predicted 1128 MB
+#' at 500 draws against **1538 MB measured** -- 27% low. That is very likely why
+#' the 2019-2020 sweep lost two dates to `R_Calloc` out-of-memory: five workers
+#' were allocated against a budget computed from the under-estimate. I had
+#' attributed those failures to contention with a concurrent `R CMD check`, which
+#' was at best only part of it.
 #'
 #' # Calibration
 #'
-#' Fitted to six fits measured one per fresh R process (the GC high-water mark
+#' Fitted to seven fits measured one per fresh R process (the GC high-water mark
 #' is per process, so several in one session would report only their maximum) at
 #' `n = 53`, `t = 1559`, `s = 22`: `q = 1..4` at `length_sample = 30`, and
-#' `q = 2` at `length_sample = 30, 120, 240`. Adjusted R-squared 0.99, largest
-#' residual 19 MB.
+#' `q = 2` at `length_sample = 30, 120, 240, 500`. The line is fitted on the
+#' first six and then scaled by `MEM_SAFETY_FACTOR` so that it covers the
+#' seventh, which is the setting the sweeps actually use.
 #'
 #' Validated out of sample against a fit on a **different** dataset and a
 #' different version of the code (`n = 43`, `t = 1464`, `q = 2`,
-#' `length_sample = 200`): 690 MB predicted against 744 MB measured, a 7% error.
+#' `length_sample = 200`): 744 MB measured, covered.
 #'
-#' Treat it as accurate to roughly 10% inside the calibrated range, and as
-#' conservative above it, which is why `dfm_workers()` applies a safety factor
-#' rather than dividing exactly. The constants are specific to this package's
-#' samplers; they were measured on x86_64 Windows and will drift if the
-#' samplers' allocation pattern changes. `dev/calibrate-memory.R` regenerates
-#' them.
+#' **Known gap: there is no measurement at both high `q` and long chains.** The
+#' `q = 1..4` points are all at 30 draws and the long-chain points are all at
+#' `q = 2`, so the interaction is assumed rather than measured, and `q = 4` with
+#' 500 draws -- what `analysis/fcast/6b_refit_factor_counts.R` runs -- is an
+#' extrapolation in both arguments.
+#'
+#' The constants are specific to this package's samplers; they were measured on
+#' x86_64 Windows and will drift if the samplers' allocation pattern changes.
+#' `dev/calibrate-memory.R` regenerates them.
 #'
 #' Calibrated on [fcast_dfm()]. [ind_dfm()] is a different sampler with no
 #' post-hoc rotation and no packed draw matrix, and has **not** been measured
@@ -129,7 +145,9 @@ dfm_memory <- function(flows = NULL, stocks = NULL,
   gmat_mb  <- q * (t_eff - 1) * n * (s + 2) * 12 / 1e6
   draws_mb <- length_sample * (n * q + p * q^2 + 2 * n + n * t_eff + (t_eff + s)) * 8 / 1e6
 
-  unname(MEM_FIXED_MB + MEM_GMAT_COPIES * gmat_mb + MEM_DRAW_COPIES * draws_mb)
+  # scaled to an upper bound rather than a best fit; see ?dfm_memory
+  unname(MEM_SAFETY_FACTOR *
+           (MEM_FIXED_MB + MEM_GMAT_COPIES * gmat_mb + MEM_DRAW_COPIES * draws_mb))
 
 }
 
@@ -177,6 +195,11 @@ dfm_workers <- function(..., available_mb = NULL, safety = 0.7,
 MEM_FIXED_MB     <- 270
 MEM_GMAT_COPIES  <- 6.33
 MEM_DRAW_COPIES  <- 1.65
+
+# Largest measured/fitted ratio over the calibration points: 1538 / 1127 at
+# q = 2, 500 draws. Turns the least-squares line into an upper bound, because
+# under-predicting hands out too many workers and kills the run hours in.
+MEM_SAFETY_FACTOR <- 1.37
 
 
 #' Dimensions for the memory model, from data or from explicit arguments

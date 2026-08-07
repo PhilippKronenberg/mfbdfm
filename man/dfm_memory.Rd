@@ -86,8 +86,8 @@ Peak memory is fitted as
 where \eqn{G} is the footprint of the observation matrix \code{Gmat}
 (\verb{q(t-1)n(s+2)} nonzeros at 12 bytes each) and \eqn{D} is the footprint of
 the retained draws (\code{length_sample} rows of \verb{nq + pq^2 + 2n + nt + t + s}
-doubles). The fitted coefficients say the fit holds about \strong{6.2 live copies
-of \code{Gmat}} and \strong{1.9 copies of the draw matrix}, over a fixed \strong{267 MB} of
+doubles). The fitted coefficients say the fit holds about \strong{6.3 live copies
+of \code{Gmat}} and \strong{1.65 copies of the draw matrix}, over a fixed \strong{270 MB} of
 R and package overhead.
 
 \strong{Memory is linear in \code{q}, not quadratic.} The natural guess is that the
@@ -96,24 +96,53 @@ which would scale with \code{q^2}. Measured, it does not: adding that term to th
 regression does not improve it, because the \code{Gmat} working set is an order of
 magnitude larger. Doubling the factor count costs roughly one extra \code{Gmat}
 worth of working set, not four.
+
+\strong{The relationship is convex in \code{length_sample}, and the linear fit is
+therefore corrected upward.} Peak memory is really a \emph{maximum} over phases --
+sampling, rotation, evaluation -- and which phase binds depends on the chain
+length: the sampler dominates short chains, the evaluation dominates long
+ones. Measured, the peak per MB of retained draws rises from 1.35 (30 to 120
+draws) through 1.97 (120 to 240) to 3.94 (240 to 500), so no single slope fits
+it. Refitting the line over the whole range does not help: it still
+under-predicts at 500 draws while over-predicting the middle by 15\%.
+
+Under-prediction is the harmful direction here -- it hands out too many
+workers and the run dies hours in -- so the linear fit is multiplied by
+\code{MEM_SAFETY_FACTOR}, chosen as the largest measured/fitted ratio over the
+calibration points. That makes the estimate an \strong{upper bound} across the
+measured range rather than a best fit, at the cost of over-estimating short
+chains by around a third. Short chains are cheap; the tool exists for the long
+ones.
+
+This was found the hard way. Before the correction the model predicted 1128 MB
+at 500 draws against \strong{1538 MB measured} -- 27\% low. That is very likely why
+the 2019-2020 sweep lost two dates to \code{R_Calloc} out-of-memory: five workers
+were allocated against a budget computed from the under-estimate. I had
+attributed those failures to contention with a concurrent \verb{R CMD check}, which
+was at best only part of it.
 }
 
 \section{Calibration}{
-Fitted to six fits measured one per fresh R process (the GC high-water mark
+Fitted to seven fits measured one per fresh R process (the GC high-water mark
 is per process, so several in one session would report only their maximum) at
 \code{n = 53}, \code{t = 1559}, \code{s = 22}: \verb{q = 1..4} at \code{length_sample = 30}, and
-\code{q = 2} at \verb{length_sample = 30, 120, 240}. Adjusted R-squared 0.98, largest
-residual 34 MB.
+\code{q = 2} at \verb{length_sample = 30, 120, 240, 500}. The line is fitted on the
+first six and then scaled by \code{MEM_SAFETY_FACTOR} so that it covers the
+seventh, which is the setting the sweeps actually use.
 
 Validated out of sample against a fit on a \strong{different} dataset and a
 different version of the code (\code{n = 43}, \code{t = 1464}, \code{q = 2},
-\code{length_sample = 200}): 690 MB predicted against 744 MB measured, a 7\% error.
+\code{length_sample = 200}): 744 MB measured, covered.
 
-Treat it as accurate to roughly 10\%, which is why \code{dfm_workers()} applies a
-safety factor rather than dividing exactly. The constants are specific to
-this package's samplers; they were measured on x86_64 Windows and will drift
-if the samplers' allocation pattern changes. \code{dev/calibrate-memory.R}
-regenerates them.
+\strong{Known gap: there is no measurement at both high \code{q} and long chains.} The
+\verb{q = 1..4} points are all at 30 draws and the long-chain points are all at
+\code{q = 2}, so the interaction is assumed rather than measured, and \code{q = 4} with
+500 draws -- what \verb{analysis/fcast/6b_refit_factor_counts.R} runs -- is an
+extrapolation in both arguments.
+
+The constants are specific to this package's samplers; they were measured on
+x86_64 Windows and will drift if the samplers' allocation pattern changes.
+\code{dev/calibrate-memory.R} regenerates them.
 
 Calibrated on \code{\link[=fcast_dfm]{fcast_dfm()}}. \code{\link[=ind_dfm]{ind_dfm()}} is a different sampler with no
 post-hoc rotation and no packed draw matrix, and has \strong{not} been measured
