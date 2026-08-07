@@ -21,8 +21,8 @@
 #' where \eqn{G} is the footprint of the observation matrix `Gmat`
 #' (`q(t-1)n(s+2)` nonzeros at 12 bytes each) and \eqn{D} is the footprint of
 #' the retained draws (`length_sample` rows of `nq + pq^2 + 2n + nt + t + s`
-#' doubles). The fitted coefficients say the fit holds about **6.2 live copies
-#' of `Gmat`** and **1.9 copies of the draw matrix**, over a fixed **267 MB** of
+#' doubles). The fitted coefficients say the fit holds about **6.3 live copies
+#' of `Gmat`** and **1.65 copies of the draw matrix**, over a fixed **270 MB** of
 #' R and package overhead.
 #'
 #' **Memory is linear in `q`, not quadratic.** The natural guess is that the
@@ -32,23 +32,36 @@
 #' magnitude larger. Doubling the factor count costs roughly one extra `Gmat`
 #' worth of working set, not four.
 #'
+#' **The model is a deliberate simplification, and here is where it bites.** Peak
+#' memory is really a *maximum* over phases -- sampling, rotation, evaluation --
+#' and which phase binds depends on the chain length: the sampler dominates short
+#' chains, the evaluation dominates long ones. A sum of linear terms cannot
+#' represent a maximum of two lines, so the fit is good inside the calibrated
+#' range and only indicative outside it. This showed up concretely when
+#' `get_nowcast_fcast()` was rewritten to drop a 313 MB intermediate (#64): the
+#' saving is worth 315 MB at `length_sample = 500`, but moved the measured peak
+#' by 0 to 42 MB at `length_sample` of 30 to 240, because at those lengths the
+#' evaluation phase was not the binding one. The coefficients therefore
+#' understate the saving at long chains.
+#'
 #' # Calibration
 #'
 #' Fitted to six fits measured one per fresh R process (the GC high-water mark
 #' is per process, so several in one session would report only their maximum) at
 #' `n = 53`, `t = 1559`, `s = 22`: `q = 1..4` at `length_sample = 30`, and
-#' `q = 2` at `length_sample = 30, 120, 240`. Adjusted R-squared 0.98, largest
-#' residual 34 MB.
+#' `q = 2` at `length_sample = 30, 120, 240`. Adjusted R-squared 0.99, largest
+#' residual 19 MB.
 #'
 #' Validated out of sample against a fit on a **different** dataset and a
 #' different version of the code (`n = 43`, `t = 1464`, `q = 2`,
 #' `length_sample = 200`): 690 MB predicted against 744 MB measured, a 7% error.
 #'
-#' Treat it as accurate to roughly 10%, which is why `dfm_workers()` applies a
-#' safety factor rather than dividing exactly. The constants are specific to
-#' this package's samplers; they were measured on x86_64 Windows and will drift
-#' if the samplers' allocation pattern changes. `dev/calibrate-memory.R`
-#' regenerates them.
+#' Treat it as accurate to roughly 10% inside the calibrated range, and as
+#' conservative above it, which is why `dfm_workers()` applies a safety factor
+#' rather than dividing exactly. The constants are specific to this package's
+#' samplers; they were measured on x86_64 Windows and will drift if the
+#' samplers' allocation pattern changes. `dev/calibrate-memory.R` regenerates
+#' them.
 #'
 #' Calibrated on [fcast_dfm()]. [ind_dfm()] is a different sampler with no
 #' post-hoc rotation and no packed draw matrix, and has **not** been measured
@@ -161,9 +174,9 @@ dfm_workers <- function(..., available_mb = NULL, safety = 0.7,
 
 
 # Fitted constants; see ?dfm_memory and dev/calibrate-memory.R.
-MEM_FIXED_MB     <- 267
-MEM_GMAT_COPIES  <- 6.22
-MEM_DRAW_COPIES  <- 1.92
+MEM_FIXED_MB     <- 270
+MEM_GMAT_COPIES  <- 6.33
+MEM_DRAW_COPIES  <- 1.65
 
 
 #' Dimensions for the memory model, from data or from explicit arguments

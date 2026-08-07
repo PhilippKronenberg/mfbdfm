@@ -115,32 +115,64 @@ get_factors_fcast <- function(Ymat, f_draws, inventory, n, q, p, s, t){
 #' `ind_dfm()`), this returns the mean and variance of the fitted value for
 #' *every* series, each at that series' own frequency.
 #'
+#' @details
+#' Each draw's augmented-data block is unpacked once and scattered straight into
+#' the per-series draw matrices, rather than materialising the whole list of
+#' unpacked blocks first. The list version held a second full copy of the
+#' retained draws for the length of the function: measured at `n = 53`,
+#' `t = 1535`, `q = 2` and 500 draws, `rlist` 317 MB, the intermediate list
+#' 313 MB and the per-series matrices 191 MB, with the phase peaking at 1162 MB.
+#' The intermediate is pure overhead -- it is built from `rlist` and read once,
+#' one column per series.
+#'
+#' This is **bit-identical**, not merely equivalent: the per-series matrices are
+#' filled with the same values in the same positions, so `apply(, 1, mean)` and
+#' `apply(, 1, var)` still see exactly the matrix they saw before. Nothing here
+#' replaces an aggregation with a running accumulator, which is what would have
+#' cost bit-identity (`mean()` on doubles is two-pass in R).
+#'
 #' @noRd
 #' @importFrom stats ts time var
 get_nowcast_fcast <- function(Xmat, Ymat, rlist, inventory, n, q, p, s, t){
 
-  Xmat_list <- lapply(rlist, function(x) {
-    Xm <- theta2list_fcast(theta = x, n, p, q, t)$Xmat
-    colnames(Xm) <- inventory$key
-    Xm
-
+  # per-series row selectors and moments, computed once rather than per draw
+  keys <- inventory$key
+  freq_max <- max(inventory$freq)
+  sel <- lapply(keys, function(x){
+    fx <- inventory[which(inventory$key == x), "freq"]
+    resid <- (time(Ymat) + 1/freq_max) %% (1/fx)
+    round(resid, 3) == 0 | round(resid, 3) == round(1/fx, 3)
   })
+  sds <- vapply(keys, function(x) inventory[which(inventory$key == x), "sd"], numeric(1))
+  mns <- vapply(keys, function(x) inventory[which(inventory$key == x), "mean"], numeric(1))
 
-  Xmat_draws <- lapply(inventory$key, function(x){
+  # Positions of the wanted elements directly inside the packed draw vector, so
+  # the augmented-data block never has to be unpacked into a matrix at all.
+  # theta2list_fcast() reads Xmat as matrix(theta[(off+1):(off+n*t), ], ncol = n),
+  # i.e. column-major with n columns of t rows, so element (r, j) sits at
+  # off + (j-1)*t + r. Precomputing these index vectors removes a full t x n
+  # allocation per draw - which the measurement said was the dominant transient
+  # once the intermediate list was gone.
+  off <- n*q + p*q^2 + 2*n
+  pos <- lapply(seq_along(keys), function(j) off + (j - 1L)*t + which(sel[[j]]))
 
-    # get the entry where the data is usually recorded
-    resid <- (time(Ymat) + 1/max(inventory$freq)) %% (1/inventory[which(inventory$key == x),"freq"])
-    idx <- round(resid,3) == 0 | round(resid,3) == round(1/inventory[which(inventory$key == x),"freq"],3)
+  # preallocate one matrix per series, then scatter each draw into column i.
+  # cbind() of unnamed vectors produced a matrix with no dimnames, so these are
+  # left without any either - apply() below would otherwise return named vectors
+  # and change the result's attributes.
+  Xmat_draws <- lapply(seq_along(keys), function(j)
+    matrix(NA_real_, nrow = length(pos[[j]]), ncol = length(rlist)))
 
-    # extract and rescale all draws
-    do.call(cbind, lapply(Xmat_list, function(Xm){
+  for(i in seq_along(rlist)){
 
-      (Xm[idx, x] * inventory[which(inventory$key == x),"sd"]) +
-        inventory[which(inventory$key == x),"mean"]
+    th <- rlist[[i]]
 
-    }))
+    for(j in seq_along(keys)){
+      Xmat_draws[[j]][, i] <- (th[pos[[j]]] * sds[j]) + mns[j]
+    }
 
-  }); names(Xmat_draws) <- inventory$key
+  }
+  names(Xmat_draws) <- keys
 
   out_mean <- lapply(names(Xmat_draws), function(x){
 

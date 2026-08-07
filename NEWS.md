@@ -106,6 +106,16 @@ application of it (#37).
 
 ## Performance
 
+* `fcast_dfm()`'s peak memory drops by about 315 MB at 500 retained draws, with
+  bit-identical results. `get_nowcast_fcast()` built a full unpacked copy of
+  every retained draw's augmented-data block, read it once (one column per
+  series) and then held it for the rest of the call; it now scatters each draw
+  straight into the per-series matrices, indexing into the packed vector so no
+  block is unpacked at all. Measured full-function peak 1307 MB to 992 MB at
+  `n = 53`, `t = 1535`, `q = 2`, 500 draws. Verified `identical()` against the
+  previous implementation, and all four `dev/baseline.rds` configurations
+  unchanged (#64).
+
 * `dfm_memory()` estimates the peak memory of a `fcast_dfm()` fit from the data
   dimensions and the chain length, and `dfm_workers()` turns that into a worker
   count for a parallel sweep. Vintage sweeps are memory-bound rather than

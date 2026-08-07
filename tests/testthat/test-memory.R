@@ -5,7 +5,7 @@ test_that("dfm_memory reproduces its own calibration points", {
   # edited without re-measuring, this is what catches it.
   meas <- data.frame(q = c(1, 2, 3, 4, 2, 2),
                      L = c(30, 30, 30, 30, 120, 240),
-                     peak = c(466, 604, 746, 905, 684, 888))
+                     peak = c(465, 604, 745, 916, 686, 846))
 
   est <- vapply(seq_len(nrow(meas)), function(i)
     dfm_memory(n = 53, t = 1535, s = 22, q = meas$q[i],
