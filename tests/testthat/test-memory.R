@@ -1,10 +1,10 @@
 test_that("dfm_memory reproduces its own calibration points", {
 
-  # The seven measured fits behind the constants (?dfm_memory), at n = 53,
+  # The eight measured fits behind the constants (?dfm_memory), at n = 53,
   # t = 1535, s = 22, extend = 0.5.
-  meas <- data.frame(q = c(1, 2, 3, 4, 2, 2, 2),
-                     L = c(30, 30, 30, 30, 120, 240, 500),
-                     peak = c(465, 604, 745, 916, 686, 846, 1538))
+  meas <- data.frame(q = c(1, 2, 3, 4, 2, 2, 2, 4),
+                     L = c(30, 30, 30, 30, 120, 240, 500, 500),
+                     peak = c(465, 604, 745, 916, 686, 846, 1538, 1596))
 
   est <- vapply(seq_len(nrow(meas)), function(i)
     dfm_memory(n = 53, t = 1535, s = 22, q = meas$q[i],

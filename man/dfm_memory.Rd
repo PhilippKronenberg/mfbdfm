@@ -90,12 +90,21 @@ doubles). The fitted coefficients say the fit holds about \strong{6.3 live copie
 of \code{Gmat}} and \strong{1.65 copies of the draw matrix}, over a fixed \strong{270 MB} of
 R and package overhead.
 
-\strong{Memory is linear in \code{q}, not quadratic.} The natural guess is that the
-sparse Cholesky of the \code{q(t+s)} square factor precision matrix dominates,
-which would scale with \code{q^2}. Measured, it does not: adding that term to the
-regression does not improve it, because the \code{Gmat} working set is an order of
-magnitude larger. Doubling the factor count costs roughly one extra \code{Gmat}
-worth of working set, not four.
+\strong{Memory is linear in \code{q}, not quadratic -- and at long chains barely depends
+on \code{q} at all.} The natural guess is that the sparse Cholesky of the
+\code{q(t+s)} square factor precision matrix dominates, which would scale with
+\code{q^2}. Measured, it does not: adding that term to the regression does not
+improve it, because the \code{Gmat} working set is an order of magnitude larger.
+
+The \code{q} effect is also much weaker at long chains than at short ones -- each
+extra factor costs about 156 MB at 30 retained draws but only about 29 MB at
+500. Same cause as the convexity below: once the evaluation phase binds, peak
+memory is dominated by the retained draws and the per-series matrices built
+from them, whose size is driven by \code{n * t}, while the \code{q}-dependent part of a
+draw (\code{nq + pq^2 + t + s}) is negligible beside it. The model keeps \code{q} in the
+\code{Gmat} term regardless, which makes it \emph{loose} at high \code{q} and long chains
+rather than wrong -- 1959 MB estimated against 1596 MB measured at \code{q = 4},
+500 draws.
 
 \strong{The relationship is convex in \code{length_sample}, and the linear fit is
 therefore corrected upward.} Peak memory is really a \emph{maximum} over phases --
@@ -123,22 +132,30 @@ was at best only part of it.
 }
 
 \section{Calibration}{
-Fitted to seven fits measured one per fresh R process (the GC high-water mark
+Fitted to eight fits measured one per fresh R process (the GC high-water mark
 is per process, so several in one session would report only their maximum) at
-\code{n = 53}, \code{t = 1559}, \code{s = 22}: \verb{q = 1..4} at \code{length_sample = 30}, and
-\code{q = 2} at \verb{length_sample = 30, 120, 240, 500}. The line is fitted on the
-first six and then scaled by \code{MEM_SAFETY_FACTOR} so that it covers the
-seventh, which is the setting the sweeps actually use.
+\code{n = 53}, \code{t = 1559}, \code{s = 22}:\tabular{lll}{
+   \code{q} \tab \code{length_sample} \tab measured peak \cr
+   1 \tab 30 \tab 465 MB \cr
+   2 \tab 30 \tab 604 MB \cr
+   3 \tab 30 \tab 745 MB \cr
+   4 \tab 30 \tab 916 MB \cr
+   2 \tab 120 \tab 686 MB \cr
+   2 \tab 240 \tab 846 MB \cr
+   2 \tab 500 \tab 1538 MB \cr
+   4 \tab 500 \tab 1596 MB \cr
+}
+
+
+The line is fitted on the six short/mid points and then scaled by
+\code{MEM_SAFETY_FACTOR} so that it also covers the two long-chain points, which are
+the settings the sweeps actually use. \code{q = 2} at 500 draws is the binding one
+(covered at ratio 1.01); \code{q = 4} at 500 draws is covered with 23\% to spare, for
+the reason given above.
 
 Validated out of sample against a fit on a \strong{different} dataset and a
 different version of the code (\code{n = 43}, \code{t = 1464}, \code{q = 2},
 \code{length_sample = 200}): 744 MB measured, covered.
-
-\strong{Known gap: there is no measurement at both high \code{q} and long chains.} The
-\verb{q = 1..4} points are all at 30 draws and the long-chain points are all at
-\code{q = 2}, so the interaction is assumed rather than measured, and \code{q = 4} with
-500 draws -- what \verb{analysis/fcast/6b_refit_factor_counts.R} runs -- is an
-extrapolation in both arguments.
 
 The constants are specific to this package's samplers; they were measured on
 x86_64 Windows and will drift if the samplers' allocation pattern changes.
