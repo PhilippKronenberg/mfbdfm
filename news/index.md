@@ -183,6 +183,20 @@ Bayesian dynamic factor model and WAI is one application of it
 
 ### Performance
 
+- [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)’s
+  peak memory drops by about 315 MB at 500 retained draws, with
+  bit-identical results. `get_nowcast_fcast()` built a full unpacked
+  copy of every retained draw’s augmented-data block, read it once (one
+  column per series) and then held it for the rest of the call; it now
+  scatters each draw straight into the per-series matrices, indexing
+  into the packed vector so no block is unpacked at all. Measured
+  full-function peak 1307 MB to 992 MB at `n = 53`, `t = 1535`, `q = 2`,
+  500 draws. Verified
+  [`identical()`](https://rdrr.io/r/base/identical.html) against the
+  previous implementation, and all four `dev/baseline.rds`
+  configurations unchanged
+  ([\#64](https://github.com/PhilippKronenberg/mfbdfm/issues/64)).
+
 - [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md)
   estimates the peak memory of a
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)

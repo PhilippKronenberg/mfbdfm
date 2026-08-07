@@ -167,14 +167,14 @@ Other model fitting functions:
 ``` r
 # from dimensions
 dfm_memory(n = 53, t = 1535, s = 22, q = 2, length_sample = 500)
-#> [1] 1211.216
+#> [1] 1128.27
 
 # the whole point: how many workers fit in 24 GB
 dfm_workers(n = 53, t = 1535, s = 22, q = 4, length_sample = 500,
             available_mb = 24 * 1024)
 #> [1] 4
 #> attr(,"per_fit_mb")
-#> [1] 1507.962
+#> [1] 1430.12
 #> attr(,"available_mb")
 #> [1] 24576
 #> attr(,"budget_mb")
@@ -185,5 +185,5 @@ data(data_ch_dataset_test)
 dfm_memory(flows = data_ch_dataset_test$flows,
            stocks = data_ch_dataset_test$stocks,
            q = 2, length_sample = 1000)
-#> [1] 1836.017
+#> [1] 1664.424
 ```

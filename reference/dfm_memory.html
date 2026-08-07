@@ -195,14 +195,14 @@ here.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># from dimensions</span></span></span>
 <span class="r-in"><span><span class="fu">dfm_memory</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">53</span>, t <span class="op">=</span> <span class="fl">1535</span>, s <span class="op">=</span> <span class="fl">22</span>, q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1211.216</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1128.27</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the whole point: how many workers fit in 24 GB</span></span></span>
 <span class="r-in"><span><span class="fu">dfm_workers</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">53</span>, t <span class="op">=</span> <span class="fl">1535</span>, s <span class="op">=</span> <span class="fl">22</span>, q <span class="op">=</span> <span class="fl">4</span>, length_sample <span class="op">=</span> <span class="fl">500</span>,</span></span>
 <span class="r-in"><span>            available_mb <span class="op">=</span> <span class="fl">24</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 4</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"per_fit_mb")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1507.962</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1430.12</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"available_mb")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 24576</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"budget_mb")</span>
@@ -213,7 +213,7 @@ here.</p>
 <span class="r-in"><span><span class="fu">dfm_memory</span><span class="op">(</span>flows <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span>,</span></span>
 <span class="r-in"><span>           stocks <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span>,</span></span>
 <span class="r-in"><span>           q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1836.017</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1664.424</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
