@@ -156,12 +156,20 @@ the retained draws (<code>length_sample</code> rows of <code>nq + pq^2 + 2n + nt
 doubles). The fitted coefficients say the fit holds about <strong>6.3 live copies
 of <code>Gmat</code></strong> and <strong>1.65 copies of the draw matrix</strong>, over a fixed <strong>270 MB</strong> of
 R and package overhead.</p>
-<p><strong>Memory is linear in <code>q</code>, not quadratic.</strong> The natural guess is that the
-sparse Cholesky of the <code>q(t+s)</code> square factor precision matrix dominates,
-which would scale with <code>q^2</code>. Measured, it does not: adding that term to the
-regression does not improve it, because the <code>Gmat</code> working set is an order of
-magnitude larger. Doubling the factor count costs roughly one extra <code>Gmat</code>
-worth of working set, not four.</p>
+<p><strong>Memory is linear in <code>q</code>, not quadratic – and at long chains barely depends
+on <code>q</code> at all.</strong> The natural guess is that the sparse Cholesky of the
+<code>q(t+s)</code> square factor precision matrix dominates, which would scale with
+<code>q^2</code>. Measured, it does not: adding that term to the regression does not
+improve it, because the <code>Gmat</code> working set is an order of magnitude larger.</p>
+<p>The <code>q</code> effect is also much weaker at long chains than at short ones – each
+extra factor costs about 156 MB at 30 retained draws but only about 29 MB at
+500. Same cause as the convexity below: once the evaluation phase binds, peak
+memory is dominated by the retained draws and the per-series matrices built
+from them, whose size is driven by <code>n * t</code>, while the <code>q</code>-dependent part of a
+draw (<code>nq + pq^2 + t + s</code>) is negligible beside it. The model keeps <code>q</code> in the
+<code>Gmat</code> term regardless, which makes it <em>loose</em> at high <code>q</code> and long chains
+rather than wrong – 1959 MB estimated against 1596 MB measured at <code>q = 4</code>,
+500 draws.</p>
 <p><strong>The relationship is convex in <code>length_sample</code>, and the linear fit is
 therefore corrected upward.</strong> Peak memory is really a <em>maximum</em> over phases –
 sampling, rotation, evaluation – and which phase binds depends on the chain
@@ -186,20 +194,16 @@ was at best only part of it.</p>
     </div>
     <div class="section level2">
     <h2 id="calibration">Calibration<a class="anchor" aria-label="anchor" href="#calibration"></a></h2>
-    <p>Fitted to seven fits measured one per fresh R process (the GC high-water mark
+    <p>Fitted to eight fits measured one per fresh R process (the GC high-water mark
 is per process, so several in one session would report only their maximum) at
-<code>n = 53</code>, <code>t = 1559</code>, <code>s = 22</code>: <code>q = 1..4</code> at <code>length_sample = 30</code>, and
-<code>q = 2</code> at <code>length_sample = 30, 120, 240, 500</code>. The line is fitted on the
-first six and then scaled by <code>MEM_SAFETY_FACTOR</code> so that it covers the
-seventh, which is the setting the sweeps actually use.</p>
+<code>n = 53</code>, <code>t = 1559</code>, <code>s = 22</code>:</p><table class="table table"><tr><td><code>q</code></td><td><code>length_sample</code></td><td>measured peak</td></tr><tr><td>1</td><td>30</td><td>465 MB</td></tr><tr><td>2</td><td>30</td><td>604 MB</td></tr><tr><td>3</td><td>30</td><td>745 MB</td></tr><tr><td>4</td><td>30</td><td>916 MB</td></tr><tr><td>2</td><td>120</td><td>686 MB</td></tr><tr><td>2</td><td>240</td><td>846 MB</td></tr><tr><td>2</td><td>500</td><td>1538 MB</td></tr><tr><td>4</td><td>500</td><td>1596 MB</td></tr></table><p>The line is fitted on the six short/mid points and then scaled by
+<code>MEM_SAFETY_FACTOR</code> so that it also covers the two long-chain points, which are
+the settings the sweeps actually use. <code>q = 2</code> at 500 draws is the binding one
+(covered at ratio 1.01); <code>q = 4</code> at 500 draws is covered with 23% to spare, for
+the reason given above.</p>
 <p>Validated out of sample against a fit on a <strong>different</strong> dataset and a
 different version of the code (<code>n = 43</code>, <code>t = 1464</code>, <code>q = 2</code>,
 <code>length_sample = 200</code>): 744 MB measured, covered.</p>
-<p><strong>Known gap: there is no measurement at both high <code>q</code> and long chains.</strong> The
-<code>q = 1..4</code> points are all at 30 draws and the long-chain points are all at
-<code>q = 2</code>, so the interaction is assumed rather than measured, and <code>q = 4</code> with
-500 draws – what <code>analysis/fcast/6b_refit_factor_counts.R</code> runs – is an
-extrapolation in both arguments.</p>
 <p>The constants are specific to this package's samplers; they were measured on
 x86_64 Windows and will drift if the samplers' allocation pattern changes.
 <code>dev/calibrate-memory.R</code> regenerates them.</p>

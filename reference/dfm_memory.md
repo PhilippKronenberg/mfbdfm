@@ -121,12 +121,22 @@ the retained draws (`length_sample` rows of
 fit holds about **6.3 live copies of `Gmat`** and **1.65 copies of the
 draw matrix**, over a fixed **270 MB** of R and package overhead.
 
-**Memory is linear in `q`, not quadratic.** The natural guess is that
-the sparse Cholesky of the `q(t+s)` square factor precision matrix
-dominates, which would scale with `q^2`. Measured, it does not: adding
-that term to the regression does not improve it, because the `Gmat`
-working set is an order of magnitude larger. Doubling the factor count
-costs roughly one extra `Gmat` worth of working set, not four.
+**Memory is linear in `q`, not quadratic – and at long chains barely
+depends on `q` at all.** The natural guess is that the sparse Cholesky
+of the `q(t+s)` square factor precision matrix dominates, which would
+scale with `q^2`. Measured, it does not: adding that term to the
+regression does not improve it, because the `Gmat` working set is an
+order of magnitude larger.
+
+The `q` effect is also much weaker at long chains than at short ones –
+each extra factor costs about 156 MB at 30 retained draws but only about
+29 MB at 500. Same cause as the convexity below: once the evaluation
+phase binds, peak memory is dominated by the retained draws and the
+per-series matrices built from them, whose size is driven by `n * t`,
+while the `q`-dependent part of a draw (`nq + pq^2 + t + s`) is
+negligible beside it. The model keeps `q` in the `Gmat` term regardless,
+which makes it *loose* at high `q` and long chains rather than wrong –
+1959 MB estimated against 1596 MB measured at `q = 4`, 500 draws.
 
 **The relationship is convex in `length_sample`, and the linear fit is
 therefore corrected upward.** Peak memory is really a *maximum* over
@@ -155,23 +165,31 @@ with a concurrent `R CMD check`, which was at best only part of it.
 
 ## Calibration
 
-Fitted to seven fits measured one per fresh R process (the GC high-water
+Fitted to eight fits measured one per fresh R process (the GC high-water
 mark is per process, so several in one session would report only their
-maximum) at `n = 53`, `t = 1559`, `s = 22`: `q = 1..4` at
-`length_sample = 30`, and `q = 2` at
-`length_sample = 30, 120, 240, 500`. The line is fitted on the first six
-and then scaled by `MEM_SAFETY_FACTOR` so that it covers the seventh,
-which is the setting the sweeps actually use.
+maximum) at `n = 53`, `t = 1559`, `s = 22`:
+
+|     |                 |               |
+|-----|-----------------|---------------|
+| `q` | `length_sample` | measured peak |
+| 1   | 30              | 465 MB        |
+| 2   | 30              | 604 MB        |
+| 3   | 30              | 745 MB        |
+| 4   | 30              | 916 MB        |
+| 2   | 120             | 686 MB        |
+| 2   | 240             | 846 MB        |
+| 2   | 500             | 1538 MB       |
+| 4   | 500             | 1596 MB       |
+
+The line is fitted on the six short/mid points and then scaled by
+`MEM_SAFETY_FACTOR` so that it also covers the two long-chain points,
+which are the settings the sweeps actually use. `q = 2` at 500 draws is
+the binding one (covered at ratio 1.01); `q = 4` at 500 draws is covered
+with 23% to spare, for the reason given above.
 
 Validated out of sample against a fit on a **different** dataset and a
 different version of the code (`n = 43`, `t = 1464`, `q = 2`,
 `length_sample = 200`): 744 MB measured, covered.
-
-**Known gap: there is no measurement at both high `q` and long chains.**
-The `q = 1..4` points are all at 30 draws and the long-chain points are
-all at `q = 2`, so the interaction is assumed rather than measured, and
-`q = 4` with 500 draws – what `analysis/fcast/6b_refit_factor_counts.R`
-runs – is an extrapolation in both arguments.
 
 The constants are specific to this package's samplers; they were
 measured on x86_64 Windows and will drift if the samplers' allocation
