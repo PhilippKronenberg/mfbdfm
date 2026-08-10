@@ -20,3 +20,7 @@
 ^appendix_text\.rds$
 ^dev$
 ^demo$
+^data/dataset$
+^data/VIX$
+^data/benchmarks$
+^outputs$
