@@ -70,16 +70,47 @@ GDP_gr_vintages <- get_real_time_gdp_vintages("quarterly") #%>%
 
 # SETTINGS ---------------------------------------------------------
 
-datasets <- list("full_RT" = dat#,
-                 #"aggr_weekly" = week2mon(dat),
-                 #"only_monthly" = drop_weekly(dat),
-                 #"no_financial" = drop_financial(dat),
-                 #"only_total_retail" = drop_retail(dat)
-                 )
+# WHAT TO FIT -------------------------------------------------------------
+#
+# `full_RT` is the baseline and is always fitted; name any of the others to fit
+# them alongside it. Same arrangement as analysis/2_backcast.R.
+#
+#   full_RT              every series, real-time vintages   <- the baseline
+#   aggr_weekly          weekly series aggregated to monthly
+#   only_monthly         weekly indicators dropped
+#   no_financial         financial indicators dropped
+#   only_total_retail    retail series reduced to the total
+variants <- "full_RT"
+# variants <- c("full_RT", "aggr_weekly", "only_monthly", "no_financial",
+#               "only_total_retail")
+
+# 1 runs the date loop serially; >1 starts that many workers and uses them.
+n_workers <- 1
+
+variant_spec <- list(
+  full_RT           = function(d) d,
+  aggr_weekly       = function(d) week2mon(d),
+  only_monthly      = function(d) drop_weekly(d),
+  no_financial      = function(d) drop_financial(d),
+  only_total_retail = function(d) drop_retail(d)
+)
+
+variants <- unique(c("full_RT", variants))       # the baseline is not optional
+unknown <- setdiff(variants, names(variant_spec))
+if (length(unknown)) {
+  stop("Unknown dataset variant(s): ", paste(unknown, collapse = ", "), ".\n",
+       "  Available: ", paste(names(variant_spec), collapse = ", "), ".",
+       call. = FALSE)
+}
+
+datasets <- lapply(variant_spec[variants], function(f) f(dat))
 
 models <- list(#"ar" = run_ar#,
   "wai" = run_wai_adj
   )
+
+message(length(datasets), " dataset variant(s): ",
+        paste(names(datasets), collapse = ", "))
 
 # Define start and end dates of out-of-sample evaluation range  
 start_date <- 2025 + 41/48 # NOTE: Important to start in the first week of a quarter for the evaluation, i.e. 0/48, 12/48, 24/48 or 36/48!
@@ -89,15 +120,21 @@ date_vec <- seq(start_date, end_date, 1/48)
 
 # BACKDATING --------------------------------------------------------------
 
-#cl <- makeCluster(6)
-#registerDoParallel(cl)
-
+if (n_workers > 1) {
+  cl <- makeCluster(n_workers)
+  registerDoParallel(cl)
+  message("running ", length(date_vec), " date(s) on ", n_workers, " workers")
+} else {
+  registerDoSEQ()
+  message("running ", length(date_vec), " date(s) serially")
+}
 
  foreach(ix = date_vec,
          .packages = c("mfbdfm", "Matrix", "zoo","dplyr",
-                       "tidyr", "forecast")) %do% { # %dopar% {
+                       "tidyr", "forecast")) %dopar% {
 
-                        for(xdat in datasets){
+                        for(dataset_name in names(datasets)){
+                          xdat <- datasets[[dataset_name]]
                           for(model_name in names(models)){
                             run_mod <- models[[model_name]]
                             
@@ -111,9 +148,14 @@ date_vec <- seq(start_date, end_date, 1/48)
                               )
                             )
                             
-                            # get name of dataset used (only in order to save the WAI model appropriately)
-                            dataset_used <- names(datasets)[which(sapply(datasets, function(x) isTRUE(all.equal(x,xdat))))]
-                            
+                            # The loop carries the name now. It used to recover it
+                            # by all.equal()-ing the data object against every
+                            # entry of `datasets` - a deep comparison of the whole
+                            # dataset per fit, and one that returns a VECTOR, not a
+                            # name, if two variants ever compare equal (a variant
+                            # whose transform happens to be a no-op would do it).
+                            dataset_used <- dataset_name
+
                             # run model
                             out <- run_mod(flows = dat_realtime$flows,
                                            stocks = dat_realtime$stocks,
@@ -128,7 +170,9 @@ date_vec <- seq(start_date, end_date, 1/48)
                         }
                       }
 
-# stop cluster
+# stop the cluster if one was started. Guarded, because n_workers = 1 registers
+# doSEQ and creates no `cl`. Not on.exit(): at a script's top level that does not
+# defer to the end of the script - under Rscript it never fires at all.
 if (exists("cl")) stopCluster(cl)
 
 

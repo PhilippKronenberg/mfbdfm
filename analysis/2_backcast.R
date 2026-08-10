@@ -108,17 +108,57 @@ dat$flows[[target]] <- x_hist_gr
 # 6.) Vary number of factors
 # SETTINGS ---------------------------------------------------------
 
-datasets <- list(
-  #"full" = list(data = dat, stochastic_volatility = TRUE),
-  #"full_no_sv" = list(data = dat, stochastic_volatility = FALSE)#,
-  #"only_monthly" = list(data = drop_weekly(dat), stochastic_volatility = TRUE)
-  #"only_monthly_no_sv" = list(data = drop_weekly(dat), stochastic_volatility = FALSE)#,
-  "no_financial" = list(data = drop_financial(dat), stochastic_volatility = TRUE)#,
-  #"only_total_retail" = list(data = drop_retail(dat), stochastic_volatility = TRUE)
+# WHAT TO FIT -------------------------------------------------------------
+#
+# `full` is the baseline and is always fitted. Name any of the ablations below to
+# fit them alongside it; they are variants *of* the baseline, so running one
+# without it gives nothing to compare against.
+#
+#   full                 every series, stochastic volatility on  <- the baseline
+#   full_no_sv           every series, constant (still estimated) factor variance
+#   only_monthly         weekly indicators dropped
+#   only_monthly_no_sv   weekly dropped and no stochastic volatility
+#   no_financial         financial indicators dropped
+#   only_total_retail    retail series reduced to the total
+#
+# This used to be a list with five of six entries commented out, which is how the
+# BASELINE came to be the one variant never fitted: fits/updated/ held
+# no_financial, only_monthly, full_no_sv and only_monthly_no_sv, but no full.
+variants <- "full"
+# variants <- c("full", "full_no_sv", "only_monthly", "only_monthly_no_sv",
+#               "no_financial", "only_total_retail")
+
+# 1 runs the date loop serially; >1 starts that many workers and uses them.
+n_workers <- 1
+
+# The data transform is stored as a function so only the selected variants pay
+# for it - drop_weekly() and friends are not free on the full dataset.
+variant_spec <- list(
+  full               = list(data = function(d) d,                 stochastic_volatility = TRUE),
+  full_no_sv         = list(data = function(d) d,                 stochastic_volatility = FALSE),
+  only_monthly       = list(data = function(d) drop_weekly(d),    stochastic_volatility = TRUE),
+  only_monthly_no_sv = list(data = function(d) drop_weekly(d),    stochastic_volatility = FALSE),
+  no_financial       = list(data = function(d) drop_financial(d), stochastic_volatility = TRUE),
+  only_total_retail  = list(data = function(d) drop_retail(d),    stochastic_volatility = TRUE)
 )
+
+variants <- unique(c("full", variants))          # the baseline is not optional
+unknown <- setdiff(variants, names(variant_spec))
+if (length(unknown)) {
+  stop("Unknown dataset variant(s): ", paste(unknown, collapse = ", "), ".\n",
+       "  Available: ", paste(names(variant_spec), collapse = ", "), ".",
+       call. = FALSE)
+}
+
+datasets <- lapply(variant_spec[variants], function(s)
+  list(data = s$data(dat), stochastic_volatility = s$stochastic_volatility))
 
 models <- list(#"ar" = run_ar,
                "wai" = run_wai_adj)
+
+message(length(datasets), " dataset variant(s): ",
+        paste(names(datasets), collapse = ", "),
+        " | model(s): ", paste(names(models), collapse = ", "))
 
 # Define start and end dates of out-of-sample evaluation range  
 start_date <- 2025 + 47/48 # NOTE: Important to start in the first week of a quarter for the evaluation, i.e. 0/48, 12/48, 24/48 or 36/48!
@@ -128,15 +168,29 @@ date_vec <- seq(start_date, end_date, 1/48)
 
 # BACKDATING --------------------------------------------------------------
 
-# cl <- makeCluster(2)
-# registerDoParallel(cl)
+# A backend is always registered, so the loop below can use %dopar% in both
+# cases: registerDoSEQ() runs it serially and silently, where a bare %dopar% with
+# no backend warns and falls back. This also removes the need to comment the
+# cluster lines in and out, which is what left the old `stopCluster(cl)` at the
+# foot of this script referring to an object that existed only when those lines
+# were uncommented - it errored on its last line after doing all the work.
+#
+# NOT on.exit() for the teardown, tempting as it looks: at the top level of a
+# script on.exit() does not defer to the end of the script. Measured under
+# Rscript, a top-level on.exit() never fires at all, so the cluster would simply
+# leak. The explicit guarded call at the foot of the file is the right shape here.
+if (n_workers > 1) {
+  cl <- makeCluster(n_workers)
+  registerDoParallel(cl)
+  message("running ", length(date_vec), " date(s) on ", n_workers, " workers")
+} else {
+  registerDoSEQ()
+  message("running ", length(date_vec), " date(s) serially")
+}
 
-# loop over datasets
-# foreach(ix = date_vec,
-#                    xdat = datasets,
 foreach(ix = date_vec,
         .packages = c("mfbdfm", "Matrix", "zoo","dplyr",
-                      "tidyr", "forecast")) %do% { # %dopar% {
+                      "tidyr", "forecast")) %dopar% {
 
           for(dataset_name in names(datasets)){
             dataset_cfg <- datasets[[dataset_name]]
@@ -162,8 +216,10 @@ foreach(ix = date_vec,
           }
         }
 
-# stop cluster
-stopCluster(cl)
+# stop the cluster if one was started. Guarded, because n_workers = 1 registers
+# doSEQ and creates no `cl` - the unguarded version of this line is what made the
+# script error on completion.
+if (exists("cl")) stopCluster(cl)
 
 
 
