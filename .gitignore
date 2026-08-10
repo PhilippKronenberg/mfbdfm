@@ -91,3 +91,17 @@ dev/run_mc*.R
 
 # demo/ run artefacts (the script is committed, its output is not)
 demo/outputs/
+
+# The raw bundle written by analysis/1_data_prep_dataset.R. Regenerable, and it
+# holds the aggregated PRIVATE source data from data/dataset/ - unlike
+# data_ch_dataset.Rda and data_ch_dataset_test.Rda next to it, which are the
+# processed datasets already shipped under data/.
+analysis/Rda/data_ch_dataset_raw.Rda
+analysis/out/
+
+# PRIVATE raw source files for analysis/1_data_prep_dataset.R. Never commit
+# these: licensed source data, ~4.4 MB, and the processed result is already
+# shipped as data/*.rda (which stays tracked - it is the package's own data).
+data/dataset/
+data/VIX/
+data/benchmarks/
