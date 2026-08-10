@@ -198,6 +198,7 @@ Kronenberg, P. (2026). A high-frequency GDP indicator for Switzerland.
 Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025). Tracking
 economic activity with alternative high-frequency data. *Journal of
 Applied Econometrics*, 40(3), 270-290.
+[doi:10.1002/jae.3104](https://doi.org/10.1002/jae.3104)
 
 ## See also
 

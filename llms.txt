@@ -308,6 +308,7 @@ which extends the mixed-frequency dynamic factor model of:
 > Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
 > Tracking economic activity with alternative high-frequency data.
 > *Journal of Applied Econometrics*, 40(3), 270-290.
+> <https://doi.org/10.1002/jae.3104>
 
 A reference list of the related business-cycle-indicator literature is
 in the “References” section of
