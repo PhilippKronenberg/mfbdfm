@@ -58,7 +58,7 @@ Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.
 
 Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
 Tracking economic activity with alternative high-frequency data.
-\emph{Journal of Applied Econometrics}, 40(3), 270-290. (The mixed-frequency
+\emph{Journal of Applied Econometrics}, 40(3), 270-290. \doi{10.1002/jae.3104} (The mixed-frequency
 dynamic factor model underlying \code{mfbdfm}; this package estimates the
 single-factor, GDP-identified special case used in the WAI.)
 
@@ -75,7 +75,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Philipp Kronenberg \email{PhilippKronenberg@users.noreply.github.com}
+\strong{Maintainer}: Philipp Kronenberg \email{philippkronenberg@gmx.ch}
 
 }
 \keyword{internal}

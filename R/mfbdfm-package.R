@@ -48,7 +48,7 @@
 #'
 #' Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
 #' Tracking economic activity with alternative high-frequency data.
-#' *Journal of Applied Econometrics*, 40(3), 270-290. (The mixed-frequency
+#' *Journal of Applied Econometrics*, 40(3), 270-290. \doi{10.1002/jae.3104} (The mixed-frequency
 #' dynamic factor model underlying `mfbdfm`; this package estimates the
 #' single-factor, GDP-identified special case used in the WAI.)
 #'

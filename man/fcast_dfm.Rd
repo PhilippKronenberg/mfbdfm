@@ -183,6 +183,7 @@ fit
 Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
 Tracking economic activity with alternative high-frequency data.
 \emph{Journal of Applied Econometrics}, 40(3), 270-290.
+\doi{10.1002/jae.3104}
 
 Kronenberg, P. (2026). A high-frequency GDP indicator for
 Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.

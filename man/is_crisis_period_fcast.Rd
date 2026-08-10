@@ -48,6 +48,7 @@ is_crisis_period_fcast(c(2019, 2020, 2021.25, 2022))
 Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
 Tracking economic activity with alternative high-frequency data.
 \emph{Journal of Applied Econometrics}, 40(3), 270-290.
+\doi{10.1002/jae.3104}
 }
 \seealso{
 \code{\link[=is_crisis_period]{is_crisis_period()}} for the date-based definition used by the

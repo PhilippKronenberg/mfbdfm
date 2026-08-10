@@ -748,7 +748,10 @@ names(ts_ds_smi) <- unname(smi_map)
 
 # 3b. VIX daily market volatility index:
 # aggregate the daily VIX observations to the project's weekly frequency.
-vix_raw <- read_delim_auto(file.path(project_dir, "data", "VIX", "VIX.csv"))
+# dataset_dir, not a separate data/VIX/ folder. This was the only one of the 21
+# raw inputs read from somewhere other than dataset_dir, which is the kind of
+# lone exception that makes a pipeline fail on a fresh machine for no reason.
+vix_raw <- read_delim_auto(file.path(dataset_dir, "VIX.csv"))
 vix_daily <- aggregate_duplicate_dates(parse_date_multi(vix_raw[["Date"]]), vix_raw[["Indexvalue"]], fun = "mean")
 ts_vix <- list(VIX = daily_to_weekly(vix_daily$date, vix_daily$x))
 
@@ -915,7 +918,15 @@ names(dat_adj) <- names(dat_raw)
 # export the final dataset objects, and create overview plots including one png per series.
 
 # Trim the transformed series to the legacy sample window and export the final outputs.
-dat_final <- lapply(dat_adj, function(x) trim_ts_na(stats::window(x, start = 1990)))
+dat_final <- lapply(dat_adj, function(x) {
+  # Only window when it would actually cut something. 46 of the 52 series begin
+  # after 1990, and window() warns "'start' value not changed" for each of those
+  # - 37 identical warnings in a full run, carrying no information. Same reasoning
+  # as trim_to() in R/backcast.R: a step that warns on its ordinary case teaches
+  # people to ignore its warnings, and then a real one goes unread.
+  if (as.numeric(stats::time(x))[1] < 1990) x <- stats::window(x, start = 1990)
+  trim_ts_na(x)
+})
 
 # Restore quarterly GDP to the dataset using the same real-time vintage logic as in 0_test.R.
 target <- "ch.seco.gdp.real.gdp.ssa"

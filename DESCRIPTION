@@ -3,7 +3,7 @@ Type: Package
 Title: Mixed-Frequency Bayesian Dynamic Factor Model
 Version: 0.0.0.9000
 Authors@R:
-    person("Philipp", "Kronenberg", email = "PhilippKronenberg@users.noreply.github.com",
+    person("Philipp", "Kronenberg", email = "philippkronenberg@gmx.ch",
            role = c("aut", "cre"))
 Description: Estimates a Bayesian dynamic factor model that integrates
     weekly, monthly and quarterly data by extracting a single dynamic
@@ -20,7 +20,7 @@ Description: Estimates a Bayesian dynamic factor model that integrates
     the accompanying analysis. Methodology and empirical results are
     described in Kronenberg (2026) <doi:10.1186/s41937-026-00157-w>, which
     extends the mixed-frequency framework of Eckert, Kronenberg, Mikosch
-    and Neuwirth (2025, Journal of Applied Econometrics).
+    and Neuwirth (2025) <doi:10.1002/jae.3104>.
 License: MIT + file LICENSE
 URL: https://github.com/PhilippKronenberg/mfbdfm, https://philippkronenberg.github.io/mfbdfm/
 BugReports: https://github.com/PhilippKronenberg/mfbdfm/issues

@@ -94,6 +94,7 @@ structural instability. \emph{Journal of Applied Econometrics}, 31(8), 1518-1533
 Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
 Tracking economic activity with alternative high-frequency data.
 \emph{Journal of Applied Econometrics}, 40(3), 270-290.
+\doi{10.1002/jae.3104}
 }
 \seealso{
 \code{\link[=ind_dfm]{ind_dfm()}}, \code{\link[=fcast_dfm]{fcast_dfm()}}, \code{\link[=dfm_priors]{dfm_priors()}}
