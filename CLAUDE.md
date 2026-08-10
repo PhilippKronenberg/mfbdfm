@@ -171,15 +171,35 @@ pre-merge.
   throughout the session, but the real GitHub Actions CI failed all 4
   matrix jobs on `checking contents of 'data' directory ... WARNING` the
   first time it actually ran — a warning that traced to no file, code
-  path, or example anywhere in the repo (exhaustively verified: fresh
-  clone at the exact failing commit SHA built clean locally with zero
-  warnings). Fixed defensively via `.Rbuildignore` hardening
-  (`^outputs$`, `^fits$`, `^data/benchmarks$`, `^data/dataset$`) and
-  confirmed with a second real CI run before merging. The root cause of
-  *why* it appeared was never conclusively identified — which is exactly
-  the kind of thing more frequent, smaller-diff `R CMD check` runs (one
-  per commit, not one per branch) would catch earlier and make easier to
-  isolate.
+  path, or example anywhere in the repo (a fresh clone at the exact
+  failing commit SHA built clean locally with zero warnings).
+
+  **Root cause identified 2026-08-08, and it is not mysterious.** The
+  warning is emitted whenever a `data/` subdirectory holding non-`.rda`
+  files ends up in the built tarball:
+
+      * checking contents of 'data' directory ... WARNING
+      Files not of a type allowed in a 'data' directory:
+        'dataset'
+
+  `data/dataset/` is the **private raw source data** for
+  `analysis/1_data_prep_dataset.R`. It is gitignored, so a fresh clone
+  does not have it and builds clean — which is exactly why the cause
+  looked untraceable. It reappears the moment anyone with the real data
+  present builds a tarball.
+
+  The 2026-07 “fix” was recorded as `.Rbuildignore` hardening with
+  `^outputs$`, `^fits$`, `^data/benchmarks$` and `^data/dataset$`, but
+  **only `^fits$` was actually in the file**; the three that mattered
+  were never added, so the warning was never fixed, merely absent. All
+  four are present now, verified by inspecting the tarball (`data/`
+  contains the two `.rda` files and nothing else) and by a clean
+  `R CMD check`.
+
+  Lesson worth keeping: a warning that “cannot be reproduced locally”
+  may depend on untracked files that only some machines have, so
+  reproduce it on a machine that has them rather than concluding it has
+  no cause.
 
 ## CI / workflows
 

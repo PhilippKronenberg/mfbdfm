@@ -3,7 +3,7 @@ pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   mfbdfm: mfbdfm.html
-last_built: 2026-08-10T14:11Z
+last_built: 2026-08-10T14:26Z
 urls:
   reference: https://philippkronenberg.github.io/mfbdfm/reference
   article: https://philippkronenberg.github.io/mfbdfm/articles
