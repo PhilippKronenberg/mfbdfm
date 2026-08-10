@@ -86,10 +86,29 @@ variables in the calling script). Always required: <code>tab_gr</code>,
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># A minimal `inputs` bundle. The real one is built by the scripts in</span></span></span>
+<span class="r-in"><span><span class="co"># analysis/5_plots/ from fitted models; this is the same shape with synthetic</span></span></span>
+<span class="r-in"><span><span class="co"># numbers, so the example runs and is checked rather than being a sketch.</span></span></span>
+<span class="r-in"><span><span class="va">insample_inputs</span> <span class="op">&lt;-</span> <span class="fu"><a href="mfbdfm_example_inputs.html">mfbdfm_example_inputs</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit_tabs</span> <span class="op">&lt;-</span> <span class="fu">get_insample_fit_table</span><span class="op">(</span><span class="st">"mean"</span>, <span class="st">"indicators"</span>, inputs <span class="op">=</span> <span class="va">insample_inputs</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit_tabs</span><span class="op">$</span><span class="va">RMSE</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 12 × 7</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># Groups:   Series [6]</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Frequency Series   `RMSE_Lag_-4` `RMSE_Lag_-3` `RMSE_Lag_-2` `RMSE_Lag_-1`</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> QoQ       WAI              0.499         0.515         0.484         0.489</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> QoQ       SECO-WWA         0.508         0.494         0.493         0.531</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> QoQ       F-CURVE          0.512         0.503         0.496         0.524</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> QoQ       SECO-SEC         0.504         0.498         0.495         0.524</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> QoQ       SNB-BCI          0.515         0.491         0.490         0.523</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> QoQ       KOF-BARO         0.511         0.504         0.487         0.532</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> YoY       WAI              1.11          1.16          1.15          1.14 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> YoY       SECO-WWA         1.16          1.17          1.15          1.15 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> YoY       F-CURVE          1.16          1.13          1.12          1.09 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> YoY       SECO-SEC         1.18          1.18          1.16          1.16 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">11</span> YoY       SNB-BCI          1.18          1.18          1.15          1.14 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">12</span> YoY       KOF-BARO         1.12          1.15          1.16          1.14 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 1 more variable: RMSE_Lag_0 &lt;dbl&gt;</span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

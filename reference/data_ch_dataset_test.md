@@ -29,3 +29,13 @@ A list with two components, as expected by
 
 See
 [data_ch_dataset](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md).
+
+## Examples
+
+``` r
+data(data_ch_dataset_test)
+names(data_ch_dataset_test)
+#> [1] "flows"  "stocks"
+"ch.seco.gdp.real.gdp.ssa" %in% names(data_ch_dataset_test$flows)
+#> [1] TRUE
+```

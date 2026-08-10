@@ -43,8 +43,27 @@ A list of wide tables: `RMSE`, `MAE`, `R2`, `PVAL_RMSE`, `PVAL_MAE`.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# A minimal `inputs` bundle. The real one is built by the scripts in
+# analysis/5_plots/ from fitted models; this is the same shape with synthetic
+# numbers, so the example runs and is checked rather than being a sketch.
+insample_inputs <- mfbdfm_example_inputs()
 fit_tabs <- get_insample_fit_table("mean", "indicators", inputs = insample_inputs)
 fit_tabs$RMSE
-} # }
+#> # A tibble: 12 × 7
+#> # Groups:   Series [6]
+#>    Frequency Series   `RMSE_Lag_-4` `RMSE_Lag_-3` `RMSE_Lag_-2` `RMSE_Lag_-1`
+#>    <fct>     <fct>            <dbl>         <dbl>         <dbl>         <dbl>
+#>  1 QoQ       WAI              0.499         0.515         0.484         0.489
+#>  2 QoQ       SECO-WWA         0.508         0.494         0.493         0.531
+#>  3 QoQ       F-CURVE          0.512         0.503         0.496         0.524
+#>  4 QoQ       SECO-SEC         0.504         0.498         0.495         0.524
+#>  5 QoQ       SNB-BCI          0.515         0.491         0.490         0.523
+#>  6 QoQ       KOF-BARO         0.511         0.504         0.487         0.532
+#>  7 YoY       WAI              1.11          1.16          1.15          1.14 
+#>  8 YoY       SECO-WWA         1.16          1.17          1.15          1.15 
+#>  9 YoY       F-CURVE          1.16          1.13          1.12          1.09 
+#> 10 YoY       SECO-SEC         1.18          1.18          1.16          1.16 
+#> 11 YoY       SNB-BCI          1.18          1.18          1.15          1.14 
+#> 12 YoY       KOF-BARO         1.12          1.15          1.16          1.14 
+#> # ℹ 1 more variable: RMSE_Lag_0 <dbl>
 ```

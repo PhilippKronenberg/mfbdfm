@@ -40,6 +40,15 @@ Bayesian dynamic factor model and WAI is one application of it
 
 ### New features
 
+- [`mfbdfm_example_inputs()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_inputs.md)
+  builds the synthetic `inputs` bundle the analytics table builders
+  expect. Their examples were previously `\dontrun{}` sketches referring
+  to objects that did not exist, so `R CMD check` never executed them;
+  nine topics now run and are checked. The test suite uses the same
+  fixture, so the examples and the tests cannot drift onto different
+  input shapes
+  ([\#20](https://github.com/PhilippKronenberg/mfbdfm/issues/20)).
+
 - [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
   bundles the numerical and algorithmic settings that were previously
   hard-coded inside the samplers, as an **optional** `control` argument

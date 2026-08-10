@@ -46,7 +46,8 @@
 </ul></div>
 <div class="section level3">
 <h3 id="new-features-0-0-0-9000">New features<a class="anchor" aria-label="anchor" href="#new-features-0-0-0-9000"></a></h3>
-<ul><li>
+<ul><li><p><code><a href="../reference/mfbdfm_example_inputs.html">mfbdfm_example_inputs()</a></code> builds the synthetic <code>inputs</code> bundle the analytics table builders expect. Their examples were previously <code>\dontrun{}</code> sketches referring to objects that did not exist, so <code>R CMD check</code> never executed them; nine topics now run and are checked. The test suite uses the same fixture, so the examples and the tests cannot drift onto different input shapes (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/20" class="external-link">#20</a>).</p></li>
+<li>
 <p><code><a href="../reference/dfm_control.html">dfm_control()</a></code> bundles the numerical and algorithmic settings that were previously hard-coded inside the samplers, as an <strong>optional</strong> <code>control</code> argument on both entry points – omit it and the published behaviour is reproduced exactly (verified: all four <code>dev/baseline.rds</code> configurations identical). Covers the rotation stopping rule, the stationarity screen on the measurement-error autocorrelations, the caps on <code>phi</code>/<code>sigma</code>/<code>omega</code>, and two numerical guards. <code>dfm_control("fcast_dfm", strict = TRUE)</code> switches the rotation to the algorithm as published in the online appendix to Eckert et al.</p>
 <ol start="2025" style="list-style-type: decimal"><li>– the <strong>sum</strong> of squared deviations rather than the mean (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/46" class="external-link">#46</a>).</li>
 </ol></li>

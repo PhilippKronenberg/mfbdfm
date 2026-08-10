@@ -132,6 +132,12 @@
 </tr><tr><td><code>validate.R</code></td>
 <td>
 <code>resolve_data_arg()</code>, <code>validate_model_inputs()</code>, <code>is_count()</code> — shared entry-point validation; no exports</td>
+</tr><tr><td><code>memory.R</code></td>
+<td>
+<code><a href="reference/dfm_memory.html">dfm_memory()</a></code>, <code><a href="reference/dfm_memory.html">dfm_workers()</a></code> — measured peak-memory bound and worker planning (#64)</td>
+</tr><tr><td><code>example-data.R</code></td>
+<td>
+<code><a href="reference/mfbdfm_example_inputs.html">mfbdfm_example_inputs()</a></code> — the synthetic analytics <code>inputs</code> bundle used by both the reference examples and the tests</td>
 </tr><tr><td><code>data.R</code></td>
 <td>Roxygen docs for the two shipped datasets (no functions)</td>
 </tr><tr><td><code>globals.R</code></td>
@@ -322,7 +328,7 @@
 </ul></div>
 <div class="section level2">
 <h2 id="documentation--release-conventions">Documentation &amp; release conventions<a class="anchor" aria-label="anchor" href="#documentation--release-conventions"></a></h2>
-<ul><li>Every exported function has <code>@param</code>, <code>@return</code>, and <code>@examples</code> (runnable where feasible; <code>\donttest{}</code> for slow-but-working; <code>\dontrun{}</code> only for functions needing the private <code>fits/</code> data or a full <code>inputs</code> bundle).</li>
+<ul><li>Every exported function has <code>@param</code>, <code>@return</code>, and <code>@examples</code> (runnable where feasible; <code>\donttest{}</code> for slow-but-working). <strong><code>\dontrun{}</code> is down to two topics</strong>, <code><a href="reference/run_wai_adj.html">run_wai_adj()</a></code> and <code><a href="reference/extract_wai_data.html">extract_wai_data()</a></code>, both because <code><a href="reference/run_wai_adj.html">run_wai_adj()</a></code> hard-codes a 5000-draw chain — minutes to tens of minutes, too slow to check. Both are nonetheless self-contained: they use the shipped data and <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile()</a></code>, so they can be pasted and run. The analytics table builders used to be <code>\dontrun</code> too, for want of an <code>inputs</code> bundle; <code><a href="reference/mfbdfm_example_inputs.html">mfbdfm_example_inputs()</a></code> exists so they are executed by <code>R CMD check</code> instead. Do not reintroduce a <code>\dontrun</code> sketch that references objects it does not create — that is how <code>4_tables.R</code> and <code>plots_parameters.R</code> rotted unnoticed (#59, #63).</li>
 <li>
 <code>vignettes/mfbdfm.Rmd</code> is the “get started” walkthrough — grounded in the Kronenberg (2026) paper’s own description of the model. Keep it and <code>R/mfbdfm-package.R</code> in sync with the actual model description if either changes.</li>
 <li>

@@ -89,6 +89,8 @@ matters for the 1:1 test-file convention below):
 | `control.R` | [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md) + [`print.dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_control.md) — optional numerical/algorithmic knobs (#46) |
 | `data-input.R` | [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md) + [`print.mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/print.mfbdfm_data.md) and the frequency-harmonisation helpers (#56) |
 | `validate.R` | `resolve_data_arg()`, `validate_model_inputs()`, `is_count()` — shared entry-point validation; no exports |
+| `memory.R` | [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md), [`dfm_workers()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md) — measured peak-memory bound and worker planning (#64) |
+| `example-data.R` | [`mfbdfm_example_inputs()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_inputs.md) — the synthetic analytics `inputs` bundle used by both the reference examples and the tests |
 | `data.R` | Roxygen docs for the two shipped datasets (no functions) |
 | `globals.R` | [`utils::globalVariables()`](https://rdrr.io/r/utils/globalVariables.html) call only (no functions) |
 | `mfbdfm-package.R` | Package-level `"_PACKAGE"` doc (no functions) |
@@ -586,9 +588,23 @@ published figures are not reproducible from it, so that nobody later
 ## Documentation & release conventions
 
 - Every exported function has `@param`, `@return`, and `@examples`
-  (runnable where feasible; `\donttest{}` for slow-but-working;
-  `\dontrun{}` only for functions needing the private `fits/` data or a
-  full `inputs` bundle).
+  (runnable where feasible; `\donttest{}` for slow-but-working).
+  **`\dontrun{}` is down to two topics**,
+  [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
+  and
+  [`extract_wai_data()`](https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.md),
+  both because
+  [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
+  hard-codes a 5000-draw chain — minutes to tens of minutes, too slow to
+  check. Both are nonetheless self-contained: they use the shipped data
+  and [`tempfile()`](https://rdrr.io/r/base/tempfile.html), so they can
+  be pasted and run. The analytics table builders used to be `\dontrun`
+  too, for want of an `inputs` bundle;
+  [`mfbdfm_example_inputs()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_inputs.md)
+  exists so they are executed by `R CMD check` instead. Do not
+  reintroduce a `\dontrun` sketch that references objects it does not
+  create — that is how `4_tables.R` and `plots_parameters.R` rotted
+  unnoticed (#59, \#63).
 - `vignettes/mfbdfm.Rmd` is the “get started” walkthrough — grounded in
   the Kronenberg (2026) paper’s own description of the model. Keep it
   and `R/mfbdfm-package.R` in sync with the actual model description if

@@ -66,9 +66,26 @@
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="va">annotated</span> <span class="op">&lt;-</span> <span class="fu">annotate_relative_errors</span><span class="op">(</span><span class="va">rel</span><span class="op">$</span><span class="va">RMSE_relative</span>, <span class="va">fit_tabs</span><span class="op">$</span><span class="va">PVAL_RMSE</span>, <span class="st">"RMSE"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">inputs</span> <span class="op">&lt;-</span> <span class="fu"><a href="mfbdfm_example_inputs.html">mfbdfm_example_inputs</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit_tabs</span> <span class="op">&lt;-</span> <span class="fu"><a href="get_insample_fit_table.html">get_insample_fit_table</a></span><span class="op">(</span><span class="st">"mean"</span>, <span class="st">"indicators"</span>, inputs <span class="op">=</span> <span class="va">inputs</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">rel</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_relative_errors.html">calculate_relative_errors</a></span><span class="op">(</span><span class="va">fit_tabs</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">annotate_relative_errors</span><span class="op">(</span><span class="va">rel</span><span class="op">$</span><span class="va">RMSE_relative</span>, <span class="va">fit_tabs</span><span class="op">$</span><span class="va">PVAL_RMSE</span>, <span class="st">"RMSE"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 12 × 7</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Frequency Series   `RMSE_rel_-4` `RMSE_rel_-3` `RMSE_rel_-2` `RMSE_rel_-1`</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> QoQ       WAI      1.00          1.00          1.00          1.00         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> QoQ       SECO-WWA 1.02          0.96          1.02          1.09         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> QoQ       F-CURVE  1.02          0.98          1.02          1.07         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> QoQ       SECO-SEC 1.01          0.97          1.02          1.07         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> QoQ       SNB-BCI  1.03          0.95          1.01          1.07         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> QoQ       KOF-BARO 1.02          0.98          1.01          1.09         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> YoY       WAI      1.00          1.00          1.00          1.00         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> YoY       SECO-WWA 1.05          1.01          1.00          1.00         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> YoY       F-CURVE  1.04          0.97          0.98          0.95         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> YoY       SECO-SEC 1.07          1.02          1.01          1.02         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">11</span> YoY       SNB-BCI  1.06          1.02          1.00          1.00         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">12</span> YoY       KOF-BARO 1.02          0.99          1.01          1.00         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 1 more variable: RMSE_rel_0 &lt;chr&gt;</span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

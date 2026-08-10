@@ -87,11 +87,37 @@ per-method list of tables) and <code>summary</code>.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="va">details</span> <span class="op">&lt;-</span> <span class="fu"><a href="get_insample_error_details.html">get_insample_error_details</a></span><span class="op">(</span><span class="st">"mean"</span>, <span class="st">"indicators"</span>, inputs <span class="op">=</span> <span class="va">insample_inputs</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">tabs</span> <span class="op">&lt;-</span> <span class="fu">create_error_summary_tables</span><span class="op">(</span><span class="va">details</span>, model_order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WAI"</span>, <span class="st">"KOF-BARO"</span><span class="op">)</span>,</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">inputs</span> <span class="op">&lt;-</span> <span class="fu"><a href="mfbdfm_example_inputs.html">mfbdfm_example_inputs</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">details</span> <span class="op">&lt;-</span> <span class="fu"><a href="get_insample_error_details.html">get_insample_error_details</a></span><span class="op">(</span><span class="st">"mean"</span>, <span class="st">"indicators"</span>, inputs <span class="op">=</span> <span class="va">inputs</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Evaluation periods: In-sample error evaluation, indicators YoY</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Series   Frequency Method start_quarter end_quarter</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> F-CURVE  YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> KOF-BARO YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> SECO-SEC YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> SECO-WWA YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> SNB-BCI  YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> WAI      YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Evaluation periods: In-sample error evaluation, indicators QoQ</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Series   Frequency Method start_quarter end_quarter</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> F-CURVE  QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> KOF-BARO QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> SECO-SEC QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> SECO-WWA QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> SNB-BCI  QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> WAI      QoQ       mean   2010 Q2       2015 Q4    </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Adding missing grouping variables: `Series`</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Adding missing grouping variables: `Series`</span>
+<span class="r-in"><span><span class="va">tabs</span> <span class="op">&lt;-</span> <span class="fu">create_error_summary_tables</span><span class="op">(</span><span class="va">details</span>,</span></span>
+<span class="r-in"><span>                                    model_order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WAI"</span>, <span class="st">"KOF-BARO"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                                    date_col <span class="op">=</span> <span class="st">"observation_date"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">tabs</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "rel_rmse" "rel_mae"  "abs_rmse" "abs_mae"  "summary" </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

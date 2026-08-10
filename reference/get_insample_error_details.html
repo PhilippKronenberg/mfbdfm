@@ -86,10 +86,45 @@ variables in the calling script). Always required: <code>tab_gr</code>,
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Same synthetic `inputs` bundle as [get_insample_fit_table()]; see there for</span></span></span>
+<span class="r-in"><span><span class="co"># what the real one is built from.</span></span></span>
+<span class="r-in"><span><span class="va">insample_inputs</span> <span class="op">&lt;-</span> <span class="fu"><a href="mfbdfm_example_inputs.html">mfbdfm_example_inputs</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">details</span> <span class="op">&lt;-</span> <span class="fu">get_insample_error_details</span><span class="op">(</span><span class="st">"mean"</span>, <span class="st">"indicators"</span>, inputs <span class="op">=</span> <span class="va">insample_inputs</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Evaluation periods: In-sample error evaluation, indicators YoY</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Series   Frequency Method start_quarter end_quarter</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> F-CURVE  YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> KOF-BARO YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> SECO-SEC YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> SECO-WWA YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> SNB-BCI  YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> WAI      YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Evaluation periods: In-sample error evaluation, indicators QoQ</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Series   Frequency Method start_quarter end_quarter</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> F-CURVE  QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> KOF-BARO QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> SECO-SEC QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> SECO-WWA QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> SNB-BCI  QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> WAI      QoQ       mean   2010 Q2       2015 Q4    </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Adding missing grouping variables: `Series`</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Adding missing grouping variables: `Series`</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">details</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 7</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># Groups:   Series [1]</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Series  observation_date   error model   method lag_number frequency</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;date&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> F-CURVE 2010-01-01       -<span style="color: #BB0000;">0.624</span>  F-CURVE mean           -<span style="color: #BB0000;">4</span> YoY      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> F-CURVE 2010-04-01        0.228  F-CURVE mean           -<span style="color: #BB0000;">4</span> YoY      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> F-CURVE 2010-07-01        0.016<span style="text-decoration: underline;">9</span> F-CURVE mean           -<span style="color: #BB0000;">4</span> YoY      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> F-CURVE 2010-10-01       -<span style="color: #BB0000;">1.29</span>   F-CURVE mean           -<span style="color: #BB0000;">4</span> YoY      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> F-CURVE 2011-01-01       -<span style="color: #BB0000;">0.559</span>  F-CURVE mean           -<span style="color: #BB0000;">4</span> YoY      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> F-CURVE 2011-04-01        0.909  F-CURVE mean           -<span style="color: #BB0000;">4</span> YoY      </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

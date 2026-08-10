@@ -350,6 +350,8 @@ the helpers that prepare their input data.
   : Build an inventory of the model input series
 - [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
   : Standardize and align mixed-frequency series into one matrix
+- [`mfbdfm_example_inputs()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_inputs.md)
+  : Synthetic input bundle for the analytics table builders
 
 ## Methods on fitted models
 

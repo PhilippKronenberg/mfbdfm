@@ -81,6 +81,19 @@ high-frequency sources; see the data dictionary in <code>README.md</code> for
 the per-series source and metadata.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">data_ch_dataset</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "flows"  "stocks"</span>
+<span class="r-in"><span><span class="co"># NOTE: this one does NOT carry the GDP target series; see</span></span></span>
+<span class="r-in"><span><span class="co"># data_ch_dataset_test, or inject it via get_real_time_gdp_vintages().</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">data_ch_dataset</span><span class="op">$</span><span class="va">flows</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "SWCONPRCE"                    "SWPROPRCE"                   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3] "SWCPCOREF"                    "ch.fso.rtt.ind.r.noga0801.sa"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5] "ch.fso.rtt.ind.r.noga0803.sa" "ch.fso.rtt.ind.r.noga0804.sa"</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

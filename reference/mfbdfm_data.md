@@ -184,6 +184,7 @@ standardization removes.
 
 Other data preparation functions:
 [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md),
+[`mfbdfm_example_inputs()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_inputs.md),
 [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
 
 ## Examples

@@ -33,6 +33,7 @@ A data frame with one row per series and columns `key` (series name),
 
 Other data preparation functions:
 [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md),
+[`mfbdfm_example_inputs()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_inputs.md),
 [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
 
 ## Examples

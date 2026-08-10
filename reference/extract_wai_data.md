@@ -26,8 +26,19 @@ A list of data frames: `tab_wai_yoy_full`, `tab_wai_yoy`, `tab_gr_full`,
 ## Examples
 
 ``` r
+# \dontrun because it needs a fit file, and the only way to make one is
+# run_wai_adj(), whose 5000-draw chain is far too slow for a checked example.
+# Self-contained all the same: this produces the file it then reads.
 if (FALSE) { # \dontrun{
-result_wai <- extract_wai_data("fits/updated/full_RT/fit_2025.979.Rda")
+data(data_ch_dataset_test)
+out <- tempfile(); dir.create(out)
+run_wai_adj(flows = data_ch_dataset_test$flows,
+            stocks = data_ch_dataset_test$stocks,
+            target = "ch.seco.gdp.real.gdp.ssa",
+            date = 2024.5, dataset_used = "example", output_dir = out)
+
+result_wai <- extract_wai_data(file.path(out, "example", "fit_2024.5.Rda"))
 head(result_wai$tab_gr_qoq)
+unlink(out, recursive = TRUE)
 } # }
 ```

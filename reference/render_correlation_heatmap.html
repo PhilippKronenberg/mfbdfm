@@ -72,14 +72,43 @@
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">inputs</span> <span class="op">&lt;-</span> <span class="fu"><a href="mfbdfm_example_inputs.html">mfbdfm_example_inputs</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">cor_tab</span> <span class="op">&lt;-</span> <span class="fu"><a href="get_combined_cor_table.html">get_combined_cor_table</a></span><span class="op">(</span><span class="st">"mean"</span>, <span class="st">"indicators"</span>, inputs <span class="op">=</span> <span class="va">inputs</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Evaluation periods: In-sample fit table, indicators YoY</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Series   Frequency Method start_quarter end_quarter</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> F-CURVE  YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> KOF-BARO YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> SECO-SEC YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> SECO-WWA YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> SNB-BCI  YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> WAI      YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Evaluation periods: In-sample fit table, indicators QoQ</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Series   Frequency Method start_quarter end_quarter</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> F-CURVE  QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> KOF-BARO QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> SECO-SEC QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> SECO-WWA QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> SNB-BCI  QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> WAI      QoQ       mean   2010 Q2       2015 Q4    </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">dir</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># a null device, or ggsave() opens a real one and leaves Rplots.pdf behind</span></span></span>
+<span class="r-in"><span><span class="fu">grDevices</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grDevices/pdf.html" class="external-link">pdf</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">render_correlation_heatmap</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  cor_tables <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mean <span class="op">=</span> <span class="va">cor_tab_mean</span>, last <span class="op">=</span> <span class="va">cor_tab_last</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  series_order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WAI"</span>, <span class="st">"SECO-WWA"</span>, <span class="st">"KOF-BARO"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  output_file <span class="op">=</span> <span class="st">"correlation_heatmap.pdf"</span>,</span></span>
-<span class="r-in"><span>  figures_dir <span class="op">=</span> <span class="va">cfg</span><span class="op">$</span><span class="va">figures_dir</span></span></span>
-<span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span>  cor_tables <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mean <span class="op">=</span> <span class="va">cor_tab</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  series_order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WAI"</span>, <span class="st">"SECO-WWA"</span>, <span class="st">"F-CURVE"</span>, <span class="st">"SECO-SEC"</span>,</span></span>
+<span class="r-in"><span>                   <span class="st">"SNB-BCI"</span>, <span class="st">"KOF-BARO"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  output_file <span class="op">=</span> <span class="st">"correlation_heatmap.pdf"</span>, figures_dir <span class="op">=</span> <span class="va">dir</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">grDevices</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grDevices/dev.html" class="external-link">dev.off</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> agg_record_1abe77e15e8a </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                       2 </span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">dir</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

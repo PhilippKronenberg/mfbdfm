@@ -36,3 +36,17 @@ A list with two components, as expected by
 Produced from SECO, KOF, FSO, SNB, Datastream and further high-frequency
 sources; see the data dictionary in `README.md` for the per-series
 source and metadata.
+
+## Examples
+
+``` r
+data(data_ch_dataset)
+names(data_ch_dataset)
+#> [1] "flows"  "stocks"
+# NOTE: this one does NOT carry the GDP target series; see
+# data_ch_dataset_test, or inject it via get_real_time_gdp_vintages().
+head(names(data_ch_dataset$flows))
+#> [1] "SWCONPRCE"                    "SWPROPRCE"                   
+#> [3] "SWCPCOREF"                    "ch.fso.rtt.ind.r.noga0801.sa"
+#> [5] "ch.fso.rtt.ind.r.noga0803.sa" "ch.fso.rtt.ind.r.noga0804.sa"
+```

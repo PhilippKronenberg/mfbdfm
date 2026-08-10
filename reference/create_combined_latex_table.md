@@ -40,8 +40,35 @@ A list with `combined_wide` (the assembled data frame) and `table_tex`
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-out <- create_combined_latex_table(list(mean = cor_tab_mean, last = cor_tab_last))
-cat(out$table_tex)
-} # }
+inputs <- mfbdfm_example_inputs()
+cor_tab <- get_combined_cor_table("mean", "indicators", inputs = inputs)
+#> 
+#> Evaluation periods: In-sample fit table, indicators YoY
+#> # A tibble: 6 × 5
+#>   Series   Frequency Method start_quarter end_quarter
+#>   <chr>    <chr>     <chr>  <chr>         <chr>      
+#> 1 F-CURVE  YoY       mean   2010 Q1       2015 Q4    
+#> 2 KOF-BARO YoY       mean   2010 Q1       2015 Q4    
+#> 3 SECO-SEC YoY       mean   2010 Q1       2015 Q4    
+#> 4 SECO-WWA YoY       mean   2010 Q1       2015 Q4    
+#> 5 SNB-BCI  YoY       mean   2010 Q1       2015 Q4    
+#> 6 WAI      YoY       mean   2010 Q1       2015 Q4    
+#> 
+#> Evaluation periods: In-sample fit table, indicators QoQ
+#> # A tibble: 6 × 5
+#>   Series   Frequency Method start_quarter end_quarter
+#>   <chr>    <chr>     <chr>  <chr>         <chr>      
+#> 1 F-CURVE  QoQ       mean   2010 Q1       2015 Q4    
+#> 2 KOF-BARO QoQ       mean   2010 Q1       2015 Q4    
+#> 3 SECO-SEC QoQ       mean   2010 Q1       2015 Q4    
+#> 4 SECO-WWA QoQ       mean   2010 Q1       2015 Q4    
+#> 5 SNB-BCI  QoQ       mean   2010 Q1       2015 Q4    
+#> 6 WAI      QoQ       mean   2010 Q2       2015 Q4    
+out <- create_combined_latex_table(list(mean = cor_tab))
+cat(substr(out$table_tex, 1, 300))
+#> \begin{table}[!h]
+#> \centering
+#> \caption{Cross Correlation with GDP for Different Lags and Aggregation Methods}
+#> \centering
+#> \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.3cm}>{\raggedleft\arraybackslash}p{0.9cm}>{\raggedleft\arraybackslash}p{0.9cm}>{\raggedleft\arraybackslash}p{0.9cm}>{
 ```

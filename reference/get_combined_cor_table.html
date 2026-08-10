@@ -85,10 +85,44 @@ variables in the calling script). Always required: <code>tab_gr</code>,
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># inputs is the bundle of data objects built by analysis/5_plots scripts:</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># `inputs` is the bundle the analysis/5_plots/ scripts build from fitted</span></span></span>
+<span class="r-in"><span><span class="co"># models. Constructed here with synthetic numbers of the same shape, so the</span></span></span>
+<span class="r-in"><span><span class="co"># example actually runs and is checked rather than being a sketch.</span></span></span>
+<span class="r-in"><span><span class="va">insample_inputs</span> <span class="op">&lt;-</span> <span class="fu"><a href="mfbdfm_example_inputs.html">mfbdfm_example_inputs</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cor_tab</span> <span class="op">&lt;-</span> <span class="fu">get_combined_cor_table</span><span class="op">(</span><span class="st">"mean"</span>, <span class="st">"indicators"</span>, inputs <span class="op">=</span> <span class="va">insample_inputs</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Evaluation periods: In-sample fit table, indicators YoY</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Series   Frequency Method start_quarter end_quarter</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> F-CURVE  YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> KOF-BARO YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> SECO-SEC YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> SECO-WWA YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> SNB-BCI  YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> WAI      YoY       mean   2010 Q1       2015 Q4    </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Evaluation periods: In-sample fit table, indicators QoQ</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Series   Frequency Method start_quarter end_quarter</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> F-CURVE  QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> KOF-BARO QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> SECO-SEC QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> SECO-WWA QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> SNB-BCI  QoQ       mean   2010 Q1       2015 Q4    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> WAI      QoQ       mean   2010 Q2       2015 Q4    </span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">cor_tab</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 7</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># Groups:   Series [6]</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Frequency Series   `Lag_-4` `Lag_-3` `Lag_-2` `Lag_-1`    Lag_0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> YoY       WAI       -<span style="color: #BB0000;">0.349</span>   -<span style="color: #BB0000;">0.194</span>  -<span style="color: #BB0000;">0.134</span>    -<span style="color: #BB0000;">0.193</span>  -<span style="color: #BB0000;">0.055</span><span style="color: #BB0000; text-decoration: underline;">7</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> YoY       SECO-WWA   0.195   -<span style="color: #BB0000;">0.136</span>  -<span style="color: #BB0000;">0.113</span>     0.184  -<span style="color: #BB0000;">0.009</span><span style="color: #BB0000; text-decoration: underline;">87</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> YoY       F-CURVE   -<span style="color: #BB0000;">0.207</span>   -<span style="color: #BB0000;">0.295</span>  -<span style="color: #BB0000;">0.251</span>    -<span style="color: #BB0000;">0.355</span>  -<span style="color: #BB0000;">0.256</span>  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> YoY       SECO-SEC   0.014<span style="text-decoration: underline;">8</span>  -<span style="color: #BB0000;">0.080</span><span style="color: #BB0000; text-decoration: underline;">4</span> -<span style="color: #BB0000;">0.057</span><span style="color: #BB0000; text-decoration: underline;">3</span>   -<span style="color: #BB0000;">0.072</span><span style="color: #BB0000; text-decoration: underline;">9</span> -<span style="color: #BB0000;">0.129</span>  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> YoY       SNB-BCI    0.066<span style="text-decoration: underline;">1</span>   0.082<span style="text-decoration: underline;">2</span>  0.124     0.192   0.144  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> YoY       KOF-BARO   0.307    0.248  -<span style="color: #BB0000;">0.001</span><span style="color: #BB0000; text-decoration: underline;">17</span>  -<span style="color: #BB0000;">0.199</span>  -<span style="color: #BB0000;">0.044</span><span style="color: #BB0000; text-decoration: underline;">5</span> </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -69,9 +69,20 @@ with elements <code>factor</code> and <code>factor_var</code>.</p></dd>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="va">result_wai</span> <span class="op">&lt;-</span> <span class="fu">extract_wai_data</span><span class="op">(</span><span class="st">"fits/updated/full_RT/fit_2025.979.Rda"</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \dontrun because it needs a fit file, and the only way to make one is</span></span></span>
+<span class="r-in"><span><span class="co"># run_wai_adj(), whose 5000-draw chain is far too slow for a checked example.</span></span></span>
+<span class="r-in"><span><span class="co"># Self-contained all the same: this produces the file it then reads.</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="run_wai_adj.html">run_wai_adj</a></span><span class="op">(</span>flows <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span>,</span></span>
+<span class="r-in"><span>            stocks <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span>,</span></span>
+<span class="r-in"><span>            target <span class="op">=</span> <span class="st">"ch.seco.gdp.real.gdp.ssa"</span>,</span></span>
+<span class="r-in"><span>            date <span class="op">=</span> <span class="fl">2024.5</span>, dataset_used <span class="op">=</span> <span class="st">"example"</span>, output_dir <span class="op">=</span> <span class="va">out</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">result_wai</span> <span class="op">&lt;-</span> <span class="fu">extract_wai_data</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">out</span>, <span class="st">"example"</span>, <span class="st">"fit_2024.5.Rda"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">result_wai</span><span class="op">$</span><span class="va">tab_gr_qoq</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">out</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
