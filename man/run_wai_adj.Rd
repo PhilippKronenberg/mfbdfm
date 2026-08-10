@@ -43,11 +43,22 @@ evaluation and windows the factor and nowcast output to the
 evaluation date.
 }
 \examples{
+# \dontrun rather than \donttest because the chain length is fixed at 5000
+# draws inside this function, so it runs for minutes to tens of minutes - too
+# long for a checked example. It is self-contained, though: paste it and it
+# runs on the shipped data, writing into a temporary directory.
 \dontrun{
-# Full MCMC estimation at one evaluation date, saving the fit:
-fit <- run_wai_adj(flows = dat$flows, stocks = dat$stocks,
-                   target = "ch.seco.gdp.real.gdp.ssa",
-                   date = 2024.5, dataset_used = "full_RT",
-                   output_dir = "fits/updated")
+data(data_ch_dataset_test)
+target <- "ch.seco.gdp.real.gdp.ssa"
+out <- tempfile(); dir.create(out)
+
+fit <- run_wai_adj(flows = data_ch_dataset_test$flows,
+                   stocks = data_ch_dataset_test$stocks,
+                   target = target,
+                   date = 2024.5, dataset_used = "example",
+                   output_dir = out)
+fit$nowcast
+list.files(out, recursive = TRUE)
+unlink(out, recursive = TRUE)
 }
 }

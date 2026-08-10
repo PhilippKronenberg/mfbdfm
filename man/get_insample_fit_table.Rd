@@ -36,8 +36,10 @@ to 0 and reports RMSE, MAE and R-squared, plus Diebold-Mariano
 p-values of each series against the WAI.
 }
 \examples{
-\dontrun{
+# A minimal `inputs` bundle. The real one is built by the scripts in
+# analysis/5_plots/ from fitted models; this is the same shape with synthetic
+# numbers, so the example runs and is checked rather than being a sketch.
+insample_inputs <- mfbdfm_example_inputs()
 fit_tabs <- get_insample_fit_table("mean", "indicators", inputs = insample_inputs)
 fit_tabs$RMSE
-}
 }

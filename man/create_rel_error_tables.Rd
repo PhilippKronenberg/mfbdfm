@@ -24,9 +24,15 @@ RMSE/MAE against the WAI with Diebold-Mariano significance stars, and
 returns per-method wide tables.
 }
 \examples{
-\dontrun{
-# combined_results is the long out-of-sample error table built by
-# analysis/5_plots/analytics_out-of-sample.R:
+# `combined_results` is the long out-of-sample error table that
+# analysis/5_plots/analytics_out-of-sample.R builds; this is the same shape.
+set.seed(1)
+combined_results <- expand.grid(
+  target_vintage = seq(2015, 2019.75, by = 0.25),
+  model = c("WAI", "AR"), method = "mean", lag_number = -4:0,
+  GDP_type = "ssa", frequency = "QoQ", stringsAsFactors = FALSE)
+combined_results$error <- rnorm(nrow(combined_results), 0, 0.5)
+
 rel <- create_rel_error_tables(combined_results, model_order = c("WAI", "AR"))
-}
+rel$rel_rmse
 }

@@ -33,9 +33,10 @@ Diebold-Mariano tests against the WAI, and returns annotated relative
 and absolute error tables per aggregation method.
 }
 \examples{
-\dontrun{
-details <- get_insample_error_details("mean", "indicators", inputs = insample_inputs)
-tabs <- create_error_summary_tables(details, model_order = c("WAI", "KOF-BARO"),
+inputs <- mfbdfm_example_inputs()
+details <- get_insample_error_details("mean", "indicators", inputs = inputs)
+tabs <- create_error_summary_tables(details,
+                                    model_order = c("WAI", "KOF-BARO"),
                                     date_col = "observation_date")
-}
+names(tabs)
 }

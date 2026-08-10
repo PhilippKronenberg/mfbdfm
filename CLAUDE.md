@@ -67,6 +67,8 @@ Documentation is generated from roxygen2 comments; **do not hand-edit `NAMESPACE
 | `control.R` | `dfm_control()` + `print.dfm_control()` — optional numerical/algorithmic knobs (#46) |
 | `data-input.R` | `mfbdfm_data()` + `print.mfbdfm_data()` and the frequency-harmonisation helpers (#56) |
 | `validate.R` | `resolve_data_arg()`, `validate_model_inputs()`, `is_count()` — shared entry-point validation; no exports |
+| `memory.R` | `dfm_memory()`, `dfm_workers()` — measured peak-memory bound and worker planning (#64) |
+| `example-data.R` | `mfbdfm_example_inputs()` — the synthetic analytics `inputs` bundle used by both the reference examples and the tests |
 | `data.R` | Roxygen docs for the two shipped datasets (no functions) |
 | `globals.R` | `utils::globalVariables()` call only (no functions) |
 | `mfbdfm-package.R` | Package-level `"_PACKAGE"` doc (no functions) |
@@ -280,7 +282,7 @@ tries to undo the fix.
 
 ## Documentation & release conventions
 
-- Every exported function has `@param`, `@return`, and `@examples` (runnable where feasible; `\donttest{}` for slow-but-working; `\dontrun{}` only for functions needing the private `fits/` data or a full `inputs` bundle).
+- Every exported function has `@param`, `@return`, and `@examples` (runnable where feasible; `\donttest{}` for slow-but-working). **`\dontrun{}` is down to two topics**, `run_wai_adj()` and `extract_wai_data()`, both because `run_wai_adj()` hard-codes a 5000-draw chain — minutes to tens of minutes, too slow to check. Both are nonetheless self-contained: they use the shipped data and `tempfile()`, so they can be pasted and run. The analytics table builders used to be `\dontrun` too, for want of an `inputs` bundle; `mfbdfm_example_inputs()` exists so they are executed by `R CMD check` instead. Do not reintroduce a `\dontrun` sketch that references objects it does not create — that is how `4_tables.R` and `plots_parameters.R` rotted unnoticed (#59, #63).
 - `vignettes/mfbdfm.Rmd` is the "get started" walkthrough — grounded in the Kronenberg (2026) paper's own description of the model. Keep it and `R/mfbdfm-package.R` in sync with the actual model description if either changes.
 - `NEWS.md` uses the `# mfbdfm X.Y.Z.9000` heading format (not `(development version)` — R 4.3's NEWS parser rejects that heading and produces a "no news entries found" check NOTE).
 - `_pkgdown.yml`'s `reference:` section is a **hand-grouped index by source file** (Models / Backcasting & vintages / Frequency & date utilities / Analytics config / Evaluation tables & plots / Data). If you add or remove an export, update this too — validate it matches `NAMESPACE` exactly (a quick way: diff `grep '^export(' NAMESPACE` against the flattened `contents:` lists in `_pkgdown.yml`). **`grep '^export('` alone is not enough — S3 methods are registered as `S3method(generic,class)`, not `export()`, and pkgdown still requires them in the index.** This bit us on PR #47: `print.fcast_dfm` was documented and registered but missing from the index, all four `R CMD check` jobs passed, and only the `pkgdown` job failed (`1 topic missing from index`). Include `S3method(...)` lines in the comparison. Note `pkgdown::check_pkgdown()` needs pandoc, so it cannot be run locally in this environment — CI is the authoritative check for the site build.

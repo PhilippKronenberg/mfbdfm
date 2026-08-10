@@ -213,10 +213,12 @@ plot_comparison <- function(tab_wai, comparison_df, comparison_label,
 #' @importFrom lubridate floor_date
 #' @importFrom stats cor
 #' @examples
-#' \dontrun{
-#' # inputs is the bundle of data objects built by analysis/5_plots scripts:
+#' # `inputs` is the bundle the analysis/5_plots/ scripts build from fitted
+#' # models. Constructed here with synthetic numbers of the same shape, so the
+#' # example actually runs and is checked rather than being a sketch.
+#' insample_inputs <- mfbdfm_example_inputs()
 #' cor_tab <- get_combined_cor_table("mean", "indicators", inputs = insample_inputs)
-#' }
+#' head(cor_tab)
 #' @export
 get_combined_cor_table <- function(method = c("mean", "last", "last_month"),
                                    analysis_set = c("wai_versions", "indicators"),
@@ -464,14 +466,19 @@ get_combined_cor_table <- function(method = c("mean", "last", "last_month"),
 #' @importFrom ggpubr ggarrange
 #' @importFrom scales squish
 #' @examples
-#' \dontrun{
+#' inputs <- mfbdfm_example_inputs()
+#' cor_tab <- get_combined_cor_table("mean", "indicators", inputs = inputs)
+#'
+#' dir <- tempfile(); dir.create(dir)
+#' # a null device, or ggsave() opens a real one and leaves Rplots.pdf behind
+#' grDevices::pdf(NULL)
 #' render_correlation_heatmap(
-#'   cor_tables = list(mean = cor_tab_mean, last = cor_tab_last),
-#'   series_order = c("WAI", "SECO-WWA", "KOF-BARO"),
-#'   output_file = "correlation_heatmap.pdf",
-#'   figures_dir = cfg$figures_dir
-#' )
-#' }
+#'   cor_tables = list(mean = cor_tab),
+#'   series_order = c("WAI", "SECO-WWA", "F-CURVE", "SECO-SEC",
+#'                    "SNB-BCI", "KOF-BARO"),
+#'   output_file = "correlation_heatmap.pdf", figures_dir = dir)
+#' grDevices::dev.off()
+#' unlink(dir, recursive = TRUE)
 #' @export
 render_correlation_heatmap <- function(cor_tables, series_order, output_file, figures_dir) {
   method_labels <- c(

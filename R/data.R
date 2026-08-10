@@ -21,6 +21,12 @@
 #' @source Produced from SECO, KOF, FSO, SNB, Datastream and further
 #'   high-frequency sources; see the data dictionary in `README.md` for
 #'   the per-series source and metadata.
+#' @examples
+#' data(data_ch_dataset)
+#' names(data_ch_dataset)
+#' # NOTE: this one does NOT carry the GDP target series; see
+#' # data_ch_dataset_test, or inject it via get_real_time_gdp_vintages().
+#' head(names(data_ch_dataset$flows))
 "data_ch_dataset"
 
 #' Harmonized Swiss indicator dataset (test variant)
@@ -38,4 +44,8 @@
 #'     variables.}
 #' }
 #' @source See [data_ch_dataset].
+#' @examples
+#' data(data_ch_dataset_test)
+#' names(data_ch_dataset_test)
+#' "ch.seco.gdp.real.gdp.ssa" %in% names(data_ch_dataset_test$flows)
 "data_ch_dataset_test"

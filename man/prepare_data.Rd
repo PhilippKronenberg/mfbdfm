@@ -40,6 +40,7 @@ dim(Ymat)
 \seealso{
 Other data preparation functions: 
 \code{\link{create_inventory}()},
-\code{\link{mfbdfm_data}()}
+\code{\link{mfbdfm_data}()},
+\code{\link{mfbdfm_example_inputs}()}
 }
 \concept{data preparation functions}

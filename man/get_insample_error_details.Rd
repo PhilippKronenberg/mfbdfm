@@ -36,8 +36,9 @@ full error series per observation date, model, method, lag and
 frequency, for use in \code{\link[=create_error_summary_tables]{create_error_summary_tables()}}.
 }
 \examples{
-\dontrun{
+# Same synthetic `inputs` bundle as [get_insample_fit_table()]; see there for
+# what the real one is built from.
+insample_inputs <- mfbdfm_example_inputs()
 details <- get_insample_error_details("mean", "indicators", inputs = insample_inputs)
 head(details)
-}
 }

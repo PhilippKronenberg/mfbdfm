@@ -22,6 +22,7 @@ reference:
   - print.mfbdfm_data
   - create_inventory
   - prepare_data
+  - mfbdfm_example_inputs
 
 - title: Methods on fitted models
   desc: >

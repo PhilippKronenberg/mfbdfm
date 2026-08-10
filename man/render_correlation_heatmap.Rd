@@ -24,12 +24,17 @@ Invisibly, the assembled plot.
 Render the lag-correlation heatmap grid and save it
 }
 \examples{
-\dontrun{
+inputs <- mfbdfm_example_inputs()
+cor_tab <- get_combined_cor_table("mean", "indicators", inputs = inputs)
+
+dir <- tempfile(); dir.create(dir)
+# a null device, or ggsave() opens a real one and leaves Rplots.pdf behind
+grDevices::pdf(NULL)
 render_correlation_heatmap(
-  cor_tables = list(mean = cor_tab_mean, last = cor_tab_last),
-  series_order = c("WAI", "SECO-WWA", "KOF-BARO"),
-  output_file = "correlation_heatmap.pdf",
-  figures_dir = cfg$figures_dir
-)
-}
+  cor_tables = list(mean = cor_tab),
+  series_order = c("WAI", "SECO-WWA", "F-CURVE", "SECO-SEC",
+                   "SNB-BCI", "KOF-BARO"),
+  output_file = "correlation_heatmap.pdf", figures_dir = dir)
+grDevices::dev.off()
+unlink(dir, recursive = TRUE)
 }

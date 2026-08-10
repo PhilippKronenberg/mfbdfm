@@ -20,7 +20,8 @@ Wide table of annotated values.
 Annotate relative error tables with significance stars
 }
 \examples{
-\dontrun{
-annotated <- annotate_relative_errors(rel$RMSE_relative, fit_tabs$PVAL_RMSE, "RMSE")
-}
+inputs <- mfbdfm_example_inputs()
+fit_tabs <- get_insample_fit_table("mean", "indicators", inputs = inputs)
+rel <- calculate_relative_errors(fit_tabs)
+annotate_relative_errors(rel$RMSE_relative, fit_tabs$PVAL_RMSE, "RMSE")
 }

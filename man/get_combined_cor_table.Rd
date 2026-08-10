@@ -35,8 +35,10 @@ indicators or the WAI model variants) with GDP growth, for YoY and QoQ
 frequencies, at lags -4 to 0.
 }
 \examples{
-\dontrun{
-# inputs is the bundle of data objects built by analysis/5_plots scripts:
+# `inputs` is the bundle the analysis/5_plots/ scripts build from fitted
+# models. Constructed here with synthetic numbers of the same shape, so the
+# example actually runs and is checked rather than being a sketch.
+insample_inputs <- mfbdfm_example_inputs()
 cor_tab <- get_combined_cor_table("mean", "indicators", inputs = insample_inputs)
-}
+head(cor_tab)
 }

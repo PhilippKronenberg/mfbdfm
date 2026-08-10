@@ -25,4 +25,9 @@ A variant of \link{data_ch_dataset} built from the test metadata
 (\code{data_meta_test.xlsx}) with a different flow/stock split, used for
 model development and evaluation runs.
 }
+\examples{
+data(data_ch_dataset_test)
+names(data_ch_dataset_test)
+"ch.seco.gdp.real.gdp.ssa" \%in\% names(data_ch_dataset_test$flows)
+}
 \keyword{datasets}

@@ -24,6 +24,11 @@ application of it (#37).
 
 ## New features
 
+* `mfbdfm_example_inputs()` builds the synthetic `inputs` bundle the analytics
+  table builders expect. Their examples were previously `\dontrun{}` sketches
+  referring to objects that did not exist, so `R CMD check` never executed them;
+  nine topics now run and are checked. The test suite uses the same fixture, so
+  the examples and the tests cannot drift onto different input shapes (#20).
 * `dfm_control()` bundles the numerical and algorithmic settings that were
   previously hard-coded inside the samplers, as an **optional** `control`
   argument on both entry points -- omit it and the published behaviour is

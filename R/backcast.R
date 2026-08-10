@@ -74,12 +74,23 @@ run_ar <- function(flows, stocks, target, date, dataset_used, stochastic_volatil
 #'
 #' @importFrom stats window time frequency
 #' @examples
+#' # \dontrun rather than \donttest because the chain length is fixed at 5000
+#' # draws inside this function, so it runs for minutes to tens of minutes - too
+#' # long for a checked example. It is self-contained, though: paste it and it
+#' # runs on the shipped data, writing into a temporary directory.
 #' \dontrun{
-#' # Full MCMC estimation at one evaluation date, saving the fit:
-#' fit <- run_wai_adj(flows = dat$flows, stocks = dat$stocks,
-#'                    target = "ch.seco.gdp.real.gdp.ssa",
-#'                    date = 2024.5, dataset_used = "full_RT",
-#'                    output_dir = "fits/updated")
+#' data(data_ch_dataset_test)
+#' target <- "ch.seco.gdp.real.gdp.ssa"
+#' out <- tempfile(); dir.create(out)
+#'
+#' fit <- run_wai_adj(flows = data_ch_dataset_test$flows,
+#'                    stocks = data_ch_dataset_test$stocks,
+#'                    target = target,
+#'                    date = 2024.5, dataset_used = "example",
+#'                    output_dir = out)
+#' fit$nowcast
+#' list.files(out, recursive = TRUE)
+#' unlink(out, recursive = TRUE)
 #' }
 #' @export
 run_wai_adj <- function(flows, stocks, target, date, dataset_used, stochastic_volatility = TRUE,
@@ -330,9 +341,20 @@ retrieve_nowcast_var <- function(fit, model = c("ar", "wai")){
 #' @importFrom dplyr select %>%
 #' @importFrom stats ts time window frequency
 #' @examples
+#' # \dontrun because it needs a fit file, and the only way to make one is
+#' # run_wai_adj(), whose 5000-draw chain is far too slow for a checked example.
+#' # Self-contained all the same: this produces the file it then reads.
 #' \dontrun{
-#' result_wai <- extract_wai_data("fits/updated/full_RT/fit_2025.979.Rda")
+#' data(data_ch_dataset_test)
+#' out <- tempfile(); dir.create(out)
+#' run_wai_adj(flows = data_ch_dataset_test$flows,
+#'             stocks = data_ch_dataset_test$stocks,
+#'             target = "ch.seco.gdp.real.gdp.ssa",
+#'             date = 2024.5, dataset_used = "example", output_dir = out)
+#'
+#' result_wai <- extract_wai_data(file.path(out, "example", "fit_2024.5.Rda"))
 #' head(result_wai$tab_gr_qoq)
+#' unlink(out, recursive = TRUE)
 #' }
 #' @export
 extract_wai_data <- function(file_path) {

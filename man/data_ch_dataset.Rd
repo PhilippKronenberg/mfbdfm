@@ -33,4 +33,11 @@ according to the variable metadata in \code{data-raw/data_meta.csv} (see
 the data dictionary in \code{README.md} for the per-series source,
 category, unit, and transformation).
 }
+\examples{
+data(data_ch_dataset)
+names(data_ch_dataset)
+# NOTE: this one does NOT carry the GDP target series; see
+# data_ch_dataset_test, or inject it via get_real_time_gdp_vintages().
+head(names(data_ch_dataset$flows))
+}
 \keyword{datasets}

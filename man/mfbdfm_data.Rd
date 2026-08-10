@@ -182,6 +182,7 @@ mfbdfm_data(series, meta, target = "ch.seco.gdp.real.gdp.ssa")
 
 Other data preparation functions: 
 \code{\link{create_inventory}()},
+\code{\link{mfbdfm_example_inputs}()},
 \code{\link{prepare_data}()}
 }
 \concept{data preparation functions}

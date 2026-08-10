@@ -26,18 +26,8 @@ make_synth_vintages <- function() {
   df
 }
 
-# The inputs bundle for the in-sample analytics table builders.
-make_synth_inputs <- function(seed = 99) {
-  set.seed(seed)
-  wk <- seq(as.Date("2010-01-07"), as.Date("2024-12-28"), by = "week")
-  mkdf <- function() data.frame(time = wk, value = cumsum(rnorm(length(wk), 0, 0.3)))
-  list(
-    tab_wai_yoy = data.frame(time = wk, name = "mean", value = cumsum(rnorm(length(wk), 0, 0.3))),
-    wwa_gr_df = mkdf(), wwa_gr_df_qoq = mkdf(), fcurve_gr_df = mkdf(),
-    tab_kss = mkdf(), tab_snb = mkdf(), tab_baro = mkdf(),
-    tab_gr = data.frame(time = wk, name = "mean", value = rnorm(length(wk), 0.5, 1)),
-    tab_gr_lv = data.frame(time = wk, value = 100 * cumprod(1 + rnorm(length(wk), 0, 0.002))),
-    x_hist_gr_yoy = stats::ts(rnorm(100, 1.5, 1), start = c(1991, 1), frequency = 4),
-    x_hist_gr_ann = stats::ts(rnorm(104, 0.4, 0.5), start = c(1990, 1), frequency = 4)
-  )
-}
+# The analytics inputs bundle. Delegates to the exported
+# mfbdfm_example_inputs(), which the reference examples also use - one fixture,
+# so a change in the expected input shape cannot pass the tests while breaking
+# the documentation, or the reverse.
+make_synth_inputs <- function(seed = 99) mfbdfm_example_inputs(seed = seed)
