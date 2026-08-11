@@ -42,6 +42,23 @@ test_that("pars$h is complete and aligned with the factor (#49)", {
   # slicing one past the end of h, and the same length as the factor
   expect_false(anyNA(fit$pars$h))
   expect_equal(length(fit$pars$h), length(fit$factor))
+
+  # and it carries the factor's time index, not just its length (#67). This is
+  # the parity half: fcast_dfm() has always returned a ts here, ind_dfm() a bare
+  # numeric, so the same quantity had a date axis from one entry point and an
+  # integer index from the other. Length alone cannot catch that - which is why
+  # the assertions above passed while windowing h by calendar year matched
+  # nothing at all, silently.
+  expect_true(stats::is.ts(fit$pars$h))
+  expect_equal(as.numeric(stats::time(fit$pars$h)),
+               as.numeric(stats::time(fit$factor)))
+  expect_gt(length(stats::window(fit$pars$h,
+                                 start = stats::time(fit$factor)[2])), 0)
+
+  # positional [ still drops to a plain numeric, which
+  # analysis/5_plots/analytics_data.R depends on
+  expect_type(fit$pars$h[1:3], "double")
+  expect_false(stats::is.ts(fit$pars$h[1:3]))
 })
 
 test_that("stochastic_volatility = FALSE gives a constant but estimated variance", {

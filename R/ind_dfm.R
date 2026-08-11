@@ -314,7 +314,16 @@ ind_dfm <- function(flows = NULL,
               # index. The previous (s+2):(t+s+1) ran one past the end of h,
               # leaving a trailing NA, and was shifted one period against the
               # factor (#49).
-              "pars" = list("h" = h_out[(s+1):(t+s)],
+              #
+              # Returned as a `ts` on the factor's own index, which is what
+              # fcast_dfm() has always done (helpers_fcast.R). It was a bare
+              # numeric here, so the same quantity carried a date axis from one
+              # entry point and an integer index from the other, and windowing it
+              # by calendar year silently matched nothing rather than erroring
+              # (#67). Values are unchanged - this adds the tsp attribute only.
+              "pars" = list("h" = ts(h_out[(s+1):(t+s)],
+                                     start = time(f_mean)[1],
+                                     frequency = frequency(f_mean)),
                             "lambda" = lambda_out,
                             "phi" = phi_out,
                             "sigma" = sigma_out,

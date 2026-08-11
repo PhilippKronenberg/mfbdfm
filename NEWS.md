@@ -153,6 +153,11 @@ application of it (#37).
 
 ## Bug fixes
 
+* `ind_dfm()` now returns `pars$h` as a `ts` on the factor's own index, as
+  `fcast_dfm()` always has. It was a bare numeric, so the same quantity carried a
+  date axis from one entry point and an integer index from the other, and
+  windowing it by calendar year silently matched nothing rather than erroring.
+  Values are unchanged -- this adds the time attribute only (#67).
 * `dfm_memory()` under-predicted peak memory by 27% at the chain length the
   sweeps actually use, and so `dfm_workers()` handed out too many workers: 1128
   MB estimated against 1538 MB measured at 500 retained draws. The cause is that
