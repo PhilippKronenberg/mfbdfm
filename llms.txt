@@ -467,6 +467,8 @@ In-sample and out-of-sample forecast evaluation tables and plots.
   : Plot the WAI against a comparison indicator and GDP
 - [`get_combined_cor_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.md)
   : Cross correlations of the WAI and benchmarks with GDP
+- [`suffix_cols()`](https://philippkronenberg.github.io/mfbdfm/reference/suffix_cols.md)
+  : Suffix the lag columns of a correlation or error table
 - [`render_correlation_heatmap()`](https://philippkronenberg.github.io/mfbdfm/reference/render_correlation_heatmap.md)
   : Render the lag-correlation heatmap grid and save it
 - [`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md)
