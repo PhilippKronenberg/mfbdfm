@@ -326,7 +326,8 @@ print(
   sanitize.text.function = identity,
   floating            = TRUE,              # keeps the table float
   tabular.environment = "tabular*",        # use tabular* instead of tabular
-  width               = "\\textwidth"      # stretch to the full text width
+  width               = "\\textwidth",     # stretch to the full text width
+  file                = file.path(tables_dir, "table_lambda_specifications.tex")
 )
 
 library(dplyr)
@@ -484,7 +485,9 @@ print(
   sanitize.text.function   = identity,   # so our \textcolor survives
   floating                 = TRUE,
   tabular.environment      = "tabular*",
-  width                    = "\\textwidth"
+  width                    = "\\textwidth",
+  file                     = file.path(tables_dir,
+                                       "table_lambda_specifications_colored.tex")
 )
 
 
@@ -602,7 +605,8 @@ print(
   sanitize.text.function = identity,
   floating            = TRUE,              # keeps the table float
   tabular.environment = "tabular*",        # use tabular* instead of tabular
-  width               = "\\textwidth"      # stretch to the full text width
+  width               = "\\textwidth",     # stretch to the full text width
+  file                = file.path(tables_dir, "table_lambda_vintages.tex")
 )
 
 
@@ -646,7 +650,9 @@ print(
   sanitize.text.function   = identity,   # so our \textcolor survives
   floating                 = TRUE,
   tabular.environment      = "tabular*",
-  width                    = "\\textwidth"
+  width                    = "\\textwidth",
+  file                     = file.path(tables_dir,
+                                       "table_lambda_vintages_colored.tex")
 )
 
 # Serial Correlation Table ---------------------------------------------
