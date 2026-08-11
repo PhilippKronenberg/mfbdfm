@@ -557,11 +557,47 @@ render_correlation_heatmap <- function(cor_tables, series_order, output_file, fi
 }
 
 
-#' Suffix the lag columns of a table
+#' Suffix the lag columns of a correlation or error table
 #'
-#' @noRd
+#' Renames every `Lag_*` column to `Lag_*_<suffix>`, leaving all other columns
+#' untouched. Used when several tables that share a lag layout are put side by
+#' side and their columns would otherwise collide -- one per frequency (`"QoQ"`,
+#' `"YoY"`) or per aggregation method (`"mean"`, `"last"`, `"lastmonth"`).
+#'
+#' @details
+#' Exported because `analysis/5_plots/analytics_in_sample.R` calls it in six
+#' places. It was `@noRd` and therefore invisible outside the package, and
+#' `create_combined_latex_table()` carried a second, identical copy defined
+#' inside its own body -- so the script failed with
+#' `could not find function "suffix_cols"` the first time the analytics chain was
+#' run end to end (#23). One definition now, visible to both.
+#'
+#' @param df A data frame with zero or more columns named `Lag_*`.
+#' @param suffix Character, appended to each lag column name after an underscore.
+#'
+#' @return `df` with its `Lag_*` columns renamed. A data frame with no such
+#'   columns is returned unchanged.
+#'
+#' @examples
+#' df <- data.frame(Series = c("WAI", "AR"), Lag_0 = c(1, 2), Lag_1 = c(3, 4))
+#' suffix_cols(df, "QoQ")
+#'
+#' # columns that are not lags are left alone, and a frame without any is a no-op
+#' suffix_cols(data.frame(Series = "WAI", value = 1), "QoQ")
+#'
+#' @family evaluation table functions
 #' @importFrom dplyr rename_with starts_with %>%
+#' @export
 suffix_cols <- function(df, suffix) {
+
+  # Guard the no-match case. rename_with() applies the function to the selected
+  # names, and with nothing selected that is a zero-length vector -- but
+  # paste0(character(0), "_", suffix) recycles the scalar and returns length 1,
+  # so rename_with() errors with ".fn must return a vector of length 0, not 1".
+  # Only reachable on a table with no lag columns, which is why it survived
+  # inside two function bodies for as long as it did.
+  if (!any(startsWith(names(df), "Lag_"))) return(df)
+
   df %>%
     rename_with(~ paste0(., "_", suffix), .cols = starts_with("Lag_"))
 }

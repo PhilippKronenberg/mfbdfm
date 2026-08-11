@@ -533,11 +533,8 @@ create_combined_latex_table <- function(combined_tables_list,
   combined_table2 <- bind_rows(combined_tables_list)
   combined_table2 <- combined_table2[order(combined_table2$Frequency), ]
 
-  # 4. Helper: rename lag columns with suffix
-  suffix_cols <- function(df, suffix) {
-    df %>%
-      rename_with(~ paste0(., "_", suffix), .cols = starts_with("Lag_"))
-  }
+  # 4. rename lag columns with a suffix - see suffix_cols(), which used to be
+  #    defined here and separately inside get_combined_cor_table()
 
   # 5. Split and widen
   df_qoq <- combined_table2 %>%

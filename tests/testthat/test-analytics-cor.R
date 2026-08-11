@@ -85,3 +85,23 @@ test_that("render_correlation_heatmap writes a figure file", {
   expect_true(file.exists(file.path(dir, "heatmap.pdf")))
   expect_s3_class(result, "ggarrange")
 })
+
+test_that("suffix_cols renames only the lag columns, and tolerates having none", {
+
+  df <- data.frame(Series = c("WAI", "AR"), Frequency = "QoQ",
+                   Lag_0 = c(1, 2), Lag_1 = c(3, 4))
+  out <- suffix_cols(df, "QoQ")
+  expect_named(out, c("Series", "Frequency", "Lag_0_QoQ", "Lag_1_QoQ"))
+  expect_equal(out$Lag_0_QoQ, df$Lag_0)          # values untouched
+
+  # No lag columns at all. rename_with() would error here without the guard:
+  # paste0(character(0), "_", suffix) recycles to length 1, and rename_with
+  # rejects a .fn that does not return one name per selected column. Caught by
+  # the function's own @examples, not by any caller (#23).
+  plain <- data.frame(Series = "WAI", value = 1)
+  expect_identical(suffix_cols(plain, "QoQ"), plain)
+
+  # and it is what analysis/5_plots/analytics_in_sample.R needs at script level:
+  # exported, not internal
+  expect_true("suffix_cols" %in% getNamespaceExports("mfbdfm"))
+})

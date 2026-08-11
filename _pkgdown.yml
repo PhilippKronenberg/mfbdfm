@@ -84,6 +84,7 @@ reference:
   - prepare_wai_qoq_series
   - plot_comparison
   - get_combined_cor_table
+  - suffix_cols
   - render_correlation_heatmap
   - dm_test_modified
   - get_insample_fit_table
