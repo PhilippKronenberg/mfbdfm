@@ -247,6 +247,14 @@ Bayesian dynamic factor model and WAI is one application of it
 
 ### Bug fixes
 
+- [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  now returns `pars$h` as a `ts` on the factor’s own index, as
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  always has. It was a bare numeric, so the same quantity carried a date
+  axis from one entry point and an integer index from the other, and
+  windowing it by calendar year silently matched nothing rather than
+  erroring. Values are unchanged – this adds the time attribute only
+  ([\#67](https://github.com/PhilippKronenberg/mfbdfm/issues/67)).
 - [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md)
   under-predicted peak memory by 27% at the chain length the sweeps
   actually use, and so
