@@ -21,6 +21,11 @@
 # RStudio files
 .Rproj.user/
 
+# VS Code workspace settings (per-developer, like .Rproj.user above).
+# Already in .Rbuildignore, so it never reached a tarball - this just keeps it
+# out of `git status`.
+.vscode/
+
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
