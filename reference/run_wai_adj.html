@@ -11,7 +11,7 @@ evaluation date."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">mfbdfm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,10 +52,12 @@ evaluation date.</p>
 <span>  <span class="va">target</span>,</span>
 <span>  <span class="va">date</span>,</span>
 <span>  <span class="va">dataset_used</span>,</span>
-<span>  stochastic_volatility <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  p <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  length_sample <span class="op">=</span> <span class="fl">5000</span>,</span>
 <span>  burn_in <span class="op">=</span> <span class="fl">1000</span>,</span>
 <span>  thinning <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  stochastic_volatility <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  serial_correlation <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -86,9 +88,8 @@ at this date.</p></dd>
 when saving.</p></dd>
 
 
-<dt id="arg-stochastic-volatility">stochastic_volatility<a class="anchor" aria-label="anchor" href="#arg-stochastic-volatility"></a></dt>
-<dd><p>Logical, passed to <code><a href="ind_dfm.html">ind_dfm()</a></code> (currently
-without effect there).</p></dd>
+<dt id="arg-p">p<a class="anchor" aria-label="anchor" href="#arg-p"></a></dt>
+<dd><p>Integer, number of factor lags in the factor state equation.</p></dd>
 
 
 <dt id="arg-length-sample">length_sample<a class="anchor" aria-label="anchor" href="#arg-length-sample"></a></dt>
@@ -103,6 +104,19 @@ without effect there).</p></dd>
 <dd><p>Integer, keep every <code>thinning</code>-th draw after burn-in.</p></dd>
 
 
+<dt id="arg-stochastic-volatility">stochastic_volatility<a class="anchor" aria-label="anchor" href="#arg-stochastic-volatility"></a></dt>
+<dd><p>Logical. If <code>TRUE</code> (default) the factor
+innovation variance follows a stochastic volatility process. If <code>FALSE</code>
+it is a single constant variance, <strong>still estimated</strong> rather than fixed
+– see <code>@details</code>.</p></dd>
+
+
+<dt id="arg-serial-correlation">serial_correlation<a class="anchor" aria-label="anchor" href="#arg-serial-correlation"></a></dt>
+<dd><p>Logical. If <code>TRUE</code> (default) the measurement
+errors are allowed to be serially correlated and their autocorrelations
+are drawn. If <code>FALSE</code> they are held at (effectively) zero.</p></dd>
+
+
 <dt id="arg-output-dir">output_dir<a class="anchor" aria-label="anchor" href="#arg-output-dir"></a></dt>
 <dd><p>Directory to save the fit to, or <code>NULL</code> (default) to
 skip saving. When given, the fit is saved as
@@ -115,12 +129,15 @@ skip saving. When given, the fit is saved as
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><code>length_sample</code>, <code>burn_in</code> and <code>thinning</code> default to the chain this wrapper
-has always run — 5000 retained draws after 1000 burn-in, unthinned — so
-existing results are unaffected. They are arguments rather than hard-coded
-values so that a short chain can be used to check the wiring, which is what
-the example below does; note that the default differs from <code><a href="run_fcast.html">run_fcast()</a></code>'s
-1000, deliberately, because that is what each wrapper has always used.</p>
+    <p>Every modelling argument is passed straight through to <code><a href="ind_dfm.html">ind_dfm()</a></code>, and the
+defaults are the ones this wrapper has always used, so existing results are
+unaffected: <code>p = 1</code>, 5000 retained draws after 1000 burn-in, unthinned, with
+both stochastic volatility and serial correlation on. They are arguments
+rather than hard-coded values so that a short chain can check the wiring —
+which is what the example below does — and so that the wrapper does not
+silently withhold settings the model supports. <code>length_sample</code>'s default
+differs from <code><a href="run_fcast.html">run_fcast()</a></code>'s 1000 deliberately: that is what each wrapper has
+always run.</p>
     </div>
 
     <div class="section level2">

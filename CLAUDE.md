@@ -103,8 +103,11 @@ interactively in R/RStudio.
 - `devtools::document()` — regenerate `NAMESPACE`/`man/*.Rd` after
   changing roxygen docs or `@export` tags.
 - `devtools::load_all()` — load the package for interactive development.
-- `devtools::test()` — run the full testthat suite (585 assertions, ~2
-  min).
+- `devtools::test()` — run the full testthat suite (677 assertions, ~42
+  s). If it takes minutes again, suspect a test that fits a model at a
+  default chain length rather than a short one: a single
+  [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
+  call on its 5000-draw default was once 143 s of a 179 s suite.
 - `testthat::test_file("tests/testthat/test-<name>.R")` — run a single
   test file.
 - `devtools::check()` — run `R CMD check` locally (equivalent to CI).
@@ -128,19 +131,32 @@ Cost a full check cycle once. Either write to a scratch directory
 outside the repo or add the name to `.Rbuildignore` — and note that
 `.gitignore` is irrelevant here, since `R CMD build` does not read it.
 
-**pandoc**: it is *not* on `PATH` by default on this machine, but a copy
-ships with RStudio at
-`C:\Program Files\RStudio\resources\app\bin\quarto\bin\tools`. Without
-it, `R CMD build` fails outright on vignette rebuilding
-(`Vignette re-building failed`), `R CMD check` adds two spurious NOTEs
-(no prebuilt vignette index; `README.md`/`NEWS.md` cannot be checked),
-and `urlchecker`/`pkgdown` refuse to run at all. `RSTUDIO_PANDOC` and
-the user `PATH` now both point at that directory, so this is handled —
-but if a fresh shell reports
-[`rmarkdown::pandoc_available()`](https://pkgs.rstudio.com/rmarkdown/reference/pandoc_available.html)
-as `FALSE`, that is the cause, and prepending the directory to `PATH` is
-the fix. Do not conclude from those NOTEs that the package has a
-vignette or documentation problem.
+**Check toolchain — three pieces, all present, none obvious.** A
+`R CMD check` run that is missing any of them reports NOTEs that look
+like package defects and are not:
+
+- **pandoc** is *not* on `PATH` by default here, but ships with RStudio
+  at `C:\Program Files\RStudio\resources\app\bin\quarto\bin\tools`
+  (3.8.3). Without it `R CMD build` fails outright on vignette
+  rebuilding (`Vignette re-building failed`), `R CMD check` adds two
+  spurious NOTEs (no prebuilt vignette index; `README.md`/`NEWS.md`
+  cannot be checked), and `urlchecker`/`pkgdown` refuse to run at all.
+  `RSTUDIO_PANDOC` and the user `PATH` now both point there; if a fresh
+  shell reports
+  [`rmarkdown::pandoc_available()`](https://pkgs.rstudio.com/rmarkdown/reference/pandoc_available.html)
+  as `FALSE`, that is the cause and prepending the directory to `PATH`
+  is the fix.
+- **MiKTeX** 25.3 is already on `PATH`, so the PDF manual builds —
+  `--no-manual` is unnecessary caution, not a requirement.
+- **`V8`** is what `--as-cran` uses to verify KaTeX math in the Rd
+  files. Without it the check prints
+  `Skipping checking math rendering: package 'V8' unavailable` and
+  **silently does not check the math** — a skipped check reported as a
+  NOTE, easily mistaken for a failure. Installed (8.2.0), and with it
+  `checking HTML version of manual` is `OK`.
+
+With all three, `R CMD check --as-cran` on this package is **1 NOTE**
+(`New submission`) and nothing else.
 
 ## Verifying that a change did not alter results
 
@@ -636,22 +652,24 @@ published figures are not reproducible from it, so that nobody later
 
 - Every exported function has `@param`, `@return`, and `@examples`
   (runnable where feasible; `\donttest{}` for slow-but-working).
-  **`\dontrun{}` is down to two topics**,
+  **`\dontrun{}` is gone from the package entirely — keep it that way.**
+  It survived on two topics,
   [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
   and
   [`extract_wai_data()`](https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.md),
-  both because
+  only because
   [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
-  hard-codes a 5000-draw chain — minutes to tens of minutes, too slow to
-  check. Both are nonetheless self-contained: they use the shipped data
-  and [`tempfile()`](https://rdrr.io/r/base/tempfile.html), so they can
-  be pasted and run. The analytics table builders used to be `\dontrun`
-  too, for want of an `inputs` bundle;
+  hard-coded a 5000-draw chain; exposing
+  `length_sample`/`burn_in`/`thinning` (#21 prep) let both run short
+  chains under `\donttest{}`, so **every example is now executed by
+  `R CMD check`**. The analytics table builders were `\dontrun` too, for
+  want of an `inputs` bundle;
   [`mfbdfm_example_inputs()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_inputs.md)
-  exists so they are executed by `R CMD check` instead. Do not
-  reintroduce a `\dontrun` sketch that references objects it does not
-  create — that is how `4_tables.R` and `plots_parameters.R` rotted
-  unnoticed (#59, \#63).
+  exists so they are executed instead. If a new example seems to need
+  `\dontrun`, the usual answer is that the function is hard-coding
+  something that should be an argument. Do not reintroduce a `\dontrun`
+  sketch that references objects it does not create — that is how
+  `4_tables.R` and `plots_parameters.R` rotted unnoticed (#59, \#63).
 - `vignettes/mfbdfm.Rmd` is the “get started” walkthrough — grounded in
   the Kronenberg (2026) paper’s own description of the model. Keep it
   and `R/mfbdfm-package.R` in sync with the actual model description if

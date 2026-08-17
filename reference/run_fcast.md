@@ -62,7 +62,7 @@ run_fcast(
 
 - p:
 
-  Integer, number of lags in the factor VAR.
+  Integer, number of factor lags in the factor state equation.
 
 - length_sample:
 
@@ -78,14 +78,15 @@ run_fcast(
 
 - stochastic_volatility:
 
-  Logical, passed to
-  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
-  (currently without effect there).
+  Logical. If `TRUE` (default) the factor innovation variance follows a
+  stochastic volatility process. If `FALSE` it is a single constant
+  variance, **still estimated** rather than fixed – see `@details`.
 
 - serial_correlation:
 
-  Logical, model serial correlation in the measurement errors. If
-  `FALSE`, the autocorrelations are fixed near zero.
+  Logical. If `TRUE` (default) the measurement errors are allowed to be
+  serially correlated and their autocorrelations are drawn. If `FALSE`
+  they are held at (effectively) zero.
 
 - extend:
 

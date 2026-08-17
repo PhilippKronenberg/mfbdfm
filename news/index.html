@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mfbdfm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,10 +34,10 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.0.0.9000" id="mfbdfm-0009000">mfbdfm 0.0.0.9000<a class="anchor" aria-label="anchor" href="#mfbdfm-0009000"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.1.0" id="mfbdfm-010">mfbdfm 0.1.0<a class="anchor" aria-label="anchor" href="#mfbdfm-010"></a></h2>
 <p>First functional version of the package, converting the WAI research code into a proper R package (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/9" class="external-link">#9</a>-#19). The package (and repo) were renamed from <code>waiind</code> to <code>mfbdfm</code> before release, since the underlying model is a general mixed-frequency Bayesian dynamic factor model and WAI is one application of it (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/37" class="external-link">#37</a>).</p>
 <div class="section level3">
-<h3 id="breaking-changes-0-0-0-9000">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-0-0-9000"></a></h3>
+<h3 id="breaking-changes-0-1-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-1-0"></a></h3>
 <ul><li>
 <code>hfdfm()</code> is renamed <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code>, and its S3 class with it. There is no deprecated alias: calls to <code>hfdfm()</code> will fail with “could not find function” (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/48" class="external-link">#48</a>).</li>
 <li>
@@ -45,7 +45,7 @@
 <li>Both fit classes now agree on their data components: <code>$data</code> is the prepared (standardized) matrix and <code>$data_raw</code> the series as supplied. Previously <code>$data</code> meant the prepared matrix for <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> but the raw input list for <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code>, so the same expression returned unrelated things – e.g. <code>length(fit$data)</code> gave 1250 for one and 5 for the other, with no error. <strong><code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> is unaffected</strong>; for <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code>, <code>$data</code> changes meaning and <code>$data_missings</code> is renamed to <code>$data</code> (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/50" class="external-link">#50</a>).</li>
 </ul></div>
 <div class="section level3">
-<h3 id="new-features-0-0-0-9000">New features<a class="anchor" aria-label="anchor" href="#new-features-0-0-0-9000"></a></h3>
+<h3 id="new-features-0-1-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-1-0"></a></h3>
 <ul><li><p><code><a href="../reference/mfbdfm_example_inputs.html">mfbdfm_example_inputs()</a></code> builds the synthetic <code>inputs</code> bundle the analytics table builders expect. Their examples were previously <code>\dontrun{}</code> sketches referring to objects that did not exist, so <code>R CMD check</code> never executed them; nine topics now run and are checked. The test suite uses the same fixture, so the examples and the tests cannot drift onto different input shapes (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/20" class="external-link">#20</a>).</p></li>
 <li>
 <p><code><a href="../reference/dfm_control.html">dfm_control()</a></code> bundles the numerical and algorithmic settings that were previously hard-coded inside the samplers, as an <strong>optional</strong> <code>control</code> argument on both entry points – omit it and the published behaviour is reproduced exactly (verified: all four <code>dev/baseline.rds</code> configurations identical). Covers the rotation stopping rule, the stationarity screen on the measurement-error autocorrelations, the caps on <code>phi</code>/<code>sigma</code>/<code>omega</code>, and two numerical guards. <code>dfm_control("fcast_dfm", strict = TRUE)</code> switches the rotation to the algorithm as published in the online appendix to Eckert et al.</p>
@@ -63,7 +63,7 @@
 <li><p>Exported functions validate their inputs and report the offending argument (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/48" class="external-link">#48</a>).</p></li>
 </ul></div>
 <div class="section level3">
-<h3 id="performance-0-0-0-9000">Performance<a class="anchor" aria-label="anchor" href="#performance-0-0-0-9000"></a></h3>
+<h3 id="performance-0-1-0">Performance<a class="anchor" aria-label="anchor" href="#performance-0-1-0"></a></h3>
 <ul><li><p><code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code>’s peak memory drops by about 315 MB at 500 retained draws, with bit-identical results. <code>get_nowcast_fcast()</code> built a full unpacked copy of every retained draw’s augmented-data block, read it once (one column per series) and then held it for the rest of the call; it now scatters each draw straight into the per-series matrices, indexing into the packed vector so no block is unpacked at all. Measured full-function peak 1307 MB to 992 MB at <code>n = 53</code>, <code>t = 1535</code>, <code>q = 2</code>, 500 draws. Verified <code><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical()</a></code> against the previous implementation, and all four <code>dev/baseline.rds</code> configurations unchanged (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/64" class="external-link">#64</a>).</p></li>
 <li><p><code><a href="../reference/dfm_memory.html">dfm_memory()</a></code> estimates the peak memory of a <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> fit from the data dimensions and the chain length, and <code><a href="../reference/dfm_memory.html">dfm_workers()</a></code> turns that into a worker count for a parallel sweep. Vintage sweeps are memory-bound rather than core-bound, and the failure mode is an opaque <code>CHOLMOD error 'out of memory'</code> hours into a run, so the worker count is now derived rather than guessed. Fitted to six measured fits (adjusted R-squared 0.98) and validated against a fit on different data and a different code version to within 7%. Worth knowing: peak memory is <strong>linear</strong> in the factor count <code>q</code>, not quadratic – the sparse Cholesky term that would make it quadratic is an order of magnitude smaller than the observation matrix’s working set (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/64" class="external-link">#64</a>).</p></li>
 <li>
@@ -73,8 +73,14 @@
 </ul></li>
 </ul></div>
 <div class="section level3">
-<h3 id="bug-fixes-0-0-0-9000">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-0-0-9000"></a></h3>
+<h3 id="bug-fixes-0-1-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-0"></a></h3>
 <ul><li>
+<code><a href="../reference/run_wai_adj.html">run_wai_adj()</a></code> now forwards <code>p</code>, <code>stochastic_volatility</code> and <code>serial_correlation</code> to <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> instead of hard-coding the first two and ignoring nothing silently but documenting <code>stochastic_volatility</code> as reaching the model “without effect there”, which was false. <code><a href="../reference/run_fcast.html">run_fcast()</a></code> had exposed all of these all along, so this closes the last of the <a href="https://github.com/PhilippKronenberg/mfbdfm/issues/48" class="external-link">#48</a> parity gaps between the two wrappers. Defaults are unchanged (<code>p = 1</code>, both flags <code>TRUE</code>), so no existing result moves.</li>
+<li>
+<code><a href="../reference/output_figure_path.html">output_figure_path()</a></code> creates nothing on disk again. It briefly created the directory it was handed, on the reasoning that the caller writes to the returned path immediately; that turned a path builder into a function with a side effect, and a caller passing a relative directory started leaving empty directories behind. Directory creation belongs to the two functions that actually write, <code><a href="../reference/write_table_output.html">write_table_output()</a></code> and <code><a href="../reference/save_result_output.html">save_result_output()</a></code>, and to the analysis preludes.</li>
+<li>
+<code><a href="../reference/wai_sample_config.html">wai_sample_config()</a></code> no longer creates its three output directories merely by being called. Asking it for a sample-end date used to write to the file system, and because its default <code>output_root</code> is a relative path, it wrote wherever the caller happened to be.</li>
+<li>
 <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> now returns <code>pars$h</code> as a <code>ts</code> on the factor’s own index, as <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> always has. It was a bare numeric, so the same quantity carried a date axis from one entry point and an integer index from the other, and windowing it by calendar year silently matched nothing rather than erroring. Values are unchanged – this adds the time attribute only (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/67" class="external-link">#67</a>).</li>
 <li>
 <code><a href="../reference/dfm_memory.html">dfm_memory()</a></code> under-predicted peak memory by 27% at the chain length the sweeps actually use, and so <code><a href="../reference/dfm_memory.html">dfm_workers()</a></code> handed out too many workers: 1128 MB estimated against 1538 MB measured at 500 retained draws. The cause is that peak memory is <strong>convex</strong> in <code>length_sample</code> – the peak per MB of retained draws rises from 1.35 to 3.94 across the measured range, because which phase binds changes with chain length – so the linear fit could not span it, and a least-squares line under-predicts exactly where it matters. The estimate is now scaled to an <strong>upper bound</strong> over all measured points instead of a best fit. This is very likely why the 2019-2020 sweep lost two dates to <code>R_Calloc</code> out-of-memory (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/64" class="external-link">#64</a>).</li>
@@ -91,7 +97,7 @@
 <li>The rotation’s two convergence loops disagreed with each other: <code>initialize_theta_star_fcast()</code> tested the <strong>sum</strong> of squared deviations, as the appendix specifies, while the main loop in <code>run_rotation_fcast()</code> tested the <strong>mean</strong>. The default is unchanged for backwards compatibility and is now documented and selectable via <code><a href="../reference/dfm_control.html">dfm_control()</a></code>. Separately, the default cap of 5 iterations was measured to sit <em>exactly</em> on the observed convergence point, so it can bind and truncate the loop on other data; a binding cap now warns, or errors under <code>strict = TRUE</code> (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/46" class="external-link">#46</a>).</li>
 </ul></div>
 <div class="section level3">
-<h3 id="converting-the-research-scripts-into-a-package-0-0-0-9000">Converting the research scripts into a package<a class="anchor" aria-label="anchor" href="#converting-the-research-scripts-into-a-package-0-0-0-9000"></a></h3>
+<h3 id="converting-the-research-scripts-into-a-package-0-1-0">Converting the research scripts into a package<a class="anchor" aria-label="anchor" href="#converting-the-research-scripts-into-a-package-0-1-0"></a></h3>
 <ul><li>
 <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> (originally <code>hfdfm()</code>) estimates the Bayesian mixed-frequency dynamic factor model behind the Swiss Weekly Activity Index, with exported data-preparation helpers <code><a href="../reference/create_inventory.html">create_inventory()</a></code> and <code><a href="../reference/prepare_data.html">prepare_data()</a></code> (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/12" class="external-link">#12</a>).</li>
 <li>Backcasting and real-time vintage tooling: <code><a href="../reference/run_wai_adj.html">run_wai_adj()</a></code>, <code><a href="../reference/run_ar.html">run_ar()</a></code>, <code><a href="../reference/cut_data.html">cut_data()</a></code>, <code><a href="../reference/cut_data_real_time.html">cut_data_real_time()</a></code>, <code><a href="../reference/get_real_time_gdp_vintages.html">get_real_time_gdp_vintages()</a></code> (reads the vintage database shipped in <code>inst/extdata/</code>), frequency converters <code><a href="../reference/week2mon.html">week2mon()</a></code>, <code><a href="../reference/daily2weekly.html">daily2weekly()</a></code>, <code><a href="../reference/dec2week.html">dec2week()</a></code> (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/13" class="external-link">#13</a>, <a href="https://github.com/PhilippKronenberg/mfbdfm/issues/11" class="external-link">#11</a>).</li>
@@ -99,7 +105,7 @@
 <li>Shipped datasets <code>data_ch_dataset</code> and <code>data_ch_dataset_test</code> (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/11" class="external-link">#11</a>).</li>
 </ul></div>
 <div class="section level3">
-<h3 id="bug-fixes-relative-to-the-pre-package-scripts-0-0-0-9000">Bug fixes (relative to the pre-package scripts)<a class="anchor" aria-label="anchor" href="#bug-fixes-relative-to-the-pre-package-scripts-0-0-0-9000"></a></h3>
+<h3 id="bug-fixes-relative-to-the-pre-package-scripts-0-1-0">Bug fixes (relative to the pre-package scripts)<a class="anchor" aria-label="anchor" href="#bug-fixes-relative-to-the-pre-package-scripts-0-1-0"></a></h3>
 <ul><li>
 <code><a href="../reference/run_wai_adj.html">run_wai_adj()</a></code> no longer passes a silently ignored <code>extend</code> argument to the sampler (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/13" class="external-link">#13</a>).</li>
 <li>
@@ -108,7 +114,7 @@
 <code><a href="../reference/save_result_output.html">save_result_output()</a></code> now finds the object to save in the caller’s environment (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/14" class="external-link">#14</a>).</li>
 </ul></div>
 <div class="section level3">
-<h3 id="breaking-changes-relative-to-the-pre-package-scripts-0-0-0-9000">Breaking changes (relative to the pre-package scripts)<a class="anchor" aria-label="anchor" href="#breaking-changes-relative-to-the-pre-package-scripts-0-0-0-9000"></a></h3>
+<h3 id="breaking-changes-relative-to-the-pre-package-scripts-0-1-0">Breaking changes (relative to the pre-package scripts)<a class="anchor" aria-label="anchor" href="#breaking-changes-relative-to-the-pre-package-scripts-0-1-0"></a></h3>
 <ul><li>
 <code><a href="../reference/run_ar.html">run_ar()</a></code>/<code><a href="../reference/run_wai_adj.html">run_wai_adj()</a></code> return the fit and only write to disk when <code>output_dir</code> is given (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/13" class="external-link">#13</a>).</li>
 <li>The in-sample table builders require an explicit <code>inputs</code> list instead of reading objects from the calling environment; output-path helpers take their directory as an argument (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/14" class="external-link">#14</a>).</li>

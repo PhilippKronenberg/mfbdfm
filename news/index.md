@@ -1,6 +1,6 @@
 # Changelog
 
-## mfbdfm 0.0.0.9000
+## mfbdfm 0.1.0
 
 First functional version of the package, converting the WAI research
 code into a proper R package
@@ -247,6 +247,33 @@ Bayesian dynamic factor model and WAI is one application of it
 
 ### Bug fixes
 
+- [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
+  now forwards `p`, `stochastic_volatility` and `serial_correlation` to
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  instead of hard-coding the first two and ignoring nothing silently but
+  documenting `stochastic_volatility` as reaching the model “without
+  effect there”, which was false.
+  [`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
+  had exposed all of these all along, so this closes the last of the
+  [\#48](https://github.com/PhilippKronenberg/mfbdfm/issues/48) parity
+  gaps between the two wrappers. Defaults are unchanged (`p = 1`, both
+  flags `TRUE`), so no existing result moves.
+- [`output_figure_path()`](https://philippkronenberg.github.io/mfbdfm/reference/output_figure_path.md)
+  creates nothing on disk again. It briefly created the directory it was
+  handed, on the reasoning that the caller writes to the returned path
+  immediately; that turned a path builder into a function with a side
+  effect, and a caller passing a relative directory started leaving
+  empty directories behind. Directory creation belongs to the two
+  functions that actually write,
+  [`write_table_output()`](https://philippkronenberg.github.io/mfbdfm/reference/write_table_output.md)
+  and
+  [`save_result_output()`](https://philippkronenberg.github.io/mfbdfm/reference/save_result_output.md),
+  and to the analysis preludes.
+- [`wai_sample_config()`](https://philippkronenberg.github.io/mfbdfm/reference/wai_sample_config.md)
+  no longer creates its three output directories merely by being called.
+  Asking it for a sample-end date used to write to the file system, and
+  because its default `output_root` is a relative path, it wrote
+  wherever the caller happened to be.
 - [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
   now returns `pars$h` as a `ts` on the factor’s own index, as
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)

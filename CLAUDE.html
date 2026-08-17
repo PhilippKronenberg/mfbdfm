@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">mfbdfm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -154,7 +154,7 @@
 <li>
 <code>devtools::load_all()</code> — load the package for interactive development.</li>
 <li>
-<code>devtools::test()</code> — run the full testthat suite (585 assertions, ~2 min).</li>
+<code>devtools::test()</code> — run the full testthat suite (677 assertions, ~42 s). If it takes minutes again, suspect a test that fits a model at a default chain length rather than a short one: a single <code><a href="reference/run_wai_adj.html">run_wai_adj()</a></code> call on its 5000-draw default was once 143 s of a 179 s suite.</li>
 <li>
 <code>testthat::test_file("tests/testthat/test-&lt;name&gt;.R")</code> — run a single test file.</li>
 <li>
@@ -166,7 +166,14 @@
 <li>
 <code><a href="https://pkgdown.r-lib.org/reference/check_pkgdown.html" class="external-link">pkgdown::check_pkgdown()</a></code> — validates the hand-grouped <code>_pkgdown.yml</code> reference index against <code>NAMESPACE</code>. Cheap, and the only local check for the failure mode in #47.</li>
 </ul><p><strong>Write check logs outside the package root.</strong> <code>R CMD build</code> sweeps up whatever is sitting at the top level, including files that are merely untracked, so redirecting check output to e.g. <code>check.log</code> in the repo root puts it in the tarball and earns <code>checking top-level files ... NOTE: Non-standard file/directory found at top level</code>. Cost a full check cycle once. Either write to a scratch directory outside the repo or add the name to <code>.Rbuildignore</code> — and note that <code>.gitignore</code> is irrelevant here, since <code>R CMD build</code> does not read it.</p>
-<p><strong>pandoc</strong>: it is <em>not</em> on <code>PATH</code> by default on this machine, but a copy ships with RStudio at <code>C:\Program Files\RStudio\resources\app\bin\quarto\bin\tools</code>. Without it, <code>R CMD build</code> fails outright on vignette rebuilding (<code>Vignette re-building failed</code>), <code>R CMD check</code> adds two spurious NOTEs (no prebuilt vignette index; <code>README.md</code>/<code>NEWS.md</code> cannot be checked), and <code>urlchecker</code>/<code>pkgdown</code> refuse to run at all. <code>RSTUDIO_PANDOC</code> and the user <code>PATH</code> now both point at that directory, so this is handled — but if a fresh shell reports <code><a href="https://pkgs.rstudio.com/rmarkdown/reference/pandoc_available.html" class="external-link">rmarkdown::pandoc_available()</a></code> as <code>FALSE</code>, that is the cause, and prepending the directory to <code>PATH</code> is the fix. Do not conclude from those NOTEs that the package has a vignette or documentation problem.</p>
+<p><strong>Check toolchain — three pieces, all present, none obvious.</strong> A <code>R CMD check</code> run that is missing any of them reports NOTEs that look like package defects and are not:</p>
+<ul><li>
+<strong>pandoc</strong> is <em>not</em> on <code>PATH</code> by default here, but ships with RStudio at <code>C:\Program Files\RStudio\resources\app\bin\quarto\bin\tools</code> (3.8.3). Without it <code>R CMD build</code> fails outright on vignette rebuilding (<code>Vignette re-building failed</code>), <code>R CMD check</code> adds two spurious NOTEs (no prebuilt vignette index; <code>README.md</code>/<code>NEWS.md</code> cannot be checked), and <code>urlchecker</code>/<code>pkgdown</code> refuse to run at all. <code>RSTUDIO_PANDOC</code> and the user <code>PATH</code> now both point there; if a fresh shell reports <code><a href="https://pkgs.rstudio.com/rmarkdown/reference/pandoc_available.html" class="external-link">rmarkdown::pandoc_available()</a></code> as <code>FALSE</code>, that is the cause and prepending the directory to <code>PATH</code> is the fix.</li>
+<li>
+<strong>MiKTeX</strong> 25.3 is already on <code>PATH</code>, so the PDF manual builds — <code>--no-manual</code> is unnecessary caution, not a requirement.</li>
+<li>
+<strong><code>V8</code></strong> is what <code>--as-cran</code> uses to verify KaTeX math in the Rd files. Without it the check prints <code>Skipping checking math rendering: package 'V8' unavailable</code> and <strong>silently does not check the math</strong> — a skipped check reported as a NOTE, easily mistaken for a failure. Installed (8.2.0), and with it <code>checking HTML version of manual</code> is <code>OK</code>.</li>
+</ul><p>With all three, <code>R CMD check --as-cran</code> on this package is <strong>1 NOTE</strong> (<code>New submission</code>) and nothing else.</p>
 </div>
 <div class="section level2">
 <h2 id="verifying-that-a-change-did-not-alter-results">Verifying that a change did not alter results<a class="anchor" aria-label="anchor" href="#verifying-that-a-change-did-not-alter-results"></a></h2>
@@ -341,7 +348,7 @@ Files not of a type allowed in a 'data' directory:
 </ul></div>
 <div class="section level2">
 <h2 id="documentation--release-conventions">Documentation &amp; release conventions<a class="anchor" aria-label="anchor" href="#documentation--release-conventions"></a></h2>
-<ul><li>Every exported function has <code>@param</code>, <code>@return</code>, and <code>@examples</code> (runnable where feasible; <code>\donttest{}</code> for slow-but-working). <strong><code>\dontrun{}</code> is down to two topics</strong>, <code><a href="reference/run_wai_adj.html">run_wai_adj()</a></code> and <code><a href="reference/extract_wai_data.html">extract_wai_data()</a></code>, both because <code><a href="reference/run_wai_adj.html">run_wai_adj()</a></code> hard-codes a 5000-draw chain — minutes to tens of minutes, too slow to check. Both are nonetheless self-contained: they use the shipped data and <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile()</a></code>, so they can be pasted and run. The analytics table builders used to be <code>\dontrun</code> too, for want of an <code>inputs</code> bundle; <code><a href="reference/mfbdfm_example_inputs.html">mfbdfm_example_inputs()</a></code> exists so they are executed by <code>R CMD check</code> instead. Do not reintroduce a <code>\dontrun</code> sketch that references objects it does not create — that is how <code>4_tables.R</code> and <code>plots_parameters.R</code> rotted unnoticed (#59, #63).</li>
+<ul><li>Every exported function has <code>@param</code>, <code>@return</code>, and <code>@examples</code> (runnable where feasible; <code>\donttest{}</code> for slow-but-working). <strong><code>\dontrun{}</code> is gone from the package entirely — keep it that way.</strong> It survived on two topics, <code><a href="reference/run_wai_adj.html">run_wai_adj()</a></code> and <code><a href="reference/extract_wai_data.html">extract_wai_data()</a></code>, only because <code><a href="reference/run_wai_adj.html">run_wai_adj()</a></code> hard-coded a 5000-draw chain; exposing <code>length_sample</code>/<code>burn_in</code>/<code>thinning</code> (#21 prep) let both run short chains under <code>\donttest{}</code>, so <strong>every example is now executed by <code>R CMD check</code></strong>. The analytics table builders were <code>\dontrun</code> too, for want of an <code>inputs</code> bundle; <code><a href="reference/mfbdfm_example_inputs.html">mfbdfm_example_inputs()</a></code> exists so they are executed instead. If a new example seems to need <code>\dontrun</code>, the usual answer is that the function is hard-coding something that should be an argument. Do not reintroduce a <code>\dontrun</code> sketch that references objects it does not create — that is how <code>4_tables.R</code> and <code>plots_parameters.R</code> rotted unnoticed (#59, #63).</li>
 <li>
 <code>vignettes/mfbdfm.Rmd</code> is the “get started” walkthrough — grounded in the Kronenberg (2026) paper’s own description of the model. Keep it and <code>R/mfbdfm-package.R</code> in sync with the actual model description if either changes.</li>
 <li>

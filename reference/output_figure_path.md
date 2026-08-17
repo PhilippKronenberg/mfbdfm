@@ -1,12 +1,10 @@
 # Build the full path for a figure output file
 
-Creates `figures_dir` if it does not exist, since the returned path
-exists to be written to immediately afterwards by the caller's plotting
-code — there is no other point at which a figure directory could be
-created on demand. This is the one path-building function in the package
-that touches disk, and it is deliberate; see
-[`wai_sample_config()`](https://philippkronenberg.github.io/mfbdfm/reference/wai_sample_config.md),
-which no longer does.
+Purely a path: this creates nothing on disk. `figures_dir` is expected
+to exist already — the analytics preludes (`analysis/5_plots/_setup.R`,
+`analysis/fcast/_setup.R`) create the whole output tree up front, and so
+does any caller that has written a table or result through
+[`write_table_output()`](https://philippkronenberg.github.io/mfbdfm/reference/write_table_output.md)/[`save_result_output()`](https://philippkronenberg.github.io/mfbdfm/reference/save_result_output.md).
 
 ## Usage
 
@@ -23,16 +21,27 @@ output_figure_path(filename, figures_dir)
 - figures_dir:
 
   Directory the figure belongs in (e.g.
-  `wai_sample_config()$figures_dir`). Created if missing.
+  `wai_sample_config()$figures_dir`). Must already exist; not created
+  here.
 
 ## Value
 
 The full file path.
 
+## Details
+
+It did briefly create the directory, on the reasoning that the returned
+path is written to immediately afterwards. That was a mistake worth
+recording: a path builder with a side effect surprised a test that
+passed it the relative path `"outputs/figures"`, which had been harmless
+for as long as the function was a plain
+[`file.path()`](https://rdrr.io/r/base/file.path.html) call, and the
+suite started leaving `tests/testthat/outputs/figures` behind in the
+source tree.
+
 ## Examples
 
 ``` r
-figs <- file.path(tempdir(), "figures")
-output_figure_path("history.pdf", figures_dir = figs)
-#> [1] "/tmp/Rtmp2FJjCC/figures/history.pdf"
+output_figure_path("history.pdf", figures_dir = file.path(tempdir(), "figures"))
+#> [1] "/tmp/RtmpINahyq/figures/history.pdf"
 ```

@@ -14,10 +14,12 @@ run_wai_adj(
   target,
   date,
   dataset_used,
-  stochastic_volatility = TRUE,
+  p = 1,
   length_sample = 5000,
   burn_in = 1000,
   thinning = 1,
+  stochastic_volatility = TRUE,
+  serial_correlation = TRUE,
   output_dir = NULL
 )
 ```
@@ -45,11 +47,9 @@ run_wai_adj(
 
   Character, dataset label used as sub-directory when saving.
 
-- stochastic_volatility:
+- p:
 
-  Logical, passed to
-  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
-  (currently without effect there).
+  Integer, number of factor lags in the factor state equation.
 
 - length_sample:
 
@@ -63,6 +63,18 @@ run_wai_adj(
 
   Integer, keep every `thinning`-th draw after burn-in.
 
+- stochastic_volatility:
+
+  Logical. If `TRUE` (default) the factor innovation variance follows a
+  stochastic volatility process. If `FALSE` it is a single constant
+  variance, **still estimated** rather than fixed – see `@details`.
+
+- serial_correlation:
+
+  Logical. If `TRUE` (default) the measurement errors are allowed to be
+  serially correlated and their autocorrelations are drawn. If `FALSE`
+  they are held at (effectively) zero.
+
 - output_dir:
 
   Directory to save the fit to, or `NULL` (default) to skip saving. When
@@ -75,14 +87,17 @@ Invisibly, the windowed `ind_dfm` fit object.
 
 ## Details
 
-`length_sample`, `burn_in` and `thinning` default to the chain this
-wrapper has always run — 5000 retained draws after 1000 burn-in,
-unthinned — so existing results are unaffected. They are arguments
-rather than hard-coded values so that a short chain can be used to check
-the wiring, which is what the example below does; note that the default
-differs from
+Every modelling argument is passed straight through to
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+and the defaults are the ones this wrapper has always used, so existing
+results are unaffected: `p = 1`, 5000 retained draws after 1000 burn-in,
+unthinned, with both stochastic volatility and serial correlation on.
+They are arguments rather than hard-coded values so that a short chain
+can check the wiring — which is what the example below does — and so
+that the wrapper does not silently withhold settings the model supports.
+`length_sample`'s default differs from
 [`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)'s
-1000, deliberately, because that is what each wrapper has always used.
+1000 deliberately: that is what each wrapper has always run.
 
 ## Examples
 
