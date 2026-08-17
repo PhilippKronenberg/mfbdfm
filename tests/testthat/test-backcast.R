@@ -110,10 +110,16 @@ test_that("run_wai_adj does not warn about a no-op window", {
                   stats::window, start = 2021)
   stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
 
+  # Short chain deliberately: what is being tested is whether trim_to() warns,
+  # which has nothing to do with chain length. This used to take the 5000-draw
+  # default because run_wai_adj() hard-coded it, and that one call was 143s of the
+  # suite's 179s - 80% of the runtime for an assertion about a warning. win-builder
+  # spent 404s in 'checking tests' largely on this.
   set.seed(6)
   expect_no_warning(
     fit <- run_wai_adj(flows = flows, stocks = stocks, target = target,
-                       date = 2030, dataset_used = "x")   # well past the data
+                       date = 2030, dataset_used = "x",   # well past the data
+                       length_sample = 10, burn_in = 4)
   )
   expect_s3_class(fit, "ind_dfm")
 })

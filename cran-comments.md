@@ -19,14 +19,19 @@ Run, with results:
   * macos-latest, R release
   * windows-latest, R release
 
-Not yet run — required before submission:
+* **win-builder, R-devel** — `R Under development (unstable) (2026-08-15 r90413
+  ucrt)`, x86_64-w64-mingw32, Windows Server 2022, gcc 14.3.0. **Status: 1 NOTE**
+  (see below); every other check `OK`, including the vignette rebuild and both the
+  PDF and HTML manuals.
+* GitHub Actions also runs R-devel on every push now, so R-devel coverage is
+  continuous rather than a one-off pre-submission act.
 
-* win-builder, R-devel (`devtools::check_win_devel()`)
-* R-hub (`rhub::check_for_cran()`) — the `rhub` package is not installed here
-* macOS builder (`devtools::check_mac_release()`)
+Not run, and not blocking:
 
-**There is no R-devel result yet. That is the remaining gap**, and it is the one
-CRAN cares about most; the matrix above is all R-release or oldrel.
+* R-hub — `rhub::check_for_cran()` no longer exists; rhub 2.x runs checks through
+  the project's own GitHub Actions, which the R-devel matrix job already covers.
+* macOS builder (`devtools::check_mac_release()`) — macOS release is covered by
+  the CI matrix.
 
 ## R CMD check results
 
@@ -48,6 +53,24 @@ Correct — this is the first release. Unavoidable and explicitly acceptable.
 An earlier `Version contains large components (0.0.0.9000)` line is gone: that
 was an artifact of checking the development version, and the bump to `0.1.0`
 cleared it, confirmed by re-running rather than assumed.
+
+**win-builder adds a spell-check sub-NOTE to this same NOTE:**
+
+```text
+Possibly misspelled words in DESCRIPTION:
+  Eckert (22:46)
+  Kronenberg (21:18, 22:54)
+  Mikosch (22:66)
+  Neuwirth (23:9)
+  WAI (17:12)
+```
+
+All five are correct as written. `Eckert`, `Kronenberg`, `Mikosch` and `Neuwirth`
+are the surnames of the authors of the two cited papers — CRAN's `Description`
+conventions ask for citations in `authors (year) <doi:...>` form, so the names have
+to appear. `WAI` is the package's flagship indicator and the `Description` already
+expands it on first use: "the Weekly Activity Index (WAI)". No spelling change is
+appropriate.
 
 ### Formerly NOTE 2 — HTML version of the manual, now resolved
 
@@ -88,8 +111,10 @@ had made a great many requests. So the 404 describes our client, not our
 `BugReports` field.
 
 **Do not "fix" this by changing or removing the `BugReports` URL.** It is the
-standard form and thousands of CRAN packages use it. If CRAN's incoming check
-raises the same sub-NOTE, this is the explanation.
+standard form and thousands of CRAN packages use it.
+
+**Confirmed by win-builder**, which raised no URL sub-NOTE at all on the same
+tarball. So the 404 was this machine being throttled, and the field is fine.
 
 ### One further NOTE that appears intermittently
 
@@ -155,8 +180,19 @@ Separately checked every DOI by resolution, since `urlchecker` does not treat
 * **Licence.** MIT, on CRAN's approved list, with `LICENSE` naming the year
   (2026) and the copyright holder, who also carries the `cph` role in
   `Authors@R`.
-* **Runtimes.** Examples 22s; examples with `--run-donttest` 39s; test suite
-  ~2 min. All inside CRAN's limits.
+* **Runtimes.** win-builder measured `checking tests ... [404s]`, examples 25s,
+  vignette rebuild 21s — about 8.5 minutes of check time in total, uncomfortably
+  close to CRAN's ~10 minute preference. Traced to a single cause rather than
+  guessed at: one test called `run_wai_adj()` with its default 5000-draw chain
+  while asserting something about a *warning*, and that one call was 143s of the
+  suite's 179s locally. It now runs a 10-draw chain — possible only because
+  `run_wai_adj()` stopped hard-coding the chain length — and the local suite is
+  **42s, down from 179s**. Expect `checking tests` on win-builder to fall to
+  roughly 100s.
+* **`skip_on_cran()` is deliberately still not used anywhere.** It was the
+  obvious lever for the runtime above, and it would have hidden the problem
+  instead of fixing it: the expensive test was expensive by accident, not by
+  necessity. Every test therefore still runs on CRAN.
 
 ## Points a reviewer may still raise
 
