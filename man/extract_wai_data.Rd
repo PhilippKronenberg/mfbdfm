@@ -21,18 +21,23 @@ bands), the cumulated level index (rebased to 2020 = 100), and
 year-over-year growth, as used by the plotting scripts.
 }
 \examples{
-# \dontrun because it needs a fit file, and the only way to make one is
-# run_wai_adj(), whose 5000-draw chain is far too slow for a checked example.
-# Self-contained all the same: this produces the file it then reads.
-\dontrun{
+\donttest{
+# Needs a fit file, and run_wai_adj() is what makes one - so this example
+# produces the file it then reads, on a short chain.
 data(data_ch_dataset_test)
+target <- "ch.seco.gdp.real.gdp.ssa"
+flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                stats::window, start = 2021)
+stocks <- lapply(data_ch_dataset_test$stocks[1:2],
+                 stats::window, start = 2021)
 out <- tempfile(); dir.create(out)
-run_wai_adj(flows = data_ch_dataset_test$flows,
-            stocks = data_ch_dataset_test$stocks,
-            target = "ch.seco.gdp.real.gdp.ssa",
-            date = 2024.5, dataset_used = "example", output_dir = out)
 
-result_wai <- extract_wai_data(file.path(out, "example", "fit_2024.5.Rda"))
+set.seed(1)
+run_wai_adj(flows = flows, stocks = stocks, target = target,
+            date = 2023, dataset_used = "example",
+            length_sample = 20, burn_in = 5, output_dir = out)
+
+result_wai <- extract_wai_data(file.path(out, "example", "fit_2023.Rda"))
 head(result_wai$tab_gr_qoq)
 unlink(out, recursive = TRUE)
 }

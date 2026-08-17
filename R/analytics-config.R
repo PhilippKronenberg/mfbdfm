@@ -2,18 +2,42 @@
 # workflow. Replaces the former initialize_plots_insample_context(), which
 # assigned its results into the caller's environment.
 
+# Create an output directory on demand, immediately before something is written
+# into it.
+#
+# wai_sample_config() used to create all three output directories merely by being
+# called, so a pure configuration query touched the file system: asking for a
+# decimal date created `analysis/outputs/...` as a side effect. That contradicted
+# the package's own no-side-effects-by-default rule, and with a *relative*
+# default output_root it also wrote wherever the caller happened to be, which
+# CRAN policy forbids outside the session temp directory. Directories are created
+# at the point of writing instead.
+ensure_output_dir <- function(path) {
+  if (!dir.exists(path)) {
+    dir.create(path, recursive = TRUE, showWarnings = FALSE)
+  }
+  invisible(path)
+}
+
 #' Build the sample configuration for an analytics run
 #'
-#' Creates (and returns) the configuration object used by the analytics
-#' scripts: the sample identifier and end date, the output directories
-#' (created if missing), and the sample-end cutoffs in decimal time.
-#' This replaces the former `initialize_plots_insample_context()`, which
-#' wrote these values directly into the calling environment.
+#' Returns the configuration object used by the analytics scripts: the sample
+#' identifier and end date, the output directory paths, and the sample-end
+#' cutoffs in decimal time. This replaces the former
+#' `initialize_plots_insample_context()`, which wrote these values directly into
+#' the calling environment.
+#'
+#' The returned `figures_dir`, `tables_dir` and `results_dir` are **paths, not
+#' directories that necessarily exist**. This function has no side effects: it
+#' creates nothing on disk. The directories are created when something is
+#' actually written into them, by [write_table_output()], [save_result_output()]
+#' and [output_figure_path()]. Earlier versions created all three on every call,
+#' which meant merely asking for `sample_end_decimal` wrote to the file system.
 #'
 #' @param sample_id Character label for the run, e.g. `"sample_2025Q4"`.
 #' @param sample_end_date Sample end as `Date` (or coercible).
-#' @param output_root Directory under which `figures/`, `tables/` and
-#'   `results/` subdirectories are created.
+#' @param output_root Directory under which the `figures/`, `tables/` and
+#'   `results/` subdirectory paths are formed.
 #' @param fit_root Root directory of the saved model fits.
 #' @param fit_rt_dir Directory of the real-time fits.
 #'
@@ -40,10 +64,6 @@ wai_sample_config <- function(sample_id = "sample_2025Q4",
   figures_dir <- file.path(output_root, "figures")
   tables_dir <- file.path(output_root, "tables")
   results_dir <- file.path(output_root, "results")
-
-  dir.create(figures_dir, recursive = TRUE, showWarnings = FALSE)
-  dir.create(tables_dir, recursive = TRUE, showWarnings = FALSE)
-  dir.create(results_dir, recursive = TRUE, showWarnings = FALSE)
 
   sample_end_decimal <- round(
     as.numeric(format(sample_end_date, "%Y")) +
@@ -119,6 +139,7 @@ latest_fit_file <- function(folder, cutoff_decimal = Inf) {
 #' readLines(file.path(dir, "example.tex"))
 #' @export
 write_table_output <- function(filename, contents, tables_dir) {
+  ensure_output_dir(tables_dir)
   path <- file.path(tables_dir, filename)
   writeLines(contents, path)
   invisible(path)
@@ -140,6 +161,7 @@ write_table_output <- function(filename, contents, tables_dir) {
 #' load(file.path(dir, "results_example.rda"))
 #' @export
 save_result_output <- function(object, filename, results_dir) {
+  ensure_output_dir(results_dir)
   path <- file.path(results_dir, filename)
   save(list = deparse(substitute(object)), file = path, envir = parent.frame())
   invisible(path)
@@ -148,15 +170,23 @@ save_result_output <- function(object, filename, results_dir) {
 
 #' Build the full path for a figure output file
 #'
+#' Creates `figures_dir` if it does not exist, since the returned path exists to
+#' be written to immediately afterwards by the caller's plotting code — there is
+#' no other point at which a figure directory could be created on demand. This is
+#' the one path-building function in the package that touches disk, and it is
+#' deliberate; see [wai_sample_config()], which no longer does.
+#'
 #' @param filename File name (without directory).
 #' @param figures_dir Directory the figure belongs in (e.g.
-#'   `wai_sample_config()$figures_dir`).
+#'   `wai_sample_config()$figures_dir`). Created if missing.
 #'
 #' @return The full file path.
 #' @examples
-#' output_figure_path("history.pdf", figures_dir = "analysis/outputs/figures")
+#' figs <- file.path(tempdir(), "figures")
+#' output_figure_path("history.pdf", figures_dir = figs)
 #' @export
 output_figure_path <- function(filename, figures_dir) {
+  ensure_output_dir(figures_dir)
   file.path(figures_dir, filename)
 }
 

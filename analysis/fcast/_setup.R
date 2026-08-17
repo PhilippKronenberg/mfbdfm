@@ -46,6 +46,12 @@ figures_dir <- fcast_sample_config$figures_dir
 tables_dir <- fcast_sample_config$tables_dir
 results_dir <- fcast_sample_config$results_dir
 
+# Created here, not by wai_sample_config(), which is a pure query - see the same
+# block in analysis/5_plots/_setup.R for why.
+for (d in c(figures_dir, tables_dir, results_dir)) {
+  if (!dir.exists(d)) dir.create(d, recursive = TRUE, showWarnings = FALSE)
+}
+
 # Where the multi-factor fits are written. Deliberately separate from
 # fits/updated/, which holds the single-factor WAI fits - mixing the two under
 # one root is exactly what made fits/ hard to reason about in #32.

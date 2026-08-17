@@ -11,6 +11,9 @@ run_wai_adj(
   date,
   dataset_used,
   stochastic_volatility = TRUE,
+  length_sample = 5000,
+  burn_in = 1000,
+  thinning = 1,
   output_dir = NULL
 )
 }
@@ -30,6 +33,12 @@ when saving.}
 \item{stochastic_volatility}{Logical, passed to \code{\link[=ind_dfm]{ind_dfm()}} (currently
 without effect there).}
 
+\item{length_sample}{Integer, number of posterior draws to keep.}
+
+\item{burn_in}{Integer, number of initial draws to discard.}
+
+\item{thinning}{Integer, keep every \code{thinning}-th draw after burn-in.}
+
 \item{output_dir}{Directory to save the fit to, or \code{NULL} (default) to
 skip saving. When given, the fit is saved as
 \code{file.path(output_dir, dataset_used, "fit_<date>.Rda")}.}
@@ -42,20 +51,30 @@ Runs \code{\link[=ind_dfm]{ind_dfm()}} with the settings used in the WAI out-of-
 evaluation and windows the factor and nowcast output to the
 evaluation date.
 }
+\details{
+\code{length_sample}, \code{burn_in} and \code{thinning} default to the chain this wrapper
+has always run — 5000 retained draws after 1000 burn-in, unthinned — so
+existing results are unaffected. They are arguments rather than hard-coded
+values so that a short chain can be used to check the wiring, which is what
+the example below does; note that the default differs from \code{\link[=run_fcast]{run_fcast()}}'s
+1000, deliberately, because that is what each wrapper has always used.
+}
 \examples{
-# \dontrun rather than \donttest because the chain length is fixed at 5000
-# draws inside this function, so it runs for minutes to tens of minutes - too
-# long for a checked example. It is self-contained, though: paste it and it
-# runs on the shipped data, writing into a temporary directory.
-\dontrun{
+\donttest{
+# Short chain on the shipped data; a real evaluation uses the defaults, which
+# run for minutes to tens of minutes.
 data(data_ch_dataset_test)
 target <- "ch.seco.gdp.real.gdp.ssa"
+flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                stats::window, start = 2021)
+stocks <- lapply(data_ch_dataset_test$stocks[1:2],
+                 stats::window, start = 2021)
 out <- tempfile(); dir.create(out)
 
-fit <- run_wai_adj(flows = data_ch_dataset_test$flows,
-                   stocks = data_ch_dataset_test$stocks,
-                   target = target,
-                   date = 2024.5, dataset_used = "example",
+set.seed(1)
+fit <- run_wai_adj(flows = flows, stocks = stocks, target = target,
+                   date = 2023, dataset_used = "example",
+                   length_sample = 20, burn_in = 5,
                    output_dir = out)
 fit$nowcast
 list.files(out, recursive = TRUE)

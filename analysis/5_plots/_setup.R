@@ -49,3 +49,13 @@ tables_dir <- sample_config$tables_dir
 results_dir <- sample_config$results_dir
 sample_end_decimal <- sample_config$sample_end_decimal
 sample_end_fit_decimal <- sample_config$sample_end_fit_decimal
+
+# Create the output tree here rather than in wai_sample_config(), which is a pure
+# query and creates nothing. Many scripts downstream write directly - ggsave(),
+# xtable(file = ), write_csv() - instead of going through write_table_output() /
+# output_figure_path(), so they need the directories to exist up front. Preparing
+# the output tree is the analysis prelude's job; a package function that creates
+# directories just for being called is not.
+for (d in c(figures_dir, tables_dir, results_dir)) {
+  if (!dir.exists(d)) dir.create(d, recursive = TRUE, showWarnings = FALSE)
+}

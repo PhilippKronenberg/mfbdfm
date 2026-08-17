@@ -24,3 +24,4 @@
 ^data/VIX$
 ^data/benchmarks$
 ^outputs$
+^cran-comments\.md$

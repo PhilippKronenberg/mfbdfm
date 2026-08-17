@@ -70,38 +70,51 @@ run_ar <- function(flows, stocks, target, date, dataset_used, stochastic_volatil
 #'   skip saving. When given, the fit is saved as
 #'   `file.path(output_dir, dataset_used, "fit_<date>.Rda")`.
 #'
+#' @details
+#' `length_sample`, `burn_in` and `thinning` default to the chain this wrapper
+#' has always run — 5000 retained draws after 1000 burn-in, unthinned — so
+#' existing results are unaffected. They are arguments rather than hard-coded
+#' values so that a short chain can be used to check the wiring, which is what
+#' the example below does; note that the default differs from [run_fcast()]'s
+#' 1000, deliberately, because that is what each wrapper has always used.
+#'
 #' @return Invisibly, the windowed `ind_dfm` fit object.
 #'
+#' @inheritParams ind_dfm
 #' @importFrom stats window time frequency
 #' @examples
-#' # \dontrun rather than \donttest because the chain length is fixed at 5000
-#' # draws inside this function, so it runs for minutes to tens of minutes - too
-#' # long for a checked example. It is self-contained, though: paste it and it
-#' # runs on the shipped data, writing into a temporary directory.
-#' \dontrun{
+#' \donttest{
+#' # Short chain on the shipped data; a real evaluation uses the defaults, which
+#' # run for minutes to tens of minutes.
 #' data(data_ch_dataset_test)
 #' target <- "ch.seco.gdp.real.gdp.ssa"
+#' flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+#'                 stats::window, start = 2021)
+#' stocks <- lapply(data_ch_dataset_test$stocks[1:2],
+#'                  stats::window, start = 2021)
 #' out <- tempfile(); dir.create(out)
 #'
-#' fit <- run_wai_adj(flows = data_ch_dataset_test$flows,
-#'                    stocks = data_ch_dataset_test$stocks,
-#'                    target = target,
-#'                    date = 2024.5, dataset_used = "example",
+#' set.seed(1)
+#' fit <- run_wai_adj(flows = flows, stocks = stocks, target = target,
+#'                    date = 2023, dataset_used = "example",
+#'                    length_sample = 20, burn_in = 5,
 #'                    output_dir = out)
 #' fit$nowcast
 #' list.files(out, recursive = TRUE)
 #' unlink(out, recursive = TRUE)
 #' }
 #' @export
-run_wai_adj <- function(flows, stocks, target, date, dataset_used, stochastic_volatility = TRUE,
+run_wai_adj <- function(flows, stocks, target, date, dataset_used,
+                        stochastic_volatility = TRUE,
+                        length_sample = 5000, burn_in = 1000, thinning = 1,
                         output_dir = NULL){
 
   mod <- ind_dfm(flows = flows,
                  stocks = stocks,
                  target = target,
-                 burn_in = 1000,
-                 length_sample = 5000,
-                 thinning = 1,
+                 burn_in = burn_in,
+                 length_sample = length_sample,
+                 thinning = thinning,
                  p = 1, # Number of factor lags in factor state equation.
                  plots = FALSE,
                  stochastic_volatility = stochastic_volatility,
@@ -341,18 +354,23 @@ retrieve_nowcast_var <- function(fit, model = c("ar", "wai")){
 #' @importFrom dplyr select %>%
 #' @importFrom stats ts time window frequency
 #' @examples
-#' # \dontrun because it needs a fit file, and the only way to make one is
-#' # run_wai_adj(), whose 5000-draw chain is far too slow for a checked example.
-#' # Self-contained all the same: this produces the file it then reads.
-#' \dontrun{
+#' \donttest{
+#' # Needs a fit file, and run_wai_adj() is what makes one - so this example
+#' # produces the file it then reads, on a short chain.
 #' data(data_ch_dataset_test)
+#' target <- "ch.seco.gdp.real.gdp.ssa"
+#' flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+#'                 stats::window, start = 2021)
+#' stocks <- lapply(data_ch_dataset_test$stocks[1:2],
+#'                  stats::window, start = 2021)
 #' out <- tempfile(); dir.create(out)
-#' run_wai_adj(flows = data_ch_dataset_test$flows,
-#'             stocks = data_ch_dataset_test$stocks,
-#'             target = "ch.seco.gdp.real.gdp.ssa",
-#'             date = 2024.5, dataset_used = "example", output_dir = out)
 #'
-#' result_wai <- extract_wai_data(file.path(out, "example", "fit_2024.5.Rda"))
+#' set.seed(1)
+#' run_wai_adj(flows = flows, stocks = stocks, target = target,
+#'             date = 2023, dataset_used = "example",
+#'             length_sample = 20, burn_in = 5, output_dir = out)
+#'
+#' result_wai <- extract_wai_data(file.path(out, "example", "fit_2023.Rda"))
 #' head(result_wai$tab_gr_qoq)
 #' unlink(out, recursive = TRUE)
 #' }

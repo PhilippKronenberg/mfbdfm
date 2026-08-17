@@ -4,7 +4,7 @@ Title: Mixed-Frequency Bayesian Dynamic Factor Model
 Version: 0.0.0.9000
 Authors@R:
     person("Philipp", "Kronenberg", email = "philippkronenberg@gmx.ch",
-           role = c("aut", "cre"))
+           role = c("aut", "cre", "cph"))
 Description: Estimates a Bayesian dynamic factor model that integrates
     weekly, monthly and quarterly data by extracting a single dynamic
     factor. Missing and mixed-frequency observations are handled through
@@ -14,10 +14,10 @@ Description: Estimates a Bayesian dynamic factor model that integrates
     An identification restriction can fix the factor's loading on a chosen
     target series so it is directly interpretable as that series' growth
     rate. The package ships a flagship application, the Weekly Activity
-    Index (WAI), a high-frequency GDP indicator for Switzerland anchored
-    to GDP growth, along with tools for real-time GDP vintage handling,
-    out-of-sample forecast evaluation, and the tables and plots used in
-    the accompanying analysis. Methodology and empirical results are
+    Index (WAI), a high-frequency indicator of Swiss gross domestic
+    product (GDP) anchored to GDP growth, along with tools for real-time
+    GDP vintage handling, out-of-sample forecast evaluation, and the
+    tables and plots used in the accompanying analysis. Methodology and empirical results are
     described in Kronenberg (2026) <doi:10.1186/s41937-026-00157-w>, which
     extends the mixed-frequency framework of Eckert, Kronenberg, Mikosch
     and Neuwirth (2025) <doi:10.1002/jae.3104>.

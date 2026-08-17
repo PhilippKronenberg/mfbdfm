@@ -17,8 +17,8 @@ wai_sample_config(
 
 \item{sample_end_date}{Sample end as \code{Date} (or coercible).}
 
-\item{output_root}{Directory under which \verb{figures/}, \verb{tables/} and
-\verb{results/} subdirectories are created.}
+\item{output_root}{Directory under which the \verb{figures/}, \verb{tables/} and
+\verb{results/} subdirectory paths are formed.}
 
 \item{fit_root}{Root directory of the saved model fits.}
 
@@ -30,11 +30,19 @@ A list with elements \code{sample_id}, \code{sample_end_date},
 \code{results_dir}, \code{sample_end_decimal} and \code{sample_end_fit_decimal}.
 }
 \description{
-Creates (and returns) the configuration object used by the analytics
-scripts: the sample identifier and end date, the output directories
-(created if missing), and the sample-end cutoffs in decimal time.
-This replaces the former \code{initialize_plots_insample_context()}, which
-wrote these values directly into the calling environment.
+Returns the configuration object used by the analytics scripts: the sample
+identifier and end date, the output directory paths, and the sample-end
+cutoffs in decimal time. This replaces the former
+\code{initialize_plots_insample_context()}, which wrote these values directly into
+the calling environment.
+}
+\details{
+The returned \code{figures_dir}, \code{tables_dir} and \code{results_dir} are \strong{paths, not
+directories that necessarily exist}. This function has no side effects: it
+creates nothing on disk. The directories are created when something is
+actually written into them, by \code{\link[=write_table_output]{write_table_output()}}, \code{\link[=save_result_output]{save_result_output()}}
+and \code{\link[=output_figure_path]{output_figure_path()}}. Earlier versions created all three on every call,
+which meant merely asking for \code{sample_end_decimal} wrote to the file system.
 }
 \examples{
 cfg <- wai_sample_config(
