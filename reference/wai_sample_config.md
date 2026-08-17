@@ -1,10 +1,10 @@
 # Build the sample configuration for an analytics run
 
-Creates (and returns) the configuration object used by the analytics
-scripts: the sample identifier and end date, the output directories
-(created if missing), and the sample-end cutoffs in decimal time. This
-replaces the former `initialize_plots_insample_context()`, which wrote
-these values directly into the calling environment.
+Returns the configuration object used by the analytics scripts: the
+sample identifier and end date, the output directory paths, and the
+sample-end cutoffs in decimal time. This replaces the former
+`initialize_plots_insample_context()`, which wrote these values directly
+into the calling environment.
 
 ## Usage
 
@@ -30,8 +30,8 @@ wai_sample_config(
 
 - output_root:
 
-  Directory under which `figures/`, `tables/` and `results/`
-  subdirectories are created.
+  Directory under which the `figures/`, `tables/` and `results/`
+  subdirectory paths are formed.
 
 - fit_root:
 
@@ -46,6 +46,19 @@ wai_sample_config(
 A list with elements `sample_id`, `sample_end_date`, `output_root`,
 `fit_root`, `fit_rt_dir`, `figures_dir`, `tables_dir`, `results_dir`,
 `sample_end_decimal` and `sample_end_fit_decimal`.
+
+## Details
+
+The returned `figures_dir`, `tables_dir` and `results_dir` are **paths,
+not directories that necessarily exist**. This function has no side
+effects: it creates nothing on disk. The directories are created when
+something is actually written into them, by
+[`write_table_output()`](https://philippkronenberg.github.io/mfbdfm/reference/write_table_output.md),
+[`save_result_output()`](https://philippkronenberg.github.io/mfbdfm/reference/save_result_output.md)
+and
+[`output_figure_path()`](https://philippkronenberg.github.io/mfbdfm/reference/output_figure_path.md).
+Earlier versions created all three on every call, which meant merely
+asking for `sample_end_decimal` wrote to the file system.
 
 ## Examples
 

@@ -78,3 +78,4 @@ Useful links:
 ## Author
 
 **Maintainer**: Philipp Kronenberg <philippkronenberg@gmx.ch>
+\[copyright holder\]

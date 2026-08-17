@@ -53,6 +53,9 @@ evaluation date.</p>
 <span>  <span class="va">date</span>,</span>
 <span>  <span class="va">dataset_used</span>,</span>
 <span>  stochastic_volatility <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  length_sample <span class="op">=</span> <span class="fl">5000</span>,</span>
+<span>  burn_in <span class="op">=</span> <span class="fl">1000</span>,</span>
+<span>  thinning <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -88,6 +91,18 @@ when saving.</p></dd>
 without effect there).</p></dd>
 
 
+<dt id="arg-length-sample">length_sample<a class="anchor" aria-label="anchor" href="#arg-length-sample"></a></dt>
+<dd><p>Integer, number of posterior draws to keep.</p></dd>
+
+
+<dt id="arg-burn-in">burn_in<a class="anchor" aria-label="anchor" href="#arg-burn-in"></a></dt>
+<dd><p>Integer, number of initial draws to discard.</p></dd>
+
+
+<dt id="arg-thinning">thinning<a class="anchor" aria-label="anchor" href="#arg-thinning"></a></dt>
+<dd><p>Integer, keep every <code>thinning</code>-th draw after burn-in.</p></dd>
+
+
 <dt id="arg-output-dir">output_dir<a class="anchor" aria-label="anchor" href="#arg-output-dir"></a></dt>
 <dd><p>Directory to save the fit to, or <code>NULL</code> (default) to
 skip saving. When given, the fit is saved as
@@ -98,27 +113,49 @@ skip saving. When given, the fit is saved as
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Invisibly, the windowed <code>ind_dfm</code> fit object.</p>
     </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p><code>length_sample</code>, <code>burn_in</code> and <code>thinning</code> default to the chain this wrapper
+has always run — 5000 retained draws after 1000 burn-in, unthinned — so
+existing results are unaffected. They are arguments rather than hard-coded
+values so that a short chain can be used to check the wiring, which is what
+the example below does; note that the default differs from <code><a href="run_fcast.html">run_fcast()</a></code>'s
+1000, deliberately, because that is what each wrapper has always used.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \dontrun rather than \donttest because the chain length is fixed at 5000</span></span></span>
-<span class="r-in"><span><span class="co"># draws inside this function, so it runs for minutes to tens of minutes - too</span></span></span>
-<span class="r-in"><span><span class="co"># long for a checked example. It is self-contained, though: paste it and it</span></span></span>
-<span class="r-in"><span><span class="co"># runs on the shipped data, writing into a temporary directory.</span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="co"># Short chain on the shipped data; a real evaluation uses the defaults, which</span></span></span>
+<span class="r-in"><span><span class="co"># run for minutes to tens of minutes.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">target</span> <span class="op">&lt;-</span> <span class="st">"ch.seco.gdp.real.gdp.ssa"</span></span></span>
+<span class="r-in"><span><span class="va">flows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>                <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">stocks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>                 <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">run_wai_adj</span><span class="op">(</span>flows <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span>,</span></span>
-<span class="r-in"><span>                   stocks <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span>,</span></span>
-<span class="r-in"><span>                   target <span class="op">=</span> <span class="va">target</span>,</span></span>
-<span class="r-in"><span>                   date <span class="op">=</span> <span class="fl">2024.5</span>, dataset_used <span class="op">=</span> <span class="st">"example"</span>,</span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">run_wai_adj</span><span class="op">(</span>flows <span class="op">=</span> <span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">stocks</span>, target <span class="op">=</span> <span class="va">target</span>,</span></span>
+<span class="r-in"><span>                   date <span class="op">=</span> <span class="fl">2023</span>, dataset_used <span class="op">=</span> <span class="st">"example"</span>,</span></span>
+<span class="r-in"><span>                   length_sample <span class="op">=</span> <span class="fl">20</span>, burn_in <span class="op">=</span> <span class="fl">5</span>,</span></span>
 <span class="r-in"><span>                   output_dir <span class="op">=</span> <span class="va">out</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> preallocating..</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> simulating posterior distribution..</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> processing output..</span>
 <span class="r-in"><span><span class="va">fit</span><span class="op">$</span><span class="va">nowcast</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              Qtr1         Qtr2         Qtr3         Qtr4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2021  0.005967520  0.025367012  0.019780758  0.010104511</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2022  0.002357668  0.006806128  0.004997204  0.002075303</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2023  0.006192130 -0.003620599  0.004556572  0.003672473</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2024 -0.001181425  0.007845983  0.002901709  0.005175446</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2025  0.007858650  0.001230720 -0.004400745  0.001506254</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">out</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "example/fit_2023.Rda"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">out</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

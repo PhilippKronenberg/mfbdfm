@@ -2,7 +2,7 @@
 
 ## Authors
 
-- **Philipp Kronenberg**. Author, maintainer.
+- **Philipp Kronenberg**. Author, maintainer, copyright holder.
 
 ## Citation
 

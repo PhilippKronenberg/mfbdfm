@@ -114,6 +114,33 @@ interactively in R/RStudio.
 - `R CMD build .` then `R CMD check --no-manual <tarball>` — what CI
   actually runs; useful when `devtools` behavior and `R CMD check`
   behavior diverge.
+- [`pkgdown::check_pkgdown()`](https://pkgdown.r-lib.org/reference/check_pkgdown.html)
+  — validates the hand-grouped `_pkgdown.yml` reference index against
+  `NAMESPACE`. Cheap, and the only local check for the failure mode in
+  \#47.
+
+**Write check logs outside the package root.** `R CMD build` sweeps up
+whatever is sitting at the top level, including files that are merely
+untracked, so redirecting check output to e.g. `check.log` in the repo
+root puts it in the tarball and earns
+`checking top-level files ... NOTE: Non-standard file/directory found at top level`.
+Cost a full check cycle once. Either write to a scratch directory
+outside the repo or add the name to `.Rbuildignore` — and note that
+`.gitignore` is irrelevant here, since `R CMD build` does not read it.
+
+**pandoc**: it is *not* on `PATH` by default on this machine, but a copy
+ships with RStudio at
+`C:\Program Files\RStudio\resources\app\bin\quarto\bin\tools`. Without
+it, `R CMD build` fails outright on vignette rebuilding
+(`Vignette re-building failed`), `R CMD check` adds two spurious NOTEs
+(no prebuilt vignette index; `README.md`/`NEWS.md` cannot be checked),
+and `urlchecker`/`pkgdown` refuse to run at all. `RSTUDIO_PANDOC` and
+the user `PATH` now both point at that directory, so this is handled —
+but if a fresh shell reports
+[`rmarkdown::pandoc_available()`](https://pkgs.rstudio.com/rmarkdown/reference/pandoc_available.html)
+as `FALSE`, that is the cause, and prepending the directory to `PATH` is
+the fix. Do not conclude from those NOTEs that the package has a
+vignette or documentation problem.
 
 ## Verifying that a change did not alter results
 
@@ -644,10 +671,11 @@ published figures are not reproducible from it, so that nobody later
   documented and registered but missing from the index, all four
   `R CMD check` jobs passed, and only the `pkgdown` job failed
   (`1 topic missing from index`). Include `S3method(...)` lines in the
-  comparison. Note
+  comparison.
   [`pkgdown::check_pkgdown()`](https://pkgdown.r-lib.org/reference/check_pkgdown.html)
-  needs pandoc, so it cannot be run locally in this environment — CI is
-  the authoritative check for the site build.
+  catches this directly and **can be run locally** — see the pandoc note
+  under “Commands” — so run it rather than pushing to find out; it
+  reports `✔ No problems found` when the index is complete.
 
 ## Issue-tracking workflow
 
