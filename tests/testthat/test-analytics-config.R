@@ -67,8 +67,14 @@ test_that("save_result_output saves the object under its own name", {
 })
 
 test_that("output_figure_path joins the directory and file name", {
-  expect_equal(output_figure_path("history.pdf", figures_dir = "outputs/figures"),
-               file.path("outputs/figures", "history.pdf"))
+  # An absolute temp path, not a relative "outputs/figures": output_figure_path()
+  # creates the directory it is handed, so a relative one would leave
+  # tests/testthat/outputs/figures behind in the source tree. It did - R CMD build
+  # reported "Removed empty directory" for exactly that path.
+  figs <- file.path(tempfile(), "figures")
+  on.exit(unlink(dirname(figs), recursive = TRUE))
+  expect_equal(output_figure_path("history.pdf", figures_dir = figs),
+               file.path(figs, "history.pdf"))
 })
 
 test_that("filter_to_sample keeps only the requested window", {
