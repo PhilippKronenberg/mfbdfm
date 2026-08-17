@@ -10,10 +10,12 @@ run_wai_adj(
   target,
   date,
   dataset_used,
-  stochastic_volatility = TRUE,
+  p = 1,
   length_sample = 5000,
   burn_in = 1000,
   thinning = 1,
+  stochastic_volatility = TRUE,
+  serial_correlation = TRUE,
   output_dir = NULL
 )
 }
@@ -30,14 +32,22 @@ at this date.}
 \item{dataset_used}{Character, dataset label used as sub-directory
 when saving.}
 
-\item{stochastic_volatility}{Logical, passed to \code{\link[=ind_dfm]{ind_dfm()}} (currently
-without effect there).}
+\item{p}{Integer, number of factor lags in the factor state equation.}
 
 \item{length_sample}{Integer, number of posterior draws to keep.}
 
 \item{burn_in}{Integer, number of initial draws to discard.}
 
 \item{thinning}{Integer, keep every \code{thinning}-th draw after burn-in.}
+
+\item{stochastic_volatility}{Logical. If \code{TRUE} (default) the factor
+innovation variance follows a stochastic volatility process. If \code{FALSE}
+it is a single constant variance, \strong{still estimated} rather than fixed
+-- see \verb{@details}.}
+
+\item{serial_correlation}{Logical. If \code{TRUE} (default) the measurement
+errors are allowed to be serially correlated and their autocorrelations
+are drawn. If \code{FALSE} they are held at (effectively) zero.}
 
 \item{output_dir}{Directory to save the fit to, or \code{NULL} (default) to
 skip saving. When given, the fit is saved as
@@ -52,12 +62,15 @@ evaluation and windows the factor and nowcast output to the
 evaluation date.
 }
 \details{
-\code{length_sample}, \code{burn_in} and \code{thinning} default to the chain this wrapper
-has always run — 5000 retained draws after 1000 burn-in, unthinned — so
-existing results are unaffected. They are arguments rather than hard-coded
-values so that a short chain can be used to check the wiring, which is what
-the example below does; note that the default differs from \code{\link[=run_fcast]{run_fcast()}}'s
-1000, deliberately, because that is what each wrapper has always used.
+Every modelling argument is passed straight through to \code{\link[=ind_dfm]{ind_dfm()}}, and the
+defaults are the ones this wrapper has always used, so existing results are
+unaffected: \code{p = 1}, 5000 retained draws after 1000 burn-in, unthinned, with
+both stochastic volatility and serial correlation on. They are arguments
+rather than hard-coded values so that a short chain can check the wiring —
+which is what the example below does — and so that the wrapper does not
+silently withhold settings the model supports. \code{length_sample}'s default
+differs from \code{\link[=run_fcast]{run_fcast()}}'s 1000 deliberately: that is what each wrapper has
+always run.
 }
 \examples{
 \donttest{

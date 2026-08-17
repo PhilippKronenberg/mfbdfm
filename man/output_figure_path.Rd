@@ -10,19 +10,26 @@ output_figure_path(filename, figures_dir)
 \item{filename}{File name (without directory).}
 
 \item{figures_dir}{Directory the figure belongs in (e.g.
-\code{wai_sample_config()$figures_dir}). Created if missing.}
+\code{wai_sample_config()$figures_dir}). Must already exist; not created here.}
 }
 \value{
 The full file path.
 }
 \description{
-Creates \code{figures_dir} if it does not exist, since the returned path exists to
-be written to immediately afterwards by the caller's plotting code — there is
-no other point at which a figure directory could be created on demand. This is
-the one path-building function in the package that touches disk, and it is
-deliberate; see \code{\link[=wai_sample_config]{wai_sample_config()}}, which no longer does.
+Purely a path: this creates nothing on disk. \code{figures_dir} is expected to
+exist already — the analytics preludes (\verb{analysis/5_plots/_setup.R},
+\verb{analysis/fcast/_setup.R}) create the whole output tree up front, and so does
+any caller that has written a table or result through
+\code{\link[=write_table_output]{write_table_output()}}/\code{\link[=save_result_output]{save_result_output()}}.
+}
+\details{
+It did briefly create the directory, on the reasoning that the returned path
+is written to immediately afterwards. That was a mistake worth recording: a
+path builder with a side effect surprised a test that passed it the relative
+path \code{"outputs/figures"}, which had been harmless for as long as the function
+was a plain \code{\link[=file.path]{file.path()}} call, and the suite started leaving
+\code{tests/testthat/outputs/figures} behind in the source tree.
 }
 \examples{
-figs <- file.path(tempdir(), "figures")
-output_figure_path("history.pdf", figures_dir = figs)
+output_figure_path("history.pdf", figures_dir = file.path(tempdir(), "figures"))
 }

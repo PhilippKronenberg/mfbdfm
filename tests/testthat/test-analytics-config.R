@@ -23,8 +23,8 @@ test_that("wai_sample_config creates nothing on disk", {
   expect_false(dir.exists(cfg$tables_dir))
   expect_false(dir.exists(cfg$results_dir))
 
-  # ... and the writers create their directory on demand, so callers that only
-  # write need no dir.create() of their own
+  # ... and the two functions that WRITE create their directory on demand, so
+  # callers that only write need no dir.create() of their own
   write_table_output("t.tex", "x", tables_dir = cfg$tables_dir)
   expect_true(file.exists(file.path(cfg$tables_dir, "t.tex")))
 
@@ -32,9 +32,11 @@ test_that("wai_sample_config creates nothing on disk", {
   save_result_output(obj, "r.rda", results_dir = cfg$results_dir)
   expect_true(file.exists(file.path(cfg$results_dir, "r.rda")))
 
+  # output_figure_path() is not one of them: it writes nothing, so it creates
+  # nothing, and figures_dir is still absent afterwards
   p <- output_figure_path("f.pdf", figures_dir = cfg$figures_dir)
-  expect_true(dir.exists(cfg$figures_dir))
   expect_equal(p, file.path(cfg$figures_dir, "f.pdf"))
+  expect_false(dir.exists(cfg$figures_dir))
 })
 
 test_that("latest_fit_file honors the cutoff", {
@@ -67,14 +69,24 @@ test_that("save_result_output saves the object under its own name", {
 })
 
 test_that("output_figure_path joins the directory and file name", {
-  # An absolute temp path, not a relative "outputs/figures": output_figure_path()
-  # creates the directory it is handed, so a relative one would leave
-  # tests/testthat/outputs/figures behind in the source tree. It did - R CMD build
-  # reported "Removed empty directory" for exactly that path.
+  expect_equal(output_figure_path("history.pdf", figures_dir = "outputs/figures"),
+               file.path("outputs/figures", "history.pdf"))
+})
+
+test_that("output_figure_path creates nothing", {
+  # It briefly did create figures_dir, which turned a relative path in the test
+  # above into source-tree litter: running the suite left
+  # tests/testthat/outputs/figures behind, and R CMD build reported "Removed empty
+  # directory" for it. A path builder must stay a path builder - the preludes and
+  # the two write helpers are what create directories.
   figs <- file.path(tempfile(), "figures")
-  on.exit(unlink(dirname(figs), recursive = TRUE))
-  expect_equal(output_figure_path("history.pdf", figures_dir = figs),
-               file.path(figs, "history.pdf"))
+  p <- output_figure_path("history.pdf", figures_dir = figs)
+
+  expect_equal(p, file.path(figs, "history.pdf"))
+  expect_false(dir.exists(figs))
+  expect_false(dir.exists(dirname(figs)))
+  # the relative form used above must not create anything either
+  expect_false(dir.exists("outputs"))
 })
 
 test_that("filter_to_sample keeps only the requested window", {

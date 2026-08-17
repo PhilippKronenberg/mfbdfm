@@ -153,6 +153,23 @@ application of it (#37).
 
 ## Bug fixes
 
+* `run_wai_adj()` now forwards `p`, `stochastic_volatility` and
+  `serial_correlation` to `ind_dfm()` instead of hard-coding the first two and
+  ignoring nothing silently but documenting `stochastic_volatility` as reaching
+  the model "without effect there", which was false. `run_fcast()` had exposed all
+  of these all along, so this closes the last of the #48 parity gaps between the
+  two wrappers. Defaults are unchanged (`p = 1`, both flags `TRUE`), so no
+  existing result moves.
+* `output_figure_path()` creates nothing on disk again. It briefly created the
+  directory it was handed, on the reasoning that the caller writes to the returned
+  path immediately; that turned a path builder into a function with a side effect,
+  and a caller passing a relative directory started leaving empty directories
+  behind. Directory creation belongs to the two functions that actually write,
+  `write_table_output()` and `save_result_output()`, and to the analysis preludes.
+* `wai_sample_config()` no longer creates its three output directories merely by
+  being called. Asking it for a sample-end date used to write to the file system,
+  and because its default `output_root` is a relative path, it wrote wherever the
+  caller happened to be.
 * `ind_dfm()` now returns `pars$h` as a `ts` on the factor's own index, as
   `fcast_dfm()` always has. It was a bare numeric, so the same quantity carried a
   date axis from one entry point and an integer index from the other, and

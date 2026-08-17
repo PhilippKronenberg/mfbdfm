@@ -64,19 +64,20 @@ run_ar <- function(flows, stocks, target, date, dataset_used, stochastic_volatil
 #'   at this date.
 #' @param dataset_used Character, dataset label used as sub-directory
 #'   when saving.
-#' @param stochastic_volatility Logical, passed to [ind_dfm()] (currently
-#'   without effect there).
 #' @param output_dir Directory to save the fit to, or `NULL` (default) to
 #'   skip saving. When given, the fit is saved as
 #'   `file.path(output_dir, dataset_used, "fit_<date>.Rda")`.
 #'
 #' @details
-#' `length_sample`, `burn_in` and `thinning` default to the chain this wrapper
-#' has always run — 5000 retained draws after 1000 burn-in, unthinned — so
-#' existing results are unaffected. They are arguments rather than hard-coded
-#' values so that a short chain can be used to check the wiring, which is what
-#' the example below does; note that the default differs from [run_fcast()]'s
-#' 1000, deliberately, because that is what each wrapper has always used.
+#' Every modelling argument is passed straight through to [ind_dfm()], and the
+#' defaults are the ones this wrapper has always used, so existing results are
+#' unaffected: `p = 1`, 5000 retained draws after 1000 burn-in, unthinned, with
+#' both stochastic volatility and serial correlation on. They are arguments
+#' rather than hard-coded values so that a short chain can check the wiring —
+#' which is what the example below does — and so that the wrapper does not
+#' silently withhold settings the model supports. `length_sample`'s default
+#' differs from [run_fcast()]'s 1000 deliberately: that is what each wrapper has
+#' always run.
 #'
 #' @return Invisibly, the windowed `ind_dfm` fit object.
 #'
@@ -105,8 +106,9 @@ run_ar <- function(flows, stocks, target, date, dataset_used, stochastic_volatil
 #' }
 #' @export
 run_wai_adj <- function(flows, stocks, target, date, dataset_used,
-                        stochastic_volatility = TRUE,
+                        p = 1,
                         length_sample = 5000, burn_in = 1000, thinning = 1,
+                        stochastic_volatility = TRUE, serial_correlation = TRUE,
                         output_dir = NULL){
 
   mod <- ind_dfm(flows = flows,
@@ -115,10 +117,10 @@ run_wai_adj <- function(flows, stocks, target, date, dataset_used,
                  burn_in = burn_in,
                  length_sample = length_sample,
                  thinning = thinning,
-                 p = 1, # Number of factor lags in factor state equation.
+                 p = p,
                  plots = FALSE,
                  stochastic_volatility = stochastic_volatility,
-                 serial_correlation = TRUE)
+                 serial_correlation = serial_correlation)
 
   # trim_to() rather than window(): the requested end is often past the series,
   # where window() leaves it untouched but warns "'end' value not changed".
