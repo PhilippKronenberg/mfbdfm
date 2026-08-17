@@ -119,6 +119,39 @@ test_that("run_wai_adj does not warn about a no-op window", {
 })
 
 
+test_that("run_wai_adj passes p and serial_correlation through (#48)", {
+
+  # An argument a wrapper accepts and ignores is a bug, not a documentation
+  # problem (#48). run_wai_adj() hard-coded p = 1 and serial_correlation = TRUE
+  # while run_fcast() exposed both, and its own docs claimed
+  # stochastic_volatility reached ind_dfm() "without effect there" - which was
+  # false. These assertions fail if any of the three stops being forwarded.
+  data(data_ch_dataset_test)
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  run <- function(...) {
+    set.seed(9)
+    suppressMessages(run_wai_adj(flows = flows, stocks = stocks, target = target,
+                                 date = 2023, dataset_used = "x",
+                                 length_sample = 10, burn_in = 4, ...))
+  }
+
+  # p reaches the state equation: one autoregressive coefficient per lag
+  expect_length(as.numeric(run(p = 1)$pars$phi), 1)
+  expect_length(as.numeric(run(p = 2)$pars$phi), 2)
+
+  # serial_correlation reaches the measurement errors
+  expect_lt(max(abs(as.numeric(run(serial_correlation = FALSE)$pars$rho))), 1e-6)
+  expect_gt(max(abs(as.numeric(run()$pars$rho))), 1e-6)
+
+  # stochastic_volatility too - off gives a single constant, not a path
+  expect_equal(length(unique(as.numeric(run(stochastic_volatility = FALSE)$pars$h))), 1)
+})
+
+
 test_that("trim_to keeps the observation a rounded date names", {
 
   # Evaluation dates travel through this workflow rounded to three decimals,

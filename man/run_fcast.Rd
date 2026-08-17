@@ -38,7 +38,7 @@ when saving.}
 
 \item{q}{Integer, number of factors, passed to \code{\link[=fcast_dfm]{fcast_dfm()}}.}
 
-\item{p}{Integer, number of lags in the factor VAR.}
+\item{p}{Integer, number of factor lags in the factor state equation.}
 
 \item{length_sample}{Integer, number of posterior draws to keep.}
 
@@ -46,11 +46,14 @@ when saving.}
 
 \item{thinning}{Integer, keep every \code{thinning}-th draw after burn-in.}
 
-\item{stochastic_volatility}{Logical, passed to \code{\link[=ind_dfm]{ind_dfm()}} (currently
-without effect there).}
+\item{stochastic_volatility}{Logical. If \code{TRUE} (default) the factor
+innovation variance follows a stochastic volatility process. If \code{FALSE}
+it is a single constant variance, \strong{still estimated} rather than fixed
+-- see \verb{@details}.}
 
-\item{serial_correlation}{Logical, model serial correlation in the
-measurement errors. If \code{FALSE}, the autocorrelations are fixed near zero.}
+\item{serial_correlation}{Logical. If \code{TRUE} (default) the measurement
+errors are allowed to be serially correlated and their autocorrelations
+are drawn. If \code{FALSE} they are held at (effectively) zero.}
 
 \item{extend}{Numeric, years by which to extend the dataset past its end
 before estimating, passed to \code{\link[=fcast_dfm]{fcast_dfm()}}. \strong{Required for this function to

@@ -30,9 +30,10 @@ CRAN cares about most; the matrix above is all R-release or oldrel.
 
 ## R CMD check results
 
-`R CMD check --as-cran` on 0.1.0, with the vignette and the PDF manual both built:
-**0 errors, 0 warnings, 2 notes**. Test suite inside the check: `FAIL 0 | WARN 0 |
-SKIP 0 | PASS 668`.
+`R CMD check --as-cran` on 0.1.0, with the vignette, the PDF manual and the HTML
+manual (math rendering included) all built and checked: **0 errors, 0 warnings,
+1 note** — and that one note is `New submission`. Test suite inside the check:
+`FAIL 0 | WARN 0 | SKIP 0 | PASS 677`.
 
 ### NOTE 1 — CRAN incoming feasibility
 
@@ -48,16 +49,47 @@ An earlier `Version contains large components (0.0.0.9000)` line is gone: that
 was an artifact of checking the development version, and the bump to `0.1.0`
 cleared it, confirmed by re-running rather than assumed.
 
-### NOTE 2 — HTML version of the manual
+### Formerly NOTE 2 — HTML version of the manual, now resolved
+
+`--as-cran` previously reported `Skipping checking math rendering: package 'V8'
+unavailable`, so the KaTeX math in the Rd files was never actually verified here.
+`V8` 8.2.0 is now installed and the sub-check runs for real:
 
 ```text
-Skipping checking math rendering: package 'V8' unavailable
+* checking PDF version of manual ... OK
+* checking HTML version of manual ... OK
 ```
 
-Environmental. `--as-cran` uses the optional `V8` package to verify KaTeX math
-rendering in the HTML manual; `V8` is not installed here, so that sub-check is
-*skipped*, not failed. CRAN's machines have it. The PDF manual builds cleanly
-(446 KB) via MiKTeX 25.3.
+Both forms of the manual therefore build and render cleanly — the PDF via
+MiKTeX 25.3, the HTML with math rendering genuinely checked rather than skipped.
+
+### A URL sub-NOTE that is a false positive
+
+One run of `--as-cran` added this to NOTE 1:
+
+```text
+Found the following (possibly) invalid URLs:
+  URL: https://github.com/PhilippKronenberg/mfbdfm/issues
+    From: DESCRIPTION
+          man/mfbdfm-package.Rd
+    Status: 404
+    Message: Not Found
+```
+
+The URL is correct. The repository is public with issues enabled, the page loads
+in a browser, and an earlier run of both `urlchecker::url_check()` and a direct
+check returned 200 for this exact URL.
+
+Established by comparison rather than assumed: in the same moment, from the same
+machine, `github.com/r-lib/testthat/issues` and `github.com/tidyverse/dplyr/issues`
+**also returned 404**, while every repository *root* returned 200. GitHub serves
+404 on `/issues` and `/pulls` to clients it has decided to throttle — this session
+had made a great many requests. So the 404 describes our client, not our
+`BugReports` field.
+
+**Do not "fix" this by changing or removing the `BugReports` URL.** It is the
+standard form and thousands of CRAN packages use it. If CRAN's incoming check
+raises the same sub-NOTE, this is the explanation.
 
 ### One further NOTE that appears intermittently
 
