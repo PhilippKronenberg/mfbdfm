@@ -1,4 +1,4 @@
-# mfbdfm 0.0.0.9000
+# mfbdfm 0.1.0
 
 First functional version of the package, converting the WAI research code
 into a proper R package (#9-#19). The package (and repo) were renamed from

@@ -26,6 +26,11 @@ package also provides:
 
 ``` r
 # install.packages("remotes")
+
+# the latest release - reproducible, recommended
+remotes::install_github("PhilippKronenberg/mfbdfm", ref = "v0.1.0")
+
+# or the development version, which tracks main
 remotes::install_github("PhilippKronenberg/mfbdfm")
 ```
 

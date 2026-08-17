@@ -1,9 +1,9 @@
 # cran-comments
 
-**Status: pre-submission draft, not yet submitted.** Written while the version is
-still `0.0.0.9000`; re-check the numbers below after the release bump (issue #25),
-and run the remote checks in the last section before this file describes a real
-submission.
+**Status: not yet submitted.** This is version `0.1.0`, the intended first CRAN
+release. The local results below are current for it. The remote checks in the
+"Test environments" section — win-builder in particular — still have to be run
+before this file describes a real submission.
 
 ## Test environments
 
@@ -30,8 +30,8 @@ CRAN cares about most; the matrix above is all R-release or oldrel.
 
 ## R CMD check results
 
-`R CMD check --as-cran` locally, with the vignette and the PDF manual both built:
-0 errors, 0 warnings, 3 notes. Test suite inside the check: `FAIL 0 | WARN 0 |
+`R CMD check --as-cran` on 0.1.0, with the vignette and the PDF manual both built:
+**0 errors, 0 warnings, 2 notes**. Test suite inside the check: `FAIL 0 | WARN 0 |
 SKIP 0 | PASS 668`.
 
 ### NOTE 1 — CRAN incoming feasibility
@@ -40,27 +40,15 @@ SKIP 0 | PASS 668`.
 Maintainer: 'Philipp Kronenberg <philippkronenberg@gmx.ch>'
 
 New submission
-
-Version contains large components (0.0.0.9000)
 ```
 
-* *New submission* — correct, this is the first release. Unavoidable and
-  explicitly acceptable.
-* *Version contains large components* — an artifact of checking a development
-  version. The release bump to `0.1.0` removes it; verify then rather than
-  assuming.
+Correct — this is the first release. Unavoidable and explicitly acceptable.
 
-### NOTE 2 — future file timestamps
+An earlier `Version contains large components (0.0.0.9000)` line is gone: that
+was an artifact of checking the development version, and the bump to `0.1.0`
+cleared it, confirmed by re-running rather than assumed.
 
-```text
-unable to verify current time
-```
-
-Environmental, not a package property: `R CMD check` verifies the clock against a
-network time service and this machine could not reach it. Nothing in the package
-carries a future timestamp. It does not appear on CRAN's machines.
-
-### NOTE 3 — HTML version of the manual
+### NOTE 2 — HTML version of the manual
 
 ```text
 Skipping checking math rendering: package 'V8' unavailable
@@ -70,6 +58,14 @@ Environmental. `--as-cran` uses the optional `V8` package to verify KaTeX math
 rendering in the HTML manual; `V8` is not installed here, so that sub-check is
 *skipped*, not failed. CRAN's machines have it. The PDF manual builds cleanly
 (446 KB) via MiKTeX 25.3.
+
+### One further NOTE that appears intermittently
+
+`checking for future file timestamps ... unable to verify current time` shows up
+when the machine cannot reach a network time service, and disappears when it can
+— it fired on an earlier run of this same code and not on the 0.1.0 run. Purely
+environmental; nothing in the package carries a future timestamp. Worth knowing
+so its presence or absence between runs is not mistaken for a real change.
 
 ### Two NOTEs that earlier drafts of this file listed, now resolved
 
