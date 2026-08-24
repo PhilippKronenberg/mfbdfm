@@ -43,5 +43,5 @@ source tree.
 
 ``` r
 output_figure_path("history.pdf", figures_dir = file.path(tempdir(), "figures"))
-#> [1] "/tmp/RtmpINahyq/figures/history.pdf"
+#> [1] "/tmp/RtmpuMHQU4/figures/history.pdf"
 ```
