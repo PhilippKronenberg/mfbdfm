@@ -1,35 +1,40 @@
 # cran-comments
 
 **Status: not yet submitted.** This is version `0.1.0`, the intended first CRAN
-release. The local results below are current for it. The remote checks in the
-"Test environments" section — win-builder in particular — still have to be run
-before this file describes a real submission.
+release. Every check below was run against this version; there is no outstanding
+environment left to test.
 
 ## Test environments
 
-Run, with results:
+All run, with results, all on `0.1.0`:
 
-* local Windows 11, R 4.5.2 (2025-10-31 ucrt), x86_64-w64-mingw32,
-  with pandoc 3.8.3 and MiKTeX 25.3 — so vignettes and the PDF manual are
-  actually built, not skipped
-* GitHub Actions (`.github/workflows/r.yml`), all four jobs green at commit
-  `9d3b83b`:
-  * ubuntu-latest, R release
-  * ubuntu-latest, R oldrel-1
-  * macos-latest, R release
-  * windows-latest, R release
+* **win-builder, R-devel** — `R Under development (unstable) (2026-08-22 r90443
+  ucrt)`, x86_64-w64-mingw32, Windows Server 2022, gcc 14.3.0, 2026-08-24.
+  **Status: 1 NOTE** (below); every other check `OK`, including the vignette
+  rebuild and both the PDF and HTML manuals.
+* **GitHub Actions**, `.github/workflows/r.yml`, all six jobs green:
+  * ubuntu-latest — R release, R oldrel-1, **R devel**
+  * windows-latest — R release, **R devel** (`r90443`, the same R-devel build
+    win-builder used, reached independently)
+  * macos-latest — R release
+* **local** Windows 11, R 4.5.2 (2025-10-31 ucrt), x86_64-w64-mingw32, with
+  pandoc 3.8.3, MiKTeX 25.3 and V8 8.2.0 — so the vignette, the PDF manual and
+  the HTML manual's math rendering are all genuinely built and checked rather
+  than skipped. `R CMD check --as-cran`: **1 NOTE**.
 
-* **win-builder, R-devel** — `R Under development (unstable) (2026-08-15 r90413
-  ucrt)`, x86_64-w64-mingw32, Windows Server 2022, gcc 14.3.0. **Status: 1 NOTE**
-  (see below); every other check `OK`, including the vignette rebuild and both the
-  PDF and HTML manuals.
-* GitHub Actions also runs R-devel on every push now, so R-devel coverage is
-  continuous rather than a one-off pre-submission act.
+Windows × R-devel is therefore confirmed twice, by win-builder and by CI, on the
+same R-devel build. That combination is checked in CI as well as on win-builder
+because win-builder's result emails proved unreliable here — see the note in
+CLAUDE.md; the check itself was never in doubt, only its delivery.
 
 Not run, and not blocking:
 
 * R-hub — `rhub::check_for_cran()` no longer exists; rhub 2.x runs checks through
-  the project's own GitHub Actions, which the R-devel matrix job already covers.
+  the project's own GitHub Actions. The workflow is installed
+  (`.github/workflows/rhub.yaml`, `workflow_dispatch` only) for the Linux R-devel
+  containers with sanitizer and compiler variants, but it cannot pin an R version
+  (`r_versions` is "not implemented yet"), so it does not substitute for the
+  Windows R-devel jobs above.
 * macOS builder (`devtools::check_mac_release()`) — macOS release is covered by
   the CI matrix.
 
@@ -180,15 +185,22 @@ Separately checked every DOI by resolution, since `urlchecker` does not treat
 * **Licence.** MIT, on CRAN's approved list, with `LICENSE` naming the year
   (2026) and the copyright holder, who also carries the `cph` role in
   `Authors@R`.
-* **Runtimes.** win-builder measured `checking tests ... [404s]`, examples 25s,
-  vignette rebuild 21s — about 8.5 minutes of check time in total, uncomfortably
-  close to CRAN's ~10 minute preference. Traced to a single cause rather than
-  guessed at: one test called `run_wai_adj()` with its default 5000-draw chain
-  while asserting something about a *warning*, and that one call was 143s of the
-  suite's 179s locally. It now runs a 10-draw chain — possible only because
-  `run_wai_adj()` stopped hard-coding the chain length — and the local suite is
-  **42s, down from 179s**. Expect `checking tests` on win-builder to fall to
-  roughly 100s.
+* **Runtimes.** On win-builder, `checking tests` was **404s** and total check time
+  about 8.5 minutes — uncomfortably close to CRAN's ~10 minute preference. Traced
+  to a single cause rather than guessed at: one test called `run_wai_adj()` with
+  its default 5000-draw chain while asserting something about a *warning*, and
+  that one call was 143s of the suite's 179s locally. It now runs a 10-draw chain,
+  possible only because `run_wai_adj()` stopped hard-coding the chain length.
+
+  Measured after the fix, on the same service: `checking tests ... [177s]`,
+  examples 32s, vignette rebuild 32s, PDF manual 22s. **Tests fell 404s → 177s**,
+  and total timed check work is now about 5 minutes.
+
+  Worth recording honestly: the local suite improved 179s → 42s, a 4.3× cut, and
+  on that basis ~100s was predicted for win-builder. The actual figure is 177s, a
+  2.3× cut. The direction and rough magnitude held, the extrapolation across
+  machines did not — win-builder's hardware does not reproduce local ratios, so do
+  not size future CRAN-runtime decisions on local timings alone.
 * **`skip_on_cran()` is deliberately still not used anywhere.** It was the
   obvious lever for the runtime above, and it would have hidden the problem
   instead of fixing it: the expensive test was expensive by accident, not by
