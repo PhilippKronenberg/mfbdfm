@@ -1,3 +1,23 @@
+# mfbdfm 0.1.0.9000
+
+* New `export_wai_web()`, which turns a saved WAI fit into the wide
+  `wai_data.csv` and `wai_meta.json` pair consumed by the public dashboard.
+  The CSV contract (column names and order, empty string for missing, ISO
+  dates, LF endings) is the whole interface to the front end, and is what the
+  new tests pin down (#71).
+
+* `extract_wai_data()` no longer dates the level index against a hard-coded
+  1990-2025 weekly grid. `zoo()` silently recycles its data to the length of
+  `order.by`, so any fit shorter than that grid had its index wrapped around
+  and re-dated, and the level bounds were computed from the wrong values. The
+  grid now comes from the fit. The bounds were never returned, so no previously
+  returned table changes; they are returned now, as `tab_gr_lv_full` (#71).
+
+* `extract_wai_data()` warns and rebases to the first observation when the fit
+  does not span the 2019Q4 base window, instead of silently returning a level
+  index of all `NaN` - which is what this function's own documented example,
+  fitting from 2021, had been producing (#71).
+
 # mfbdfm 0.1.0
 
 First functional version of the package, converting the WAI research code

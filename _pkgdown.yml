@@ -44,6 +44,7 @@ reference:
   - retrieve_nowcast
   - retrieve_nowcast_var
   - extract_wai_data
+  - export_wai_web
   - get_real_time_gdp_vintages
   - select_most_recent_GDP_vintage
   - cut_data
