@@ -1,7 +1,12 @@
 # WAI web app: architecture study and implementation plan
 
-Status: **plan, not yet implemented**. Tracked in issue #70, branch
-`claude/dfm-website-pipeline-i1uihw`.
+Status: **phases 1 and 2 built; phase 3 (automation) not started.** Tracked in
+issue #71, branch `claude/dfm-website-pipeline-i1uihw`. The site lives in the
+separate repo `PhilippKronenberg/wai-webapp`.
+
+Corrections made after the first draft, both found by running code rather than
+reading it, are marked inline below — see §4 (no level bands) and §5 phase 1
+(the horizon diagnosis was wrong).
 
 Goal: a public, continuously-updated web page for the Weekly Activity Index,
 modelled on the ISMI dashboard
@@ -85,9 +90,10 @@ Five differences drive every decision below.
    periods/year, on the 7th/14th/21st/28th convention that `dec2week()` encodes.
    Still trivially small for a CSV — well under 1 MB.
 
-3. **We have uncertainty bands, the reference does not.** `ind_dfm()` gives
-   `factor_var`, and `extract_wai_data()` already forms `factor ± 1.96·sd`.
-   Chart.js draws bands with a paired dataset and `fill: '-1'`.
+3. **We have an uncertainty band on the growth rate, the reference has none.**
+   `ind_dfm()` gives `factor_var`, and `extract_wai_data()` forms
+   `factor ± 1.96·sd`. Chart.js draws it with a paired dataset and `fill: '-1'`.
+   **Only the growth rate has a genuine band** — see §4.
 
 4. **We already have three finished views.** `extract_wai_data()` returns
    `tab_gr_qoq` (annualised QoQ growth with bounds), `tab_gr_lv` (level index,
@@ -162,10 +168,18 @@ can be built independently, in either order.
 | --- | --- |
 | `date` | ISO date, the 7/14/21/28 weekly convention from `dec2week()` |
 | `wai_qoq`, `wai_qoq_lo`, `wai_qoq_hi` | Annualised QoQ growth and 95% band |
-| `wai_yoy`, `wai_yoy_lo`, `wai_yoy_hi` | Year-over-year growth and band |
-| `wai_index`, `wai_index_lo`, `wai_index_hi` | Level index, 2019Q4 = 100 |
+| `wai_yoy` | Year-over-year growth |
+| `wai_index` | Level index, 2019Q4 = 100 |
 | `gdp_qoq` | Published GDP growth, on the quarter's last week; empty elsewhere |
 | `ar_qoq` | AR(1) benchmark nowcast (optional; empty until phase 5) |
+
+**Corrected from the first draft: no bands on `wai_yoy` or `wai_index`.** The
+draft assumed all three views carried one. They do not. The only genuine 95%
+credible interval the fit provides is on the growth rate. The level bounds
+`extract_wai_data()` computes are the index scaled by a *single* period of
+growth at each bound, not a compounded level interval, so publishing them beside
+`wai_index` would present something that looks like a level confidence band and
+is not one.
 
 Rules: ISO dates, `.` decimal separator, empty string for missing (never `NA`
 or `NaN` — the JS parser must not have to know R's spelling), fixed column
@@ -211,13 +225,21 @@ thing reproducible by anyone with the data.
       writing `wai_data.csv` + `wai_meta.json` per §4. No side effects unless
       `dir` is given, matching the `run_ar()`/`run_wai_adj()` convention.
 - [ ] Build it on `extract_wai_data()` rather than duplicating the reshaping.
-- [ ] **Fix `extract_wai_data()`'s hard-coded horizon first.** It builds
-      `date_vec <- seq(1990, 2025 + 47/48, 1/48)` and merges the level bounds
-      with `all = FALSE`, so from 2026 onward it silently drops the newest
-      observations — exactly the weeks a live dashboard exists to show. This is
-      a latent bug today and a fatal one for a scheduled pipeline. Derive the
-      range from the fit instead. (Worth its own issue if the fix is not
-      strictly behaviour-preserving.)
+- [x] **Fix `extract_wai_data()`'s hard-coded horizon first** — done, and the
+      diagnosis in this plan's first draft was **wrong**. It does *not* drop
+      newest observations: measured, all returned tables already ran correctly
+      to 2026-03-21. What the hard-coded `seq(1990, 2025 + 47/48, 1/48)` grid
+      actually breaks is the level *bounds*, because `zoo()` silently **recycles**
+      its data to the length of `order.by` rather than erroring — 17.8 recycles
+      for a 2021–2023 fit, giving a first level value of 100.8654 where the truth
+      was 99.9947. Nothing noticed because those bounds were computed and then
+      discarded. The grid now comes from the fit.
+- [x] **Second defect, found the same way:** rebasing called
+      `mean(idx_ts[valid_indices])` with no guard, so a fit not spanning the
+      2019Q4 base window made the base `mean(NULL)` = `NaN` and *every* level
+      value `NaN`, silently — which this function's own documented example,
+      fitting from 2021, had been doing. Now warns and rebases to the first
+      observation.
 - [ ] Roxygen docs with a runnable `\donttest{}` example (no `\dontrun{}` —
       the package has none and keeps none).
 - [ ] `tests/testthat/test-web-export.R`, per the one-test-file-per-source-file
@@ -233,8 +255,10 @@ thing reproducible by anyone with the data.
 Buildable and reviewable against a committed sample CSV before any automation
 exists.
 
-- [ ] `index.html` — one self-contained file: inline CSS, inline JS, Chart.js +
-      the date adapter from a **version-pinned** CDN URL.
+- [x] `index.html` — inline CSS, inline JS, Chart.js 4.4.0 + the date adapter
+      **vendored under `vendor/`** rather than loaded from a CDN. (Changed from
+      the draft: the CDN is unreachable from some networks — including this
+      build environment — and vendoring removes the dependency entirely.)
 - [ ] Load `wai_data.csv?v=<date>` with `fetch()`; parse with a small robust
       CSV reader; render an explicit error banner on failure (the reference
       does this and it is worth copying).
@@ -296,8 +320,8 @@ exists.
 | 1 | Source licences forbid publishing even derived output | Settle in phase 0, before any build effort |
 | 2 | Scheduled run dies silently | Explicit failure notification + a visible "data as of" line that ages badly on purpose |
 | 3 | A model change silently shifts the published series | `baseline_check()` in the pipeline; record `mfbdfm_version` + `git_sha` in the metadata |
-| 4 | `extract_wai_data()`'s 2025 horizon truncates new weeks | Phase 1 fixes it before anything depends on it |
-| 5 | CDN outage takes the charts down | Pinned versions; vendoring Chart.js locally is a one-line change if it matters |
+| 4 | ~~`extract_wai_data()`'s 2025 horizon truncates new weeks~~ — measured false; the real defect was silently wrong level bounds | Fixed in phase 1 |
+| 5 | ~~CDN outage takes the charts down~~ | Resolved: Chart.js and its date adapter are **vendored** under `vendor/`, so the page has no third-party runtime dependency and works offline and behind restrictive proxies |
 | 6 | Data-commit churn bloats the webapp repo | Only ~1,900 rows x 12 columns per commit; squash history if it ever matters |
 | 7 | The private host is a single point of failure | Documented manual runbook so a human can publish an update by hand |
 
