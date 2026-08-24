@@ -105,6 +105,16 @@ validate_export <- function(dir) {
   must(!is.unsorted(dates), "wai_data.csv rows are not sorted ascending by date")
   must(anyDuplicated(dates) == 0, "wai_data.csv has duplicate dates")
   must(!anyNA(d$wai_qoq), "wai_qoq has missing values")
+
+  # A column that is present but entirely empty is well-formed, so every check
+  # above passes it. That is exactly how an all-empty gdp_qoq nearly shipped:
+  # the date units were wrong, no GDP value matched any week, and nothing
+  # noticed. Every published column must carry at least one value.
+  for (nm in setdiff(names(d), "date")) {
+    must(any(!is.na(d[[nm]])),
+         "column `", nm, "` is present but entirely empty - it would publish a ",
+         "series with nothing in it")
+  }
   must(all(d$wai_qoq_lo < d$wai_qoq & d$wai_qoq < d$wai_qoq_hi),
        "the 95% band does not bracket wai_qoq everywhere")
 
@@ -188,10 +198,17 @@ staging <- file.path(tempdir(), "wai-export")
 unlink(staging, recursive = TRUE)
 dir.create(staging, recursive = TRUE)
 
+# get_real_time_gdp_vintages() returns quarter-on-quarter LOG DIFFERENCES, while
+# wai_qoq is an annualised percentage. Plotted on one axis unconverted they
+# differ by a factor of roughly 400, so convert here.
+#
+# `time` is a Date and is passed through as one: as.numeric() on a Date gives
+# days since 1970, which is not decimal time and silently placed zero GDP points
+# on the weekly grid.
 gdp_published <- get_real_time_gdp_vintages("quarterly")
 gdp_latest <- data.frame(
-  time  = as.numeric(gdp_published$time),
-  value = as.numeric(gdp_published[[ncol(gdp_published)]])
+  time  = gdp_published$time,
+  value = (exp(as.numeric(gdp_published[[ncol(gdp_published)]]) * 4) - 1) * 100
 )
 gdp_latest <- gdp_latest[!is.na(gdp_latest$value), ]
 

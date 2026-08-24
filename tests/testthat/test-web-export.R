@@ -105,3 +105,26 @@ test_that("export_wai_web() covers the full fitted window, past 2025", {
   expect_gt(as.numeric(format(max(web$data$date), "%Y")), 2025)
   expect_false(anyNA(web$data$wai_index))
 })
+
+
+test_that("gdp_on_weekly_grid() accepts Dates and both decimal conventions", {
+  f <- synth_fit_file(start = 1990, end = 1992)
+  vals <- seq_len(8) / 10
+
+  as_dates   <- data.frame(time = seq(as.Date("1990-01-01"), by = "quarter",
+                                      length.out = 8), value = vals)
+  # the package's own decimal convention: quarter starts at .000/.247/.496/.748
+  as_local   <- data.frame(time = decimal_date_local(as_dates$time), value = vals)
+  # the exact-fraction convention
+  as_exact   <- data.frame(time = seq(1990, 1991.75, 0.25), value = vals)
+
+  placed <- lapply(list(as_dates, as_local, as_exact), function(g) {
+    d <- export_wai_web(f, gdp = g)$data
+    d$gdp_qoq[!is.na(d$gdp_qoq)]
+  })
+
+  # all three must place all eight quarters, and place them identically
+  expect_equal(placed[[1]], vals)
+  expect_equal(placed[[2]], vals)
+  expect_equal(placed[[3]], vals)
+})

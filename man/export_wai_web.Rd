@@ -21,8 +21,14 @@ written by \code{\link[=run_wai_adj]{run_wai_adj()}}.}
 does not exist.}
 
 \item{gdp}{Optional data frame of published GDP growth with columns \code{time}
-(decimal date) and \code{value}, as produced by
-\code{\link[=get_real_time_gdp_vintages]{get_real_time_gdp_vintages()}}. When supplied, a \code{gdp_qoq} column is added.}
+and \code{value}. \code{time} may be a \code{Date} (as \code{\link[=get_real_time_gdp_vintages]{get_real_time_gdp_vintages()}}
+returns) or decimal time in either the \code{\link[=decimal_date_local]{decimal_date_local()}} convention or
+exact quarter fractions. When supplied, a \code{gdp_qoq} column is added.
+
+Note the units: \code{\link[=get_real_time_gdp_vintages]{get_real_time_gdp_vintages()}} returns \code{"quarterly"} as a
+log difference and \code{"annual"} as a fraction, whereas \code{wai_qoq} is an
+annualised percentage. Convert before passing, or the two will be plotted
+on one axis at scales that differ by a factor of roughly 400.}
 
 \item{digits}{Number of decimal places to round the published series to.
 Defaults to 4, which is well past the precision the model supports and

@@ -37,8 +37,14 @@
 #'   `NULL` (default) to write nothing and only return the data. Created if it
 #'   does not exist.
 #' @param gdp Optional data frame of published GDP growth with columns `time`
-#'   (decimal date) and `value`, as produced by
-#'   [get_real_time_gdp_vintages()]. When supplied, a `gdp_qoq` column is added.
+#'   and `value`. `time` may be a `Date` (as [get_real_time_gdp_vintages()]
+#'   returns) or decimal time in either the [decimal_date_local()] convention or
+#'   exact quarter fractions. When supplied, a `gdp_qoq` column is added.
+#'
+#'   Note the units: [get_real_time_gdp_vintages()] returns `"quarterly"` as a
+#'   log difference and `"annual"` as a fraction, whereas `wai_qoq` is an
+#'   annualised percentage. Convert before passing, or the two will be plotted
+#'   on one axis at scales that differ by a factor of roughly 400.
 #' @param digits Number of decimal places to round the published series to.
 #'   Defaults to 4, which is well past the precision the model supports and
 #'   keeps the file small.
@@ -157,14 +163,32 @@ gdp_on_weekly_grid <- function(gdp, target) {
   out <- rep(NA_real_, length(target))
   target_q <- quarter_key(as.numeric(format(target, "%Y")),
                           (as.numeric(format(target, "%m")) - 1L) %/% 3L + 1L)
-  gdp_time <- as.numeric(gdp$time)
-  gdp_q <- quarter_key(floor(gdp_time), floor((gdp_time %% 1) * 4) + 1L)
+  gdp_q <- quarter_of(gdp$time)
 
   for (i in seq_along(gdp_q)) {
     weeks <- which(target_q == gdp_q[i])
     if (length(weeks)) out[max(weeks)] <- as.numeric(gdp$value)[i]
   }
   out
+}
+
+
+# `gdp$time` arrives as a Date from get_real_time_gdp_vintages(), but decimal
+# time is the package's other currency, so accept both.
+#
+# The decimal branch ROUNDS rather than floors, deliberately. The package's own
+# decimal_date_local() puts quarter starts at .000/.247/.496/.748 (day-of-year
+# over 365), not at exact quarter fractions: flooring `(t %% 1) * 4` sends
+# 1990.247 to quarter 1 instead of 2, collapsing two quarters onto one key so
+# that one silently overwrites the other. Rounding lands both conventions -
+# .247-style and exact .25-style - on the right quarter.
+quarter_of <- function(time) {
+  if (inherits(time, "Date")) {
+    return(quarter_key(as.numeric(format(time, "%Y")),
+                       (as.numeric(format(time, "%m")) - 1L) %/% 3L + 1L))
+  }
+  t <- as.numeric(time)
+  quarter_key(floor(t), round((t %% 1) * 4) + 1L)
 }
 
 
