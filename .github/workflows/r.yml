@@ -65,6 +65,16 @@ jobs:
           # serves source-only packages to a devel user agent, which slows the
           # job down enormously without it.
           - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
+          # Windows + R-devel, the one combination nothing else here covers.
+          # It exists because win-builder - the canonical route for it - accepts
+          # uploads but its result emails stopped arriving, and R-hub cannot pin
+          # an R version (rhub 2.0.1 documents `r_versions` as "not implemented
+          # yet", and its single Windows platform is r_version = "*"). Checking it
+          # in our own Actions removes the dependency on email entirely.
+          # Not a source-compile marathon: CRAN publishes Windows binaries for
+          # R-devel under bin/windows/contrib/4.6, so dependencies install as
+          # binaries the way the release job's do.
+          - {os: windows-latest, r: 'devel'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
