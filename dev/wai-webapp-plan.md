@@ -1,8 +1,10 @@
 # WAI web app: architecture study and implementation plan
 
-Status: **phases 1 and 2 built; phase 3 (automation) not started.** Tracked in
-issue #71, branch `claude/dfm-website-pipeline-i1uihw`. The site lives in the
-separate repo `PhilippKronenberg/wai-webapp`.
+Status: **phases 1, 2 and the local runner are built. Awaiting a first run
+against real data.** Tracked in
+[`PhilippKronenberg/wai-webapp#1`](https://github.com/PhilippKronenberg/wai-webapp/issues/1)
+(moved there from this repo's #71). The site lives in the separate repo
+`PhilippKronenberg/wai-webapp`; the R side stays here.
 
 Corrections made after the first draft, both found by running code rather than
 reading it, are marked inline below — see §4 (no level bands) and §5 phase 1
@@ -151,9 +153,10 @@ end. The CSV contract in §4 is the entire interface between them.
 | **(b) Self-hosted GH Actions runner** | Runner daemon on the same machine; `schedule:` cron in a workflow | Runs, logs and failure notifications all visible in the Actions UI; needs a daemon kept alive |
 | **(c) Hosted runner + stored dataset** | Keep the *prepared* dataset in a private repo, run everything on GitHub | Fully cloud-native, but only viable if the source licences permit storing the data even privately — **must be checked before considering** |
 
-**Recommendation: start with (a), migrate to (b)** once the pipeline has run
-unattended a few times. (a) and (b) differ only in the wrapper around the same
-script, so the migration is cheap and nothing in §4–§6 depends on the choice.
+**Decided: (a) now, (b) later** — a local scheduled task running one R file,
+moving to a self-hosted runner once it has worked unattended for a while. (a)
+and (b) differ only in the wrapper around the same script, so the migration is
+cheap and nothing in §4–§6 depends on the choice.
 
 ---
 
@@ -206,15 +209,18 @@ deferred out of v1.
 
 ### Phase 0 — decisions and scaffolding
 
-- [ ] Confirm the split-pipeline architecture (§3) and pick the runner option (§3.1).
-- [ ] Confirm the repository name. Proposed: **`PhilippKronenberg/wai-webapp`**,
-      published at `https://philippkronenberg.github.io/wai-webapp/`.
-- [ ] Confirm publishing derived output is compatible with the source data
-      licences (§2.5). Blocking for go-live, not for building.
+- [x] Confirm the split-pipeline architecture (§3) and pick the runner option (§3.1).
+- [x] Repository created: **`PhilippKronenberg/wai-webapp`**, published at
+      <https://philippkronenberg.github.io/wai-webapp/>.
+- [x] Confirm publishing derived output is compatible with the source data
+      licences (§2.5). **Decided: code MIT, published data CC BY 4.0**, scoped
+      explicitly to the derived aggregate index so the results are freely
+      showable, citable and reusable with attribution — and so the exclusion of
+      the third-party source series is on the record rather than implied.
 - [ ] Decide the public update cadence (weekly, tied to the data refresh) and
       what the page says when a run is stale.
-- [ ] Create the repository, `main` branch, MIT licence, GitHub Pages enabled
-      on `main` / root.
+- [x] Create the repository, `main` branch, licences, GitHub Pages enabled on
+      `main` / root.
 
 ### Phase 1 — the exporter, in `mfbdfm`
 
@@ -281,12 +287,18 @@ exists.
 
 ### Phase 3 — automation
 
-- [ ] `analysis/update_wai_web.R`: one idempotent script — refresh data, fit at
+- [x] `analysis/update_wai_web.R`: one idempotent script — refresh data, fit at
       the current vintage, `export_wai_web()`, write into a checkout of the
-      webapp repo, commit only if the content changed, push.
-- [ ] Guard rails: fail loudly and **publish nothing** if the fit errors, if the
-      newest observation is older than the last published one, or if any
-      contract check in §4 fails.
+      webapp repo, commit only if the content changed, push. `--dry-run` and
+      `--skip-prep` for working on it by hand.
+- [x] Guard rails, all six exercised against deliberately corrupted exports and
+      confirmed to fire: header drift, `NA`/`NaN`/`Inf`/`NULL` where the
+      contract says empty string, quotes in the file, unsorted or duplicated
+      dates, a band that does not bracket the mean, and a new series ending
+      *earlier* than the published one. Fatal, not warnings — a scheduled job
+      with nobody watching must not publish a half-broken file.
+- [ ] **First real run**, `--dry-run` first, on the machine with the data. Not
+      yet possible from the build environment, which has no access to it.
 - [ ] A deploy key (or fine-grained PAT) scoped to the webapp repo only.
 - [ ] Schedule it per the chosen runner option; log each run to a file.
 - [ ] Failure notification — the pipeline being silently dead for a month is
