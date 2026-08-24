@@ -250,11 +250,11 @@ pre-merge.
   (skips doc-only/`analysis/`-only changes via `paths-ignore`, since
   neither affects the built package). Matrix: ubuntu-latest (release +
   oldrel-1 + **devel**), macos-latest (release), windows-latest
-  (release). Uses `r-lib/actions` v2 (`setup-r`, `setup-r-dependencies`,
-  `check-r-package`), `error-on: "warning"`. Any new dependency must be
-  declared in `DESCRIPTION` (Imports for runtime code, Suggests for
-  analysis-only/optional) or this fails. `concurrency` cancels a stale
-  run when you push again to the same ref.
+  (release + **devel**). Uses `r-lib/actions` v2 (`setup-r`,
+  `setup-r-dependencies`, `check-r-package`), `error-on: "warning"`. Any
+  new dependency must be declared in `DESCRIPTION` (Imports for runtime
+  code, Suggests for analysis-only/optional) or this fails.
+  `concurrency` cancels a stale run when you push again to the same ref.
   - **The R-devel job is ~35–40 min on a cold dependency cache and ~4
     min on a warm one.** Posit’s binary repo publishes no builds for
     R-devel, so every dependency compiles from source the first time;
@@ -271,6 +271,18 @@ pre-merge.
     a cancelled job still drags the whole run’s conclusion to
     `cancelled`. The generous timeout is what makes the job advisory;
     the flag alone does not.
+  - **Windows + R-devel is checked here, not on win-builder, and that is
+    deliberate.** win-builder is the canonical route and its *upload*
+    works — the form echoes back the filename and byte count — but its
+    result emails stopped arriving after 2026-08-17, across four
+    submissions to an address that demonstrably receives them. R-hub
+    cannot substitute: rhub 2.0.1 documents `r_versions` as “not
+    implemented yet” and ships one Windows platform at
+    `r_version = "*"`, so the R version cannot be pinned. A matrix entry
+    in our own Actions has no email dependency at all. Also note
+    `check_win_devel()`’s default FTP upload fails here with
+    `Failed FTP upload: 550`; use `webform = TRUE` (an HTTPS POST) if
+    win-builder is needed again.
   - **A job that fails at step 1, `Set up job`, is GitHub, not you.** It
     failed before checkout, so no package code ran. On 2026-08-17 all
     three ubuntu jobs of the post-#68-merge run on `main` died there
