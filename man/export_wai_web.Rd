@@ -20,15 +20,23 @@ written by \code{\link[=run_wai_adj]{run_wai_adj()}}.}
 \code{NULL} (default) to write nothing and only return the data. Created if it
 does not exist.}
 
-\item{gdp}{Optional data frame of published GDP growth with columns \code{time}
-and \code{value}. \code{time} may be a \code{Date} (as \code{\link[=get_real_time_gdp_vintages]{get_real_time_gdp_vintages()}}
-returns) or decimal time in either the \code{\link[=decimal_date_local]{decimal_date_local()}} convention or
-exact quarter fractions. When supplied, a \code{gdp_qoq} column is added.
+\item{gdp}{Optional data frame of published GDP, with a \code{time} column plus
+either
+\itemize{
+\item \code{qoq}, \code{yoy} and/or \code{index} — as \code{\link[=gdp_web_series]{gdp_web_series()}} returns, already on
+the published scale. This is the intended route.
+\item \code{value} — the older single-series shape, written out as \code{gdp_qoq}.
+}
 
-Note the units: \code{\link[=get_real_time_gdp_vintages]{get_real_time_gdp_vintages()}} returns \code{"quarterly"} as a
-log difference and \code{"annual"} as a fraction, whereas \code{wai_qoq} is an
-annualised percentage. Convert before passing, or the two will be plotted
-on one axis at scales that differ by a factor of roughly 400.}
+\code{time} may be a \code{Date} (as \code{\link[=get_real_time_gdp_vintages]{get_real_time_gdp_vintages()}} returns) or
+decimal time in either the \code{\link[=decimal_date_local]{decimal_date_local()}} convention or exact
+quarter fractions.
+
+Mind the units if you build this frame yourself:
+\code{\link[=get_real_time_gdp_vintages]{get_real_time_gdp_vintages()}} returns \code{"quarterly"} as a log difference
+and \code{"annual"} as a fraction, whereas \code{wai_qoq} is an annualised
+percentage — unconverted, the two differ on one axis by a factor of roughly
+400. \code{\link[=gdp_web_series]{gdp_web_series()}} exists to spare you that conversion.}
 
 \item{digits}{Number of decimal places to round the published series to.
 Defaults to 4, which is well past the precision the model supports and
@@ -57,8 +65,10 @@ The CSV has one row per weekly period and these columns, in this order:
 growth and its 95\% band, from the factor and \code{factor_var}.}
 \item{\code{wai_yoy}}{Year-over-year growth of the level index.}
 \item{\code{wai_index}}{Level index, rebased to the mean of 2019Q4 = 100.}
-\item{\code{gdp_qoq}}{Published GDP growth, placed on the last weekly period of
-each quarter and empty elsewhere. Omitted when \code{gdp} is \code{NULL}.}
+\item{\code{gdp_qoq}, \code{gdp_yoy}, \code{gdp_index}}{Published GDP on the same three
+measures, placed on the last weekly period of each quarter and empty
+elsewhere. Omitted when \code{gdp} is \code{NULL}; which of the three appear
+depends on which columns \code{gdp} carries.}
 }
 
 \strong{\code{wai_index} and \code{wai_yoy} are published without bands, deliberately.} The

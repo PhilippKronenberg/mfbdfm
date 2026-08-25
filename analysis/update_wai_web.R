@@ -89,7 +89,7 @@ validate_export <- function(dir) {
   must(length(lines) > 100, "wai_data.csv has only ", length(lines), " lines")
 
   expected <- c("date", "wai_qoq", "wai_qoq_lo", "wai_qoq_hi", "wai_yoy",
-                "wai_index", "gdp_qoq")
+                "wai_index", "gdp_qoq", "gdp_yoy", "gdp_index")
   header <- strsplit(lines[1], ",", fixed = TRUE)[[1]]
   must(identical(header, expected),
        "wai_data.csv header is\n  ", lines[1],
@@ -198,19 +198,13 @@ staging <- file.path(tempdir(), "wai-export")
 unlink(staging, recursive = TRUE)
 dir.create(staging, recursive = TRUE)
 
-# get_real_time_gdp_vintages() returns quarter-on-quarter LOG DIFFERENCES, while
-# wai_qoq is an annualised percentage. Plotted on one axis unconverted they
-# differ by a factor of roughly 400, so convert here.
-#
-# `time` is a Date and is passed through as one: as.numeric() on a Date gives
-# days since 1970, which is not decimal time and silently placed zero GDP points
-# on the weekly grid.
-gdp_published <- get_real_time_gdp_vintages("quarterly")
-gdp_latest <- data.frame(
-  time  = gdp_published$time,
-  value = (exp(as.numeric(gdp_published[[ncol(gdp_published)]]) * 4) - 1) * 100
-)
-gdp_latest <- gdp_latest[!is.na(gdp_latest$value), ]
+# gdp_web_series() returns official GDP as annualised QoQ growth, YoY growth and
+# a level index rebased to 2019Q4 = 100 - the same three measures as the WAI
+# series and on the same scale, so they can share an axis. Doing the conversion
+# here by hand is what produced two earlier bugs: raw log differences (wrong by
+# a factor of ~400) and Dates coerced with as.numeric() (days since 1970, so no
+# GDP point matched any week).
+gdp_latest <- gdp_web_series()
 
 export_wai_web(fit_path, dir = staging, gdp = gdp_latest, digits = digits,
                vintage_date = as.character(dec2week(eval_date)))

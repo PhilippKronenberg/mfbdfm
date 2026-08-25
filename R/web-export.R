@@ -15,8 +15,10 @@
 #'     growth and its 95% band, from the factor and `factor_var`.}
 #'   \item{`wai_yoy`}{Year-over-year growth of the level index.}
 #'   \item{`wai_index`}{Level index, rebased to the mean of 2019Q4 = 100.}
-#'   \item{`gdp_qoq`}{Published GDP growth, placed on the last weekly period of
-#'     each quarter and empty elsewhere. Omitted when `gdp` is `NULL`.}
+#'   \item{`gdp_qoq`, `gdp_yoy`, `gdp_index`}{Published GDP on the same three
+#'     measures, placed on the last weekly period of each quarter and empty
+#'     elsewhere. Omitted when `gdp` is `NULL`; which of the three appear
+#'     depends on which columns `gdp` carries.}
 #' }
 #'
 #' **`wai_index` and `wai_yoy` are published without bands, deliberately.** The
@@ -36,15 +38,21 @@
 #' @param dir Directory to write `wai_data.csv` and `wai_meta.json` into, or
 #'   `NULL` (default) to write nothing and only return the data. Created if it
 #'   does not exist.
-#' @param gdp Optional data frame of published GDP growth with columns `time`
-#'   and `value`. `time` may be a `Date` (as [get_real_time_gdp_vintages()]
-#'   returns) or decimal time in either the [decimal_date_local()] convention or
-#'   exact quarter fractions. When supplied, a `gdp_qoq` column is added.
+#' @param gdp Optional data frame of published GDP, with a `time` column plus
+#'   either
+#'   * `qoq`, `yoy` and/or `index` — as [gdp_web_series()] returns, already on
+#'     the published scale. This is the intended route.
+#'   * `value` — the older single-series shape, written out as `gdp_qoq`.
 #'
-#'   Note the units: [get_real_time_gdp_vintages()] returns `"quarterly"` as a
-#'   log difference and `"annual"` as a fraction, whereas `wai_qoq` is an
-#'   annualised percentage. Convert before passing, or the two will be plotted
-#'   on one axis at scales that differ by a factor of roughly 400.
+#'   `time` may be a `Date` (as [get_real_time_gdp_vintages()] returns) or
+#'   decimal time in either the [decimal_date_local()] convention or exact
+#'   quarter fractions.
+#'
+#'   Mind the units if you build this frame yourself:
+#'   [get_real_time_gdp_vintages()] returns `"quarterly"` as a log difference
+#'   and `"annual"` as a fraction, whereas `wai_qoq` is an annualised
+#'   percentage — unconverted, the two differ on one axis by a factor of roughly
+#'   400. [gdp_web_series()] exists to spare you that conversion.
 #' @param digits Number of decimal places to round the published series to.
 #'   Defaults to 4, which is well past the precision the model supports and
 #'   keeps the file small.
@@ -114,7 +122,20 @@ export_wai_web <- function(fit_path, dir = NULL, gdp = NULL, digits = 4,
   dat$wai_index <- round(match_on_date(lv$time, lv$value, dat$date), digits)
 
   if (!is.null(gdp)) {
-    dat$gdp_qoq <- round(gdp_on_weekly_grid(gdp, dat$date), digits)
+    if (!"time" %in% names(gdp)) {
+      stop("`gdp` must have a `time` column.", call. = FALSE)
+    }
+    measures <- intersect(c("qoq", "yoy", "index"), names(gdp))
+    if (length(measures)) {
+      for (m in measures) {
+        dat[[paste0("gdp_", m)]] <-
+          round(gdp_on_weekly_grid(data.frame(time = gdp$time, value = gdp[[m]]),
+                                   dat$date), digits)
+      }
+    } else {
+      # the older single-series shape
+      dat$gdp_qoq <- round(gdp_on_weekly_grid(gdp, dat$date), digits)
+    }
   }
 
   dat <- dat[order(dat$date), , drop = FALSE]
@@ -158,7 +179,8 @@ match_on_date <- function(times, values, target) {
 # carrying a second, differently-indexed file.
 gdp_on_weekly_grid <- function(gdp, target) {
   if (!all(c("time", "value") %in% names(gdp))) {
-    stop("`gdp` must have columns `time` and `value`.", call. = FALSE)
+    stop("`gdp` must have columns `time` and `value`, or `time` plus any of ",
+         "`qoq`, `yoy`, `index` as gdp_web_series() returns.", call. = FALSE)
   }
   out <- rep(NA_real_, length(target))
   target_q <- quarter_key(as.numeric(format(target, "%Y")),
@@ -223,4 +245,113 @@ to_json <- function(x) {
          paste0("  \"", names(x), "\": ", vapply(x, render, character(1)),
                 collapse = ",\n"),
          "\n}")
+}
+
+
+#' Published GDP on the same scale as the exported WAI series
+#'
+#' Builds official GDP as quarter-on-quarter annualised growth, year-over-year
+#' growth and a rebased level index, all on the units [export_wai_web()]
+#' publishes, so the three can be plotted against their WAI counterparts on one
+#' axis.
+#'
+#' @details
+#' [get_real_time_gdp_vintages()] returns `"quarterly"` as a log difference and
+#' `"annual"` as a fraction, neither of which is the annualised percentage the
+#' WAI series use. Rather than convert at each call site — which is how an
+#' unconverted log difference nearly reached the published dashboard, wrong by a
+#' factor of roughly 400 — the conversion lives here, in one tested place.
+#'
+#' All three series are derived from the *same* vintage levels, so they are
+#' mutually consistent by construction:
+#'
+#' \describe{
+#'   \item{`qoq`}{`((level_t / level_{t-1})^4 - 1) * 100`}
+#'   \item{`yoy`}{`(level_t / level_{t-4} - 1) * 100`}
+#'   \item{`index`}{`100 * level_t / level_base`}
+#' }
+#'
+#' @param vintage Which publication vintage to use: `"latest"` (default) for the
+#'   most recent column, or the name of a vintage column.
+#' @param base_date `Date` (or string) naming the quarter the level index is
+#'   rebased to. Defaults to 2019-10-01, matching `wai_index`, whose base is the
+#'   last quarter of 2019.
+#' @param start_date,end_date Optional `Date` bounds on the quarters returned.
+#'   The growth rates are always computed on the full available history and the
+#'   window applied afterwards, so the first returned quarter carries a real
+#'   `qoq` and `yoy` rather than the `NA` a post-trim lag would leave.
+#' @param ... Passed to [get_real_time_gdp_vintages()], e.g. the two file-path
+#'   arguments.
+#'
+#' @return A data frame with columns `time` (Date, quarter start), `qoq`, `yoy`
+#'   and `index`. Ready to hand to [export_wai_web()]'s `gdp` argument.
+#'
+#' @seealso [get_real_time_gdp_vintages()] for the untransformed vintages.
+#'
+#' @examples
+#' \donttest{
+#' gdp <- gdp_web_series()
+#' tail(gdp)
+#' }
+#' @export
+gdp_web_series <- function(vintage = "latest", base_date = as.Date("2019-10-01"),
+                           start_date = as.Date("1990-01-01"), end_date = NULL,
+                           ...) {
+
+  # Pull the FULL history, not the requested window. get_real_time_gdp_vintages()
+  # differences before it trims, so its 1990Q1 growth is computed against 1989Q4;
+  # trimming first and differencing after would silently drop the first quarter
+  # of `qoq` and the first year of `yoy`. The window is applied at the end.
+  lev <- get_real_time_gdp_vintages("level", start_date = NULL, end_date = NULL,
+                                    ...)
+
+  if (identical(vintage, "latest")) {
+    col <- ncol(lev)
+  } else {
+    col <- match(as.character(vintage), names(lev))
+    if (is.na(col)) {
+      stop("`vintage` is not a column of the vintage table: ", vintage,
+           ". Use \"latest\", or one of ", paste(utils::head(names(lev)[-1], 3),
+                                                 collapse = ", "), ", ...",
+           call. = FALSE)
+    }
+  }
+
+  v <- as.numeric(lev[[col]])
+  time <- as.Date(lev$time)
+
+  # A vintage column is NA before the series starts and after it ends. Trim to
+  # the observed span so the lags below are taken against real quarters.
+  obs <- which(!is.na(v))
+  if (!length(obs)) stop("vintage column `", names(lev)[col], "` is empty.",
+                         call. = FALSE)
+  keep <- seq(min(obs), max(obs))
+  v <- v[keep]
+  time <- time[keep]
+
+  lag_ratio <- function(x, k) c(rep(NA_real_, k), x[-seq_len(k)] / utils::head(x, -k))
+
+  base_date <- as.Date(base_date)
+  base_idx <- match(base_date, time)
+  if (is.na(base_idx)) {
+    warning("GDP vintage does not cover the base quarter ", base_date,
+            "; rebasing the level index to its first observation instead. ",
+            "Level values are not comparable with `wai_index`.", call. = FALSE)
+    base_idx <- 1L
+  }
+
+  out <- data.frame(
+    time  = time,
+    qoq   = (lag_ratio(v, 1)^4 - 1) * 100,
+    yoy   = (lag_ratio(v, 4) - 1) * 100,
+    index = 100 * v / v[base_idx],
+    stringsAsFactors = FALSE
+  )
+
+  keep <- rep(TRUE, nrow(out))
+  if (!is.null(start_date)) keep <- keep & out$time >= as.Date(start_date)
+  if (!is.null(end_date))   keep <- keep & out$time <= as.Date(end_date)
+  out <- out[keep, , drop = FALSE]
+  rownames(out) <- NULL
+  out
 }

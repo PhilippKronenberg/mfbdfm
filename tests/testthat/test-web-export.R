@@ -5,8 +5,12 @@ test_that("export_wai_web() validates its arguments", {
   f <- synth_fit_file()
   expect_error(export_wai_web(f, digits = -1), "non-negative whole number")
   expect_error(export_wai_web(f, digits = 2.5), "non-negative whole number")
+  # a frame with no `time` column at all is named for what it is missing
   expect_error(export_wai_web(f, gdp = data.frame(t = 1, v = 2)),
-               "columns `time` and `value`")
+               "`time` column")
+  # one with `time` but no recognised measure names the alternatives
+  expect_error(export_wai_web(f, gdp = data.frame(time = 1, v = 2)),
+               "`qoq`, `yoy`, `index`")
 })
 
 
@@ -127,4 +131,63 @@ test_that("gdp_on_weekly_grid() accepts Dates and both decimal conventions", {
   expect_equal(placed[[1]], vals)
   expect_equal(placed[[2]], vals)
   expect_equal(placed[[3]], vals)
+})
+
+
+test_that("export_wai_web() writes one column per GDP measure supplied", {
+  f <- synth_fit_file(start = 1990, end = 1994)
+  qs <- seq(as.Date("1990-01-01"), by = "quarter", length.out = 16)
+
+  all_three <- data.frame(time = qs, qoq = seq_len(16) / 10,
+                          yoy = seq_len(16) / 5, index = 90 + seq_len(16))
+  d <- export_wai_web(f, gdp = all_three)$data
+  expect_named(d, c("date", "wai_qoq", "wai_qoq_lo", "wai_qoq_hi", "wai_yoy",
+                    "wai_index", "gdp_qoq", "gdp_yoy", "gdp_index"))
+  expect_equal(d$gdp_qoq[!is.na(d$gdp_qoq)], seq_len(16) / 10)
+  expect_equal(d$gdp_index[!is.na(d$gdp_index)], 90 + seq_len(16))
+
+  # a subset of measures yields a subset of columns
+  d2 <- export_wai_web(f, gdp = all_three[, c("time", "yoy")])$data
+  expect_true("gdp_yoy" %in% names(d2))
+  expect_false(any(c("gdp_qoq", "gdp_index") %in% names(d2)))
+
+  # and the older time/value shape still lands in gdp_qoq
+  d3 <- export_wai_web(f, gdp = data.frame(time = qs, value = seq_len(16)))$data
+  expect_true("gdp_qoq" %in% names(d3))
+  expect_equal(d3$gdp_qoq[!is.na(d3$gdp_qoq)], as.numeric(seq_len(16)))
+
+  expect_error(export_wai_web(f, gdp = data.frame(x = 1)), "`time` column")
+})
+
+
+test_that("gdp_web_series() puts GDP on the published scale", {
+  g <- gdp_web_series()
+
+  expect_named(g, c("time", "qoq", "yoy", "index"))
+  expect_s3_class(g$time, "Date")
+  expect_false(is.unsorted(g$time))
+
+  # rebased exactly to the 2019Q4 base, matching wai_index's base
+  expect_equal(g$index[g$time == as.Date("2019-10-01")], 100)
+
+  # lags are computed on the full history before the 1990 window is applied, so
+  # the first returned quarter carries a real value rather than an NA
+  expect_false(anyNA(g$qoq))
+  expect_false(anyNA(g$yoy))
+  expect_false(anyNA(g$index))
+  expect_equal(min(g$time), as.Date("1990-01-01"))
+
+  # annualised percent, not a log difference: same order of magnitude as the WAI
+  expect_true(max(abs(g$qoq), na.rm = TRUE) > 1)
+  expect_true(max(abs(g$qoq), na.rm = TRUE) < 100)
+
+  # and it is the annualisation of what the vintage table returns
+  q <- get_real_time_gdp_vintages("quarterly")
+  raw <- as.numeric(q[[ncol(q)]])[match(g$time, as.Date(q$time))]
+  expect_equal(g$qoq, (exp(raw * 4) - 1) * 100, tolerance = 1e-8)
+})
+
+
+test_that("gdp_web_series() rejects an unknown vintage", {
+  expect_error(gdp_web_series(vintage = "not-a-vintage"), "not a column")
 })

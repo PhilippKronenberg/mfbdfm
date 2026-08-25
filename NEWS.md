@@ -1,5 +1,29 @@
 # mfbdfm 0.1.0.9000
 
+* New `gdp_web_series()`, which returns published GDP as annualised QoQ growth,
+  YoY growth and a level index rebased to 2019Q4 = 100 - the same three
+  measures as the exported WAI series and on the same scale, so they share an
+  axis. The conversion lives in one tested place because doing it by hand is
+  what produced two bugs: raw log differences plotted against annualised
+  percentages (wrong by a factor of ~400), and `as.numeric()` on a `Date`
+  (days since 1970, so no GDP point matched any week) (#76).
+
+* `get_real_time_gdp_vintages()` gains `output_type = "level"`, validates
+  `output_type` with `match.arg()`, and takes `start_date`/`end_date`. An
+  unmatched `output_type` used to fall through both branches and return the
+  untransformed levels *silently*, so a typo produced levels labelled as
+  growth. The levels are a documented option now rather than an accident (#76).
+
+* `get_real_time_gdp_vintages()` no longer hard-codes a `2025-12-31` upper
+  bound. It removed nothing while the shipped vintage files ended in 2025, and
+  would have silently truncated the newest quarter the moment a 2026 vintage
+  arrived - exactly when a live indicator needs it (#76).
+
+* `export_wai_web()` accepts a `gdp` frame carrying any of `qoq`, `yoy` and
+  `index` and writes `gdp_qoq`, `gdp_yoy` and `gdp_index` accordingly, so
+  official GDP can be shown against all three WAI views. The older
+  `time`/`value` shape still works and still lands in `gdp_qoq` (#76).
+
 * New `export_wai_web()`, which turns a saved WAI fit into the wide
   `wai_data.csv` and `wai_meta.json` pair consumed by the public dashboard.
   The CSV contract (column names and order, empty string for missing, ISO

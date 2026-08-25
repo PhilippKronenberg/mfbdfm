@@ -6,15 +6,31 @@
 #' per quarter. Pre-2018Q3 vintages are taken from `gdp_file_path`,
 #' later ones from `gdp_cssa_file_path`.
 #'
-#' @param output_type Character, `"quarterly"` for quarter-on-quarter log
-#'   differences or `"annual"` for year-on-year growth rates.
+#' @param output_type Character, one of `"quarterly"`, `"annual"` or
+#'   `"level"`. See the return section for what each one is, and in
+#'   particular for its units.
 #' @param gdp_file_path Path to the pre-2018Q3 vintage CSV. Defaults to
 #'   the file shipped with the package.
 #' @param gdp_cssa_file_path Path to the 2018Q3-onward vintage CSV.
 #'   Defaults to the file shipped with the package.
+#' @param start_date,end_date Optional `Date` bounds on the quarters
+#'   returned. `start_date` defaults to 1990-01-01; `end_date` defaults to
+#'   `NULL`, meaning no upper bound.
 #'
-#' @return A data frame with a `time` column (Date, quarter start) and
-#'   one numeric column per vintage.
+#' @return A data frame with a `time` column (Date, quarter start) and one
+#'   numeric column per vintage. `output_type` selects the transformation,
+#'   and the three differ in units:
+#'
+#' \describe{
+#'   \item{`"quarterly"`}{Quarter-on-quarter *log difference*, e.g. `0.00151`.}
+#'   \item{`"annual"`}{Year-on-year growth as a *fraction*, e.g. `0.0241`.}
+#'   \item{`"level"`}{The vintage *levels*, untransformed.}
+#' }
+#'
+#' None of these is the annualised percentage that [export_wai_web()]
+#' publishes as `wai_qoq`: plotted on one axis unconverted, `"quarterly"`
+#' and `wai_qoq` differ by a factor of roughly 400. [gdp_web_series()] does
+#' the conversion.
 #'
 #' @examples
 #' \donttest{
@@ -23,13 +39,20 @@
 #' }
 #'
 #' @export
-get_real_time_gdp_vintages <- function(output_type,
+get_real_time_gdp_vintages <- function(output_type = c("quarterly", "annual", "level"),
                                        gdp_file_path = system.file("extdata",
                                                                    "realtime_gdp.csv",
                                                                    package = "mfbdfm"),
                                        gdp_cssa_file_path = system.file("extdata",
                                                                         "realtime_gdp_cssa.csv",
-                                                                        package = "mfbdfm")){
+                                                                        package = "mfbdfm"),
+                                       start_date = as.Date("1990-01-01"),
+                                       end_date = NULL){
+
+  # An unmatched value used to fall through both branches below and return the
+  # UNTRANSFORMED levels, silently - so a typo produced levels labelled as
+  # growth. "level" is a documented option now rather than an accident.
+  output_type <- match.arg(output_type)
 
   # Usage
   gdp_cssa_info <- read_sheet_info(gdp_cssa_file_path, has_dates = FALSE)
@@ -59,13 +82,20 @@ get_real_time_gdp_vintages <- function(output_type,
     # Apply year-on-year growth rates to each numeric column except 'time'
     GDP_gr_vintages[ , -1] <- apply(combined_list[ , -1], 2, function(x) c(rep(NA, 4), x[5:length(x)] / x[1:(length(x) - 4)] - 1))
   }
+  # "level" deliberately leaves combined_list untransformed.
 
   # Convert time column to Date class
   GDP_gr_vintages$time <- as.Date(GDP_gr_vintages$time)
 
-  # Filter rows between 1990-01-01 and 2025-12-31
-  GDP_gr_vintages <- GDP_gr_vintages[GDP_gr_vintages$time >= as.Date("1990-01-01") &
-                                       GDP_gr_vintages$time <= as.Date("2025-12-31"), ]
+  # The upper bound used to be a hard-coded 2025-12-31. It removed nothing while
+  # the shipped vintage files ended in 2025, and would have silently truncated
+  # the newest quarter the moment a 2026 vintage arrived - which is exactly when
+  # a live indicator needs it. Both bounds are arguments now, and there is no
+  # upper one by default.
+  keep <- rep(TRUE, nrow(GDP_gr_vintages))
+  if (!is.null(start_date)) keep <- keep & GDP_gr_vintages$time >= as.Date(start_date)
+  if (!is.null(end_date))   keep <- keep & GDP_gr_vintages$time <= as.Date(end_date)
+  GDP_gr_vintages <- GDP_gr_vintages[keep, ]
 
   dates <- as.Date(gdp_info$dates, format = "%d.%m.%Y")
 
