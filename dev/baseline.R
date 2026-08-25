@@ -10,6 +10,10 @@
 #   baseline_check()     # compare the current code against the stored snapshot
 #   baseline_write()     # regenerate it, when a change is MEANT to alter results
 #
+# baseline_write() is also what you run after a component is ADDED to
+# baseline_digest(): the snapshot cannot contain a value it predates, and
+# baseline_check() now says so rather than skipping it quietly.
+#
 # NOT a CI test, deliberately. MCMC output is not bit-identical across
 # platforms: a different BLAS sums in a different order, which shifts the last
 # bit, and an MCMC chain amplifies that into an O(1) difference within a few
@@ -100,6 +104,13 @@ baseline_digest <- function(fit){
 
   list(factor = keep(fit$factor),
        factor_var = keep(fit$factor_var),
+       # $index went uncovered until #92, which is why baseline_check() stayed
+       # clean while the cumulated activity index was compounding exp(gr)
+       # instead of (1 + gr) - a one-signed error that drifted the index a
+       # permanent ~0.1 index points. Every exported numeric output belongs
+       # here; a component that is not listed is a component this tool cannot
+       # protect.
+       index = keep(fit$index),
        nowcast = keep(fit$nowcast),
        nowcast_var = keep(fit$nowcast_var),
        lambda = keep(fit$pars$lambda),
@@ -196,6 +207,21 @@ baseline_check <- function(path = BASELINE_PATH){
     }
 
     a <- old$fits[[nm]]; b <- new[[nm]]
+
+    # Components the CURRENT digest produces but the stored snapshot predates.
+    # The comparison below walks names(a), the stored names, so anything added
+    # to baseline_digest() since the snapshot was written would otherwise be
+    # skipped in silence - covered on paper, unchecked in fact. Report it
+    # instead, and do not call the run a match while it is outstanding.
+    uncovered <- setdiff(names(b), names(a))
+    if(length(uncovered)){
+      cat(sprintf("  %-14s NOT COVERED by this snapshot: %s\n", nm,
+                  paste(uncovered, collapse = ", ")))
+      cat("                 (added to baseline_digest() since it was written -",
+          "run baseline_write() to include them)\n")
+      ok <- FALSE
+    }
+
     diffs <- names(a)[!vapply(names(a), function(k) identical(a[[k]], b[[k]]), logical(1))]
 
     if(!length(diffs)){
