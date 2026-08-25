@@ -37,7 +37,10 @@ jobs:
         id: claude
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Authenticates against the Claude subscription rather than metered
+          # API credit. Swapping this back to anthropic_api_key resumes
+          # per-token billing on every @claude mention.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
           # Optional: Customize the Claude trigger phrase
           # trigger_phrase: "/claude"
