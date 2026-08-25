@@ -220,7 +220,7 @@ dfm_memory(n = 53, t = 1535, s = 22, q = 2, length_sample = 500)
 # the whole point: how many workers fit in 24 GB
 dfm_workers(n = 53, t = 1535, s = 22, q = 4, length_sample = 500,
             available_mb = 24 * 1024)
-#> [1] 4
+#> [1] 2
 #> attr(,"per_fit_mb")
 #> [1] 1959.264
 #> attr(,"available_mb")
