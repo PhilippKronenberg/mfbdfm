@@ -37,12 +37,15 @@ webapp_dir <- Sys.getenv("WAI_WEBAPP_DIR", unset = "../wai-webapp")
 
 target       <- "ch.seco.gdp.real.gdp.ssa"
 dataset_path <- file.path("analysis", "Rda", "data_ch_dataset_test.Rda")
-fit_root     <- file.path("fits", "web")
+fit_root     <- "fits"
 
 # Chain settings. These are run_wai_adj()'s own defaults, stated explicitly so a
-# scheduled run never silently changes length because a default moved.
-length_sample <- 5000
-burn_in       <- 1000
+# scheduled run never silently changes length because a default moved. The
+# environment overrides exist so the wiring - fit, export, validate, commit -
+# can be smoke-tested in a minute instead of the best part of an hour; a real
+# run must not set them.
+length_sample <- as.integer(Sys.getenv("WAI_LENGTH_SAMPLE", unset = "5000"))
+burn_in       <- as.integer(Sys.getenv("WAI_BURN_IN",       unset = "1000"))
 thinning      <- 1
 
 # The published series is rounded to this many decimals.
@@ -173,9 +176,15 @@ GDP_gr_vintages <- get_real_time_gdp_vintages("quarterly")
 # The evaluation date is the most recent completed weekly period in the data.
 last_week <- max(vapply(c(dat$flows, dat$stocks),
                         function(x) max(as.numeric(stats::time(x))), numeric(1)))
-eval_date <- round(last_week, 4)
+# Round to 3 decimals, which is what run_wai_adj() uses to NAME the fit file
+# (`paste0("fit_", round(date, 3), ".Rda")`). Rounding to 4 here made the
+# evaluation date and the filename disagree, and the run died looking for a file
+# that had just been written under a different name - after the full chain had
+# already run.
+eval_date <- round(last_week, 3)
 say("fitting at ", eval_date, " (", length_sample, " draws after ", burn_in,
-    " burn-in) - this takes a few minutes")
+    " burn-in)", if (length_sample < 5000) " [SHORT CHAIN - smoke test only]" else
+      " - this takes a while")
 
 dat_rt <- cut_data_real_time(dat, eval_date, GDP_gr_vintages)
 dat_rt$flows[[target]] <- zoo::na.trim(
@@ -189,7 +198,7 @@ fit <- run_wai_adj(flows = dat_rt$flows, stocks = dat_rt$stocks,
                    length_sample = length_sample, burn_in = burn_in,
                    thinning = thinning, output_dir = fit_root)
 
-fit_path <- file.path(fit_root, "web", paste0("fit_", eval_date, ".Rda"))
+fit_path <- file.path(fit_root, "web", paste0("fit_", round(eval_date, 3), ".Rda"))
 must(file.exists(fit_path), "run_wai_adj() did not write ", fit_path)
 say("fit written to ", fit_path)
 
@@ -215,8 +224,10 @@ say("export validated: ", info$n, " weeks, ending ", info$last)
 check_not_going_backwards(info$last, file.path(webapp_dir, "wai_data.csv"))
 
 # 4. Publish ---------------------------------------------------------------
-file.copy(file.path(staging, c("wai_data.csv", "wai_meta.json")),
-          webapp_dir, overwrite = TRUE)
+# invisible(): file.copy() returns a logical per file, and at a script's top
+# level that printed a bare `[1] TRUE TRUE` into the scheduled run's log.
+invisible(file.copy(file.path(staging, c("wai_data.csv", "wai_meta.json")),
+                    webapp_dir, overwrite = TRUE))
 
 changed <- length(git("status", "--porcelain", "--", "wai_data.csv", "wai_meta.json")) > 0
 if (!changed) {
