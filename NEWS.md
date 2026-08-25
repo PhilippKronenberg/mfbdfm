@@ -1,5 +1,18 @@
 # mfbdfm 0.1.0.9000
 
+* `extract_wai_data()` compounds the level index with `(1 + gr)` rather than
+  `exp(gr)`. `gr` is already a net per-period rate, so the gross growth factor
+  is `1 + gr`; `exp(x) > 1 + x` for every `x != 0`, which made the error
+  one-signed - it could only push the level up - and it compounded. Its size is
+  ~`gr^2/2` per period, so it was invisible in normal times and not invisible
+  when the weekly factor swings by tens of percent: `sum(gr^2/2)` over 2020
+  alone was 0.00078 against 0.00044 for all 35 other years combined, and the
+  index stepped ~0.08 index points above published GDP during 2020 and never
+  came back. **This changes `tab_gr_lv`, `tab_gr_lv_full` and `tab_wai_yoy`,
+  and any plot built on them, by up to ~0.1 index points.** Nowcast-based
+  results are untouched - the nowcast path never goes through this cumulation,
+  which is why the paper's replication never showed it (#92).
+
 * `aggregate_predictor_to_quarterly()` no longer defaults `method` to
   `"cut_off"`, a value no branch implements - calling the function with its own
   default always errored, and the error message named `'cut_off'` as valid while

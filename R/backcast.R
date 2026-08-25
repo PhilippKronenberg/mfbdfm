@@ -423,12 +423,20 @@ extract_wai_data <- function(file_path) {
   gr <- (1 + out$factor/100)^(1/48) - 1
   gr <- window(gr, start = time(out$factor)[[1]], end = time(out$factor)[length(out$factor)])
 
-  lev <- 100
-  idx <- numeric(length(gr))
-  for (jx in 1:length(gr)) {
-    idx[jx] <- exp(gr[jx]) * lev
-    lev <- idx[jx]
-  }
+  # Compound the NET rate `gr` as (1 + gr), not exp(gr).
+  #
+  # gr is already a net per-period rate - (1 + factor/100)^(1/48) - 1 - so the
+  # gross growth factor is (1 + gr), and the loop used to apply exp(gr) instead.
+  # exp(x) > 1 + x for every x != 0, so the error was ONE-SIGNED: it could only
+  # push the level up, never down, and it accumulated. Its size is ~gr^2/2 per
+  # period, negligible while the weekly factor is small but not while it swings
+  # by tens of percent - sum(gr^2/2) over 2020 alone was 0.00078 against 0.00044
+  # for all 35 other years combined. The result was a level index that stepped
+  # permanently ~0.08 index points above GDP during 2020 and never came back.
+  #
+  # (1 + gr) is exactly (1 + factor/100)^(1/48), so the cumulation is a cumprod
+  # of the gross factors and the loop is gone.
+  idx <- 100 * cumprod(as.numeric(1 + gr))
 
   idx_ts <- ts(idx, start = time(out$factor)[1], frequency = frequency(out$factor))
 
