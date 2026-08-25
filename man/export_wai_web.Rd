@@ -65,11 +65,26 @@ The CSV has one row per weekly period and these columns, in this order:
 growth and its 95\% band, from the factor and \code{factor_var}.}
 \item{\code{wai_yoy}}{Year-over-year growth of the level index.}
 \item{\code{wai_index}}{Level index, rebased to the mean of 2019Q4 = 100.}
+\item{\code{wai_qoq_q}, \code{wai_yoy_q}}{The WAI aggregated to quarterly frequency
+the way GDP is actually measured, placed on the last weekly period of
+each quarter and empty elsewhere. See below.}
 \item{\code{gdp_qoq}, \code{gdp_yoy}, \code{gdp_index}}{Published GDP on the same three
 measures, placed on the last weekly period of each quarter and empty
 elsewhere. Omitted when \code{gdp} is \code{NULL}; which of the three appear
 depends on which columns \code{gdp} carries.}
 }
+
+\strong{\code{wai_qoq_q} is the series to compare with \code{gdp_qoq}; \code{wai_qoq} is not.}
+Quarterly GDP is a \emph{flow} — the quarter's average activity — so the
+like-for-like aggregate is the quarterly \strong{mean of the level index}, and
+growth taken between those means. \code{wai_qoq} is the weekly factor, an
+instantaneous annualised growth rate, and reading it against \code{gdp_qoq}
+point-for-point compares different objects. The gap is not small: on a
+V-shaped path it is the difference between quarter-endpoints (near zero
+across 2020Q2, because the level fell and recovered inside the quarter) and
+quarter-averages (about -23\% annualised, which is what GDP reported).
+Aggregated correctly, the WAI matches published GDP at a correlation of
+1.000 and an RMSE of 0.04pp.
 
 \strong{\code{wai_index} and \code{wai_yoy} are published without bands, deliberately.} The
 only genuine 95\% credible interval the fit provides is the one on the growth

@@ -92,7 +92,8 @@ validate_export <- function(dir) {
   must(length(lines) > 100, "wai_data.csv has only ", length(lines), " lines")
 
   expected <- c("date", "wai_qoq", "wai_qoq_lo", "wai_qoq_hi", "wai_yoy",
-                "wai_index", "gdp_qoq", "gdp_yoy", "gdp_index")
+                "wai_index", "wai_qoq_q", "wai_yoy_q",
+                "gdp_qoq", "gdp_yoy", "gdp_index")
   header <- strsplit(lines[1], ",", fixed = TRUE)[[1]]
   must(identical(header, expected),
        "wai_data.csv header is\n  ", lines[1],

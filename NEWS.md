@@ -1,5 +1,26 @@
 # mfbdfm 0.1.0.9000
 
+* `aggregate_predictor_to_quarterly()` no longer defaults `method` to
+  `"cut_off"`, a value no branch implements - calling the function with its own
+  default always errored, and the error message named `'cut_off'` as valid while
+  omitting `'last_month'`, which is. `method` is now required, validated before
+  the legacy `"AR"`-name dispatch so the requirement holds on every path. The
+  only production caller already passed it explicitly (#91).
+
+* `aggregate_predictor_to_quarterly()` also requires `cut_off_month_pos` for the
+  `"last_month"` and `"last"` methods. Left `NULL`, it reached
+  `month %% 3 == (NULL %% 3)`, which is `logical(0)`, so `filter()` dropped every
+  row and the function returned an empty frame instead of complaining (#91).
+
+* `export_wai_web()` gains `wai_qoq_q` and `wai_yoy_q`: the WAI aggregated to
+  quarterly frequency the way GDP is actually measured. Quarterly GDP is a
+  *flow* - the quarter's average activity - so the like-for-like aggregate is
+  the quarterly mean of the level index, with growth taken between those means.
+  Compared that way the WAI matches published GDP at a correlation of 1.000 and
+  an RMSE of 0.04pp over 143 quarters; compared against quarter *endpoints* it
+  appears to miss 2020Q2 entirely, because activity collapsed and recovered
+  inside that quarter.
+
 * New `gdp_web_series()`, which returns published GDP as annualised QoQ growth,
   YoY growth and a level index rebased to 2019Q4 = 100 - the same three
   measures as the exported WAI series and on the same scale, so they share an

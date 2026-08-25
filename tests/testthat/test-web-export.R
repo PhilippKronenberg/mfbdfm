@@ -18,7 +18,7 @@ test_that("export_wai_web() returns the documented column contract", {
   web <- export_wai_web(synth_fit_file())
 
   expect_named(web$data, c("date", "wai_qoq", "wai_qoq_lo", "wai_qoq_hi",
-                           "wai_yoy", "wai_index"))
+                           "wai_yoy", "wai_index", "wai_qoq_q", "wai_yoy_q"))
   expect_s3_class(web$data$date, "Date")
   expect_false(is.unsorted(web$data$date))
   expect_equal(anyDuplicated(web$data$date), 0L)
@@ -64,7 +64,8 @@ test_that("the written CSV matches the front end's parsing assumptions", {
 
   # bare, unquoted header in the documented order
   expect_identical(lines[1],
-                   "date,wai_qoq,wai_qoq_lo,wai_qoq_hi,wai_yoy,wai_index")
+                   paste0("date,wai_qoq,wai_qoq_lo,wai_qoq_hi,wai_yoy,",
+                          "wai_index,wai_qoq_q,wai_yoy_q"))
   expect_false(any(grepl("\"", lines)))
   # missing is the empty string, never NA/NaN/NULL
   expect_false(any(grepl("\\b(NA|NaN|NULL)\\b", lines)))
@@ -142,7 +143,8 @@ test_that("export_wai_web() writes one column per GDP measure supplied", {
                           yoy = seq_len(16) / 5, index = 90 + seq_len(16))
   d <- export_wai_web(f, gdp = all_three)$data
   expect_named(d, c("date", "wai_qoq", "wai_qoq_lo", "wai_qoq_hi", "wai_yoy",
-                    "wai_index", "gdp_qoq", "gdp_yoy", "gdp_index"))
+                    "wai_index", "wai_qoq_q", "wai_yoy_q",
+                    "gdp_qoq", "gdp_yoy", "gdp_index"))
   expect_equal(d$gdp_qoq[!is.na(d$gdp_qoq)], seq_len(16) / 10)
   expect_equal(d$gdp_index[!is.na(d$gdp_index)], 90 + seq_len(16))
 
@@ -190,4 +192,42 @@ test_that("gdp_web_series() puts GDP on the published scale", {
 
 test_that("gdp_web_series() rejects an unknown vintage", {
   expect_error(gdp_web_series(vintage = "not-a-vintage"), "not a column")
+})
+
+
+test_that("wai_qoq_q aggregates the level index as a flow, not by endpoints", {
+  # a level index that falls and fully recovers WITHIN one quarter: endpoint
+  # growth is ~0, mean growth is deeply negative. This is the 2020Q2 shape, and
+  # the whole reason wai_qoq_q exists.
+  dates <- seq(as.Date("2020-01-07"), by = "week", length.out = 26)
+  idx <- c(rep(100, 12), c(100, 92, 85, 82, 85, 92, 99, 100, 100, 100, 100, 100), 100, 100)
+  q <- mfbdfm:::wai_quarterly_flow(dates, idx[seq_along(dates)])
+
+  placed <- which(!is.na(q$qoq))
+  expect_gt(length(placed), 0)
+  # the quarter containing the dip must come out clearly negative
+  expect_lt(min(q$qoq, na.rm = TRUE), -10)
+
+  # and it lands on the last week of its quarter
+  for (i in placed) {
+    same_q <- format(dates, "%Y-%m") >= format(dates[i], "%Y-%m")
+    expect_equal(dates[i], max(dates[format(dates, "%Y") == format(dates[i], "%Y") &
+      (as.integer(format(dates, "%m")) - 1) %/% 3 ==
+      (as.integer(format(dates[i], "%m")) - 1) %/% 3]))
+  }
+})
+
+
+test_that("wai_quarterly_flow() does not difference across a gap in quarters", {
+  # two quarters, then a year missing, then another quarter
+  d1 <- seq(as.Date("2020-01-07"), as.Date("2020-06-28"), by = "week")
+  d3 <- seq(as.Date("2021-07-07"), as.Date("2021-09-28"), by = "week")
+  dates <- c(d1, d3)
+  idx <- c(rep(100, length(d1)), rep(120, length(d3)))
+
+  q <- mfbdfm:::wai_quarterly_flow(dates, idx)
+  vals <- q$qoq[!is.na(q$qoq)]
+  # only the one genuinely adjacent pair inside d1 produces a growth rate;
+  # the jump across the gap must not be differenced
+  expect_true(all(abs(vals) < 1))
 })
