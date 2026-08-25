@@ -50,6 +50,14 @@ jobs:
       pull-requests: write   # open the PR
       id-token: write        # required for the action's GitHub App auth
       actions: read          # let the agent read CI results
+      # Lets the agent push files under .github/workflows/. Without it a push
+      # touching one is refused outright ("refusing to allow a GitHub App to
+      # create or update workflow ... without `workflows` permission"), which
+      # is what blocked #78. Granted knowingly: it also lets the agent modify
+      # THIS file -- its own permissions, model, cron, tools and prompt. Review
+      # any agent PR touching claude-agent-queue.yml as a permissions change,
+      # not as configuration.
+      workflows: write
     steps:
       - uses: actions/checkout@v6
         with:
