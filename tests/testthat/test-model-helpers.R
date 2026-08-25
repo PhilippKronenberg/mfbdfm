@@ -33,6 +33,42 @@ test_that("prepare_data aligns, standardizes, and zero-encodes missings", {
   expect_lte(sum(gdp_col != 0), length(dat$flows$gdp))
 })
 
+test_that("prepare_data keeps the final low-frequency observation", {
+  # Regression guard for the trim in prepare_data(), which is
+  # zoo::na.trim(is.na = "all") deliberately. The reference multi-factor
+  # implementation trimmed with window(start = min(raw times), end = max(raw
+  # times)) instead, and that variant silently drops the most recent quarterly
+  # observation: prepare_data() shifts a low-frequency observation to the *end*
+  # of its period, while the raw times window() would be handed are pre-shift.
+  #
+  # The shape of this fixture is the entire point of the test, so do not
+  # "simplify" it. The weekly series must stop at or before the quarterly
+  # series' *raw* end, so that the latest raw time anywhere in the inputs
+  # (2015.75) falls short of the quarterly series' *shifted* end
+  # (2015.75 + 11/48). On the shipped dataset the weekly series run past that
+  # point and the two rules coincide -- which is exactly why the bug went
+  # unnoticed there, and why make_synth_dat() cannot be used here.
+  gdp <- stats::ts(seq(0.1, 0.8, by = 0.1), start = c(2014, 1), frequency = 4)
+  w1 <- stats::ts(sin(seq_len(85)), start = c(2014, 1), frequency = 48)
+
+  # the premise the discrimination rests on: no series reaches the shifted end
+  shifted_end <- 2015.75 + 11 / 48
+  expect_lt(max(time(gdp)), shifted_end)
+  expect_lt(max(time(w1)), shifted_end)
+
+  inv <- create_inventory(flows = list(gdp = gdp, w1 = w1), stocks = NULL)
+  Ymat <- prepare_data(flows = list(gdp = gdp, w1 = w1), stocks = NULL,
+                       inventory = inv, target = "gdp")
+
+  # the trimmed matrix must extend to the shifted end, and every quarterly
+  # observation must survive -- the window() variant loses the last one
+  expect_equal(max(time(Ymat)), shifted_end, tolerance = 1e-6)
+  expect_equal(sum(Ymat[, "gdp"] != 0), length(gdp))
+  expect_equal(unname(Ymat[nrow(Ymat), "gdp"]),
+               (gdp[length(gdp)] - mean(gdp)) / sd(gdp),
+               tolerance = 1e-12)
+})
+
 test_that("distributed lag and system matrices have the right dimensions", {
   dat <- make_synth_dat()
   inv <- create_inventory(flows = dat$flows, stocks = dat$stocks)
