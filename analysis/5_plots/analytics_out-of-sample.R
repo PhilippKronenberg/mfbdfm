@@ -506,7 +506,12 @@ for (file in files) {
   idx <- rep(NA,length(gr))
   for(jx in 1:length(gr)){
     # Reconstruct the WAI level index from the fitted weekly growth factor.
-    idx[jx]<- exp(gr[jx]) * lev
+    # (1 + gr), not exp(gr): gr is a NET per-period rate, so the gross growth
+    # factor is 1 + gr. exp(x) > 1 + x for every x != 0, so the old form was
+    # one-signed - it could only push the level up - and it compounded, at
+    # ~gr^2/2 per period. Invisible while rates are small, not invisible in
+    # 2020. See mfbdfm issue #92.
+    idx[jx]<- (1 + gr[jx]) * lev
     lev <- idx[jx]
   }
   

@@ -233,7 +233,12 @@ lev <- 100
 idx <- rep(NA,length(gr))
 for(jx in 1:length(gr)){
   # Convert weekly growth rates into an index level recursively.
-  idx[jx]<- exp(gr[jx]) * lev
+  # (1 + gr), not exp(gr): gr is a NET per-period rate, so the gross growth
+  # factor is 1 + gr. exp(x) > 1 + x for every x != 0, so the old form was
+  # one-signed - it could only push the level up - and it compounded, at
+  # ~gr^2/2 per period. Invisible while rates are small, not invisible in
+  # 2020. See mfbdfm issue #92.
+  idx[jx]<- (1 + gr[jx]) * lev
   lev <- idx[jx]
 }
 idx_ts <- ts(idx, start = time(mod$factor)[1], frequency = frequency(mod$factor))
@@ -270,7 +275,17 @@ lev <- 100
 idx <- rep(NA,length(gr))
 for(jx in 1:length(gr)){
   # Build the historical GDP level series on the same normalized index scale.
-  idx[jx]<- exp(gr[jx]) * lev
+  # (1 + gr), not exp(gr): gr is a NET per-period rate, so the gross growth
+  # factor is 1 + gr. exp(x) > 1 + x for every x != 0, so the old form was
+  # one-signed - it could only push the level up - and it compounded, at
+  # ~gr^2/2 per period. Invisible while rates are small, not invisible in
+  # 2020. See mfbdfm issue #92.
+  #
+  # This one bites harder per period than the WAI version above: gr here is a
+  # QUARTERLY rate, so gr^2/2 for 2020Q2 alone is 0.002 - a fifth of a percent
+  # from a single observation. Note lines 45 and 168 of this same file already
+  # cumulate correctly with cumprod(1 + g); these two loops were the outliers.
+  idx[jx]<- (1 + gr[jx]) * lev
   lev <- idx[jx]
 }
 hist_ts_lv <- ts(idx, start = time(x_hist_gr)[1], frequency = frequency(x_hist_gr))

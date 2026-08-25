@@ -13,6 +13,15 @@
   results are untouched - the nowcast path never goes through this cumulation,
   which is why the paper's replication never showed it (#92).
 
+* The same slip is corrected in four further places found by sweeping the
+  codebase for it: `ind_dfm()`'s returned `$index` (`exp(cumsum(f))` where `f`
+  is a net rate, so `cumprod(1 + f)`), and three loops in the analysis scripts -
+  the WAI level index in `analytics_data.R` and `analytics_out-of-sample.R`, and
+  the historical GDP level path in `analytics_data.R`. The GDP one bites hardest
+  per period, being a quarterly rate: `gr^2/2` for 2020Q4 alone is 0.002. Two
+  cumulations in that same file were already correct, which is what marks the
+  others as slips rather than a convention (#92).
+
 * `aggregate_predictor_to_quarterly()` no longer defaults `method` to
   `"cut_off"`, a value no branch implements - calling the function with its own
   default always errored, and the error message named `'cut_off'` as valid while

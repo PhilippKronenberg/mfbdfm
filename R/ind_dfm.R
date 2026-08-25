@@ -286,9 +286,19 @@ ind_dfm <- function(flows = NULL,
 
 
   # cumulated activity index
+  #
+  # cumprod(1 + f), not exp(cumsum(f)). `f_rescaled` is a NET per-period rate -
+  # the growth-rate block just above treats it as one, via
+  # ((1 + f_rescaled)^frequency - 1) - so the gross per-period factor is
+  # (1 + f_rescaled). exp(cumsum(f)) is prod(exp(f)), and exp(x) > 1 + x for
+  # every x != 0, so the error was one-signed: it could only push the index up,
+  # never down, and it compounded at ~f^2/2 per period. Negligible while the
+  # factor is small; not negligible when it swings by tens of percent. See #92,
+  # where the same slip in extract_wai_data() put the WAI level index a
+  # permanent 0.08 index points above GDP after 2020.
   ilist <- lapply(rescaled_list, function(f_rescaled){
 
-    ts(exp(cumsum(f_rescaled)),
+    ts(cumprod(1 + f_rescaled),
        start = time(Ymat)[1],
        frequency = frequency(Ymat))
 
