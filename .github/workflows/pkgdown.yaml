@@ -35,6 +35,15 @@ jobs:
           extra-packages: any::pkgdown, local::.
           needs: website
 
+      # Cheap guard for the failure mode in #47: a topic documented and
+      # registered but missing from _pkgdown.yml's hand-grouped reference
+      # index is invisible to R CMD check, and otherwise only surfaces
+      # partway into the full site build below. check_pkgdown() errors on
+      # an incomplete index, so a problem here exits non-zero.
+      - name: Check pkgdown reference index
+        run: pkgdown::check_pkgdown()
+        shell: Rscript {0}
+
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
