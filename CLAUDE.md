@@ -32,8 +32,9 @@ tracks CRAN-release prep (deferred — the package is currently
 GitHub-distributed only).
 
 Documentation is generated from roxygen2 comments; **do not hand-edit
-`NAMESPACE` or files under `man/`** — run `devtools::document()` (or
-`Rscript -e 'roxygen2::roxygenise()'`) instead.
+`NAMESPACE` or files under `man/`** — run
+[`devtools::document()`](https://devtools.r-lib.org/reference/document.html)
+(or `Rscript -e 'roxygen2::roxygenise()'`) instead.
 
 ## Project structure
 
@@ -100,17 +101,21 @@ matters for the 1:1 test-file convention below):
 Run from the package root using `Rscript -e '<command>'` or
 interactively in R/RStudio.
 
-- `devtools::document()` — regenerate `NAMESPACE`/`man/*.Rd` after
-  changing roxygen docs or `@export` tags.
-- `devtools::load_all()` — load the package for interactive development.
-- `devtools::test()` — run the full testthat suite (677 assertions, ~42
-  s). If it takes minutes again, suspect a test that fits a model at a
-  default chain length rather than a short one: a single
+- [`devtools::document()`](https://devtools.r-lib.org/reference/document.html)
+  — regenerate `NAMESPACE`/`man/*.Rd` after changing roxygen docs or
+  `@export` tags.
+- [`devtools::load_all()`](https://devtools.r-lib.org/reference/load_all.html)
+  — load the package for interactive development.
+- [`devtools::test()`](https://devtools.r-lib.org/reference/test.html) —
+  run the full testthat suite (677 assertions, ~42 s). If it takes
+  minutes again, suspect a test that fits a model at a default chain
+  length rather than a short one: a single
   [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
   call on its 5000-draw default was once 143 s of a 179 s suite.
 - `testthat::test_file("tests/testthat/test-<name>.R")` — run a single
   test file.
-- `devtools::check()` — run `R CMD check` locally (equivalent to CI).
+- [`devtools::check()`](https://devtools.r-lib.org/reference/check.html)
+  — run `R CMD check` locally (equivalent to CI).
 - [`pkgdown::build_site()`](https://pkgdown.r-lib.org/reference/build_site.html)
   — preview the documentation website locally (writes to gitignored
   `docs/`).
@@ -190,6 +195,14 @@ deliberate 1e-7 relative perturbation to a single prior in testing.
   and regenerated deliberately. Regenerating it is a visible act in the
   diff — if a commit changes `dev/baseline.rds`, it changed results, and
   the commit message should say why.
+- **A component absent from `baseline_digest()` is a component this tool
+  cannot protect.** `$index` went uncovered until \#92, which is exactly
+  why `baseline_check()` stayed clean while the cumulated activity index
+  was compounding `exp(gr)` instead of `(1 + gr)`. It is covered now. If
+  you add a component, `baseline_check()` reports
+  `NOT COVERED by this snapshot` and fails until `baseline_write()` is
+  run — the comparison walks the *stored* names, so a new component
+  would otherwise be skipped in silence.
 - For a change that must be bit-identical, `baseline_check()` is the
   fast first pass; the git-worktree comparison against the parent commit
   remains the thorough one for anything touching the numerics.
@@ -198,16 +211,17 @@ deliberate 1e-7 relative perturbation to a single prior in testing.
 
 **Run `R CMD check` before every commit that touches package code**
 (`R/`, `tests/`, `DESCRIPTION`, `NAMESPACE`, `man/`, `vignettes/`) — not
-just before opening a PR. `devtools::check()` is fine for a quick local
-pass, but prefer the real `R CMD build .` then
+just before opening a PR.
+[`devtools::check()`](https://devtools.r-lib.org/reference/check.html)
+is fine for a quick local pass, but prefer the real `R CMD build .` then
 `R CMD check --no-manual <tarball>` sequence when in doubt, since
-`devtools::check()` and CI’s `R CMD check` have diverged in this repo
-before (see the `.Rbuildignore` incident below). A clean local check on
-one commit does not guarantee the next commit is still clean — re-run
-it, don’t assume. This is the same discipline as running the test suite
-after every substantive change; treat a passing `R CMD check` as a
-required gate before `git commit`, not an optional nicety saved for
-pre-merge.
+[`devtools::check()`](https://devtools.r-lib.org/reference/check.html)
+and CI’s `R CMD check` have diverged in this repo before (see the
+`.Rbuildignore` incident below). A clean local check on one commit does
+not guarantee the next commit is still clean — re-run it, don’t assume.
+This is the same discipline as running the test suite after every
+substantive change; treat a passing `R CMD check` as a required gate
+before `git commit`, not an optional nicety saved for pre-merge.
 
 - Concrete incident that motivated this rule: PR \#27 (issue \#22, the
   `claude_edits` → `main` merge) passed every local `R CMD check`
@@ -349,7 +363,9 @@ constraint.
   output.
 - Don’t include `@claude` in commit messages, PR bodies, or comments
   unless intentionally triggering `claude-code.yml`.
-- Prefer `devtools::check()` /
+- Prefer
+  [`devtools::check()`](https://devtools.r-lib.org/reference/check.html)
+  /
   [`testthat::test_file()`](https://testthat.r-lib.org/reference/test_file.html)
   locally over pushing and waiting on CI to iterate; push once changes
   are believed correct, since `r.yml`’s 4-job matrix (ubuntu ×2, macos,

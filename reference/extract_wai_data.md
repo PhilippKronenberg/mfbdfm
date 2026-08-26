@@ -2,8 +2,10 @@
 
 Loads a saved `ind_dfm` fit (an `.Rda` file containing an object `mod`)
 and derives long-format tables of the weekly growth rate (with 95%
-bands), the cumulated level index (rebased to 2020 = 100), and
-year-over-year growth, as used by the plotting scripts.
+bands), the cumulated level index (rebased so that the mean of the last
+quarter of 2019 equals 100), and year-over-year growth, as used by the
+plotting scripts and by
+[`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md).
 
 ## Usage
 
@@ -21,7 +23,10 @@ extract_wai_data(file_path)
 ## Value
 
 A list of data frames: `tab_wai_yoy_full`, `tab_wai_yoy`, `tab_gr_full`,
-`tab_gr_qoq`, `tab_gr_lv`.
+`tab_gr_qoq`, `tab_gr_lv`, `tab_gr_lv_full`. `tab_gr_full` and
+`tab_gr_lv_full` carry `min`/`max` columns holding the 95% band;
+`tab_gr_qoq`, `tab_gr_lv` and `tab_wai_yoy` are the narrow
+`time`/`name`/`value` shape the analytics helpers consume.
 
 ## Examples
 
@@ -47,6 +52,7 @@ run_wai_adj(flows = flows, stocks = stocks, target = target,
 #> processing output..
 
 result_wai <- extract_wai_data(file.path(out, "example", "fit_2023.Rda"))
+#> Warning: Fit does not cover the 2019Q4 base window; rebasing the level index to its first observation instead. Level values are not comparable with those from a fit that does cover it.
 head(result_wai$tab_gr_qoq)
 #> # A tibble: 6 × 3
 #>   time       name    value

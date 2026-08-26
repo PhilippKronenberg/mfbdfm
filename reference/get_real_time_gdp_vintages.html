@@ -53,10 +53,12 @@ later ones from <code>gdp_cssa_file_path</code>.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">get_real_time_gdp_vintages</span><span class="op">(</span></span>
-<span>  <span class="va">output_type</span>,</span>
+<span>  output_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"quarterly"</span>, <span class="st">"annual"</span>, <span class="st">"level"</span><span class="op">)</span>,</span>
 <span>  gdp_file_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"realtime_gdp.csv"</span>, package <span class="op">=</span> <span class="st">"mfbdfm"</span><span class="op">)</span>,</span>
 <span>  gdp_cssa_file_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"realtime_gdp_cssa.csv"</span>, package <span class="op">=</span></span>
-<span>    <span class="st">"mfbdfm"</span><span class="op">)</span></span>
+<span>    <span class="st">"mfbdfm"</span><span class="op">)</span>,</span>
+<span>  start_date <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"1990-01-01"</span><span class="op">)</span>,</span>
+<span>  end_date <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -65,8 +67,9 @@ later ones from <code>gdp_cssa_file_path</code>.</p>
 
 
 <dl><dt id="arg-output-type">output_type<a class="anchor" aria-label="anchor" href="#arg-output-type"></a></dt>
-<dd><p>Character, <code>"quarterly"</code> for quarter-on-quarter log
-differences or <code>"annual"</code> for year-on-year growth rates.</p></dd>
+<dd><p>Character, one of <code>"quarterly"</code>, <code>"annual"</code> or
+<code>"level"</code>. See the return section for what each one is, and in
+particular for its units.</p></dd>
 
 
 <dt id="arg-gdp-file-path">gdp_file_path<a class="anchor" aria-label="anchor" href="#arg-gdp-file-path"></a></dt>
@@ -78,11 +81,32 @@ the file shipped with the package.</p></dd>
 <dd><p>Path to the 2018Q3-onward vintage CSV.
 Defaults to the file shipped with the package.</p></dd>
 
+
+<dt id="arg-start-date-end-date">start_date, end_date<a class="anchor" aria-label="anchor" href="#arg-start-date-end-date"></a></dt>
+<dd><p>Optional <code>Date</code> bounds on the quarters
+returned. <code>start_date</code> defaults to 1990-01-01; <code>end_date</code> defaults to
+<code>NULL</code>, meaning no upper bound.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame with a <code>time</code> column (Date, quarter start) and
-one numeric column per vintage.</p>
+    <p>A data frame with a <code>time</code> column (Date, quarter start) and one
+numeric column per vintage. <code>output_type</code> selects the transformation,
+and the three differ in units:</p>
+<dl><dt><code>"quarterly"</code></dt>
+<dd><p>Quarter-on-quarter <em>log difference</em>, e.g. <code>0.00151</code>.</p></dd>
+
+<dt><code>"annual"</code></dt>
+<dd><p>Year-on-year growth as a <em>fraction</em>, e.g. <code>0.0241</code>.</p></dd>
+
+<dt><code>"level"</code></dt>
+<dd><p>The vintage <em>levels</em>, untransformed.</p></dd>
+
+
+</dl><p>None of these is the annualised percentage that <code><a href="export_wai_web.html">export_wai_web()</a></code>
+publishes as <code>wai_qoq</code>: plotted on one axis unconverted, <code>"quarterly"</code>
+and <code>wai_qoq</code> differ by a factor of roughly 400. <code><a href="gdp_web_series.html">gdp_web_series()</a></code> does
+the conversion.</p>
     </div>
 
     <div class="section level2">

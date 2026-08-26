@@ -6,11 +6,7 @@ cut-off month, or by the last observation of the cut-off month.
 ## Usage
 
 ``` r
-aggregate_predictor_to_quarterly(
-  df,
-  cut_off_month_pos = NULL,
-  method = "cut_off"
-)
+aggregate_predictor_to_quarterly(df, cut_off_month_pos = NULL, method)
 ```
 
 ## Arguments
@@ -21,12 +17,16 @@ aggregate_predictor_to_quarterly(
 
 - cut_off_month_pos:
 
-  Integer position of the cut-off month within the quarter (used by
-  methods `"last_month"` and `"last"`).
+  Integer position of the cut-off month within the quarter. Required by
+  methods `"last_month"` and `"last"`, ignored by `"mean"`.
 
 - method:
 
-  One of `"last_month"`, `"mean"`, `"last"`.
+  One of `"last_month"`, `"mean"`, `"last"`. **Required — there is
+  deliberately no default.** The choice changes the result, so it is the
+  caller's to make: a quarterly mean and a cut-off-month reading of the
+  same weekly series are different numbers, and silently picking one
+  would be a silent wrong answer.
 
 ## Value
 

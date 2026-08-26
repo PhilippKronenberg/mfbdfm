@@ -70,7 +70,7 @@ render_correlation_heatmap(
                    "SNB-BCI", "KOF-BARO"),
   output_file = "correlation_heatmap.pdf", figures_dir = dir)
 grDevices::dev.off()
-#> agg_record_19c976fbf9ba 
+#> agg_record_1b80292fba0f 
 #>                       2 
 unlink(dir, recursive = TRUE)
 ```

@@ -75,6 +75,10 @@ handling real-time GDP vintages.
   : Extract the nowcast variance from a fit object
 - [`extract_wai_data()`](https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.md)
   : Extract WAI growth, level and year-over-year tables from a saved fit
+- [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md)
+  : Export WAI results as a web-ready CSV and metadata file
+- [`gdp_web_series()`](https://philippkronenberg.github.io/mfbdfm/reference/gdp_web_series.md)
+  : Published GDP on the same scale as the exported WAI series
 - [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md)
   : Read the real-time GDP vintage database
 - [`select_most_recent_GDP_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/select_most_recent_GDP_vintage.md)

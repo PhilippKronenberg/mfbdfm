@@ -43,11 +43,7 @@ cut-off month, or by the last observation of the cut-off month.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">aggregate_predictor_to_quarterly</span><span class="op">(</span></span>
-<span>  <span class="va">df</span>,</span>
-<span>  cut_off_month_pos <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"cut_off"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">aggregate_predictor_to_quarterly</span><span class="op">(</span><span class="va">df</span>, cut_off_month_pos <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">method</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -60,11 +56,16 @@ cut-off month, or by the last observation of the cut-off month.</p>
 
 <dt id="arg-cut-off-month-pos">cut_off_month_pos<a class="anchor" aria-label="anchor" href="#arg-cut-off-month-pos"></a></dt>
 <dd><p>Integer position of the cut-off month within
-the quarter (used by methods <code>"last_month"</code> and <code>"last"</code>).</p></dd>
+the quarter. Required by methods <code>"last_month"</code> and <code>"last"</code>, ignored
+by <code>"mean"</code>.</p></dd>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
-<dd><p>One of <code>"last_month"</code>, <code>"mean"</code>, <code>"last"</code>.</p></dd>
+<dd><p>One of <code>"last_month"</code>, <code>"mean"</code>, <code>"last"</code>. <strong>Required —
+there is deliberately no default.</strong> The choice changes the result, so it
+is the caller's to make: a quarterly mean and a cut-off-month reading of
+the same weekly series are different numbers, and silently picking one
+would be a silent wrong answer.</p></dd>
 
 </dl></div>
     <div class="section level2">
