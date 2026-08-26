@@ -342,14 +342,18 @@ retrieve_nowcast_var <- function(fit, model = c("ar", "wai")){
 #'
 #' Loads a saved `ind_dfm` fit (an `.Rda` file containing an object `mod`)
 #' and derives long-format tables of the weekly growth rate (with 95%
-#' bands), the cumulated level index (rebased to 2020 = 100), and
-#' year-over-year growth, as used by the plotting scripts.
+#' bands), the cumulated level index (rebased so that the mean of the last
+#' quarter of 2019 equals 100), and year-over-year growth, as used by the
+#' plotting scripts and by [export_wai_web()].
 #'
 #' @param file_path Path to a fit `.Rda` file containing an object `mod`
 #'   with elements `factor` and `factor_var`.
 #'
 #' @return A list of data frames: `tab_wai_yoy_full`, `tab_wai_yoy`,
-#'   `tab_gr_full`, `tab_gr_qoq`, `tab_gr_lv`.
+#'   `tab_gr_full`, `tab_gr_qoq`, `tab_gr_lv`, `tab_gr_lv_full`.
+#'   `tab_gr_full` and `tab_gr_lv_full` carry `min`/`max` columns holding the
+#'   95% band; `tab_gr_qoq`, `tab_gr_lv` and `tab_wai_yoy` are the narrow
+#'   `time`/`name`/`value` shape the analytics helpers consume.
 #'
 #' @importFrom zoo zoo as.yearmon
 #' @importFrom tidyr pivot_longer
@@ -386,24 +390,25 @@ extract_wai_data <- function(file_path) {
     stop("File does not contain a fit object named 'mod': ", file_path)
   }
 
-  # Setup
-  start_date <- 1990
-  end_date <- 2025 + 47/48
-  date_vec <- seq(start_date, end_date, 1/48)
-
-  # Construct dates for irregular ts (7th, 14th, 21st, 28th)
-  dates <- dec2week(date_vec)
+  # Dates for the irregular weekly ts (7th, 14th, 21st, 28th), taken from the
+  # fit itself.
+  #
+  # This used to be a hard-coded `dec2week(seq(1990, 2025 + 47/48, 1/48))`, and
+  # the level-bound merge below is where that bites: zoo() silently RECYCLES its
+  # data to the length of `order.by` rather than erroring, so any fit shorter
+  # than the 1728-period grid had its level index wrapped around and re-dated,
+  # and the bounds were then computed off the wrong values. It went unnoticed
+  # because lv_max/lv_min were never returned - tab_gr_lv surfaced only the
+  # (correct) index column. They are returned now, via tab_gr_lv_full, so the
+  # grid has to come from the data.
+  dates <- dec2week(as.numeric(time(out$factor)))
 
   # Growth rate series
-  ryear <- floor(time(out$factor))
-  rmon <- as.numeric(format(as.yearmon(time(out$factor)), "%m"))
-  rday <- (round((time(out$factor) %% 1) * 48) %% 4 + 1) * 7
-
   res_gr <- zoo(
     x = cbind(out$factor,
               out$factor + 1.96 * sqrt(out$factor_var),
               out$factor - 1.96 * sqrt(out$factor_var)),
-    order.by = as.Date(paste0(ryear, "-", sprintf("%02d", rmon), "-", sprintf("%02d", rday)))
+    order.by = dates
   )
 
   tab_gr <- data.frame("mean" = as.numeric(res_gr[,1]),
@@ -418,48 +423,75 @@ extract_wai_data <- function(file_path) {
   gr <- (1 + out$factor/100)^(1/48) - 1
   gr <- window(gr, start = time(out$factor)[[1]], end = time(out$factor)[length(out$factor)])
 
-  lev <- 100
-  idx <- numeric(length(gr))
-  for (jx in 1:length(gr)) {
-    idx[jx] <- exp(gr[jx]) * lev
-    lev <- idx[jx]
-  }
+  # Compound the NET rate `gr` as (1 + gr), not exp(gr).
+  #
+  # gr is already a net per-period rate - (1 + factor/100)^(1/48) - 1 - so the
+  # gross growth factor is (1 + gr), and the loop used to apply exp(gr) instead.
+  # exp(x) > 1 + x for every x != 0, so the error was ONE-SIGNED: it could only
+  # push the level up, never down, and it accumulated. Its size is ~gr^2/2 per
+  # period, negligible while the weekly factor is small but not while it swings
+  # by tens of percent - sum(gr^2/2) over 2020 alone was 0.00078 against 0.00044
+  # for all 35 other years combined. The result was a level index that stepped
+  # permanently ~0.08 index points above GDP during 2020 and never came back.
+  #
+  # (1 + gr) is exactly (1 + factor/100)^(1/48), so the cumulation is a cumprod
+  # of the gross factors and the loop is gone.
+  idx <- 100 * cumprod(as.numeric(1 + gr))
 
   idx_ts <- ts(idx, start = time(out$factor)[1], frequency = frequency(out$factor))
 
+  # Rebase to the mean of the last quarter of 2019. A fit that does not span
+  # that window used to leave `valid_indices` empty, making the base mean(NULL)
+  # = NaN and every level value NaN - silently, including in this function's own
+  # documented example, which fits from 2021. Fall back to the first
+  # observation and say so rather than returning a table of NaN.
   expected_times <- 2019 + (36:47) / 48
   indices <- findInterval(expected_times, time(idx_ts))
   valid_indices <- indices[indices > 0 & indices <= length(idx_ts)]
-  idx_ts_2020 <- mean(idx_ts[valid_indices])
-  idx_ts <- 100 * idx_ts / idx_ts_2020
+  if (length(valid_indices) == 0) {
+    warning("Fit does not cover the 2019Q4 base window; rebasing the level ",
+            "index to its first observation instead. Level values are not ",
+            "comparable with those from a fit that does cover it.",
+            call. = FALSE)
+    idx_ts_base <- idx_ts[1]
+  } else {
+    idx_ts_base <- mean(idx_ts[valid_indices])
+  }
+  idx_ts <- 100 * idx_ts / idx_ts_base
 
-  # Level bounds
-  ryear <- floor(time(idx_ts))
-  rmon <- as.numeric(format(as.yearmon(time(idx_ts)), "%m"))
-  rday <- (round((time(idx_ts) %% 1) * 48) %% 4 + 1) * 7
-
+  # Level bounds: scale the index by the per-period growth implied by each
+  # growth-rate bound. `dates` now indexes both operands, so the merge is an
+  # exact one-to-one alignment rather than a partial one.
   merged_max <- merge(zoo(idx_ts, order.by = dates), (1 + res_gr[,2]/100)^(1/48), all = FALSE)
   merged_min <- merge(zoo(idx_ts, order.by = dates), (1 + res_gr[,3]/100)^(1/48), all = FALSE)
 
   lv_max <- ts(merged_max[,1] * merged_max[,2], start = time(out$factor)[1], frequency = frequency(out$factor))
   lv_min <- ts(merged_min[,1] * merged_min[,2], start = time(out$factor)[1], frequency = frequency(out$factor))
 
-  res_lv <- zoo(
-    x = cbind(idx_ts, lv_max, lv_min),
-    order.by = as.Date(paste0(ryear, "-", sprintf("%02d", rmon), "-", sprintf("%02d", rday)))
-  )
+  res_lv <- zoo(x = cbind(idx_ts, lv_max, lv_min), order.by = dates)
 
   tab_gr_lv <- data.frame("mean" = as.numeric(res_lv[,1]),
                           "time" = time(res_lv)) %>%
     pivot_longer(-time)
 
-  # Year-over-year growth
-  wai_yoy <- ts(100 * (idx_ts - stats::lag(idx_ts, k = -48)) / stats::lag(idx_ts, k = -48),
-                start = c(1991, 1), frequency = 48)
+  # Same series with the bounds attached, shaped like tab_gr_full. Kept
+  # separate from tab_gr_lv, whose narrow time/name/value shape the analytics
+  # helpers depend on.
+  tab_gr_lv_full <- data.frame("mean" = as.numeric(res_lv[,1]),
+                               "max" = as.numeric(res_lv[,2]),
+                               "min" = as.numeric(res_lv[,3]),
+                               "time" = time(res_lv)) %>%
+    pivot_longer(-c(time, min, max))
+
+  # Year-over-year growth. `idx_ts - lag(idx_ts)` is ts arithmetic, so the
+  # result already carries the correct time base; it used to be re-wrapped with
+  # a hard-coded start = c(1991, 1), which is only right for a fit starting in
+  # 1990.
+  wai_yoy <- 100 * (idx_ts - stats::lag(idx_ts, k = -48)) / stats::lag(idx_ts, k = -48)
 
   res_wai_yoy <- zoo(
     x = wai_yoy,
-    order.by = as.Date(paste0(ryear[-(1:48)], "-", sprintf("%02d", rmon[-(1:48)]), "-", sprintf("%02d", rday[-(1:48)])))
+    order.by = dec2week(as.numeric(time(wai_yoy)))
   )
 
   tab_wai_yoy <- data.frame("mean" = as.numeric(res_wai_yoy[,1]),
@@ -473,6 +505,7 @@ extract_wai_data <- function(file_path) {
     tab_wai_yoy = tab_wai_yoy,
     tab_gr_full = tab_gr_full,
     tab_gr_qoq = tab_gr_qoq,
-    tab_gr_lv = tab_gr_lv
+    tab_gr_lv = tab_gr_lv,
+    tab_gr_lv_full = tab_gr_lv_full
   ))
 }

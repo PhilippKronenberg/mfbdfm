@@ -191,3 +191,22 @@ test_that("retrieve_nowcast and retrieve_nowcast_var dispatch on model type", {
   expect_identical(retrieve_nowcast(fit, "ar"), fit$nowcast)
   expect_identical(retrieve_nowcast_var(fit, "ar"), fit$nowcast_var)
 })
+
+
+test_that("the level index compounds the net growth rate, not exp() of it", {
+  # A constant annualised factor must cumulate to exactly that much over 48
+  # weekly periods. exp(gr) instead of (1 + gr) overshoots, one-signed, and the
+  # overshoot grows with the size of the factor - which is why it only became
+  # visible in 2020.
+  for (annual in c(2, 25, -25)) {
+    n <- 48 * 3 + 1
+    mod <- list(factor     = stats::ts(rep(annual, n), start = 2019, frequency = 48),
+                factor_var = stats::ts(rep(0.3, n), start = 2019, frequency = 48))
+    f <- tempfile(fileext = ".Rda"); save(mod, file = f)
+
+    lv <- extract_wai_data(f)$tab_gr_lv
+    growth_one_year <- lv$value[49] / lv$value[1]
+    expect_equal(growth_one_year, 1 + annual / 100, tolerance = 1e-10,
+                 info = paste("annualised factor", annual))
+  }
+})

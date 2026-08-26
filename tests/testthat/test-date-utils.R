@@ -64,12 +64,35 @@ test_that("aggregate_predictor_to_quarterly aggregates by the requested method",
   by_last <- aggregate_predictor_to_quarterly(df, cut_off_month_pos = 3, method = "last")
   expect_equal(by_last$value, 1:4)
 
-  expect_error(aggregate_predictor_to_quarterly(df, method = "bogus"), "Unknown method")
+  expect_error(aggregate_predictor_to_quarterly(df, method = "bogus"),
+               "should be one of")
+})
+
+
+test_that("aggregate_predictor_to_quarterly requires an explicit method", {
+  df <- data.frame(time = seq(as.Date("2015-01-01"), by = "month", length.out = 12),
+                   value = rep(1:4, each = 3))
+
+  # no default: the aggregation changes the result, so the caller must choose
+  expect_error(aggregate_predictor_to_quarterly(df), "must be given explicitly")
+
+  # and the requirement holds on the "AR" dispatch path too, which does no
+  # aggregation but must not be a way to skip the decision
+  AR_df <- df
+  expect_error(aggregate_predictor_to_quarterly(AR_df), "must be given explicitly")
+
+  # the two positional methods need the month they read
+  expect_error(aggregate_predictor_to_quarterly(df, method = "last"),
+               "`cut_off_month_pos` is required")
+  expect_error(aggregate_predictor_to_quarterly(df, method = "last_month"),
+               "`cut_off_month_pos` is required")
+  # "mean" ignores it, so it stays optional there
+  expect_silent(aggregate_predictor_to_quarterly(df, method = "mean"))
 })
 
 test_that("aggregate_predictor_to_quarterly dispatches on an 'AR'-named argument", {
   AR_df <- data.frame(time = as.Date(c("2020-01-01", "2020-04-01")), value = c(1, 2))
-  out <- aggregate_predictor_to_quarterly(AR_df)
+  out <- aggregate_predictor_to_quarterly(AR_df, method = "mean")
   expect_true("yearqtr" %in% names(out))
   expect_identical(out$value, AR_df$value)
 })

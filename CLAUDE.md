@@ -110,6 +110,13 @@ baseline_write()    # regenerate, ONLY when a change is meant to alter results
 
 - **This is a local developer tool, not a CI test, deliberately.** MCMC output is not bit-identical across platforms: a different BLAS sums in a different order, shifting the last bit, and an MCMC chain amplifies that to O(1) within a few iterations. A committed golden-value test would fail across the CI matrix for reasons unrelated to the code. The snapshot records the platform and `baseline_check()` warns when comparing across one.
 - The snapshot **is** committed, so it can be compared across commits and regenerated deliberately. Regenerating it is a visible act in the diff — if a commit changes `dev/baseline.rds`, it changed results, and the commit message should say why.
+- **A component absent from `baseline_digest()` is a component this tool cannot
+  protect.** `$index` went uncovered until #92, which is exactly why
+  `baseline_check()` stayed clean while the cumulated activity index was
+  compounding `exp(gr)` instead of `(1 + gr)`. It is covered now. If you add a
+  component, `baseline_check()` reports `NOT COVERED by this snapshot` and fails
+  until `baseline_write()` is run — the comparison walks the *stored* names, so
+  a new component would otherwise be skipped in silence.
 - For a change that must be bit-identical, `baseline_check()` is the fast first pass; the git-worktree comparison against the parent commit remains the thorough one for anything touching the numerics.
 
 ## Pre-commit verification

@@ -134,3 +134,12 @@ test_that("ind_dfm(plots = TRUE) restores the caller's graphics state", {
 
   expect_identical(graphics::par("mfrow"), before$mfrow)
 })
+
+# NOTE: there is deliberately no fit-level test tying $index to $factor. Both are
+# posterior MEANS over draws, and the mean of a nonlinear transform is not the
+# transform of the mean, so the per-draw identity between them does not survive
+# averaging - a first attempt at such a test failed for exactly that reason, not
+# because the code was wrong. The identical arithmetic is covered on the exported
+# path by test-backcast.R's "the level index compounds the net growth rate, not
+# exp() of it". Adding `index` to dev/baseline.R's snapshot would give this
+# component proper regression cover (#92).

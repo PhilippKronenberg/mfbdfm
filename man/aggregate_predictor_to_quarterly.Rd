@@ -4,19 +4,20 @@
 \alias{aggregate_predictor_to_quarterly}
 \title{Aggregate a predictor data frame to quarterly frequency}
 \usage{
-aggregate_predictor_to_quarterly(
-  df,
-  cut_off_month_pos = NULL,
-  method = "cut_off"
-)
+aggregate_predictor_to_quarterly(df, cut_off_month_pos = NULL, method)
 }
 \arguments{
 \item{df}{Data frame with \code{time} (Date) and \code{value} columns.}
 
 \item{cut_off_month_pos}{Integer position of the cut-off month within
-the quarter (used by methods \code{"last_month"} and \code{"last"}).}
+the quarter. Required by methods \code{"last_month"} and \code{"last"}, ignored
+by \code{"mean"}.}
 
-\item{method}{One of \code{"last_month"}, \code{"mean"}, \code{"last"}.}
+\item{method}{One of \code{"last_month"}, \code{"mean"}, \code{"last"}. \strong{Required —
+there is deliberately no default.} The choice changes the result, so it
+is the caller's to make: a quarterly mean and a cut-off-month reading of
+the same weekly series are different numbers, and silently picking one
+would be a silent wrong answer.}
 }
 \value{
 A quarterly data frame (columns depend on \code{method}).

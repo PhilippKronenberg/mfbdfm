@@ -5,25 +5,44 @@
 \title{Read the real-time GDP vintage database}
 \usage{
 get_real_time_gdp_vintages(
-  output_type,
+  output_type = c("quarterly", "annual", "level"),
   gdp_file_path = system.file("extdata", "realtime_gdp.csv", package = "mfbdfm"),
   gdp_cssa_file_path = system.file("extdata", "realtime_gdp_cssa.csv", package =
-    "mfbdfm")
+    "mfbdfm"),
+  start_date = as.Date("1990-01-01"),
+  end_date = NULL
 )
 }
 \arguments{
-\item{output_type}{Character, \code{"quarterly"} for quarter-on-quarter log
-differences or \code{"annual"} for year-on-year growth rates.}
+\item{output_type}{Character, one of \code{"quarterly"}, \code{"annual"} or
+\code{"level"}. See the return section for what each one is, and in
+particular for its units.}
 
 \item{gdp_file_path}{Path to the pre-2018Q3 vintage CSV. Defaults to
 the file shipped with the package.}
 
 \item{gdp_cssa_file_path}{Path to the 2018Q3-onward vintage CSV.
 Defaults to the file shipped with the package.}
+
+\item{start_date, end_date}{Optional \code{Date} bounds on the quarters
+returned. \code{start_date} defaults to 1990-01-01; \code{end_date} defaults to
+\code{NULL}, meaning no upper bound.}
 }
 \value{
-A data frame with a \code{time} column (Date, quarter start) and
-one numeric column per vintage.
+A data frame with a \code{time} column (Date, quarter start) and one
+numeric column per vintage. \code{output_type} selects the transformation,
+and the three differ in units:
+
+\describe{
+\item{\code{"quarterly"}}{Quarter-on-quarter \emph{log difference}, e.g. \code{0.00151}.}
+\item{\code{"annual"}}{Year-on-year growth as a \emph{fraction}, e.g. \code{0.0241}.}
+\item{\code{"level"}}{The vintage \emph{levels}, untransformed.}
+}
+
+None of these is the annualised percentage that \code{\link[=export_wai_web]{export_wai_web()}}
+publishes as \code{wai_qoq}: plotted on one axis unconverted, \code{"quarterly"}
+and \code{wai_qoq} differ by a factor of roughly 400. \code{\link[=gdp_web_series]{gdp_web_series()}} does
+the conversion.
 }
 \description{
 Reads the Swiss real-time GDP vintage database and returns a table

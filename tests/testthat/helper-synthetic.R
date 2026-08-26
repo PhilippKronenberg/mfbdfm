@@ -31,3 +31,34 @@ make_synth_vintages <- function() {
 # so a change in the expected input shape cannot pass the tests while breaking
 # the documentation, or the reverse.
 make_synth_inputs <- function(seed = 99) mfbdfm_example_inputs(seed = seed)
+
+# A saved `ind_dfm`-shaped fit file, which is what extract_wai_data() and
+# export_wai_web() read. Only `factor` and `factor_var` are consulted, so the
+# fixture carries just those two - the point is the weekly time base and the
+# fitted window, not a plausible MCMC result.
+synth_fit_file <- function(start = 1990, end = 2024, seed = 7) {
+  set.seed(seed)
+  n <- length(seq(start, end, 1/48))
+  mod <- list(
+    factor     = stats::ts(rnorm(n, 1, 2), start = start, frequency = 48),
+    factor_var = stats::ts(runif(n, 0.2, 0.5), start = start, frequency = 48)
+  )
+  path <- tempfile(fileext = ".Rda")
+  save(mod, file = path)
+  path
+}
+
+# A temp directory that cleans itself up when the calling test_that() block
+# exits. withr::local_tempdir() does this, but withr is not among the package's
+# declared Suggests and one helper is a poor reason to add it.
+local_tempdir_base <- function(envir = parent.frame()) {
+  d <- tempfile()
+  dir.create(d, recursive = TRUE)
+  withr_defer(unlink(d, recursive = TRUE), envir = envir)
+  d
+}
+
+withr_defer <- function(expr, envir) {
+  do.call(base::on.exit, list(substitute(expr), add = TRUE, after = FALSE),
+          envir = envir)
+}

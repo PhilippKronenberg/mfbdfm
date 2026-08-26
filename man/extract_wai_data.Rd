@@ -12,13 +12,17 @@ with elements \code{factor} and \code{factor_var}.}
 }
 \value{
 A list of data frames: \code{tab_wai_yoy_full}, \code{tab_wai_yoy},
-\code{tab_gr_full}, \code{tab_gr_qoq}, \code{tab_gr_lv}.
+\code{tab_gr_full}, \code{tab_gr_qoq}, \code{tab_gr_lv}, \code{tab_gr_lv_full}.
+\code{tab_gr_full} and \code{tab_gr_lv_full} carry \code{min}/\code{max} columns holding the
+95\% band; \code{tab_gr_qoq}, \code{tab_gr_lv} and \code{tab_wai_yoy} are the narrow
+\code{time}/\code{name}/\code{value} shape the analytics helpers consume.
 }
 \description{
 Loads a saved \code{ind_dfm} fit (an \code{.Rda} file containing an object \code{mod})
 and derives long-format tables of the weekly growth rate (with 95\%
-bands), the cumulated level index (rebased to 2020 = 100), and
-year-over-year growth, as used by the plotting scripts.
+bands), the cumulated level index (rebased so that the mean of the last
+quarter of 2019 equals 100), and year-over-year growth, as used by the
+plotting scripts and by \code{\link[=export_wai_web]{export_wai_web()}}.
 }
 \examples{
 \donttest{

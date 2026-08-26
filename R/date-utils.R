@@ -164,8 +164,13 @@ daily2weekly <- function(x, FUN = mean){
 #'
 #' @param df Data frame with `time` (Date) and `value` columns.
 #' @param cut_off_month_pos Integer position of the cut-off month within
-#'   the quarter (used by methods `"last_month"` and `"last"`).
-#' @param method One of `"last_month"`, `"mean"`, `"last"`.
+#'   the quarter. Required by methods `"last_month"` and `"last"`, ignored
+#'   by `"mean"`.
+#' @param method One of `"last_month"`, `"mean"`, `"last"`. **Required —
+#'   there is deliberately no default.** The choice changes the result, so it
+#'   is the caller's to make: a quarterly mean and a cut-off-month reading of
+#'   the same weekly series are different numbers, and silently picking one
+#'   would be a silent wrong answer.
 #'
 #' @return A quarterly data frame (columns depend on `method`).
 #'
@@ -177,7 +182,31 @@ daily2weekly <- function(x, FUN = mean){
 #'                  value = rnorm(12))
 #' aggregate_predictor_to_quarterly(df, cut_off_month_pos = 1, method = "mean")
 #' @export
-aggregate_predictor_to_quarterly <- function(df, cut_off_month_pos = NULL, method = "cut_off") {
+aggregate_predictor_to_quarterly <- function(df, cut_off_month_pos = NULL, method) {
+
+  # Validated BEFORE the "AR" dispatch below, so the requirement holds on every
+  # path rather than only on the ones that happen to reach the aggregation.
+  #
+  # The default used to be method = "cut_off", which no branch implements - so
+  # calling with defaults always fell through to the final stop(). A default
+  # that cannot work is worse than no default: it reads as though the function
+  # has a sensible fallback when it has none.
+  if (missing(method)) {
+    stop("`method` must be given explicitly, as one of \"last_month\", ",
+         "\"mean\" or \"last\". There is deliberately no default: the ",
+         "aggregation changes the result, so the caller has to choose it.",
+         call. = FALSE)
+  }
+  method <- match.arg(method, c("last_month", "mean", "last"))
+
+  # cut_off_month_pos = NULL reached `month %% 3 == (NULL %% 3)`, which is
+  # logical(0); filter() then dropped every row and returned an EMPTY quarterly
+  # frame rather than complaining.
+  if (method %in% c("last_month", "last") && is.null(cut_off_month_pos)) {
+    stop("`cut_off_month_pos` is required when `method` is \"", method,
+         "\"; it names the month within the quarter to read.", call. = FALSE)
+  }
+
   df_name <- deparse(substitute(df))
 
   # If name contains "AR", return df with time converted to yearqtr
@@ -215,7 +244,8 @@ aggregate_predictor_to_quarterly <- function(df, cut_off_month_pos = NULL, metho
       ungroup() %>%
       select(yearqtr, value)
   } else {
-    stop("Unknown method. Please choose 'cut_off', 'mean', or 'last'.")
+    # unreachable: match.arg() above admits only the three handled methods
+    stop("Unknown method: ", method, ".", call. = FALSE)
   }
 
   return(result)

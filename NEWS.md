@@ -1,3 +1,90 @@
+# mfbdfm 0.1.0.9000
+
+* `extract_wai_data()` compounds the level index with `(1 + gr)` rather than
+  `exp(gr)`. `gr` is already a net per-period rate, so the gross growth factor
+  is `1 + gr`; `exp(x) > 1 + x` for every `x != 0`, which made the error
+  one-signed - it could only push the level up - and it compounded. Its size is
+  ~`gr^2/2` per period, so it was invisible in normal times and not invisible
+  when the weekly factor swings by tens of percent: `sum(gr^2/2)` over 2020
+  alone was 0.00078 against 0.00044 for all 35 other years combined, and the
+  index stepped ~0.08 index points above published GDP during 2020 and never
+  came back. **This changes `tab_gr_lv`, `tab_gr_lv_full` and `tab_wai_yoy`,
+  and any plot built on them, by up to ~0.1 index points.** Nowcast-based
+  results are untouched - the nowcast path never goes through this cumulation,
+  which is why the paper's replication never showed it (#92).
+
+* The same slip is corrected in four further places found by sweeping the
+  codebase for it: `ind_dfm()`'s returned `$index` (`exp(cumsum(f))` where `f`
+  is a net rate, so `cumprod(1 + f)`), and three loops in the analysis scripts -
+  the WAI level index in `analytics_data.R` and `analytics_out-of-sample.R`, and
+  the historical GDP level path in `analytics_data.R`. The GDP one bites hardest
+  per period, being a quarterly rate: `gr^2/2` for 2020Q4 alone is 0.002. Two
+  cumulations in that same file were already correct, which is what marks the
+  others as slips rather than a convention (#92).
+
+* `aggregate_predictor_to_quarterly()` no longer defaults `method` to
+  `"cut_off"`, a value no branch implements - calling the function with its own
+  default always errored, and the error message named `'cut_off'` as valid while
+  omitting `'last_month'`, which is. `method` is now required, validated before
+  the legacy `"AR"`-name dispatch so the requirement holds on every path. The
+  only production caller already passed it explicitly (#91).
+
+* `aggregate_predictor_to_quarterly()` also requires `cut_off_month_pos` for the
+  `"last_month"` and `"last"` methods. Left `NULL`, it reached
+  `month %% 3 == (NULL %% 3)`, which is `logical(0)`, so `filter()` dropped every
+  row and the function returned an empty frame instead of complaining (#91).
+
+* `export_wai_web()` gains `wai_qoq_q` and `wai_yoy_q`: the WAI aggregated to
+  quarterly frequency the way GDP is actually measured. Quarterly GDP is a
+  *flow* - the quarter's average activity - so the like-for-like aggregate is
+  the quarterly mean of the level index, with growth taken between those means.
+  Compared that way the WAI matches published GDP at a correlation of 1.000 and
+  an RMSE of 0.04pp over 143 quarters; compared against quarter *endpoints* it
+  appears to miss 2020Q2 entirely, because activity collapsed and recovered
+  inside that quarter.
+
+* New `gdp_web_series()`, which returns published GDP as annualised QoQ growth,
+  YoY growth and a level index rebased to 2019Q4 = 100 - the same three
+  measures as the exported WAI series and on the same scale, so they share an
+  axis. The conversion lives in one tested place because doing it by hand is
+  what produced two bugs: raw log differences plotted against annualised
+  percentages (wrong by a factor of ~400), and `as.numeric()` on a `Date`
+  (days since 1970, so no GDP point matched any week) (#76).
+
+* `get_real_time_gdp_vintages()` gains `output_type = "level"`, validates
+  `output_type` with `match.arg()`, and takes `start_date`/`end_date`. An
+  unmatched `output_type` used to fall through both branches and return the
+  untransformed levels *silently*, so a typo produced levels labelled as
+  growth. The levels are a documented option now rather than an accident (#76).
+
+* `get_real_time_gdp_vintages()` no longer hard-codes a `2025-12-31` upper
+  bound. It removed nothing while the shipped vintage files ended in 2025, and
+  would have silently truncated the newest quarter the moment a 2026 vintage
+  arrived - exactly when a live indicator needs it (#76).
+
+* `export_wai_web()` accepts a `gdp` frame carrying any of `qoq`, `yoy` and
+  `index` and writes `gdp_qoq`, `gdp_yoy` and `gdp_index` accordingly, so
+  official GDP can be shown against all three WAI views. The older
+  `time`/`value` shape still works and still lands in `gdp_qoq` (#76).
+
+* New `export_wai_web()`, which turns a saved WAI fit into the wide
+  `wai_data.csv` and `wai_meta.json` pair consumed by the public dashboard.
+  The CSV contract (column names and order, empty string for missing, ISO
+  dates, LF endings) is the whole interface to the front end, and is what the
+  new tests pin down (#71).
+
+* `extract_wai_data()` no longer dates the level index against a hard-coded
+  1990-2025 weekly grid. `zoo()` silently recycles its data to the length of
+  `order.by`, so any fit shorter than that grid had its index wrapped around
+  and re-dated, and the level bounds were computed from the wrong values. The
+  grid now comes from the fit. The bounds were never returned, so no previously
+  returned table changes; they are returned now, as `tab_gr_lv_full` (#71).
+
+* `extract_wai_data()` warns and rebases to the first observation when the fit
+  does not span the 2019Q4 base window, instead of silently returning a level
+  index of all `NaN` - which is what this function's own documented example,
+  fitting from 2021, had been producing (#71).
+
 # mfbdfm 0.1.0
 
 First functional version of the package, converting the WAI research code

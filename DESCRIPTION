@@ -60,6 +60,7 @@ Suggests:
     forecast,
     ggsci,
     ISOweek,
+    jsonlite,
     pammtools,
     RColorBrewer,
     readr,
