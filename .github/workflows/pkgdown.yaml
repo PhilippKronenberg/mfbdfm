@@ -11,6 +11,21 @@ on:
 
 name: pkgdown.yaml
 
+# Two pushes to main a few seconds apart used to start two runs that both built
+# the site and both pushed to gh-pages; one lost the race and failed at the
+# deploy step (#89). The agent queue makes bursts of merges ordinary, so this
+# needs serialising.
+#
+# Note this deliberately does NOT cancel in progress, where r.yml does. A
+# superseded check is worth nothing and is free to kill; a deploy killed partway
+# through can leave gh-pages half-updated. GitHub keeps at most one pending run
+# per group, so a burst collapses to "current, then newest" rather than a
+# backlog. Keying on github.ref leaves pull-request runs independent, which is
+# harmless since they never reach the deploy step.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions: read-all
 
 jobs:
