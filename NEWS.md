@@ -1,5 +1,17 @@
 # mfbdfm 0.1.0.9000
 
+* New `mfbdfm_nowcast()`, an exported generic with methods for both fit
+  classes, returns the stored nowcasts of the target series as a data frame of
+  `time`, `nowcast`, `sd` and `level` credible bounds; `last = TRUE` returns
+  only the most recent period. Previously the nowcasts were reachable only as
+  `fit$nowcast`/`fit$nowcast_var` or through `retrieve_nowcast()`, which takes
+  a `model` string, returns a single value and is really a helper for the
+  `run_ar()`/`run_wai_adj()` backcast workflow. Those two are unchanged and
+  keep serving the AR benchmark. There is still **no** `predict()` method, for
+  the reason recorded in `?ind_dfm_methods`: the nowcasts are computed while
+  the model is fitted, so a `predict()` returning stored values would
+  advertise a capability the model does not have (#104).
+
 * `extract_wai_data()` compounds the level index with `(1 + gr)` rather than
   `exp(gr)`. `gr` is already a net per-period rate, so the gross growth factor
   is `1 + gr`; `exp(x) > 1 + x` for every `x != 0`, which made the error

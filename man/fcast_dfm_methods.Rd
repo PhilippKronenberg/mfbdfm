@@ -46,6 +46,9 @@ does and for why there is no \code{predict()} method.
 \details{
 \code{coef()} returns an \verb{n x q} loading matrix here rather than a vector, and
 \code{as.data.frame()} returns one mean/lower/upper triple per factor.
+
+As for \code{\link[=ind_dfm]{ind_dfm()}} fits, the stored nowcasts are reached with
+\code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}}.
 }
 \examples{
 \donttest{
@@ -59,9 +62,11 @@ fit <- fcast_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")]
 fit
 coef(fit)          # a q-column matrix here, a vector for ind_dfm()
 head(as.data.frame(fit))
+mfbdfm_nowcast(fit, last = TRUE)
 }
 
 }
 \seealso{
-\code{\link[=fcast_dfm]{fcast_dfm()}}, \link{ind_dfm_methods}
+\code{\link[=fcast_dfm]{fcast_dfm()}}, \link{ind_dfm_methods}, \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} for the
+nowcasts
 }

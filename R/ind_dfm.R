@@ -88,8 +88,9 @@
 #'   }
 #'
 #' @seealso [fcast_dfm()] for the multi-factor model, [dfm_priors()] to vary
-#'   the priors, and [ind_dfm_methods] for the `print`, `summary`, `plot`,
-#'   `coef`, `fitted`, `residuals` and `as.data.frame` methods.
+#'   the priors, [mfbdfm_nowcast()] to extract the nowcasts from the fit, and
+#'   [ind_dfm_methods] for the `print`, `summary`, `plot`, `coef`, `fitted`,
+#'   `residuals` and `as.data.frame` methods.
 #'
 #' @examples
 #' \donttest{

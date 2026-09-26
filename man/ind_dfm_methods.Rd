@@ -70,7 +70,8 @@ so downstream code need not reach into the list structure.}
 There is deliberately no \code{predict()} method: the model does not forecast in
 the usual sense -- nowcasts are computed during fitting and stored -- so a
 \code{predict()} returning stored values would advertise a capability that does
-not exist.
+not exist. Use \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to get at those stored nowcasts; it is
+the accessor the missing \code{predict()} would otherwise be mistaken for.
 }
 \examples{
 \donttest{
@@ -84,9 +85,11 @@ fit <- ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
 fit
 coef(fit)
 head(as.data.frame(fit))
+mfbdfm_nowcast(fit, last = TRUE)
 }
 
 }
 \seealso{
-\code{\link[=ind_dfm]{ind_dfm()}}, \link{fcast_dfm_methods}
+\code{\link[=ind_dfm]{ind_dfm()}}, \link{fcast_dfm_methods}, \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} for the
+nowcasts
 }

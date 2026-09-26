@@ -109,9 +109,20 @@ back up to the target's own (here quarterly) frequency:
 plot(fit$factor, ylab = "WAI (annualized %, weekly)", xlab = NULL)
 ```
 
+`mfbdfm_nowcast()` is the accessor for those nowcasts, returning them
+with a credible band rather than as a bare `ts`. It works the same way
+for a `fcast_dfm()` fit, and `last = TRUE` gives just the current period
+— the usual real-time query:
+
 ```{r nowcast}
-fit$nowcast
+tail(mfbdfm_nowcast(fit))
+mfbdfm_nowcast(fit, last = TRUE)
 ```
+
+There is deliberately no `predict()` method. The nowcasts are computed
+while the model is fitted, so there is no separate prediction step to
+run on new data, and a `predict()` returning stored values would
+advertise a capability the model does not have.
 
 `fit$index` gives the cumulated activity level (rebased to 100 at the
 start of the estimation window), and `fit$pars` holds the posterior

@@ -190,7 +190,9 @@ Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.
 \doi{10.1186/s41937-026-00157-w}
 }
 \seealso{
-\code{\link[=ind_dfm]{ind_dfm()}} for the single-factor, target-anchored model.
+\code{\link[=ind_dfm]{ind_dfm()}} for the single-factor, target-anchored model,
+\code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to extract the nowcasts from the fit, and
+\link{fcast_dfm_methods} for the methods the fit supports.
 
 Other model fitting functions: 
 \code{\link{dfm_memory}()},

@@ -148,8 +148,9 @@ Tracking economic activity with alternative high-frequency data.
 }
 \seealso{
 \code{\link[=fcast_dfm]{fcast_dfm()}} for the multi-factor model, \code{\link[=dfm_priors]{dfm_priors()}} to vary
-the priors, and \link{ind_dfm_methods} for the \code{print}, \code{summary}, \code{plot},
-\code{coef}, \code{fitted}, \code{residuals} and \code{as.data.frame} methods.
+the priors, \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to extract the nowcasts from the fit, and
+\link{ind_dfm_methods} for the \code{print}, \code{summary}, \code{plot}, \code{coef}, \code{fitted},
+\code{residuals} and \code{as.data.frame} methods.
 
 Other model fitting functions: 
 \code{\link{dfm_memory}()},
