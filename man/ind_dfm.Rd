@@ -72,6 +72,12 @@ An object of class \code{"ind_dfm"}: a list with components
 \describe{
 \item{factor}{\code{ts}, posterior mean of the annualized activity factor.}
 \item{factor_var}{\code{ts}, posterior variance of the factor.}
+\item{factor_std}{\code{ts}, posterior mean of the factor on the model's own
+standardized scale -- the quantity the observation equation multiplies
+by the loadings -- covering the \code{2*(k - 1)} latent periods the
+distributed-lag aggregation reaches back into as well as the sample.
+\code{factor} is the same path de-standardized and annualized, and that
+transform is convex, so it cannot be inverted back to this.}
 \item{index}{\code{ts}, posterior mean of the cumulated activity index.}
 \item{nowcast}{\code{ts}, posterior mean nowcast of the target series.}
 \item{nowcast_var}{\code{ts}, posterior variance of the nowcast.}
@@ -151,9 +157,9 @@ Tracking economic activity with alternative high-frequency data.
 the priors, and \link{ind_dfm_methods} for the \code{print}, \code{summary}, \code{plot},
 \code{coef}, \code{fitted}, \code{residuals} and \code{as.data.frame} methods.
 
-Other model fitting functions: 
-\code{\link{dfm_memory}()},
-\code{\link{fcast_dfm}()},
-\code{\link{run_fcast}()}
+Other model fitting functions:
+\code{\link[=dfm_memory]{dfm_memory()}},
+\code{\link[=fcast_dfm]{fcast_dfm()}},
+\code{\link[=run_fcast]{run_fcast()}}
 }
 \concept{model fitting functions}

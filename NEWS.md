@@ -1,5 +1,29 @@
 # mfbdfm 0.1.0.9000
 
+* `summary()` on either fit class now reports a **per-series R-squared**, so the
+  question "which of my series does the factor actually explain?" has an answer
+  in the fit object (`$r_squared`: `series`, `freq`, `n_obs`, `r_squared`, sorted
+  best-first). It is `1 - Var(residual)/Var(observed)` over the periods where
+  each series was observed, with the fitted value taken to be the **common
+  component** - loadings times factors, temporally aggregated - so it measures
+  what the factor explains rather than the idiosyncratic AR part. Deliberately
+  not computed from `residuals()`: `fitted()` is the augmented dataset, whose
+  observed entries the sampler pins to the observed values with a 1e-9
+  measurement prior, so every R-squared derived from it would be ~1. Read the
+  ranking across series rather than the level - the common component is built
+  from posterior *mean* parameters, and in `ind_dfm()` the factor's scale is
+  pinned to the target, which caps how much of a high-frequency series it can
+  account for. `print()` flags the target's own ~1 as identification rather than
+  a finding (#99).
+
+* `ind_dfm()` gains a `$factor_std` component: the posterior mean factor on the
+  model's own standardized scale, over the `2*(k - 1)` latent periods the
+  distributed-lag aggregation reaches back into as well as the sample. This is
+  the quantity the observation equation multiplies by the loadings, and it is not
+  recoverable from `$factor`, which is de-standardized and annualized through a
+  convex transform. `fcast_dfm()` already returns exactly this as its `$factor`
+  (#99).
+
 * `extract_wai_data()` compounds the level index with `(1 + gr)` rather than
   `exp(gr)`. `gr` is already a net per-period rate, so the gross growth factor
   is `1 + gr`; `exp(x) > 1 + x` for every `x != 0`, which made the error
