@@ -20,6 +20,9 @@ fitted(object, ...)
 residuals(object, ...)
 
 # S3 method for class 'ind_dfm'
+logLik(object, ...)
+
+# S3 method for class 'ind_dfm'
 as.data.frame(x, row.names = NULL, optional = FALSE, ...)
 
 # S3 method for class 'ind_dfm'
@@ -63,9 +66,12 @@ with one column per series;
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) a data
 frame with `time` and the factor with bands;
 [`summary()`](https://rdrr.io/r/base/summary.html) an object of class
-`"summary.mfbdfm_fit"`; [`print()`](https://rdrr.io/r/base/print.html)
-and [`plot()`](https://rdrr.io/r/graphics/plot.default.html) return
-their input invisibly.
+`"summary.mfbdfm_fit"`;
+[`logLik()`](https://rdrr.io/r/stats/logLik.html) an object of class
+`"logLik"` with `df` and `nobs` attributes;
+[`print()`](https://rdrr.io/r/base/print.html) and
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) return their
+input invisibly.
 
 ## Details
 
@@ -107,12 +113,66 @@ their input invisibly.
   The factor with 95% bands, one row per period, so downstream code need
   not reach into the list structure.
 
+- [`logLik()`](https://rdrr.io/r/stats/logLik.html):
+
+  A plug-in Gaussian log-likelihood of the observed data, with `df` and
+  `nobs` attributes so that [`AIC()`](https://rdrr.io/r/stats/AIC.html)
+  and [`BIC()`](https://rdrr.io/r/stats/AIC.html) work. Read the
+  definition below before using it.
+
 There is deliberately no
 [`predict()`](https://rdrr.io/r/stats/predict.html) method: the model
 does not forecast in the usual sense – nowcasts are computed during
 fitting and stored – so a
 [`predict()`](https://rdrr.io/r/stats/predict.html) returning stored
 values would advertise a capability that does not exist.
+
+## What [`logLik()`](https://rdrr.io/r/stats/logLik.html) means here
+
+Neither model computes a likelihood while sampling – the factors are
+drawn jointly from a stacked, precision-based conditional, and there is
+no Kalman filter anywhere in the package. So the value has to be
+*defined*, and the definition adopted is:the Gaussian log density of the
+observed entries of the prepared data,evaluated at the posterior mean
+parameters and the posterior meanvolatility path, with the factors and
+the unobserved data entriesmarginalised out.
+
+It is computed exactly (not by simulation) from the stacked Gaussian
+form the samplers already use, so nothing is approximated in the
+*arithmetic*. What is approximate is the statistics, in three specific
+ways:
+
+- It is a **plug-in** likelihood at a single parameter value, not the
+  marginal likelihood of the data under the posterior, and not an
+  average of the likelihood over draws. Posterior uncertainty in the
+  parameters is ignored.
+
+- It is **conditional on the posterior mean volatility path**, which is
+  itself a latent state, rather than integrated over it.
+
+- `df` counts the parameters of the measurement and state equations only
+  – loadings (net of the identifying restriction), autoregressive
+  coefficients, measurement error variances, measurement error
+  autocorrelations, and the volatility process. The latent states are
+  not counted, and neither is the shrinkage imposed by the priors.
+
+Consequently **[`AIC()`](https://rdrr.io/r/stats/AIC.html) and
+[`BIC()`](https://rdrr.io/r/stats/AIC.html) are approximate for this
+model class, and should be read as rough comparisons rather than as
+model selection criteria.** Both models are hierarchical and Bayesian,
+and
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)'s
+identification is carried by informative priors (see
+[`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)),
+so the effective number of parameters is not the raw count that `df`
+reports. For a criterion that respects the posterior, prefer DIC or WAIC
+computed from the retained draws.
+
+Missing observations are encoded as `0` in the prepared data and are
+**excluded** – they enter as latent quantities to be marginalised out,
+not as observed zeros. `nobs` is therefore the number of genuinely
+observed values, which for a mixed-frequency model is far fewer than
+`nrow * ncol`.
 
 ## See also
 
@@ -155,7 +215,7 @@ fit
 #>     2025.750      0.00151
 #> 
 #> Full results: $factor, $nowcast, $index, $pars; summary(), plot(),
-#> as.data.frame(), coef(), fitted(), residuals()
+#> as.data.frame(), coef(), fitted(), residuals(), logLik()
 coef(fit)
 #> ch.seco.gdp.real.gdp.ssa                  SWISSMI                SWCONPRCE 
 #>               1.00000000               0.05379545               0.61872745 
@@ -169,5 +229,9 @@ head(as.data.frame(fit))
 #> 4 2021.062 2.0404843   -1.1264859     5.207455
 #> 5 2021.083 2.1820033   -0.7314820     5.095489
 #> 6 2021.104 3.7034597    0.2151573     7.191762
+logLik(fit)
+#> 'log Lik.' -532.891 (df=13)
+AIC(fit)              # approximate here - see "What logLik() means"
+#> [1] 1091.782
 # }
 ```

@@ -362,11 +362,12 @@ the helpers that prepare their input data.
 ## Methods on fitted models
 
 The generics both fit classes support: print, summary, plot, coef,
-fitted, residuals and as.data.frame.
+fitted, residuals, as.data.frame and logLik (and hence AIC/BIC).
 
 - [`coef(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`fitted(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`residuals(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  [`logLik(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`as.data.frame(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`plot(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`summary(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
@@ -376,6 +377,7 @@ fitted, residuals and as.data.frame.
   [`coef(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`fitted(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`residuals(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+  [`logLik(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`as.data.frame(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`plot(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`summary(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)

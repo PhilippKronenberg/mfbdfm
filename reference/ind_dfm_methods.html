@@ -53,6 +53,9 @@ the same set – see <a href="fcast_dfm_methods.html">fcast_dfm_methods</a>.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'ind_dfm'</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'ind_dfm'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">x</span>, row.names <span class="op">=</span> <span class="cn">NULL</span>, optional <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'ind_dfm'</span></span>
@@ -91,7 +94,8 @@ the same set – see <a href="fcast_dfm_methods.html">fcast_dfm_methods</a>.</p>
     <p><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> a named numeric vector; <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> <code>ts</code>
 matrices with one column per series; <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> a data frame with
 <code>time</code> and the factor with bands; <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> an object of class
-<code>"summary.mfbdfm_fit"</code>; <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> return their input
+<code>"summary.mfbdfm_fit"</code>; <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> an object of class <code>"logLik"</code> with <code>df</code>
+and <code>nobs</code> attributes; <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> return their input
 invisibly.</p>
     </div>
     <div class="section level2">
@@ -128,11 +132,51 @@ the matrix for the low-frequency series.</p></dd>
 <dd><p>The factor with 95% bands, one row per period,
 so downstream code need not reach into the list structure.</p></dd>
 
+<dt><code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code></dt>
+<dd><p>A plug-in Gaussian log-likelihood of the observed data,
+with <code>df</code> and <code>nobs</code> attributes so that <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> and <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> work. Read
+the definition below before using it.</p></dd>
+
 
 </dl><p>There is deliberately no <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> method: the model does not forecast in
 the usual sense – nowcasts are computed during fitting and stored – so a
 <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> returning stored values would advertise a capability that does
 not exist.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-loglik-means-here">What <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> means here<a class="anchor" aria-label="anchor" href="#what-loglik-means-here"></a></h2>
+
+
+
+<p>Neither model computes a likelihood while sampling – the factors are drawn
+jointly from a stacked, precision-based conditional, and there is no Kalman
+filter anywhere in the package. So the value has to be <em>defined</em>, and the
+definition adopted is:the Gaussian log density of the observed entries of the prepared data,evaluated at the posterior mean parameters and the posterior meanvolatility path, with the factors and the unobserved data entriesmarginalised out.</p>
+<p>It is computed exactly (not by simulation) from the stacked Gaussian form
+the samplers already use, so nothing is approximated in the <em>arithmetic</em>.
+What is approximate is the statistics, in three specific ways:</p>
+<ul><li><p>It is a <strong>plug-in</strong> likelihood at a single parameter value, not the
+marginal likelihood of the data under the posterior, and not an average
+of the likelihood over draws. Posterior uncertainty in the parameters is
+ignored.</p></li>
+<li><p>It is <strong>conditional on the posterior mean volatility path</strong>, which is
+itself a latent state, rather than integrated over it.</p></li>
+<li><p><code>df</code> counts the parameters of the measurement and state equations
+only – loadings (net of the identifying restriction), autoregressive
+coefficients, measurement error variances, measurement error
+autocorrelations, and the volatility process. The latent states are not
+counted, and neither is the shrinkage imposed by the priors.</p></li>
+</ul><p>Consequently <strong><code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> and <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> are approximate for this model class, and
+should be read as rough comparisons rather than as model selection
+criteria.</strong> Both models are hierarchical and Bayesian, and <code><a href="ind_dfm.html">ind_dfm()</a></code>'s
+identification is carried by informative priors (see <code><a href="dfm_priors.html">dfm_priors()</a></code>), so the
+effective number of parameters is not the raw count that <code>df</code> reports. For a
+criterion that respects the posterior, prefer DIC or WAIC computed from the
+retained draws.</p>
+<p>Missing observations are encoded as <code>0</code> in the prepared data and are
+<strong>excluded</strong> – they enter as latent quantities to be marginalised out, not
+as observed zeros. <code>nobs</code> is therefore the number of genuinely observed
+values, which for a mixed-frequency model is far fewer than <code>nrow * ncol</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -174,7 +218,7 @@ not exist.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2025.750      0.00151</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $nowcast, $index, $pars; summary(), plot(),</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> as.data.frame(), coef(), fitted(), residuals()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> as.data.frame(), coef(), fitted(), residuals(), logLik()</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ch.seco.gdp.real.gdp.ssa                  SWISSMI                SWCONPRCE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               1.00000000               0.05379545               0.61872745 </span>
@@ -188,6 +232,10 @@ not exist.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4 2021.062 2.0404843   -1.1264859     5.207455</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5 2021.083 2.1820033   -0.7314820     5.095489</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6 2021.104 3.7034597    0.2151573     7.191762</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 'log Lik.' -532.891 (df=13)</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>              <span class="co"># approximate here - see "What logLik() means"</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1091.782</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

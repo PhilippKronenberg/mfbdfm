@@ -2,6 +2,34 @@
 
 ## mfbdfm 0.1.0.9000
 
+- Both fit classes gain a
+  [`logLik()`](https://rdrr.io/r/stats/logLik.html) method, so
+  [`AIC()`](https://rdrr.io/r/stats/AIC.html) and
+  [`BIC()`](https://rdrr.io/r/stats/AIC.html) work on them. Neither
+  sampler computes a likelihood and there is no Kalman filter in the
+  package, so the quantity had to be *defined*: it is the Gaussian log
+  density of the **observed** entries of the prepared data, at the
+  posterior mean parameters and volatility path, with the factors and
+  the unobserved entries marginalised out. It is computed exactly from
+  the stacked Gaussian form the samplers already use — the factor prior
+  precision from `draw_factors()` and the quasi-differenced measurement
+  block from `draw_augmented_data()` — rather than by adding a filter,
+  and it agrees with a dense brute-force evaluation to ~3e-12. Missing
+  observations are encoded as `0` in the prepared data and are excluded,
+  the same caveat that makes
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) return `NA`
+  there; `nobs` counts genuinely observed values only.
+  **[`AIC()`](https://rdrr.io/r/stats/AIC.html)/[`BIC()`](https://rdrr.io/r/stats/AIC.html)
+  are approximate for this model class** — the value is a plug-in
+  likelihood at one parameter value rather than a posterior quantity, it
+  conditions on the volatility path rather than integrating over it, and
+  `df` is a raw parameter count that ignores the shrinkage the
+  (structural) priors impose.
+  [`?ind_dfm_methods`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  says so plainly; prefer DIC or WAIC when the posterior matters.
+  Sampling is untouched
+  ([\#97](https://github.com/PhilippKronenberg/mfbdfm/issues/97)).
+
 - [`extract_wai_data()`](https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.md)
   compounds the level index with `(1 + gr)` rather than `exp(gr)`. `gr`
   is already a net per-period rate, so the gross growth factor is

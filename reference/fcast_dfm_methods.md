@@ -23,6 +23,9 @@ fitted(object, ...)
 residuals(object, ...)
 
 # S3 method for class 'fcast_dfm'
+logLik(object, ...)
+
+# S3 method for class 'fcast_dfm'
 as.data.frame(x, row.names = NULL, optional = FALSE, ...)
 
 # S3 method for class 'fcast_dfm'
@@ -67,6 +70,22 @@ matrix.
 matrix here rather than a vector, and
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) returns
 one mean/lower/upper triple per factor.
+
+[`logLik()`](https://rdrr.io/r/stats/logLik.html) uses the same
+definition as it does for
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+– see "What [`logLik()`](https://rdrr.io/r/stats/logLik.html) means
+here" in
+[ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md),
+including why [`AIC()`](https://rdrr.io/r/stats/AIC.html) and
+[`BIC()`](https://rdrr.io/r/stats/AIC.html) are only approximate. The
+`df` count differs: the loadings are unrestricted in sampling and
+identified post hoc by rotation, so `n*q - q*(q-1)/2` of them are
+counted as free, and the volatility contributes a parameter only when
+`stochastic_volatility = TRUE` (with it off the factor innovation
+variance is *fixed* at one and carries the identification, where
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+still estimates a constant).
 
 ## See also
 
@@ -141,5 +160,9 @@ head(as.data.frame(fit))
 #> 4      3.629444
 #> 5      3.369405
 #> 6      3.539572
+logLik(fit)
+#> 'log Lik.' -539.5679 (df=20)
+BIC(fit)           # approximate here - see ?ind_dfm_methods
+#> [1] 1198.612
 # }
 ```

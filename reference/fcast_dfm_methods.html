@@ -59,6 +59,9 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
 <span><span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'fcast_dfm'</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'fcast_dfm'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">x</span>, row.names <span class="op">=</span> <span class="cn">NULL</span>, optional <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'fcast_dfm'</span></span>
@@ -97,6 +100,14 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> returns an <code>n x q</code> loading matrix here rather than a vector, and
 <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> returns one mean/lower/upper triple per factor.</p>
+<p><code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> uses the same definition as it does for <code><a href="ind_dfm.html">ind_dfm()</a></code> – see
+"What <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> means here" in <a href="ind_dfm_methods.html">ind_dfm_methods</a>, including why <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> and
+<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> are only approximate. The <code>df</code> count differs: the loadings are
+unrestricted in sampling and identified post hoc by rotation, so
+<code>n*q - q*(q-1)/2</code> of them are counted as free, and the volatility
+contributes a parameter only when <code>stochastic_volatility = TRUE</code> (with it
+off the factor innovation variance is <em>fixed</em> at one and carries the
+identification, where <code><a href="ind_dfm.html">ind_dfm()</a></code> still estimates a constant).</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -170,6 +181,10 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4      3.629444</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5      3.369405</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6      3.539572</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 'log Lik.' -539.5679 (df=20)</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>           <span class="co"># approximate here - see ?ind_dfm_methods</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1198.612</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
