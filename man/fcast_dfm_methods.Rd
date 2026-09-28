@@ -6,6 +6,7 @@
 \alias{coef.fcast_dfm}
 \alias{fitted.fcast_dfm}
 \alias{residuals.fcast_dfm}
+\alias{logLik.fcast_dfm}
 \alias{as.data.frame.fcast_dfm}
 \alias{plot.fcast_dfm}
 \alias{summary.fcast_dfm}
@@ -18,6 +19,8 @@
 \method{fitted}{fcast_dfm}(object, ...)
 
 \method{residuals}{fcast_dfm}(object, ...)
+
+\method{logLik}{fcast_dfm}(object, ...)
 
 \method{as.data.frame}{fcast_dfm}(x, row.names = NULL, optional = FALSE, ...)
 
@@ -46,6 +49,15 @@ does and for why there is no \code{predict()} method.
 \details{
 \code{coef()} returns an \verb{n x q} loading matrix here rather than a vector, and
 \code{as.data.frame()} returns one mean/lower/upper triple per factor.
+
+\code{logLik()} uses the same definition as it does for \code{\link[=ind_dfm]{ind_dfm()}} -- see
+"What \code{logLik()} means here" in \link{ind_dfm_methods}, including why \code{AIC()} and
+\code{BIC()} are only approximate. The \code{df} count differs: the loadings are
+unrestricted in sampling and identified post hoc by rotation, so
+\code{n*q - q*(q-1)/2} of them are counted as free, and the volatility
+contributes a parameter only when \code{stochastic_volatility = TRUE} (with it
+off the factor innovation variance is \emph{fixed} at one and carries the
+identification, where \code{\link[=ind_dfm]{ind_dfm()}} still estimates a constant).
 }
 \examples{
 \donttest{
@@ -59,6 +71,8 @@ fit <- fcast_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")]
 fit
 coef(fit)          # a q-column matrix here, a vector for ind_dfm()
 head(as.data.frame(fit))
+logLik(fit)
+BIC(fit)           # approximate here - see ?ind_dfm_methods
 }
 
 }
