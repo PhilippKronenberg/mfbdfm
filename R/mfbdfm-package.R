@@ -34,12 +34,18 @@
 #' following the geometric-mean approximation of Mariano and Murasawa
 #' (2003).
 #'
+#' The measurement and state equations, the mixed-frequency aggregation
+#' weights, and how the scale is identified in each of the two models
+#' are set out in `vignette("methodology", package = "mfbdfm")`.
+#'
 #' @section Getting started:
 #' The package ships the curated indicator datasets [data_ch_dataset]
 #' and [data_ch_dataset_test], plus the real-time GDP vintage database
 #' (in `inst/extdata/`), so a small nowcast can be estimated out of the
-#' box - see `vignette("mfbdfm")` for a worked walkthrough, or the
-#' example in [ind_dfm()] for the minimal version.
+#' box - see `vignette("mfbdfm")` for an applied walkthrough, or the
+#' example in [ind_dfm()] for the minimal version. For the model itself
+#' rather than the workflow, see
+#' `vignette("methodology", package = "mfbdfm")`.
 #'
 #' @references
 #' Kronenberg, P. (2026). A high-frequency GDP indicator for

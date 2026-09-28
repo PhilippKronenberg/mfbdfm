@@ -38,10 +38,14 @@ The package requires R >= 4.1.
 
 ## Getting started
 
-For a fuller walkthrough of the model (data augmentation, stochastic
-volatility, the identification restriction) with a runnable example,
-see `vignette("mfbdfm")` — also browsable on the
+For an applied walkthrough — data in, fit, inspect, nowcast — see
+`vignette("mfbdfm")`, also browsable on the
 [package website](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.html).
+The model itself (measurement and state equations, mixed-frequency
+aggregation, data augmentation, stochastic volatility, and the
+identification restriction) has its own vignette,
+`vignette("methodology", package = "mfbdfm")` —
+[also on the website](https://philippkronenberg.github.io/mfbdfm/articles/methodology.html).
 
 The curated indicator datasets ship with the package. A small (fast,
 demonstration-sized) nowcast:
