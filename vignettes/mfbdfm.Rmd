@@ -72,6 +72,107 @@ GDP growth closely by construction — see `?ind_dfm` for the details and
 references, and `vignette("mfbdfm")`'s "Real-time GDP vintages" section
 below for how the target series itself is constructed for live use.
 
+## Glossary
+
+The package's documentation uses the vocabulary of Bayesian dynamic factor
+models throughout. Each term below means exactly this, everywhere in
+`mfbdfm`.
+
+**Model structure**
+
+- **Mixed frequency** — input series observed at different sampling
+  intervals (here weekly, monthly, quarterly) entering one model without
+  first being aggregated to the slowest of them. Internally everything is
+  placed on a common 48-periods-per-year weekly grid.
+- **Factor** ($f_t$) — the single unobserved (latent) weekly series that
+  the model extracts as the common movement shared by all input series. In
+  `ind_dfm()` it is reported as an *annualised growth rate*, not as a level.
+- **Loading** ($\lambda_i$) — the coefficient linking series $i$ to the
+  factor in the measurement equation: how strongly, and with what sign,
+  that series responds to a one-unit move in the factor.
+- **Measurement equation** — the equation linking each observed series to
+  the factor, its distributed lags, and a series-specific *idiosyncratic*
+  error. **State equation** — the autoregressive equation governing how the
+  factor itself evolves through time.
+- **Flow versus stock** — a *flow* variable accumulates within a period
+  (GDP, exports), so its low-frequency value aggregates the weekly values
+  inside it; a *stock* variable is a snapshot (a survey balance, an index
+  level). The classification selects the temporal-aggregation weights, so
+  it changes results.
+- **Temporal aggregation** — the arithmetic that relates a low-frequency
+  observation to the weekly factor values covering the same span; flows use
+  the geometric-mean approximation of Mariano and Murasawa (2003).
+- **Data augmentation** — treating unobserved values (missing entries,
+  and the weekly values of a series that is only published monthly or
+  quarterly) as additional unknowns sampled alongside the parameters,
+  rather than imputing or discarding them.
+- **Quasi-differencing** — transforming the measurement equation by each
+  series' own estimated error autocorrelation, so that serially correlated
+  idiosyncratic noise is not misread as a movement in the common factor
+  (Chib and Greenberg, 1994).
+- **Stochastic volatility** — letting the variance of the factor's
+  innovations vary over time as its own latent process, so a crisis shows
+  up as a genuinely higher variance rather than as a string of implausible
+  draws under a constant variance.
+- **Identification** — resolving the fact that a factor model cannot
+  distinguish $(f_t, \lambda)$ from $(c f_t, \lambda / c)$: the likelihood
+  is unchanged, so something must pin the scale (and sign). `ind_dfm()`
+  pins it by fixing the loading on the **target** series to one during
+  sampling; `fcast_dfm()` leaves the loadings free and resolves the
+  indeterminacy after sampling by rotation.
+- **Target / anchoring** — the series whose loading is fixed to one in
+  `ind_dfm()` (for the WAI, quarterly real GDP). Anchoring is what makes
+  the extracted factor interpretable as that series' growth rate at weekly
+  frequency, rather than a generic index that merely correlates with it.
+  In `fcast_dfm()` the `target` argument does **not** affect estimation; it
+  only selects which series' nowcast is surfaced.
+
+**Estimation**
+
+- **Prior** — the distribution expressing what is assumed about a
+  parameter before seeing the data; **posterior** — the distribution of
+  that parameter after conditioning on the data. `dfm_priors()` builds the
+  former; every value in a fitted object is a summary of the latter.
+- **Hyperparameter** — in this package the term is avoided. The numbers
+  passed through `dfm_priors()` are the *parameters of the prior
+  distributions* (e.g. the shape and scale of an inverse-gamma prior on a
+  variance), and are called prior parameters. Settings that control the
+  sampler rather than the model — stability bounds, rotation tolerances —
+  are **not** priors and live in `dfm_control()`.
+- **Gibbs sampling** — the Markov chain Monte Carlo scheme used here: each
+  block of unknowns is drawn in turn from its distribution conditional on
+  the current value of all the others, and the chain of such sweeps
+  converges on the joint posterior.
+- **Draw** — one complete sweep of the sampler, i.e. one sample from the
+  posterior. **Burn-in** (`burn_in`) — the initial draws discarded, before
+  the chain has reached its stationary distribution. **Thinning**
+  (`thinning`) — keeping only every $k$-th retained draw, to reduce the
+  autocorrelation between stored draws. `length_sample` is the number of
+  draws kept *after* burn-in.
+- **Posterior mean / posterior variance** — the average and the variance
+  of a quantity across the retained draws. `fit$factor` and `fit$nowcast`
+  are posterior means; `fit$factor_var` and `fit$nowcast_var` the matching
+  variances.
+- **Standardisation** — rescaling each non-target input series to mean
+  zero and unit variance before estimation, so loadings are comparable and
+  no series dominates through its units alone. `prepare_data()` does this;
+  note that in the prepared matrix a `0` encodes *missing*, not the mean.
+
+**Output**
+
+- **Nowcast** — an estimate of the current period's value of a series that
+  has not yet been published (quarterly GDP, weeks before its release).
+  **Backcast** — the same for a period that is already over but still
+  unpublished. **Forecast** — a period that has not yet ended. All three
+  come out of the same smoothed state here; they differ only in where the
+  estimated period sits relative to the data.
+- **Vintage** — the version of a series as it stood at a given past date,
+  before subsequent revisions. Real-time evaluation uses the vintage that
+  was actually available at each decision date, which is what
+  `get_real_time_gdp_vintages()` and `cut_data_real_time()` supply.
+- **Index** — the cumulated level path implied by the factor's growth
+  rates (`fit$index`), as opposed to the growth rate itself.
+
 ## A minimal worked example
 
 The package ships a curated, model-ready dataset,
