@@ -1,5 +1,30 @@
 # mfbdfm 0.1.0.9000
 
+* New `mfbdfm_contributions()` answers "which series drive the factor, and by
+  how much, in each period?" for both fit classes, with `print()`,
+  `as.data.frame()` and `plot()` methods. It is **not** "loading ×
+  standardised series" — that product is the series' reconstruction *from* the
+  factor, the reverse direction, and with missing data, mixed-frequency
+  aggregation and serially correlated measurement errors it does not add up to
+  the factor at all. What does add up is the smoother: conditional on the
+  posterior mean parameters, `E[f | y, θ] = W y` is linear in the observed
+  data, so grouping the columns of `W` by series (or by a group of series, via
+  `by = "group"`) partitions the factor exactly, and an observation carries
+  weight in periods in which its series was not observed. `W` is never formed —
+  it has one column per observation, tens of gigabytes at the WAI's dimensions
+  — the group aggregation is pushed inside the sparse solve instead, leaving
+  one solve against a few dozen right-hand sides. Contributions to the
+  `target`'s nowcast are carried through the target's loading and the
+  distributed-lag aggregation, and split into `systematic` and
+  `idiosyncratic`. Everything is on the standardised, non-annualised scale the
+  sampler works on, the scale on which the decomposition is linear. The gap
+  between `E[f | y, θ̂]` and the MCMC posterior mean factor is reported as an
+  explicit `residual` column rather than hidden: it is parameter uncertainty,
+  and on a short chain over a couple of years it is not small. The joint
+  precision is now built once, by an internal `dfm_joint_precision()` shared
+  with `logLik()` (whose values are bit-identical) and available for the news
+  decomposition of #101. Sampling is untouched (#109).
+
 * Both fit classes gain a `logLik()` method, so `AIC()` and `BIC()` work on
   them. Neither sampler computes a likelihood and there is no Kalman filter in
   the package, so the quantity had to be *defined*: it is the Gaussian log

@@ -265,7 +265,9 @@ logLik.fcast_dfm <- function(object, ...) fit_loglik(object)
 #' marginal likelihood over the posterior.
 #'
 #' It is computed from the model exactly as the samplers implement it, reusing
-#' their own matrices, so no filtering code is added. Write `f` for the stacked
+#' their own matrices, so no filtering code is added. The precision itself is
+#' built by [dfm_joint_precision()], which [mfbdfm_contributions()] also uses.
+#' Write `f` for the stacked
 #' factor path (`q*(t+s)` long) and `x` for the stacked augmented data
 #' (`n*t` long, period-major). [draw_factors()] gives the factor prior as
 #' `f ~ N(0, F0^-1)` with `F0 = H' V^-1 H`, and [draw_augmented_data()] gives
@@ -298,93 +300,23 @@ logLik.fcast_dfm <- function(object, ...) fit_loglik(object)
 #' @importFrom stats logLik
 fit_loglik <- function(object){
 
-  is_fcast <- inherits(object, "fcast_dfm")
+  jp <- dfm_joint_precision(object)
 
-  Ymat <- object$data
-  inventory <- object$inventory
-  n <- ncol(Ymat)
-  t <- nrow(Ymat)
-  k <- max(inventory$freq)/min(inventory$freq)
-  s <- 2*(k - 1)
+  Q <- jp$Q
+  y <- jp$y
+  nobs <- jp$nobs
 
-  pars <- object$pars
-  sigma_d <- as.numeric(pars$sigma)
-  rho_d <- as.numeric(pars$rho)
-  h <- as.numeric(pars$h)
-
-  if(is_fcast){
-
-    q <- pars$q
-    phi <- pars$phi
-    lambda <- as.matrix(pars$lambda)
-
-  } else {
-
-    q <- 1L
-    phi <- lapply(as.numeric(pars$phi), function(x) matrix(x, 1, 1))
-    lambda <- as.matrix(as.numeric(pars$lambda))
-    h <- c(rep(h[1], s), h)
-
-  }
-
-  p <- length(phi)
-  rho <- Diagonal(x = rho_d)
-
-  # the samplers' own observation matrix, at the posterior mean loadings
-  Gmat <- get_gmat(get_gmat_prealloc(n = n, q = q, s = s, t = t),
-                   Llist = get_distributed_lags(inventory),
-                   rho = rho, lambda = lambda, s = s, t = t, n = n)
-
-  # factor prior precision, as in draw_factors()/draw_factors_fcast()
-  H <- Reduce("+", lapply(1:p, function(px){
-
-    cbind(rbind(Matrix(0, q*px, q*(t+s-px)),
-                kronecker(Diagonal(t+s-px), -phi[[px]])),
-          Matrix(0, q*(t+s), q*px))
-
-  })) + Diagonal(n = q*(t+s))
-
-  # one volatility path shared by all q factors, hence rep(h, each = q)
-  Vinv <- Diagonal(x = exp(-2*rep(h, each = q)))
-  F0 <- t(H) %*% Vinv %*% H
-
-  # measurement block, as in draw_augmented_data()
-  Kmat <- cbind(rbind(Matrix(0, n, n*(t-1)),
-                      kronecker(Diagonal(t-1), -rho)),
-                Matrix(0, t*n, n)) + Diagonal(n = n*t)
-  Gext <- rbind(Matrix(0, n, q*(t+s)), Gmat)
-  Sinv <- Diagonal(n = t) %x% Diagonal(x = 1/sigma_d)
-
-  # joint precision of z = (f, x)
-  GtS <- t(Gext) %*% Sinv
-  KtS <- t(Kmat) %*% Sinv
-  Qfx <- -(GtS %*% Kmat)
-  Q <- rbind(cbind(F0 + GtS %*% Gext, Qfx),
-             cbind(t(Qfx), KtS %*% Kmat))
-
-  # det(H) = det(K) = 1, so the joint determinant is available in closed form
-  # rather than from a factorization of the full q*(t+s) + n*t matrix
-  logdet_Q <- -2 * q * sum(h) - t * sum(log(sigma_d))
-
-  # x is stacked period-major, so entry (period i, series j) sits at (i-1)*n + j
-  yv <- as.numeric(t(as.matrix(Ymat)))
-  obs <- which(yv != 0)
-  nobs <- length(obs)
-  y <- yv[obs]
-
-  ix_obs <- q*(t+s) + obs
-  ix_lat <- seq_len(q*(t+s) + n*t)[-ix_obs]
-
-  QLL <- forceSymmetric(Q[ix_lat, ix_lat, drop = FALSE])
-  b <- Q[ix_lat, ix_obs, drop = FALSE] %*% y
+  QLL <- forceSymmetric(Q[jp$ix_lat, jp$ix_lat, drop = FALSE])
+  b <- Q[jp$ix_lat, jp$ix_obs, drop = FALSE] %*% y
 
   logdet_QLL <- as.numeric(determinant(QLL, logarithm = TRUE)$modulus)
-  quad <- as.numeric(t(y) %*% Q[ix_obs, ix_obs, drop = FALSE] %*% y) -
+  quad <- as.numeric(t(y) %*% Q[jp$ix_obs, jp$ix_obs, drop = FALSE] %*% y) -
     as.numeric(t(b) %*% solve(QLL, b))
 
-  ll <- -0.5*nobs*log(2*pi) + 0.5*logdet_Q - 0.5*logdet_QLL - 0.5*quad
+  ll <- -0.5*nobs*log(2*pi) + 0.5*jp$logdet_Q - 0.5*logdet_QLL - 0.5*quad
 
-  structure(ll, df = fit_loglik_df(object, is_fcast, n, q, p, h, rho_d),
+  structure(ll, df = fit_loglik_df(object, jp$is_fcast, jp$n, jp$q, jp$p,
+                                   jp$h, jp$rho),
             nobs = nobs, class = "logLik")
 
 }
