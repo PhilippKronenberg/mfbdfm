@@ -9,6 +9,7 @@
 \alias{logLik.fcast_dfm}
 \alias{as.data.frame.fcast_dfm}
 \alias{plot.fcast_dfm}
+\alias{autoplot.fcast_dfm}
 \alias{summary.fcast_dfm}
 \title{Methods for multi-factor model fits}
 \usage{
@@ -24,19 +25,38 @@
 
 \method{as.data.frame}{fcast_dfm}(x, row.names = NULL, optional = FALSE, ...)
 
-\method{plot}{fcast_dfm}(x, ...)
+\method{plot}{fcast_dfm}(
+  x,
+  type = c("factor", "nowcast", "loadings", "residuals", "volatility", "fit"),
+  series = NULL,
+  level = 0.95,
+  ...
+)
+
+\method{autoplot}{fcast_dfm}(object, ...)
 
 \method{summary}{fcast_dfm}(object, ...)
 }
 \arguments{
 \item{n_show}{Integer, how many of the most recent periods \code{print()} shows.}
 
-\item{...}{Ignored, present for compatibility with the generics.}
+\item{...}{Ignored, present for compatibility with the generics. For
+\code{autoplot()}, passed on to \code{plot()}.}
 
 \item{object, x}{A fit from \code{\link[=fcast_dfm]{fcast_dfm()}}.}
 
 \item{row.names, optional}{Ignored, present for compatibility with the
 \code{\link[=as.data.frame]{as.data.frame()}} generic.}
+
+\item{type}{Character, which view \code{plot()} draws. See "Plot views" in
+\link{ind_dfm_methods}.}
+
+\item{series}{Character vector of series names, or a numeric vector of
+column positions, restricting the \code{"residuals"} and \code{"fit"} views.
+\code{NULL} (the default) draws every series.}
+
+\item{level}{Numeric in \verb{(0, 1)}, the coverage of the credible band drawn
+by the \code{"factor"} and \code{"nowcast"} views. Defaults to \code{0.95}.}
 }
 \value{
 As \link{ind_dfm_methods}, except that \code{coef()} returns a matrix.
@@ -58,6 +78,12 @@ unrestricted in sampling and identified post hoc by rotation, so
 contributes a parameter only when \code{stochastic_volatility = TRUE} (with it
 off the factor innovation variance is \emph{fixed} at one and carries the
 identification, where \code{\link[=ind_dfm]{ind_dfm()}} still estimates a constant).
+
+\code{plot()} offers the same views as \link{ind_dfm_methods} -- \code{"factor"},
+\code{"nowcast"}, \code{"loadings"}, \code{"residuals"}, \code{"volatility"} and \code{"fit"} -- and
+returns a \code{ggplot}. The \code{"factor"} view gets one panel per factor here, and
+\code{"loadings"} one facet per factor, with the series ordered by their loading
+on the first factor so that a series sits in the same row of every panel.
 }
 \examples{
 \donttest{
@@ -73,6 +99,10 @@ coef(fit)          # a q-column matrix here, a vector for ind_dfm()
 head(as.data.frame(fit))
 logLik(fit)
 BIC(fit)           # approximate here - see ?ind_dfm_methods
+
+plot(fit)                       # one panel per factor
+plot(fit, type = "loadings")    # one facet per factor
+plot(fit, type = "fit", series = 1:2)
 }
 
 }

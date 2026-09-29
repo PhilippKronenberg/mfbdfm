@@ -1,5 +1,26 @@
 # mfbdfm 0.1.0.9000
 
+* **`plot()` on a fit now returns a ggplot object rather than its input, and
+  takes a `type` argument selecting one of six views.** This is a user-visible
+  change to the return value: `plot(fit)` still draws at the console, because
+  the returned object auto-prints, but code that relied on the old
+  `invisible(x)` return will see a `ggplot` instead, and code that expected base
+  graphics (adding to the plot with `lines()`, say) has to add a ggplot layer
+  instead. In exchange every view can be modified before printing, and `plot()`
+  no longer touches the caller's `par()` at all. The views are `"factor"` (the
+  default, the previous behaviour), `"nowcast"` (the target's nowcast overlaid
+  with its observed values), `"loadings"`, `"residuals"`, `"volatility"` (the
+  posterior mean `exp(h)`) and `"fit"` (observed against fitted). `"residuals"`
+  and `"fit"` take a `series` argument, and `"factor"`/`"nowcast"` a `level`
+  one; an unknown `type` is an error naming the valid ones. Both fit classes
+  get the identical set, per the parity rule. `autoplot()` is registered as an
+  alias on both. There is no interval on the `"loadings"` view: the fits store
+  the posterior mean of `lambda`, not the draws. `type = "volatility"` on a fit
+  with `stochastic_volatility = FALSE` reports the constant in a message and
+  returns `NULL` invisibly rather than drawing a flat line. One shared palette,
+  theme and credible-band layer (`R/plots.R`) back every view, and are what
+  later plot methods should build on (#112).
+
 * Both fit classes gain a `logLik()` method, so `AIC()` and `BIC()` work on
   them. Neither sampler computes a likelihood and there is no Kalman filter in
   the package, so the quantity had to be *defined*: it is the Gaussian log

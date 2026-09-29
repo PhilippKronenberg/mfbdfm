@@ -106,7 +106,7 @@ test_that("coef reflects the identifying restriction in ind_dfm", {
   expect_equal(unname(coef(fit)[fit$target]), 1)
 })
 
-test_that("print, summary and plot work and return invisibly", {
+test_that("print and summary work and return invisibly", {
   fl <- fits()
   grDevices::pdf(NULL)
   on.exit(grDevices::dev.off(), add = TRUE)
@@ -120,7 +120,11 @@ test_that("print, summary and plot work and return invisibly", {
     expect_output(print(summary(fit)), "Factor loadings")
     expect_output(print(summary(fit)), "residual RMSE")
 
-    expect_false(withVisible(plot(fit))$visible)
+    # plot() returns a ggplot VISIBLY (#112) - that is what makes it still
+    # draw at the console, since the returned object auto-prints. The views
+    # themselves are tested in test-plots.R.
+    expect_true(withVisible(plot(fit))$visible)
+    expect_s3_class(plot(fit), "ggplot")
   }
 })
 
@@ -211,13 +215,18 @@ test_that("the log-likelihood is higher for the data than for a scrambled copy",
   }
 })
 
-test_that("plot restores the caller's graphics state", {
+test_that("plot leaves the caller's graphics state alone", {
   fit <- fits()$fcast_dfm
   grDevices::pdf(NULL)
   on.exit(grDevices::dev.off(), add = TRUE)
 
   graphics::par(mfrow = c(2, 3))
   before <- graphics::par("mfrow")
-  invisible(plot(fit))
+  # plot() no longer draws in base graphics at all (#112), so this is now a
+  # stronger claim than the par() save/restore it replaced: nothing here
+  # touches par, whether the plot is merely built or actually printed
+  p <- plot(fit)
+  expect_identical(graphics::par("mfrow"), before)
+  print(p)
   expect_identical(graphics::par("mfrow"), before)
 })

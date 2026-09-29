@@ -8,6 +8,7 @@
 \alias{logLik.ind_dfm}
 \alias{as.data.frame.ind_dfm}
 \alias{plot.ind_dfm}
+\alias{autoplot.ind_dfm}
 \alias{summary.ind_dfm}
 \alias{print.ind_dfm}
 \title{Methods for single-factor model fits}
@@ -22,7 +23,15 @@
 
 \method{as.data.frame}{ind_dfm}(x, row.names = NULL, optional = FALSE, ...)
 
-\method{plot}{ind_dfm}(x, ...)
+\method{plot}{ind_dfm}(
+  x,
+  type = c("factor", "nowcast", "loadings", "residuals", "volatility", "fit"),
+  series = NULL,
+  level = 0.95,
+  ...
+)
+
+\method{autoplot}{ind_dfm}(object, ...)
 
 \method{summary}{ind_dfm}(object, ...)
 
@@ -31,10 +40,22 @@
 \arguments{
 \item{object, x}{A fit from \code{\link[=ind_dfm]{ind_dfm()}}.}
 
-\item{...}{Ignored, present for compatibility with the generics.}
+\item{...}{Ignored, present for compatibility with the generics. For
+\code{autoplot()}, passed on to \code{plot()}.}
 
 \item{row.names, optional}{Ignored, present for compatibility with the
 \code{\link[=as.data.frame]{as.data.frame()}} generic.}
+
+\item{type}{Character, which view \code{plot()} draws -- one of \code{"factor"},
+\code{"nowcast"}, \code{"loadings"}, \code{"residuals"}, \code{"volatility"} or \code{"fit"}. See
+"Plot views".}
+
+\item{series}{Character vector of series names, or a numeric vector of
+column positions, restricting the \code{"residuals"} and \code{"fit"} views.
+\code{NULL} (the default) draws every series. Ignored by the other views.}
+
+\item{level}{Numeric in \verb{(0, 1)}, the coverage of the credible band drawn
+by the \code{"factor"} and \code{"nowcast"} views. Defaults to \code{0.95}.}
 
 \item{n_show}{Integer, how many of the most recent periods \code{print()} shows.}
 }
@@ -43,8 +64,9 @@
 matrices with one column per series; \code{as.data.frame()} a data frame with
 \code{time} and the factor with bands; \code{summary()} an object of class
 \code{"summary.mfbdfm_fit"}; \code{logLik()} an object of class \code{"logLik"} with \code{df}
-and \code{nobs} attributes; \code{print()} and \code{plot()} return their input
-invisibly.
+and \code{nobs} attributes; \code{plot()} and \code{autoplot()} a \code{ggplot} object (or
+\code{NULL} invisibly for \code{type = "volatility"} on a fit without stochastic
+volatility); \code{print()} returns its input invisibly.
 }
 \description{
 The generics supported by an \code{\link[=ind_dfm]{ind_dfm()}} fit. \code{\link[=fcast_dfm]{fcast_dfm()}} fits support
@@ -55,7 +77,9 @@ the same set -- see \link{fcast_dfm_methods}.
 \item{\code{print()}}{Model dimensions and the most recent target nowcasts.}
 \item{\code{summary()}}{Dimensions, posterior mean parameters and residual fit;
 returns an object with its own \code{print()} method.}
-\item{\code{plot()}}{The factor with a 95\% band.}
+\item{\code{plot()}}{One of several views of the fit, selected by \code{type} --
+see "Plot views" below. Returns a \strong{ggplot object}, so it can be
+modified before printing; \code{autoplot()} is an alias.}
 \item{\code{coef()}}{The posterior mean factor loadings, named by series. The
 other parameter blocks (\code{phi}, \code{sigma}, \code{rho}, \code{h}) remain in
 \code{object$pars}.}
@@ -79,6 +103,40 @@ the usual sense -- nowcasts are computed during fitting and stored -- so a
 \code{predict()} returning stored values would advertise a capability that does
 not exist.
 }
+\section{Plot views}{
+
+
+\code{plot(fit, type = )} selects what to draw. Both fit classes support the
+same set, and every view returns a \code{ggplot} object drawn in one shared
+package style:
+
+\describe{
+\item{\code{"factor"}}{(default) the factor -- or one panel per factor for a
+\code{\link[=fcast_dfm]{fcast_dfm()}} fit -- with a credible band.}
+\item{\code{"nowcast"}}{the target's nowcast with a credible band, overlaid
+with the observed target values where the series has them.}
+\item{\code{"loadings"}}{the posterior mean loading of each series, sorted,
+and faceted by factor for \code{\link[=fcast_dfm]{fcast_dfm()}}. There is no interval here:
+the fits store the posterior mean of \code{lambda}, not the draws.}
+\item{\code{"residuals"}}{one panel per series of observed minus fitted, on
+the standardized scale, with unobserved periods left as gaps rather
+than plotted as zeros (as in \code{residuals()}).}
+\item{\code{"volatility"}}{the posterior mean volatility path \code{exp(h)}, a
+standard deviation. With \code{stochastic_volatility = FALSE} the path is
+constant, so this reports the constant in a message and returns
+\code{NULL} invisibly instead of drawing a flat line.}
+\item{\code{"fit"}}{observed values against the model's fitted values, one
+panel per series, on the standardized scale.}
+}
+
+\code{"residuals"} and \code{"fit"} draw every series by default, which is a lot of
+panels for a real dataset; use \code{series} to pick a few.
+
+\code{plot()} returned its input invisibly and drew in base graphics before
+version 0.1.0.9000. It now \emph{returns} the plot, which still draws it when
+called at the console because the object auto-prints.
+}
+
 \section{What \code{logLik()} means here}{
 
 
@@ -133,6 +191,14 @@ coef(fit)
 head(as.data.frame(fit))
 logLik(fit)
 AIC(fit)              # approximate here - see "What logLik() means"
+
+plot(fit)                                  # the factor, with a 95\% band
+plot(fit, type = "nowcast", level = 0.68)
+plot(fit, type = "loadings")
+plot(fit, type = "residuals", series = c(target, "SWISSMI"))
+
+# a ggplot, so it can be modified before printing
+plot(fit, type = "volatility") + ggplot2::labs(title = "Volatility")
 }
 
 }

@@ -31,7 +31,9 @@ fit_dims <- function(object){
 #'   \item{`print()`}{Model dimensions and the most recent target nowcasts.}
 #'   \item{`summary()`}{Dimensions, posterior mean parameters and residual fit;
 #'     returns an object with its own `print()` method.}
-#'   \item{`plot()`}{The factor with a 95% band.}
+#'   \item{`plot()`}{One of several views of the fit, selected by `type` --
+#'     see "Plot views" below. Returns a **ggplot object**, so it can be
+#'     modified before printing; `autoplot()` is an alias.}
 #'   \item{`coef()`}{The posterior mean factor loadings, named by series. The
 #'     other parameter blocks (`phi`, `sigma`, `rho`, `h`) remain in
 #'     `object$pars`.}
@@ -54,6 +56,38 @@ fit_dims <- function(object){
 #' the usual sense -- nowcasts are computed during fitting and stored -- so a
 #' `predict()` returning stored values would advertise a capability that does
 #' not exist.
+#'
+#' @section Plot views:
+#'
+#' `plot(fit, type = )` selects what to draw. Both fit classes support the
+#' same set, and every view returns a `ggplot` object drawn in one shared
+#' package style:
+#'
+#' \describe{
+#'   \item{`"factor"`}{(default) the factor -- or one panel per factor for a
+#'     [fcast_dfm()] fit -- with a credible band.}
+#'   \item{`"nowcast"`}{the target's nowcast with a credible band, overlaid
+#'     with the observed target values where the series has them.}
+#'   \item{`"loadings"`}{the posterior mean loading of each series, sorted,
+#'     and faceted by factor for [fcast_dfm()]. There is no interval here:
+#'     the fits store the posterior mean of `lambda`, not the draws.}
+#'   \item{`"residuals"`}{one panel per series of observed minus fitted, on
+#'     the standardized scale, with unobserved periods left as gaps rather
+#'     than plotted as zeros (as in `residuals()`).}
+#'   \item{`"volatility"`}{the posterior mean volatility path `exp(h)`, a
+#'     standard deviation. With `stochastic_volatility = FALSE` the path is
+#'     constant, so this reports the constant in a message and returns
+#'     `NULL` invisibly instead of drawing a flat line.}
+#'   \item{`"fit"`}{observed values against the model's fitted values, one
+#'     panel per series, on the standardized scale.}
+#' }
+#'
+#' `"residuals"` and `"fit"` draw every series by default, which is a lot of
+#' panels for a real dataset; use `series` to pick a few.
+#'
+#' `plot()` returned its input invisibly and drew in base graphics before
+#' version 0.1.0.9000. It now *returns* the plot, which still draws it when
+#' called at the console because the object auto-prints.
 #'
 #' @section What `logLik()` means here:
 #'
@@ -100,16 +134,26 @@ fit_dims <- function(object){
 #'
 #' @param object,x A fit from [ind_dfm()].
 #' @param n_show Integer, how many of the most recent periods `print()` shows.
+#' @param type Character, which view `plot()` draws -- one of `"factor"`,
+#'   `"nowcast"`, `"loadings"`, `"residuals"`, `"volatility"` or `"fit"`. See
+#'   "Plot views".
+#' @param series Character vector of series names, or a numeric vector of
+#'   column positions, restricting the `"residuals"` and `"fit"` views.
+#'   `NULL` (the default) draws every series. Ignored by the other views.
+#' @param level Numeric in `(0, 1)`, the coverage of the credible band drawn
+#'   by the `"factor"` and `"nowcast"` views. Defaults to `0.95`.
 #' @param row.names,optional Ignored, present for compatibility with the
 #'   [as.data.frame()] generic.
-#' @param ... Ignored, present for compatibility with the generics.
+#' @param ... Ignored, present for compatibility with the generics. For
+#'   `autoplot()`, passed on to `plot()`.
 #'
 #' @return `coef()` a named numeric vector; `fitted()` and `residuals()` `ts`
 #'   matrices with one column per series; `as.data.frame()` a data frame with
 #'   `time` and the factor with bands; `summary()` an object of class
 #'   `"summary.mfbdfm_fit"`; `logLik()` an object of class `"logLik"` with `df`
-#'   and `nobs` attributes; `print()` and `plot()` return their input
-#'   invisibly.
+#'   and `nobs` attributes; `plot()` and `autoplot()` a `ggplot` object (or
+#'   `NULL` invisibly for `type = "volatility"` on a fit without stochastic
+#'   volatility); `print()` returns its input invisibly.
 #'
 #' @examples
 #' \donttest{
@@ -125,6 +169,14 @@ fit_dims <- function(object){
 #' head(as.data.frame(fit))
 #' logLik(fit)
 #' AIC(fit)              # approximate here - see "What logLik() means"
+#'
+#' plot(fit)                                  # the factor, with a 95% band
+#' plot(fit, type = "nowcast", level = 0.68)
+#' plot(fit, type = "loadings")
+#' plot(fit, type = "residuals", series = c(target, "SWISSMI"))
+#'
+#' # a ggplot, so it can be modified before printing
+#' plot(fit, type = "volatility") + ggplot2::labs(title = "Volatility")
 #' }
 #'
 #' @seealso [ind_dfm()], [fcast_dfm_methods]
@@ -150,11 +202,25 @@ NULL
 #' off the factor innovation variance is *fixed* at one and carries the
 #' identification, where [ind_dfm()] still estimates a constant).
 #'
+#' `plot()` offers the same views as [ind_dfm_methods] -- `"factor"`,
+#' `"nowcast"`, `"loadings"`, `"residuals"`, `"volatility"` and `"fit"` -- and
+#' returns a `ggplot`. The `"factor"` view gets one panel per factor here, and
+#' `"loadings"` one facet per factor, with the series ordered by their loading
+#' on the first factor so that a series sits in the same row of every panel.
+#'
 #' @param object,x A fit from [fcast_dfm()].
 #' @param n_show Integer, how many of the most recent periods `print()` shows.
+#' @param type Character, which view `plot()` draws. See "Plot views" in
+#'   [ind_dfm_methods].
+#' @param series Character vector of series names, or a numeric vector of
+#'   column positions, restricting the `"residuals"` and `"fit"` views.
+#'   `NULL` (the default) draws every series.
+#' @param level Numeric in `(0, 1)`, the coverage of the credible band drawn
+#'   by the `"factor"` and `"nowcast"` views. Defaults to `0.95`.
 #' @param row.names,optional Ignored, present for compatibility with the
 #'   [as.data.frame()] generic.
-#' @param ... Ignored, present for compatibility with the generics.
+#' @param ... Ignored, present for compatibility with the generics. For
+#'   `autoplot()`, passed on to `plot()`.
 #'
 #' @return As [ind_dfm_methods], except that `coef()` returns a matrix.
 #'
@@ -172,6 +238,10 @@ NULL
 #' head(as.data.frame(fit))
 #' logLik(fit)
 #' BIC(fit)           # approximate here - see ?ind_dfm_methods
+#'
+#' plot(fit)                       # one panel per factor
+#' plot(fit, type = "loadings")    # one facet per factor
+#' plot(fit, type = "fit", series = 1:2)
 #' }
 #'
 #' @seealso [fcast_dfm()], [ind_dfm_methods]
@@ -472,43 +542,31 @@ fit_as_data_frame <- function(x){
 #' @rdname ind_dfm_methods
 #' @method plot ind_dfm
 #' @export
-plot.ind_dfm <- function(x, ...) fit_plot(x, ...)
+plot.ind_dfm <- function(x, type = c("factor", "nowcast", "loadings",
+                                     "residuals", "volatility", "fit"),
+                         series = NULL, level = 0.95, ...){
+  fit_plot(x, type = type, series = series, level = level, ...)
+}
 
 #' @rdname fcast_dfm_methods
 #' @method plot fcast_dfm
 #' @export
-plot.fcast_dfm <- function(x, ...) fit_plot(x, ...)
-
-#' @noRd
-#' @importFrom graphics par lines polygon
-#' @importFrom stats time qnorm
-fit_plot <- function(x, ...){
-
-  z <- qnorm(0.975)
-  fac <- as.matrix(x$factor)
-  sd <- sqrt(as.matrix(x$factor_var))
-  tt <- as.numeric(time(x$factor))
-
-  # restore the caller's graphics state however this exits
-  oldpar <- par(no.readonly = TRUE)
-  on.exit(par(oldpar), add = TRUE)
-
-  if(ncol(fac) > 1) par(mfrow = c(ncol(fac), 1))
-
-  for(j in seq_len(ncol(fac))){
-    lo <- fac[, j] - z * sd[, j]
-    hi <- fac[, j] + z * sd[, j]
-    plot(tt, fac[, j], type = "n", ylim = range(c(lo, hi), finite = TRUE),
-         xlab = "", ylab = if(ncol(fac) == 1) "factor" else paste("factor", j),
-         ...)
-    polygon(c(tt, rev(tt)), c(lo, rev(hi)), border = NA,
-            col = grDevices::adjustcolor("steelblue", alpha.f = 0.25))
-    lines(tt, fac[, j], col = "steelblue")
-  }
-
-  invisible(x)
-
+plot.fcast_dfm <- function(x, type = c("factor", "nowcast", "loadings",
+                                       "residuals", "volatility", "fit"),
+                           series = NULL, level = 0.95, ...){
+  fit_plot(x, type = type, series = series, level = level, ...)
 }
+
+#' @rdname ind_dfm_methods
+#' @method autoplot ind_dfm
+#' @importFrom ggplot2 autoplot
+#' @export
+autoplot.ind_dfm <- function(object, ...) fit_plot(object, ...)
+
+#' @rdname fcast_dfm_methods
+#' @method autoplot fcast_dfm
+#' @export
+autoplot.fcast_dfm <- function(object, ...) fit_plot(object, ...)
 
 
 # ------------------------------------------------------------- summary ----
