@@ -1,5 +1,18 @@
 # mfbdfm 0.1.0.9000
 
+* The vignette is now **precomputed** (the rOpenSci `.Rmd.orig` pattern):
+  `vignettes/mfbdfm.Rmd.orig` is the source to edit, `Rscript
+  vignettes/precompile.R` knits it into the committed `vignettes/mfbdfm.Rmd`
+  with output and figures baked in, and neither `R CMD check` nor pkgdown
+  re-runs the fits. The two chunks that were `eval = FALSE` — the
+  `mfbdfm_data()` fit and the `run_wai_adj()`/`run_ar()` pipeline — now show
+  real fitted output, and the chains are 2000 draws after 500 burn-in rather
+  than the 200/50 chosen to keep a live build fast. The `dm_test_modified()`
+  line that referenced objects it never created is gone: a Diebold-Mariano
+  test needs a vector of *real-time* errors, and the in-sample WAI nowcast
+  error is ~1e-16 by construction of the anchoring, so the vignette shows that
+  identity instead and says why the published comparison has to be real-time
+  (#98).
 * Both fit classes gain a `logLik()` method, so `AIC()` and `BIC()` work on
   them. Neither sampler computes a likelihood and there is no Kalman filter in
   the package, so the quantity had to be *defined*: it is the Gaussian log

@@ -7,10 +7,13 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+```{r, include = FALSE}
+# fig.path is a filename prefix, not a subdirectory: 'R CMD check' reports a
+# vignettes/figure/ directory as a leftover from knitr and asks for its removal.
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.path = "mfbdfm-")
+```
 
-
-
-``` r
+```{r setup}
 library(mfbdfm)
 ```
 
@@ -83,8 +86,7 @@ a burn-in of 1000); here we use a handful of series from 2018 onwards and
 output is real rather than illustrative, and `R CMD check` does not re-run
 them (see `vignettes/precompile.R` in the source repository).
 
-
-``` r
+```{r fit-model, results = "hide", message = FALSE}
 data(data_ch_dataset_test)
 
 target <- "ch.seco.gdp.real.gdp.ssa"
@@ -104,39 +106,21 @@ fit <- ind_dfm(
 The sampler's progress bar is suppressed above; the fit object itself is
 an ordinary list with a class:
 
-
-``` r
+```{r fit-structure}
 class(fit)
-#> [1] "ind_dfm"
 names(fit)
-#>  [1] "factor"         "factor_var"     "index"          "nowcast"       
-#>  [5] "nowcast_var"    "target"         "pars"           "data"          
-#>  [9] "data_raw"       "data_augmented" "inventory"      "call"
 ```
 
 `fit$factor` is the annualized weekly growth rate implied by the model —
 the WAI itself — and `fit$nowcast` is that same information aggregated
 back up to the target's own (here quarterly) frequency:
 
-
-``` r
+```{r plot-factor, fig.width = 6, fig.height = 4}
 plot(fit$factor, ylab = "WAI (annualized %, weekly)", xlab = NULL)
 ```
 
-![plot of chunk plot-factor](mfbdfm-plot-factor-1.png)
-
-
-``` r
+```{r nowcast}
 fit$nowcast
-#>              Qtr1         Qtr2         Qtr3         Qtr4
-#> 2018  0.010358297  0.007347801 -0.001407611  0.005268495
-#> 2019  0.002011803  0.006503896  0.003023024  0.001999459
-#> 2020 -0.010753687 -0.065794434  0.059015696  0.009101017
-#> 2021  0.005967497  0.025366940  0.019780787  0.010104521
-#> 2022  0.002357693  0.006806195  0.004997206  0.002075307
-#> 2023  0.006192195 -0.003620632  0.004556568  0.003672480
-#> 2024 -0.001181390  0.007846052  0.002901735  0.005175425
-#> 2025  0.007858603  0.001230713 -0.004400672  0.001506255
 ```
 
 `fit$index` gives the cumulated activity level (rebased to 100 at the
@@ -145,10 +129,8 @@ means of the model parameters, including the factor loadings
 (`fit$pars$lambda`) — the target series' loading is fixed at 1 by
 construction:
 
-
-``` r
+```{r loadings}
 fit$pars$lambda[which(fit$inventory$key == target)]
-#> [1] 1
 ```
 
 ## Bringing your own data
@@ -159,8 +141,7 @@ spreadsheet, a database query — `mfbdfm_data()` builds that structure
 from a long or wide data frame, an `mts`, or a list of `ts`, and takes
 the flow/stock classification from a `meta` table:
 
-
-``` r
+```{r data-input}
 series <- lapply(c(data_ch_dataset_test$flows[c(target, "SWISSMI")],
                    data_ch_dataset_test$stocks[1:2]),
                  stats::window, start = 2018)
@@ -169,21 +150,6 @@ meta <- data.frame(series = names(series),
 
 d <- mfbdfm_data(series, meta, target = target)
 d
-#> <mfbdfm_data>  4 series  (2 flow, 2 stock)
-#> target: ch.seco.gdp.real.gdp.ssa
-#> 
-#>   by frequency:
-#>         4   1 flow   0 stock
-#>        12   0 flow   2 stock
-#>        48   1 flow   0 stock   <- highest; flow/stock has no effect here
-#> 
-#>   series (first 10):
-#>     ch.seco.gdp.real.gdp.ssa     flow   freq    4  n    32
-#>     SWISSMI                      flow   freq   48  n   394
-#>     SWCONPRCE                    stock  freq   12  n    98
-#>     SWPROPRCE                    stock  freq   12  n    97
-#> 
-#> Pass to ind_dfm() or fcast_dfm() as the first argument.
 ```
 
 The reason to prefer this over assembling the two lists by hand is the
@@ -195,18 +161,13 @@ classification and the frequencies actually in use *before* committing
 to a run that can take minutes to hours. It is then passed as the first
 argument:
 
-
-``` r
+```{r fit-from-data, results = "hide", message = FALSE}
 set.seed(1)
 fit2 <- ind_dfm(d, length_sample = 2000, burn_in = 500)
 ```
 
-
-``` r
+```{r fit-from-data-nowcast}
 utils::tail(fit2$nowcast)
-#>              Qtr1         Qtr2         Qtr3         Qtr4
-#> 2024                            0.002901746  0.005175404
-#> 2025  0.007858621  0.001230711 -0.004400669  0.001506253
 ```
 
 `flows`/`stocks` continue to work exactly as before; this is an
@@ -218,11 +179,9 @@ The full `data_ch_dataset` deliberately ships *without* a GDP target
 series: real analyses inject GDP at runtime from the real-time vintage
 database, which ships with the package and needs no configuration:
 
-
-``` r
+```{r vintages}
 vintages <- get_real_time_gdp_vintages("quarterly")
 dim(vintages)
-#> [1] 144 105
 ```
 
 `cut_data_real_time()` truncates a dataset to what would have been
@@ -230,15 +189,10 @@ observable at a given date, substituting the appropriate GDP vintage for
 the target series — the building block for the paper's real-time
 out-of-sample evaluation:
 
-
-``` r
+```{r cut-real-time}
 dat_rt <- cut_data_real_time(data_ch_dataset_test, current_date = 2024.5,
                              GDP_gr_vintages = vintages)
 tail(time(dat_rt$flows[[target]]))
-#>         Qtr1    Qtr2    Qtr3    Qtr4
-#> 2022                         2022.75
-#> 2023 2023.00 2023.25 2023.50 2023.75
-#> 2024 2024.00
 ```
 
 ## The evaluation wrappers
@@ -250,8 +204,7 @@ and `run_ar()`, which fits the AR(1) benchmark on the target series
 alone. Both take the same `flows`/`stocks`/`target` arguments as
 `ind_dfm()`, so they run on the shipped subset used above:
 
-
-``` r
+```{r pipeline, results = "hide", message = FALSE}
 dat <- list(flows = flows, stocks = stocks)
 out_dir <- tempfile()
 
@@ -266,13 +219,9 @@ fit_ar <- run_ar(flows = dat$flows, stocks = dat$stocks, target = target,
                  date = 2024.5, dataset_used = "vignette")
 ```
 
-
-``` r
+```{r pipeline-out}
 list.files(out_dir, recursive = TRUE)
-#> [1] "vignette/fit_2024.5.Rda"
 fit_ar$nowcast
-#>             Qtr1
-#> 2026 0.004817655
 ```
 
 The two fits are the ingredients of the paper's out-of-sample
@@ -281,16 +230,13 @@ seeing why. Because the factor is anchored to the target, the in-sample
 nowcast reproduces observed GDP almost exactly, while the AR(1)
 benchmark's one-step errors are of the usual size:
 
-
-``` r
+```{r insample-errors}
 gdp <- dat$flows[[target]]
 errors <- stats::ts.intersect(
   wai = gdp - fit_full$nowcast,
   ar  = stats::residuals(stats::arima(gdp, order = c(1, 0, 0)))
 )
 colMeans(errors^2)
-#>          wai           ar 
-#> 1.111773e-16 2.733482e-04
 ```
 
 A `dm_test_modified()` p-value computed from those two columns would be
@@ -302,7 +248,9 @@ published, as in `analysis/real_time_backcast.R`. `dm_test_modified()`
 then takes the two resulting error vectors; see its own help page for a
 runnable minimal call.
 
-
+```{r cleanup, include = FALSE}
+unlink(out_dir, recursive = TRUE)
+```
 
 ## Beyond this vignette
 
