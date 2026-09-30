@@ -117,9 +117,10 @@ fit$nowcast
 \code{\link[=run_wai_adj]{run_wai_adj()}} for the single-factor equivalent, \code{\link[=fcast_dfm]{fcast_dfm()}}
 for the model itself.
 
-Other model fitting functions: 
-\code{\link{dfm_memory}()},
-\code{\link{fcast_dfm}()},
-\code{\link{ind_dfm}()}
+Other model fitting functions:
+\code{\link[=dfm_memory]{dfm_memory()}},
+\code{\link[=fcast_dfm]{fcast_dfm()}},
+\code{\link[=ind_dfm]{ind_dfm()}},
+\code{\link[=select_factors]{select_factors()}}
 }
 \concept{model fitting functions}

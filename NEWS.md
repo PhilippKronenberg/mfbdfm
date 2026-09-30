@@ -1,5 +1,34 @@
 # mfbdfm 0.1.0.9000
 
+* New `select_factors()`, which computes the Bai & Ng (2002) information
+  criteria IC1/IC2/IC3 and answers the question `fcast_dfm()`'s `q` argument
+  poses and the model itself gives no guidance on. It takes the same data
+  specification as the models (`mfbdfm_data()` object or `flows`/`stocks`) and
+  returns an object with `print()`, `plot()` and `screeplot()` methods. The
+  criteria are defined for a balanced single-frequency panel, so the reduction
+  to one is explicit and reported: only the highest-frequency block is used
+  (the lower-frequency series are observed on too few periods for an imputation
+  rule not to drive the answer), missing values are dropped listwise or
+  interpolated (`na_action`), and the retained block is re-standardized. They
+  are **frequentist, principal-component criteria informing a Bayesian,
+  rotation-identified model** -- `?select_factors` says so plainly, and
+  `print()` shows all three criteria rather than one number, because they can
+  and do disagree (#100).
+
+* `screeplot()` on a `fcast_dfm` fit shows the share of the standardized
+  panel's variance explained by each rotated factor, from the posterior mean
+  loadings and factors. Rotated factors are not ordered by variance the way
+  principal components are, so the bars are sorted and labelled by their
+  position in the fit. `screeplot()` on an `ind_dfm` fit is an **error** that
+  points to `select_factors()` and `fcast_dfm()`: that model has exactly one
+  factor by construction, so a single-bar plot would imply a choice it does not
+  offer (#100).
+
+* `prepare_data()` gains `fill`, the value written into unobserved cells. The
+  default `0` is unchanged and is what the samplers expect; `fill = NA` keeps
+  the missingness mask, which `select_factors()` needs and no model fit does
+  (#100).
+
 * Both fit classes gain a `logLik()` method, so `AIC()` and `BIC()` work on
   them. Neither sampler computes a likelihood and there is no Kalman filter in
   the package, so the quantity had to be *defined*: it is the Gaussian log

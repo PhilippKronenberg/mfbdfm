@@ -99,7 +99,7 @@ Tracking economic activity with alternative high-frequency data.
 \seealso{
 \code{\link[=ind_dfm]{ind_dfm()}}, \code{\link[=fcast_dfm]{fcast_dfm()}}, \code{\link[=dfm_priors]{dfm_priors()}}
 
-Other model specification: 
-\code{\link{dfm_priors}()}
+Other model specification:
+\code{\link[=dfm_priors]{dfm_priors()}}
 }
 \concept{model specification}

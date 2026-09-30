@@ -48,6 +48,11 @@ fit_dims <- function(object){
 #'   \item{`logLik()`}{A plug-in Gaussian log-likelihood of the observed data,
 #'     with `df` and `nobs` attributes so that [AIC()] and [BIC()] work. Read
 #'     the definition below before using it.}
+#'   \item{`screeplot()`}{An **error**, deliberately. This model has exactly one
+#'     factor by construction, so a scree plot would be a single bar conveying
+#'     nothing while implying a choice the model does not offer. The message
+#'     points to [select_factors()] and [fcast_dfm()]. See
+#'     [fcast_dfm_methods] for the version that does plot something.}
 #' }
 #'
 #' There is deliberately no `predict()` method: the model does not forecast in
@@ -141,6 +146,16 @@ NULL
 #' `coef()` returns an `n x q` loading matrix here rather than a vector, and
 #' `as.data.frame()` returns one mean/lower/upper triple per factor.
 #'
+#' `screeplot()` shows the share of the standardized panel's variance explained
+#' by each factor, computed from the posterior mean loadings and factors: the
+#' factor's own variance times the sum of squared loadings on it, over the total
+#' variance of the observed entries of the prepared data. **The rotated factors
+#' are not ordered by variance the way principal components are** -- the
+#' post-hoc rotation has no such convention -- so the bars are sorted for the
+#' plot and labelled `f1`, `f2`, ... by their position in the fit, not by their
+#' position in the plot. It is a description of a fitted model, not a selection
+#' criterion; for choosing `q` before fitting, use [select_factors()].
+#'
 #' `logLik()` uses the same definition as it does for [ind_dfm()] -- see
 #' "What `logLik()` means here" in [ind_dfm_methods], including why `AIC()` and
 #' `BIC()` are only approximate. The `df` count differs: the loadings are
@@ -152,11 +167,16 @@ NULL
 #'
 #' @param object,x A fit from [fcast_dfm()].
 #' @param n_show Integer, how many of the most recent periods `print()` shows.
+#' @param npcs Integer, how many factors `screeplot()` shows, or `NULL` for all
+#'   of them.
+#' @param type `"barplot"` or `"lines"`, as for [stats::screeplot()].
+#' @param main Plot title, or `NULL` for the default.
 #' @param row.names,optional Ignored, present for compatibility with the
 #'   [as.data.frame()] generic.
 #' @param ... Ignored, present for compatibility with the generics.
 #'
-#' @return As [ind_dfm_methods], except that `coef()` returns a matrix.
+#' @return As [ind_dfm_methods], except that `coef()` returns a matrix and
+#'   `screeplot()` invisibly returns the sorted variance shares.
 #'
 #' @examples
 #' \donttest{
@@ -169,6 +189,7 @@ NULL
 #'                  target = target, q = 2, length_sample = 20, burn_in = 5)
 #' fit
 #' coef(fit)          # a q-column matrix here, a vector for ind_dfm()
+#' screeplot(fit)     # share of panel variance per rotated factor
 #' head(as.data.frame(fit))
 #' logLik(fit)
 #' BIC(fit)           # approximate here - see ?ind_dfm_methods
@@ -622,5 +643,73 @@ print.ind_dfm <- function(x, n_show = 8, ...){
   cat("as.data.frame(), coef(), fitted(), residuals(), logLik()\n")
 
   invisible(x)
+
+}
+
+
+# ----------------------------------------------------------- screeplot ----
+
+#' @rdname fcast_dfm_methods
+#' @method screeplot fcast_dfm
+#' @importFrom stats screeplot var
+#' @export
+screeplot.fcast_dfm <- function(x, npcs = NULL, type = c("barplot", "lines"),
+                                main = NULL, ...){
+
+  type <- match.arg(type)
+
+  lam <- as.matrix(x$pars$lambda)
+  fac <- as.matrix(x$factor)
+
+  # variance of the standardized panel attributable to each factor: the factor's
+  # own variance times the sum of squared loadings on it
+  contrib <- apply(fac, 2, var) * colSums(lam^2)
+
+  # total variance of the observed part of the prepared data. 0 encodes a
+  # missing observation there, so it is masked out rather than differenced
+  # against, exactly as residuals() does.
+  dat <- as.matrix(x$data)
+  dat[dat == 0] <- NA_real_
+  total <- sum(apply(dat, 2, var, na.rm = TRUE), na.rm = TRUE)
+
+  share <- contrib / total
+  # rotated factors are NOT ordered by variance the way principal components
+  # are; sorting is a presentational choice, and the names record the original
+  # factor each bar belongs to
+  ord <- order(share, decreasing = TRUE)
+  share <- share[ord]
+  names(share) <- paste0("f", ord)
+
+  if(is.null(npcs)) npcs <- length(share)
+  if(!is_count(npcs) || npcs < 1 || npcs > length(share)){
+    stop("`npcs` must be a single whole number between 1 and ",
+         length(share), ".", call. = FALSE)
+  }
+  share <- share[seq_len(npcs)]
+
+  scree_draw(share, type = type,
+             ylab = "share of panel variance",
+             xlab = "factor (sorted)",
+             main = if(is.null(main)) "Variance explained by each rotated factor" else main,
+             ...)
+
+  invisible(share)
+
+}
+
+#' @rdname ind_dfm_methods
+#' @method screeplot ind_dfm
+#' @importFrom stats screeplot
+#' @export
+screeplot.ind_dfm <- function(x, ...){
+
+  # deliberately an error rather than a one-bar plot: ind_dfm() has exactly one
+  # factor by construction, so a scree plot conveys nothing, and drawing one
+  # would imply a choice the model does not offer.
+  stop("`screeplot()` is not meaningful for an `ind_dfm` fit: the model has ",
+       "exactly one factor by construction, so there is no sequence of ",
+       "components to inspect.\n",
+       "  To choose a factor count, use `select_factors()`; to fit more than ",
+       "one factor, use `fcast_dfm()`.", call. = FALSE)
 
 }

@@ -184,9 +184,10 @@ dfm_memory(flows = data_ch_dataset_test$flows,
 \seealso{
 \code{\link[=fcast_dfm]{fcast_dfm()}}
 
-Other model fitting functions: 
-\code{\link{fcast_dfm}()},
-\code{\link{ind_dfm}()},
-\code{\link{run_fcast}()}
+Other model fitting functions:
+\code{\link[=fcast_dfm]{fcast_dfm()}},
+\code{\link[=ind_dfm]{ind_dfm()}},
+\code{\link[=run_fcast]{run_fcast()}},
+\code{\link[=select_factors]{select_factors()}}
 }
 \concept{model fitting functions}

@@ -10,6 +10,7 @@
 \alias{plot.ind_dfm}
 \alias{summary.ind_dfm}
 \alias{print.ind_dfm}
+\alias{screeplot.ind_dfm}
 \title{Methods for single-factor model fits}
 \usage{
 \method{coef}{ind_dfm}(object, ...)
@@ -27,6 +28,8 @@
 \method{summary}{ind_dfm}(object, ...)
 
 \method{print}{ind_dfm}(x, n_show = 8, ...)
+
+\method{screeplot}{ind_dfm}(x, ...)
 }
 \arguments{
 \item{object, x}{A fit from \code{\link[=ind_dfm]{ind_dfm()}}.}
@@ -72,6 +75,11 @@ so downstream code need not reach into the list structure.}
 \item{\code{logLik()}}{A plug-in Gaussian log-likelihood of the observed data,
 with \code{df} and \code{nobs} attributes so that \code{\link[=AIC]{AIC()}} and \code{\link[=BIC]{BIC()}} work. Read
 the definition below before using it.}
+\item{\code{screeplot()}}{An \strong{error}, deliberately. This model has exactly one
+factor by construction, so a scree plot would be a single bar conveying
+nothing while implying a choice the model does not offer. The message
+points to \code{\link[=select_factors]{select_factors()}} and \code{\link[=fcast_dfm]{fcast_dfm()}}. See
+\link{fcast_dfm_methods} for the version that does plot something.}
 }
 
 There is deliberately no \code{predict()} method: the model does not forecast in
