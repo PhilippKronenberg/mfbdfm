@@ -166,15 +166,9 @@ for every series remain available in \code{ncst} and \code{data_hf}.
 
 \examples{
 \donttest{
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"
-flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                stats::window, start = 2021)
-stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-                 stats::window, start = 2021)
+data(mfbdfm_example_data)
 set.seed(1)
-fit <- fcast_dfm(flows = flows, stocks = stocks, target = target,
-                 q = 2, length_sample = 20, burn_in = 5)
+fit <- fcast_dfm(mfbdfm_example_data, q = 2, length_sample = 20, burn_in = 5)
 fit
 }
 

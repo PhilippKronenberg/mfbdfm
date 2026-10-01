@@ -93,15 +93,11 @@
 #'
 #' @examples
 #' \donttest{
-#' data(data_ch_dataset_test)
-#' target <- "ch.seco.gdp.real.gdp.ssa"
-#' flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-#'                 stats::window, start = 2018)
-#' stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-#'                  stats::window, start = 2018)
+#' # the shipped example dataset already carries the GDP target and its
+#' # flow/stock classification, so no `target =` is needed here
+#' data(mfbdfm_example_data)
 #' set.seed(1)
-#' fit <- ind_dfm(flows = flows, stocks = stocks, target = target,
-#'              length_sample = 50, burn_in = 10)
+#' fit <- ind_dfm(mfbdfm_example_data, length_sample = 50, burn_in = 10)
 #' fit$nowcast
 #' }
 #'

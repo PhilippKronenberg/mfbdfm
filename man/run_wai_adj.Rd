@@ -76,16 +76,12 @@ always run.
 \donttest{
 # Short chain on the shipped data; a real evaluation uses the defaults, which
 # run for minutes to tens of minutes.
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"
-flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                stats::window, start = 2021)
-stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-                 stats::window, start = 2021)
+data(mfbdfm_example_data)
+d <- mfbdfm_example_data
 out <- tempfile(); dir.create(out)
 
 set.seed(1)
-fit <- run_wai_adj(flows = flows, stocks = stocks, target = target,
+fit <- run_wai_adj(flows = d$flows, stocks = d$stocks, target = d$target,
                    date = 2023, dataset_used = "example",
                    length_sample = 20, burn_in = 5,
                    output_dir = out)

@@ -44,11 +44,13 @@ following the geometric-mean approximation of Mariano and Murasawa
 
 \section{Getting started}{
 
-The package ships the curated indicator datasets \link{data_ch_dataset}
-and \link{data_ch_dataset_test}, plus the real-time GDP vintage database
-(in \verb{inst/extdata/}), so a small nowcast can be estimated out of the
-box - see \code{vignette("mfbdfm")} for a worked walkthrough, or the
-example in \code{\link[=ind_dfm]{ind_dfm()}} for the minimal version.
+The package ships \link{mfbdfm_example_data}, a small self-contained
+dataset including the GDP target, so a nowcast is two lines out of the
+box - see the example in \code{\link[=ind_dfm]{ind_dfm()}} for the minimal version, or
+\code{vignette("mfbdfm")} for a worked walkthrough. The full curated
+datasets \link{data_ch_dataset} and \link{data_ch_dataset_test} and the
+real-time GDP vintage database (in \verb{inst/extdata/}) are there for the
+real application.
 }
 
 \references{

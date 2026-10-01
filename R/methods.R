@@ -113,13 +113,8 @@ fit_dims <- function(object){
 #'
 #' @examples
 #' \donttest{
-#' data(data_ch_dataset_test)
-#' target <- "ch.seco.gdp.real.gdp.ssa"
-#' fit <- ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-#'                               stats::window, start = 2021),
-#'                stocks = lapply(data_ch_dataset_test$stocks[1:2],
-#'                                stats::window, start = 2021),
-#'                target = target, length_sample = 20, burn_in = 5)
+#' data(mfbdfm_example_data)
+#' fit <- ind_dfm(mfbdfm_example_data, length_sample = 20, burn_in = 5)
 #' fit
 #' coef(fit)
 #' head(as.data.frame(fit))
@@ -160,13 +155,8 @@ NULL
 #'
 #' @examples
 #' \donttest{
-#' data(data_ch_dataset_test)
-#' target <- "ch.seco.gdp.real.gdp.ssa"
-#' fit <- fcast_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-#'                                 stats::window, start = 2021),
-#'                  stocks = lapply(data_ch_dataset_test$stocks[1:2],
-#'                                  stats::window, start = 2021),
-#'                  target = target, q = 2, length_sample = 20, burn_in = 5)
+#' data(mfbdfm_example_data)
+#' fit <- fcast_dfm(mfbdfm_example_data, q = 2, length_sample = 20, burn_in = 5)
 #' fit
 #' coef(fit)          # a q-column matrix here, a vector for ind_dfm()
 #' head(as.data.frame(fit))
@@ -553,13 +543,8 @@ fit_summary <- function(object, model){
 #'
 #' @examples
 #' \donttest{
-#' data(data_ch_dataset_test)
-#' target <- "ch.seco.gdp.real.gdp.ssa"
-#' fit <- ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-#'                               stats::window, start = 2021),
-#'                stocks = lapply(data_ch_dataset_test$stocks[1:2],
-#'                                stats::window, start = 2021),
-#'                target = target, length_sample = 20, burn_in = 5)
+#' data(mfbdfm_example_data)
+#' fit <- ind_dfm(mfbdfm_example_data, length_sample = 20, burn_in = 5)
 #' summary(fit)          # dispatches here
 #' }
 #'

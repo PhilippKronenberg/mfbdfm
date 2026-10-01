@@ -43,33 +43,30 @@ volatility, the identification restriction) with a runnable example,
 see `vignette("mfbdfm")` — also browsable on the
 [package website](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.html).
 
-The curated indicator datasets ship with the package. A small (fast,
-demonstration-sized) nowcast:
+The indicator datasets ship with the package, including
+`mfbdfm_example_data` — eight series with the quarterly GDP target
+already in them and already classified, so a small (fast,
+demonstration-sized) nowcast is two lines:
 
 ``` r
 library(mfbdfm)
 
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"   # quarterly real Swiss GDP
+data(mfbdfm_example_data)
 
-# small subset and short chain so this runs in seconds;
+# short chain so this runs in seconds;
 # real runs use the full dataset and length_sample = 10000
-flows  <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                 stats::window, start = 2018)
-stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-                 stats::window, start = 2018)
-
 set.seed(1)
-fit <- ind_dfm(flows = flows, stocks = stocks, target = target,
-             length_sample = 500, burn_in = 100)
+fit <- ind_dfm(mfbdfm_example_data, length_sample = 500, burn_in = 100)
 
 fit$factor    # weekly activity factor (annualized growth)
 fit$nowcast   # quarterly GDP nowcast
 ```
 
-Real-time GDP vintages work out of the box:
+No `target =` argument: the dataset carries it. Real-time GDP vintages
+work out of the box too:
 
 ``` r
+data(data_ch_dataset_test)
 vintages <- get_real_time_gdp_vintages("quarterly")
 dat <- cut_data_real_time(data_ch_dataset_test, current_date = 2024.5,
                           GDP_gr_vintages = vintages)
@@ -200,12 +197,18 @@ from there:
 
 | Object / file | What it is |
 | --- | --- |
+| `mfbdfm_example_data` | Small self-contained example: 8 series **including the GDP target**, as a ready `mfbdfm_data()` object |
 | `data_ch_dataset` | Harmonized Swiss indicator dataset (flows/stocks lists of `ts`) |
 | `data_ch_dataset_test` | Test variant, includes the GDP target series |
 | `inst/extdata/realtime_gdp.csv`, `realtime_gdp_cssa.csv` | Real-time GDP vintage database (read by `get_real_time_gdp_vintages()`) |
 
 The full `data_ch_dataset` deliberately ships *without* the GDP target
 series — the workflow injects it at runtime from the real-time vintages.
+`mfbdfm_example_data` exists so that examples and quick experiments do
+not have to: it is built by `data-raw/example_data.R` from seven
+`data_ch_dataset` series plus GDP from the newest shipped vintage
+(2026.167), windowed to 2015 and pinned to that vintage. Use it for
+demonstrations, not for real-time evaluation.
 
 ### Data dictionary
 
