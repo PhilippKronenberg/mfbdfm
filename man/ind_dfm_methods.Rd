@@ -14,9 +14,9 @@
 \usage{
 \method{coef}{ind_dfm}(object, ...)
 
-\method{fitted}{ind_dfm}(object, ...)
+\method{fitted}{ind_dfm}(object, scale = c("standardized", "original"), ...)
 
-\method{residuals}{ind_dfm}(object, ...)
+\method{residuals}{ind_dfm}(object, scale = c("standardized", "original"), ...)
 
 \method{logLik}{ind_dfm}(object, ...)
 
@@ -32,6 +32,11 @@
 \item{object, x}{A fit from \code{\link[=ind_dfm]{ind_dfm()}}.}
 
 \item{...}{Ignored, present for compatibility with the generics.}
+
+\item{scale}{Character, the scale \code{fitted()} and \code{residuals()} report on:
+\code{"standardized"} (the default, the scale the model works in) or
+\code{"original"} (each series back in its own units). See
+\code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} for the same argument on the loadings.}
 
 \item{row.names, optional}{Ignored, present for compatibility with the
 \code{\link[=as.data.frame]{as.data.frame()}} generic.}
@@ -54,19 +59,27 @@ the same set -- see \link{fcast_dfm_methods}.
 \describe{
 \item{\code{print()}}{Model dimensions and the most recent target nowcasts.}
 \item{\code{summary()}}{Dimensions, posterior mean parameters and residual fit;
-returns an object with its own \code{print()} method.}
+returns an object with its own \code{print()} method. It carries the
+\code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}} tables in
+\code{loadings_table} and \code{parameters_table}, and prints from them, so a
+printed summary and a tabulated one report the same numbers.}
 \item{\code{plot()}}{The factor with a 95\% band.}
 \item{\code{coef()}}{The posterior mean factor loadings, named by series. The
 other parameter blocks (\code{phi}, \code{sigma}, \code{rho}, \code{h}) remain in
-\code{object$pars}.}
+\code{object$pars}, and their posterior spread in \code{object$pars_dist}; for a
+table with uncertainty see \code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and
+\code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}.}
 \item{\code{fitted()}}{The augmented dataset: observed values where a series
-was observed, the model's latent estimate where it was not, on the
-standardized scale the model works in.}
+was observed, the model's latent estimate where it was not. On the
+standardized scale the model works in by default; \code{scale = "original"}
+puts every column back in its own units.}
 \item{\code{residuals()}}{Observed minus fitted. \strong{Unobserved periods are
 \code{NA}, not zero} -- the prepared data encodes a missing observation as
 \code{0}, so differencing directly would report a spurious residual wherever
 a series was not observed, which in a mixed-frequency model is most of
-the matrix for the low-frequency series.}
+the matrix for the low-frequency series. \code{scale = "original"} rescales by
+each series' standard deviation only, the series mean cancelling in a
+difference.}
 \item{\code{as.data.frame()}}{The factor with 95\% bands, one row per period,
 so downstream code need not reach into the list structure.}
 \item{\code{logLik()}}{A plug-in Gaussian log-likelihood of the observed data,

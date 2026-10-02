@@ -84,6 +84,12 @@ nowcast for \code{target}, extracted from \code{ncst}.}
 \item{pars}{List of posterior means (\code{lambda}, \code{phi}, \code{sigma}, \code{rho},
 \code{rho_var}, \code{h}) and the model dimensions (\code{n}, \code{q}, \code{p}, \code{s}, \code{t},
 \code{k}).}
+\item{pars_dist}{List of posterior spreads -- \code{sd} and the 2.5\%/97.5\%
+quantiles -- for \code{lambda}, \code{phi}, \code{sigma}, \code{rho} and \code{h}, read out of
+the rotated draws at fit time. The posterior \emph{mean} stays in \code{pars},
+so the two cannot disagree. There is deliberately no \code{omega} entry:
+\code{omega} is drawn here but not retained. Used by
+\code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}.}
 \item{ncst}{List with \code{mean} and \code{var}, each a named list of nowcasts
 for every input series at its own frequency.}
 \item{data}{\code{ts} matrix of the prepared (standardized) data, in which

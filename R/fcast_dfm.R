@@ -105,6 +105,12 @@
 #'     \item{pars}{List of posterior means (`lambda`, `phi`, `sigma`, `rho`,
 #'       `rho_var`, `h`) and the model dimensions (`n`, `q`, `p`, `s`, `t`,
 #'       `k`).}
+#'     \item{pars_dist}{List of posterior spreads -- `sd` and the 2.5%/97.5%
+#'       quantiles -- for `lambda`, `phi`, `sigma`, `rho` and `h`, read out of
+#'       the rotated draws at fit time. The posterior *mean* stays in `pars`,
+#'       so the two cannot disagree. There is deliberately no `omega` entry:
+#'       `omega` is drawn here but not retained. Used by
+#'       [mfbdfm_table_loadings()] and [mfbdfm_table_parameters()].}
 #'     \item{ncst}{List with `mean` and `var`, each a named list of nowcasts
 #'       for every input series at its own frequency.}
 #'     \item{data}{`ts` matrix of the prepared (standardized) data, in which
@@ -281,7 +287,8 @@ fcast_dfm <- function(flows = NULL,
 
   message("processing output..")
   out <- run_evaluation_fcast(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t,
-                        inventory, flows, stocks, target)
+                        inventory, flows, stocks, target,
+                        stochastic_volatility = stochastic_volatility)
 
   out$call <- match.call()
   class(out) <- "fcast_dfm"
@@ -328,6 +335,8 @@ print.fcast_dfm <- function(x, n_show = 8, ...){
   }
 
   cat("\nFull results: $factor, $ncst (all series), $data_hf, $target_series\n")
+  cat("Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),\n")
+  cat("mfbdfm_table_nowcast()\n")
 
   invisible(x)
 
