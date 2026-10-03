@@ -13,9 +13,14 @@ name: Claude Agent Queue
 #
 # Two triggers, covering each other's gap: `labeled` starts a run the moment you
 # queue something, and the cron drains whatever is left -- which is also the only
-# retry mechanism there is. A run killed midway (usually by exhausting the
-# subscription quota) leaves its `agent-working` claim behind; the next cron fire
-# reclaims it once the quota window has reset.
+# retry mechanism there is. A run that stops after claiming -- the turn ceiling,
+# an exhausted subscription quota, a cancelled job -- leaves its `agent-working`
+# claim behind, and the next cron fire reclaims it.
+#
+# Do not expect an orphaned claim to come with a red run. #79's own orphan was
+# left by run 36247030805, which ended `success` with every step green and still
+# produced no comment, branch or PR. Watching the Actions tab for failures
+# therefore misses stuck claims; the labels are the only reliable signal.
 
 on:
   issues:
@@ -97,7 +102,7 @@ jobs:
           # this project gates merges on would never run.
           claude_args: |
             --model claude-opus-5
-            --max-turns 80
+            --max-turns 150
             --allowedTools "Bash,Read,Write,Edit,Glob,Grep"
 
           prompt: |
@@ -115,12 +120,30 @@ jobs:
 
               a. the oldest open issue labelled `agent-ready` and not labelled
                  `agent-working`; failing that,
-              b. a stale claim -- an open issue labelled `agent-working` whose
-                 label was applied more than 6 hours ago. A previous run died
-                 mid-flight and the claim needs reclaiming. `gh issue view` does
-                 not carry label timestamps; read them from the timeline, e.g.
-                 `gh api repos/${{ github.repository }}/issues/<N>/timeline
-                 --jq '.[] | select(.event=="labeled") | [.created_at,.label.name]'`.
+              b. a stale claim -- an open issue whose `agent-working` label was
+                 applied more than 6 hours ago. A previous run left the claim
+                 behind and it needs reclaiming.
+
+                 Judge staleness on the **most recent** `labeled` event for
+                 `agent-working`, not the earliest. An issue can be claimed,
+                 released and re-claimed, and the timeline keeps every one of
+                 those events -- so the earliest makes a live claim that was
+                 just refreshed look days old, and taking it would put two runs
+                 on one issue.
+
+                 `gh issue view` does not carry label timestamps; read them from
+                 the timeline. Two things will bite you here:
+                 `--paginate` is required, because the endpoint returns 30
+                 events per page and a claim that falls off page 1 is invisible;
+                 and the reduction must happen **outside** `--jq`, because `gh`
+                 applies the filter once per page and prints one result per
+                 page, so a reducing filter returns several answers rather than
+                 one. Collect first, then reduce:
+
+                     gh api repos/${{ github.repository }}/issues/<N>/timeline \
+                       --paginate \
+                       --jq '.[] | select(.event=="labeled" and .label.name=="agent-working") | .created_at' \
+                       | sort | tail -1
 
             If neither exists, do nothing at all, comment nothing, and exit
             successfully. An idle queue is the normal state, not a failure.
