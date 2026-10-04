@@ -86,7 +86,10 @@ the accessor the missing \code{predict()} would otherwise be mistaken for.
 Neither model computes a likelihood while sampling -- the factors are drawn
 jointly from a stacked, precision-based conditional, and there is no Kalman
 filter anywhere in the package. So the value has to be \emph{defined}, and the
-definition adopted is:the Gaussian log density of the observed entries of the prepared data,evaluated at the posterior mean parameters and the posterior meanvolatility path, with the factors and the unobserved data entriesmarginalised out.
+definition adopted is: \emph{the Gaussian log density of the \strong{observed} entries
+of the prepared data, evaluated at the posterior mean parameters and the
+posterior mean volatility path, with the factors and the unobserved data
+entries marginalised out.}
 
 It is computed exactly (not by simulation) from the stacked Gaussian form
 the samplers already use, so nothing is approximated in the \emph{arithmetic}.

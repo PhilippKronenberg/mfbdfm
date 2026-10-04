@@ -61,12 +61,10 @@ fit_dims <- function(object){
 #' Neither model computes a likelihood while sampling -- the factors are drawn
 #' jointly from a stacked, precision-based conditional, and there is no Kalman
 #' filter anywhere in the package. So the value has to be *defined*, and the
-#' definition adopted is:
-#'
-#' > the Gaussian log density of the **observed** entries of the prepared data,
-#' > evaluated at the posterior mean parameters and the posterior mean
-#' > volatility path, with the factors and the unobserved data entries
-#' > marginalised out.
+#' definition adopted is: *the Gaussian log density of the **observed** entries
+#' of the prepared data, evaluated at the posterior mean parameters and the
+#' posterior mean volatility path, with the factors and the unobserved data
+#' entries marginalised out.*
 #'
 #' It is computed exactly (not by simulation) from the stacked Gaussian form
 #' the samplers already use, so nothing is approximated in the *arithmetic*.
