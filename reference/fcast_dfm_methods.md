@@ -17,10 +17,10 @@ print(x, n_show = 8, ...)
 coef(object, ...)
 
 # S3 method for class 'fcast_dfm'
-fitted(object, ...)
+fitted(object, scale = c("standardized", "original"), ...)
 
 # S3 method for class 'fcast_dfm'
-residuals(object, ...)
+residuals(object, scale = c("standardized", "original"), ...)
 
 # S3 method for class 'fcast_dfm'
 logLik(object, ...)
@@ -50,6 +50,16 @@ summary(object, ...)
 
   A fit from
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
+
+- scale:
+
+  Character, the scale
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) report on:
+  `"standardized"` (the default) or `"original"`. As for
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md);
+  see
+  [ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md).
 
 - row.names, optional:
 
@@ -147,6 +157,8 @@ fit
 #> 
 #> Full results: $factor, $ncst (all series), $data_hf, $target_series;
 #> mfbdfm_nowcast() for the target's nowcasts
+#> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),
+#> mfbdfm_table_nowcast()
 coef(fit)          # a q-column matrix here, a vector for ind_dfm()
 #>                               factor1      factor2
 #> ch.seco.gdp.real.gdp.ssa -0.006836276 -0.003745831

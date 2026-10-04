@@ -150,6 +150,17 @@ An object of class `"ind_dfm"`: a list with components
   List of posterior parameter means (`h`, `lambda`, `phi`, `sigma`,
   `omega`, `rho`, `rho_var`).
 
+- pars_dist:
+
+  List of posterior spreads – `sd` and the 2.5%/97.5% quantiles – for
+  `lambda`, `phi`, `sigma`, `rho`, `h` and the volatility parameter,
+  summarised from the retained draws at fit time. The posterior *mean*
+  stays in `pars`, so the two cannot disagree. Used by
+  [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
+  and
+  [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md);
+  see there for which blocks are present and why.
+
 - data:
 
   `ts` matrix of the prepared (standardized) data, in which `0` encodes

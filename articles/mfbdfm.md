@@ -102,8 +102,8 @@ class(fit)
 names(fit)
 #>  [1] "factor"         "factor_var"     "factor_std"     "index"         
 #>  [5] "nowcast"        "nowcast_var"    "target"         "pars"          
-#>  [9] "data"           "data_raw"       "data_augmented" "inventory"     
-#> [13] "call"
+#>  [9] "pars_dist"      "data"           "data_raw"       "data_augmented"
+#> [13] "inventory"      "call"
 ```
 
 `fit$factor` is the annualized weekly growth rate implied by the model —

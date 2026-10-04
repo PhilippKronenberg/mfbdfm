@@ -2,6 +2,76 @@
 
 ## mfbdfm 0.1.0.9000
 
+- **Table-ready summaries of a fit, with posterior uncertainty.** Three
+  new exports return plain tidy data frames for both fit classes:
+  [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
+  (series, type, frequency, factor, posterior mean, sd and 95%
+  interval),
+  [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md)
+  (every parameter block — `phi`, `sigma`, `rho`, and the volatility
+  parameter) and
+  [`mfbdfm_table_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_nowcast.md)
+  (time, observed, nowcast, sd, interval). Each takes
+  `format = c("data.frame", "latex", "html", "markdown")`, rendered
+  through the also-exported
+  [`mfbdfm_kable()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_kable.md);
+  the data frame is the primary output and is left **unrounded**,
+  `digits` affecting the rendered formats only. Reporting uncertainty
+  needed something the fits did not store — they kept posterior *means*
+  only — so both entry points now summarise the parameter blocks at fit
+  time into a new `$pars_dist` component holding the posterior `sd` and
+  the 2.5%/97.5% quantiles. That is a few numbers per parameter rather
+  than the whole chain, consumes no RNG, and changes no existing
+  computation: `baseline_run()` is
+  [`identical()`](https://rdrr.io/r/base/identical.html) before and
+  after. The posterior *mean* is deliberately **not** duplicated into
+  `$pars_dist`, so a table cannot disagree with
+  [`coef()`](https://rdrr.io/r/stats/coef.html) in the last bit
+  ([\#113](https://github.com/PhilippKronenberg/mfbdfm/issues/113)).
+
+  Two columns mark what is not an estimate. `fixed` flags an imposed
+  value —
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)’s
+  loading on `target`, pinned at one by the identifying restriction, and
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)’s
+  factor innovation variance with `stochastic_volatility = FALSE`, fixed
+  at one because it carries the identification there. `structural` flags
+  a value that *was* drawn but under a prior that is the model’s
+  identification rather than a tuning knob — the target’s own `sigma`
+  and `rho` in
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+  the same two
+  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
+  calls structural. Two blocks are **absent rather than filled in**:
+  `omega` for a
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  fit, because it is drawn there but never packed into the retained draw
+  vector, and `omega` with `stochastic_volatility = FALSE`, where the
+  sampler never draws it and reporting its untouched start value would
+  be a silent wrong answer — `factor_var` is reported instead.
+
+- [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) gain
+  `scale = c("standardized", "original")` on both fit classes. The
+  default and the NA-masking of unobserved periods are unchanged;
+  `"original"` puts each column back in its own units, inverting
+  [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)’s
+  `(x - mean)/sd`. Residuals rescale by the standard deviation only, the
+  series mean cancelling in a difference
+  ([\#113](https://github.com/PhilippKronenberg/mfbdfm/issues/113)).
+
+- [`summary()`](https://rdrr.io/r/base/summary.html) now carries
+  `loadings_table` and `parameters_table` and its
+  [`print()`](https://rdrr.io/r/base/print.html) method prints from
+  them, so a printed summary and a tabulated one cannot report different
+  numbers. The existing `$loadings`/`$phi`/`$sigma`/ `$rho` fields are
+  kept. One visible change: the printed measurement-error block is the
+  **variance** `sigma` with its interval, where it used to be the square
+  root of the mean — printing
+  [`sqrt()`](https://rdrr.io/r/base/MathFun.html) of a tabulated value
+  is exactly the disagreement this was meant to remove
+  ([\#113](https://github.com/PhilippKronenberg/mfbdfm/issues/113)).
+
 - [`summary()`](https://rdrr.io/r/base/summary.html) on either fit class
   now reports a **per-series R-squared**, so the question “which of my
   series does the factor actually explain?” has an answer in the fit

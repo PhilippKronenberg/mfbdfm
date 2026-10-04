@@ -181,6 +181,14 @@ nowcast for <code>target</code>, extracted from <code>ncst</code>.</p></dd>
 <code>rho_var</code>, <code>h</code>) and the model dimensions (<code>n</code>, <code>q</code>, <code>p</code>, <code>s</code>, <code>t</code>,
 <code>k</code>).</p></dd>
 
+<dt>pars_dist</dt>
+<dd><p>List of posterior spreads – <code>sd</code> and the 2.5%/97.5%
+quantiles – for <code>lambda</code>, <code>phi</code>, <code>sigma</code>, <code>rho</code> and <code>h</code>, read out of
+the rotated draws at fit time. The posterior <em>mean</em> stays in <code>pars</code>,
+so the two cannot disagree. There is deliberately no <code>omega</code> entry:
+<code>omega</code> is drawn here but not retained. Used by
+<code><a href="mfbdfm_table_loadings.html">mfbdfm_table_loadings()</a></code> and <code><a href="mfbdfm_table_parameters.html">mfbdfm_table_parameters()</a></code>.</p></dd>
+
 <dt>ncst</dt>
 <dd><p>List with <code>mean</code> and <code>var</code>, each a named list of nowcasts
 for every input series at its own frequency.</p></dd>
@@ -342,6 +350,8 @@ Switzerland. <em>Swiss Journal of Economics and Statistics</em>, 162, 10.
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $ncst (all series), $data_hf, $target_series;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_nowcast() for the target's nowcasts</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_table_nowcast()</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

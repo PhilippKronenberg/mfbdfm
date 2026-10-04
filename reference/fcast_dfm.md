@@ -145,6 +145,17 @@ An object of class `"fcast_dfm"`: a list with components
   List of posterior means (`lambda`, `phi`, `sigma`, `rho`, `rho_var`,
   `h`) and the model dimensions (`n`, `q`, `p`, `s`, `t`, `k`).
 
+- pars_dist:
+
+  List of posterior spreads – `sd` and the 2.5%/97.5% quantiles – for
+  `lambda`, `phi`, `sigma`, `rho` and `h`, read out of the rotated draws
+  at fit time. The posterior *mean* stays in `pars`, so the two cannot
+  disagree. There is deliberately no `omega` entry: `omega` is drawn
+  here but not retained. Used by
+  [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
+  and
+  [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md).
+
 - ncst:
 
   List with `mean` and `var`, each a named list of nowcasts for every
@@ -335,5 +346,7 @@ fit
 #> 
 #> Full results: $factor, $ncst (all series), $data_hf, $target_series;
 #> mfbdfm_nowcast() for the target's nowcasts
+#> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),
+#> mfbdfm_table_nowcast()
 # }
 ```

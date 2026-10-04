@@ -62,6 +62,21 @@ fitted, residuals, as.data.frame and logLik (and hence AIC/BIC).
 - [`print(`*`<summary.mfbdfm_fit>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.summary.mfbdfm_fit.md)
   : Print a fit summary
 
+## Tables from a fitted model
+
+Table-ready summaries of a fit – loadings, parameters and the nowcast,
+each with posterior uncertainty – as tidy data frames or rendered to
+LaTeX, HTML or Markdown.
+
+- [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
+  : Factor loadings as a table, with posterior uncertainty
+- [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md)
+  : Estimated parameters as a table, with posterior uncertainty
+- [`mfbdfm_table_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_nowcast.md)
+  : The target series' nowcast as a table, with posterior uncertainty
+- [`mfbdfm_kable()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_kable.md)
+  : Render a table in one of the supported output formats
+
 ## Backcasting & real-time vintages
 
 Fitting the AR benchmark and the WAI at a given evaluation date, and

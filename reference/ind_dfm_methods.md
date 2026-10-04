@@ -14,10 +14,10 @@ fits support the same set – see
 coef(object, ...)
 
 # S3 method for class 'ind_dfm'
-fitted(object, ...)
+fitted(object, scale = c("standardized", "original"), ...)
 
 # S3 method for class 'ind_dfm'
-residuals(object, ...)
+residuals(object, scale = c("standardized", "original"), ...)
 
 # S3 method for class 'ind_dfm'
 logLik(object, ...)
@@ -45,6 +45,16 @@ print(x, n_show = 8, ...)
 - ...:
 
   Ignored, present for compatibility with the generics.
+
+- scale:
+
+  Character, the scale
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) report on:
+  `"standardized"` (the default, the scale the model works in) or
+  `"original"` (each series back in its own units). See
+  [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
+  for the same argument on the loadings.
 
 - row.names, optional:
 
@@ -84,12 +94,18 @@ input invisibly.
 
   Dimensions, posterior mean parameters, residual fit and a per-series
   R-squared; returns an object with its own
-  [`print()`](https://rdrr.io/r/base/print.html) method. The R-squared
-  is `1 - Var(residual)/Var(observed)` over the periods where that
-  series was observed, with the fitted value taken to be the **common
-  component** – loadings times factors, temporally aggregated – so it
-  measures what the factor explains and not the idiosyncratic AR part.
-  It is therefore not `1 - Var(residuals(fit))/Var(observed)`:
+  [`print()`](https://rdrr.io/r/base/print.html) method. It carries the
+  [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
+  and
+  [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md)
+  tables in `loadings_table` and `parameters_table`, and prints from
+  them, so a printed summary and a tabulated one report the same
+  numbers. The R-squared is `1 - Var(residual)/Var(observed)` over the
+  periods where that series was observed, with the fitted value taken to
+  be the **common component** – loadings times factors, temporally
+  aggregated – so it measures what the factor explains and not the
+  idiosyncratic AR part. It is therefore not
+  `1 - Var(residuals(fit))/Var(observed)`:
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) returns the
   augmented dataset, whose observed entries are pinned to the observed
   values by the sampler. For
@@ -111,13 +127,19 @@ input invisibly.
 - [`coef()`](https://rdrr.io/r/stats/coef.html):
 
   The posterior mean factor loadings, named by series. The other
-  parameter blocks (`phi`, `sigma`, `rho`, `h`) remain in `object$pars`.
+  parameter blocks (`phi`, `sigma`, `rho`, `h`) remain in `object$pars`,
+  and their posterior spread in `object$pars_dist`; for a table with
+  uncertainty see
+  [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
+  and
+  [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md).
 
 - [`fitted()`](https://rdrr.io/r/stats/fitted.values.html):
 
   The augmented dataset: observed values where a series was observed,
-  the model's latent estimate where it was not, on the standardized
-  scale the model works in.
+  the model's latent estimate where it was not. On the standardized
+  scale the model works in by default; `scale = "original"` puts every
+  column back in its own units.
 
 - [`residuals()`](https://rdrr.io/r/stats/residuals.html):
 
@@ -125,7 +147,9 @@ input invisibly.
   prepared data encodes a missing observation as `0`, so differencing
   directly would report a spurious residual wherever a series was not
   observed, which in a mixed-frequency model is most of the matrix for
-  the low-frequency series.
+  the low-frequency series. `scale = "original"` rescales by each
+  series' standard deviation only, the series mean cancelling in a
+  difference.
 
 - [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html):
 
@@ -242,6 +266,8 @@ fit
 #> Full results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),
 #> summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),
 #> logLik()
+#> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),
+#> mfbdfm_table_nowcast()
 coef(fit)
 #> ch.seco.gdp.real.gdp.ssa                  SWISSMI                SWCONPRCE 
 #>               1.00000000               0.05379545               0.61872745 

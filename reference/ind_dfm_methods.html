@@ -47,10 +47,10 @@ the same set – see <a href="fcast_dfm_methods.html">fcast_dfm_methods</a>.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'ind_dfm'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">object</span>, scale <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"standardized"</span>, <span class="st">"original"</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'ind_dfm'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">object</span>, scale <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"standardized"</span>, <span class="st">"original"</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'ind_dfm'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
@@ -78,6 +78,13 @@ the same set – see <a href="fcast_dfm_methods.html">fcast_dfm_methods</a>.</p>
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Ignored, present for compatibility with the generics.</p></dd>
+
+
+<dt id="arg-scale">scale<a class="anchor" aria-label="anchor" href="#arg-scale"></a></dt>
+<dd><p>Character, the scale <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> report on:
+<code>"standardized"</code> (the default, the scale the model works in) or
+<code>"original"</code> (each series back in its own units). See
+<code><a href="mfbdfm_table_loadings.html">mfbdfm_table_loadings()</a></code> for the same argument on the loadings.</p></dd>
 
 
 <dt id="arg-row-names-optional">row.names, optional<a class="anchor" aria-label="anchor" href="#arg-row-names-optional"></a></dt>
@@ -108,6 +115,9 @@ columns <code>series</code>, <code>freq</code>, <code>n_obs</code> and <code>r_s
 <dt><code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code></dt>
 <dd><p>Dimensions, posterior mean parameters, residual fit and
 a per-series R-squared; returns an object with its own <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> method.
+It carries the <code><a href="mfbdfm_table_loadings.html">mfbdfm_table_loadings()</a></code> and <code><a href="mfbdfm_table_parameters.html">mfbdfm_table_parameters()</a></code>
+tables in <code>loadings_table</code> and <code>parameters_table</code>, and prints from them,
+so a printed summary and a tabulated one report the same numbers.
 The R-squared is <code>1 - Var(residual)/Var(observed)</code> over the periods where
 that series was observed, with the fitted value taken to be the <strong>common
 component</strong> – loadings times factors, temporally aggregated – so it
@@ -129,19 +139,24 @@ of its variance.</p></dd>
 <dt><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code></dt>
 <dd><p>The posterior mean factor loadings, named by series. The
 other parameter blocks (<code>phi</code>, <code>sigma</code>, <code>rho</code>, <code>h</code>) remain in
-<code>object$pars</code>.</p></dd>
+<code>object$pars</code>, and their posterior spread in <code>object$pars_dist</code>; for a
+table with uncertainty see <code><a href="mfbdfm_table_loadings.html">mfbdfm_table_loadings()</a></code> and
+<code><a href="mfbdfm_table_parameters.html">mfbdfm_table_parameters()</a></code>.</p></dd>
 
 <dt><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code></dt>
 <dd><p>The augmented dataset: observed values where a series
-was observed, the model's latent estimate where it was not, on the
-standardized scale the model works in.</p></dd>
+was observed, the model's latent estimate where it was not. On the
+standardized scale the model works in by default; <code>scale = "original"</code>
+puts every column back in its own units.</p></dd>
 
 <dt><code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code></dt>
 <dd><p>Observed minus fitted. <strong>Unobserved periods are
 <code>NA</code>, not zero</strong> – the prepared data encodes a missing observation as
 <code>0</code>, so differencing directly would report a spurious residual wherever
 a series was not observed, which in a mixed-frequency model is most of
-the matrix for the low-frequency series.</p></dd>
+the matrix for the low-frequency series. <code>scale = "original"</code> rescales by
+each series' standard deviation only, the series mean cancelling in a
+difference.</p></dd>
 
 <dt><code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code></dt>
 <dd><p>The factor with 95% bands, one row per period,
@@ -240,6 +255,8 @@ nowcasts</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> logLik()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_table_nowcast()</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ch.seco.gdp.real.gdp.ssa                  SWISSMI                SWCONPRCE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               1.00000000               0.05379545               0.61872745 </span>

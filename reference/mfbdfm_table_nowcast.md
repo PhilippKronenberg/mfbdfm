@@ -1,30 +1,76 @@
-# Print a fit summary
+# The target series' nowcast as a table, with posterior uncertainty
 
-Print a fit summary
+The stored nowcast for the fit's `target` series at that series' own
+frequency, with its posterior standard deviation, a 95% interval, and
+the observed value where one exists.
 
 ## Usage
 
 ``` r
-# S3 method for class 'summary.mfbdfm_fit'
-print(x, ...)
+mfbdfm_table_nowcast(
+  fit,
+  format = c("data.frame", "latex", "html", "markdown"),
+  digits = 4,
+  caption = NULL
+)
 ```
 
 ## Arguments
 
-- x:
+- fit:
 
-  An object from
-  [`summary.ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  A fit from
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
   or
-  [`summary.fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md).
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
 
-- ...:
+- format:
 
-  Ignored.
+  Character, `"data.frame"` (the default), `"latex"`, `"html"` or
+  `"markdown"`. The data frame is the primary output; the other three
+  render it through
+  [`mfbdfm_kable()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_kable.md).
+
+- digits:
+
+  Integer, significant digits for the rendered formats. The data frame
+  is returned unrounded.
+
+- caption:
+
+  Character or `NULL`, a caption for the rendered formats.
 
 ## Value
 
-`x`, invisibly.
+A data frame with columns `time`, `observed`, `nowcast`, `sd`, `lower`
+and `upper`; or a `"knitr_kable"` object when `format` is not
+`"data.frame"`.
+
+## Details
+
+The nowcast is computed *during* fitting and stored, not produced on
+demand - which is why neither fit class has a
+[`predict()`](https://rdrr.io/r/stats/predict.html) method (see
+[ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)).
+This function reads `$nowcast` and `$nowcast_var` and lines the observed
+target series up against them; it does not re-estimate anything.
+
+Rows where `observed` is `NA` are the periods the target series does not
+cover - the genuine nowcasts and backcasts.
+
+The nowcast is on the target series' **original scale** already, having
+been de-standardized inside the sampler, so there is no `scale` argument
+here.
+
+## See also
+
+[`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md),
+[`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md)
+
+Other model tables:
+[`mfbdfm_kable()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_kable.md),
+[`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md),
+[`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md)
 
 ## Examples
 
@@ -41,42 +87,13 @@ fit <- ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
 #> simulating posterior distribution..
 #>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%
 #> processing output..
-summary(fit)          # dispatches here
-#> Single-factor mixed-frequency dynamic factor model (Kronenberg 2026)
-#> Call: ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],     stats::window, start = 2021), stocks = lapply(data_ch_dataset_test$stocks[1:2], 
-#> 
-#>   series (n) : 4
-#>   factors (q): 1
-#>   periods (t): 250
-#>   target     : ch.seco.gdp.real.gdp.ssa
-#> 
-#> Factor loadings (posterior mean, 95% interval):
-#>                     series   mean     sd   lower  upper
-#> 1 ch.seco.gdp.real.gdp.ssa 1.0000 0.0000  1.0000 1.0000
-#> 2                  SWISSMI 0.0927 0.4919 -0.4785 1.1587
-#> 3                SWCONPRCE 0.2561 0.8876 -1.3338 1.5812
-#> 4                SWPROPRCE 0.8677 0.8741 -0.8787 2.1268
-#> 
-#> Measurement error variance (posterior mean, 95% interval):
-#>                     series   mean     sd  lower  upper
-#> 1 ch.seco.gdp.real.gdp.ssa 0.0326 0.0351 0.0057 0.1199
-#> 2                  SWISSMI 0.7843 0.0678 0.6939 0.9286
-#> 3                SWCONPRCE 0.5120 0.1544 0.3282 0.7510
-#> 4                SWPROPRCE 0.8569 0.1733 0.5406 1.1055
-#>   (the measurement error sd is the square root of `mean`)
-#> 
-#> Fit to observed data:
-#>   observed values: 393
-#>   residual RMSE  : 6.707e-06 (standardized scale)
-#> 
-#> R-squared of the common component, by series:
-#>   series                                  freq  n_obs R-squared
-#>   ch.seco.gdp.real.gdp.ssa                   4     20     0.767
-#>   SWPROPRCE                                 12     61     0.031
-#>   SWCONPRCE                                 12     62     0.002
-#>   SWISSMI                                   48    250     0.001
-#>   Note: the target's loading is fixed to 1 and its measurement error
-#>   shrunk towards zero to identify the factor, so its R-squared is ~1
-#>   by construction rather than as a finding.
+utils::tail(mfbdfm_table_nowcast(fit))
+#>       time     observed      nowcast           sd        lower        upper
+#> 15 2024.50  0.002901739  0.002901714 2.130158e-07  0.002901296  0.002902131
+#> 16 2024.75  0.005175429  0.005175472 1.554287e-07  0.005175168  0.005175777
+#> 17 2025.00  0.007858602  0.007858556 2.491472e-07  0.007858068  0.007859045
+#> 18 2025.25  0.001230711  0.001230658 1.405407e-07  0.001230383  0.001230933
+#> 19 2025.50 -0.004400677 -0.004400635 1.810394e-07 -0.004400990 -0.004400280
+#> 20 2025.75  0.001506251  0.001506267 2.733247e-07  0.001505731  0.001506803
 # }
 ```

@@ -53,10 +53,10 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
 <span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'fcast_dfm'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">object</span>, scale <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"standardized"</span>, <span class="st">"original"</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'fcast_dfm'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">object</span>, scale <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"standardized"</span>, <span class="st">"original"</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'fcast_dfm'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
@@ -85,6 +85,12 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
 
 <dt id="arg-object-x">object, x<a class="anchor" aria-label="anchor" href="#arg-object-x"></a></dt>
 <dd><p>A fit from <code><a href="fcast_dfm.html">fcast_dfm()</a></code>.</p></dd>
+
+
+<dt id="arg-scale">scale<a class="anchor" aria-label="anchor" href="#arg-scale"></a></dt>
+<dd><p>Character, the scale <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> report on:
+<code>"standardized"</code> (the default) or <code>"original"</code>. As for <code><a href="ind_dfm.html">ind_dfm()</a></code>; see
+<a href="ind_dfm_methods.html">ind_dfm_methods</a>.</p></dd>
 
 
 <dt id="arg-row-names-optional">row.names, optional<a class="anchor" aria-label="anchor" href="#arg-row-names-optional"></a></dt>
@@ -164,6 +170,8 @@ nowcasts</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $ncst (all series), $data_hf, $target_series;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_nowcast() for the target's nowcasts</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_table_nowcast()</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>          <span class="co"># a q-column matrix here, a vector for ind_dfm()</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                               factor1      factor2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ch.seco.gdp.real.gdp.ssa -0.006836276 -0.003745831</span>

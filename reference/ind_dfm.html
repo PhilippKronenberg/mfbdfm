@@ -181,6 +181,14 @@ transform is convex, so it cannot be inverted back to this.</p></dd>
 <dd><p>List of posterior parameter means (<code>h</code>, <code>lambda</code>, <code>phi</code>,
 <code>sigma</code>, <code>omega</code>, <code>rho</code>, <code>rho_var</code>).</p></dd>
 
+<dt>pars_dist</dt>
+<dd><p>List of posterior spreads – <code>sd</code> and the 2.5%/97.5%
+quantiles – for <code>lambda</code>, <code>phi</code>, <code>sigma</code>, <code>rho</code>, <code>h</code> and the
+volatility parameter, summarised from the retained draws at fit time.
+The posterior <em>mean</em> stays in <code>pars</code>, so the two cannot disagree. Used
+by <code><a href="mfbdfm_table_loadings.html">mfbdfm_table_loadings()</a></code> and <code><a href="mfbdfm_table_parameters.html">mfbdfm_table_parameters()</a></code>; see
+there for which blocks are present and why.</p></dd>
+
 <dt>data</dt>
 <dd><p><code>ts</code> matrix of the prepared (standardized) data, in which
 <code>0</code> encodes a missing observation.</p></dd>
