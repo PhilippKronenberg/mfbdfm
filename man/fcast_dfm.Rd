@@ -78,7 +78,11 @@ and the progress bar.}
 \value{
 An object of class \code{"fcast_dfm"}: a list with components
 \describe{
-\item{factor}{\code{ts} matrix of the \code{q} posterior mean factors.}
+\item{factor}{\code{ts} matrix of the \code{q} posterior mean factors, on the
+model's own standardized scale and covering the \code{2*(k - 1)} latent
+periods the distributed-lag aggregation reaches back into as well as
+the sample. (\code{ind_dfm()} annualizes and de-standardizes its \code{factor};
+the counterpart of this component there is \code{factor_std}.)}
 \item{factor_var}{\code{ts} matrix of the corresponding variances.}
 \item{target}{Character, the series named by \code{target}.}
 \item{nowcast, nowcast_var}{\code{ts}, posterior mean and variance of the

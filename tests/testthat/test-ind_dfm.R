@@ -20,9 +20,9 @@ test_that("ind_dfm returns a complete, finite fit object", {
   fit <- run_small_ind_dfm(42)
 
   expect_s3_class(fit, "ind_dfm")
-  expect_named(fit, c("factor", "factor_var", "index", "nowcast", "nowcast_var",
-                      "target", "pars", "data", "data_raw", "data_augmented",
-                      "inventory", "call"))
+  expect_named(fit, c("factor", "factor_var", "factor_std", "index", "nowcast",
+                      "nowcast_var", "target", "pars", "data", "data_raw",
+                      "data_augmented", "inventory", "call"))
   expect_s3_class(fit$factor, "ts")
   expect_equal(frequency(fit$factor), 48)
   expect_equal(frequency(fit$nowcast), 4)
@@ -33,6 +33,24 @@ test_that("ind_dfm returns a complete, finite fit object", {
   expect_equal(fit$target, "ch.seco.gdp.real.gdp.ssa")
   # identifying restriction: target loading fixed at 1
   expect_equal(as.numeric(fit$pars$lambda[fit$inventory$key == fit$target]), 1)
+})
+
+test_that("factor_std spans the sample plus the aggregation's latent periods", {
+  fit <- run_small_ind_dfm(42)
+
+  k <- max(fit$inventory$freq)/min(fit$inventory$freq)
+  s <- 2*(k - 1)
+
+  expect_s3_class(fit$factor_std, "ts")
+  expect_length(fit$factor_std, nrow(fit$data) + s)
+  expect_false(anyNA(fit$factor_std))
+
+  # it leads $data by exactly the s latent periods, on the same frequency -
+  # this alignment is what the common-component reconstruction in summary()
+  # depends on
+  expect_equal(frequency(fit$factor_std), frequency(fit$data))
+  expect_equal(as.numeric(stats::time(fit$factor_std))[s + 1],
+               as.numeric(stats::time(fit$data))[1])
 })
 
 test_that("pars$h is complete and aligned with the factor (#49)", {

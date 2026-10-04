@@ -99,7 +99,11 @@
 #'
 #' @return An object of class `"fcast_dfm"`: a list with components
 #'   \describe{
-#'     \item{factor}{`ts` matrix of the `q` posterior mean factors.}
+#'     \item{factor}{`ts` matrix of the `q` posterior mean factors, on the
+#'       model's own standardized scale and covering the `2*(k - 1)` latent
+#'       periods the distributed-lag aggregation reaches back into as well as
+#'       the sample. (`ind_dfm()` annualizes and de-standardizes its `factor`;
+#'       the counterpart of this component there is `factor_std`.)}
 #'     \item{factor_var}{`ts` matrix of the corresponding variances.}
 #'     \item{target}{Character, the series named by `target`.}
 #'     \item{nowcast, nowcast_var}{`ts`, posterior mean and variance of the

@@ -73,6 +73,12 @@ An object of class \code{"ind_dfm"}: a list with components
 \describe{
 \item{factor}{\code{ts}, posterior mean of the annualized activity factor.}
 \item{factor_var}{\code{ts}, posterior variance of the factor.}
+\item{factor_std}{\code{ts}, posterior mean of the factor on the model's own
+standardized scale -- the quantity the observation equation multiplies
+by the loadings -- covering the \code{2*(k - 1)} latent periods the
+distributed-lag aggregation reaches back into as well as the sample.
+\code{factor} is the same path de-standardized and annualized, and that
+transform is convex, so it cannot be inverted back to this.}
 \item{index}{\code{ts}, posterior mean of the cumulated activity index.}
 \item{nowcast}{\code{ts}, posterior mean nowcast of the target series.}
 \item{nowcast_var}{\code{ts}, posterior variance of the nowcast.}
