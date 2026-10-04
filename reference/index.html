@@ -135,7 +135,7 @@
       </dl></div><div class="section level2">
       <h2 id="methods-on-fitted-models">Methods on fitted models<a class="anchor" aria-label="anchor" href="#methods-on-fitted-models"></a></h2>
 
-      <div class="section-desc"><p>The generics both fit classes support: print, summary, plot, coef, fitted, residuals, as.data.frame and logLik (and hence AIC/BIC).</p></div>
+      <div class="section-desc"><p>The generics both fit classes support: print, summary, plot, coef, fitted, residuals, as.data.frame and logLik (and hence AIC/BIC), plus the decomposition of the factor and nowcast into per-series contributions.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -162,6 +162,13 @@
 
         </dt>
         <dd>Print a fit summary</dd>
+
+        <dt>
+
+          <code><a href="mfbdfm_contributions.html">mfbdfm_contributions()</a></code> <code><a href="mfbdfm_contributions.html">print(<i>&lt;mfbdfm_contributions&gt;</i>)</a></code> <code><a href="mfbdfm_contributions.html">as.data.frame(<i>&lt;mfbdfm_contributions&gt;</i>)</a></code> <code><a href="mfbdfm_contributions.html">plot(<i>&lt;mfbdfm_contributions&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Contribution of each input series to the factor and to the nowcast</dd>
       </dl></div><div class="section level2">
       <h2 id="tables-from-a-fitted-model">Tables from a fitted model<a class="anchor" aria-label="anchor" href="#tables-from-a-fitted-model"></a></h2>
 
