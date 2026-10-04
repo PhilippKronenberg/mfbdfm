@@ -243,7 +243,7 @@ mfbdfm_nowcast(fit, last = TRUE)
 plot(fit)                                  # the factor, with a 95\% band
 plot(fit, type = "nowcast", level = 0.68)
 plot(fit, type = "loadings")
-plot(fit, type = "residuals", series = c(target, "SWISSMI"))
+plot(fit, type = "residuals", series = c(fit$target, "SWISSMI"))
 
 # a ggplot, so it can be modified before printing
 plot(fit, type = "volatility") + ggplot2::labs(title = "Volatility")
