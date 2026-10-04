@@ -83,7 +83,7 @@ Run from the package root using `Rscript -e '<command>'` or interactively in R/R
 - `testthat::test_file("tests/testthat/test-<name>.R")` — run a single test file.
 - `devtools::check()` — run `R CMD check` locally (equivalent to CI).
 - `pkgdown::build_site()` — preview the documentation website locally (writes to gitignored `docs/`).
-- `Rscript vignettes/precompile.R` — regenerate the **precomputed** vignette. `vignettes/mfbdfm.Rmd.orig` is the file to edit; `vignettes/mfbdfm.Rmd` and `vignettes/figure/*` are generated from it and committed. Takes ~5 min (three short-chain fits). Run it after any vignette edit, and commit the regenerated `.Rmd` and figures together with the `.orig`.
+- `Rscript vignettes/precompile.R` — regenerate the **precomputed** vignette. `vignettes/mfbdfm.Rmd.orig` is the file to edit; `vignettes/mfbdfm.Rmd` and the `vignettes/mfbdfm-*.png` figures are generated from it and committed (`fig.path = "mfbdfm-"` is a filename prefix, not a `figure/` subdirectory, which `R CMD check` would flag as a knitr leftover). Takes ~5 min (three short-chain fits). Run it after any vignette edit, and commit the regenerated `.Rmd` and figures together with the `.orig`.
 - `R CMD build .` then `R CMD check --no-manual <tarball>` — what CI actually runs; useful when `devtools` behavior and `R CMD check` behavior diverge.
 - `pkgdown::check_pkgdown()` — validates the hand-grouped `_pkgdown.yml` reference index against `NAMESPACE`. Cheap, and the only local check for the failure mode in #47.
 
