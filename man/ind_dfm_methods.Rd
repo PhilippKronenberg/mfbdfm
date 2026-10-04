@@ -47,9 +47,10 @@
 \code{coef()} a named numeric vector; \code{fitted()} and \code{residuals()} \code{ts}
 matrices with one column per series; \code{as.data.frame()} a data frame with
 \code{time} and the factor with bands; \code{summary()} an object of class
-\code{"summary.mfbdfm_fit"}; \code{logLik()} an object of class \code{"logLik"} with \code{df}
-and \code{nobs} attributes; \code{print()} and \code{plot()} return their input
-invisibly.
+\code{"summary.mfbdfm_fit"}, whose \verb{$r_squared} element is a data frame with
+columns \code{series}, \code{freq}, \code{n_obs} and \code{r_squared}, sorted by fit;
+\code{logLik()} an object of class \code{"logLik"} with \code{df} and \code{nobs} attributes;
+\code{print()} and \code{plot()} return their input invisibly.
 }
 \description{
 The generics supported by an \code{\link[=ind_dfm]{ind_dfm()}} fit. \code{\link[=fcast_dfm]{fcast_dfm()}} fits support
@@ -58,11 +59,25 @@ the same set -- see \link{fcast_dfm_methods}.
 \details{
 \describe{
 \item{\code{print()}}{Model dimensions and the most recent target nowcasts.}
-\item{\code{summary()}}{Dimensions, posterior mean parameters and residual fit;
-returns an object with its own \code{print()} method. It carries the
-\code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}} tables in
-\code{loadings_table} and \code{parameters_table}, and prints from them, so a
-printed summary and a tabulated one report the same numbers.}
+\item{\code{summary()}}{Dimensions, posterior mean parameters, residual fit and
+a per-series R-squared; returns an object with its own \code{print()} method.
+It carries the \code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}
+tables in \code{loadings_table} and \code{parameters_table}, and prints from them,
+so a printed summary and a tabulated one report the same numbers.
+The R-squared is \code{1 - Var(residual)/Var(observed)} over the periods where
+that series was observed, with the fitted value taken to be the \strong{common
+component} -- loadings times factors, temporally aggregated -- so it
+measures what the factor explains and not the idiosyncratic AR part. It
+is therefore not \code{1 - Var(residuals(fit))/Var(observed)}: \code{fitted()}
+returns the augmented dataset, whose observed entries are pinned to the
+observed values by the sampler. For \code{\link[=ind_dfm]{ind_dfm()}} the target's R-squared is
+~1 by construction, since its loading is fixed to 1 and its measurement
+error shrunk towards zero to identify the factor. Read the \strong{ranking}
+across the other series rather than the level: the common component is
+built from posterior \emph{mean} parameters, which attenuates it, and in
+\code{ind_dfm()} the factor's scale is pinned to the target, so a
+high-frequency series' common component is necessarily a small fraction
+of its variance.}
 \item{\code{plot()}}{The factor with a 95\% band.}
 \item{\code{coef()}}{The posterior mean factor loadings, named by series. The
 other parameter blocks (\code{phi}, \code{sigma}, \code{rho}, \code{h}) remain in

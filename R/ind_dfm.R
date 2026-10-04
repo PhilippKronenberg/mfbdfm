@@ -73,6 +73,12 @@
 #'   \describe{
 #'     \item{factor}{`ts`, posterior mean of the annualized activity factor.}
 #'     \item{factor_var}{`ts`, posterior variance of the factor.}
+#'     \item{factor_std}{`ts`, posterior mean of the factor on the model's own
+#'       standardized scale -- the quantity the observation equation multiplies
+#'       by the loadings -- covering the `2*(k - 1)` latent periods the
+#'       distributed-lag aggregation reaches back into as well as the sample.
+#'       `factor` is the same path de-standardized and annualized, and that
+#'       transform is convex, so it cannot be inverted back to this.}
 #'     \item{index}{`ts`, posterior mean of the cumulated activity index.}
 #'     \item{nowcast}{`ts`, posterior mean nowcast of the target series.}
 #'     \item{nowcast_var}{`ts`, posterior variance of the nowcast.}
@@ -318,12 +324,25 @@ ind_dfm <- function(flows = NULL,
   i_mean <- Reduce("+", ilist)/length(ilist) * 100
 
 
+  # posterior mean of the factor on the model's own standardized scale, kept on
+  # the full t+s grid so the s latent states the distributed-lag aggregation
+  # reaches back into are present. This is the factor the observation equation
+  # uses, and it cannot be recovered from `f_mean` above: ((1+f)^freq - 1) is
+  # convex, so inverting the mean of the annualized series does not return the
+  # mean of f (at weekly frequency the gap is O(freq * var(f)) across draws,
+  # which is the same order as f itself). `fcast_dfm()` returns exactly this
+  # quantity as its `$factor`; #99 needs it from both models.
+  f_std <- ts(as.numeric(Reduce("+", par_save$f)/length(par_save$f)),
+              start = time(Ymat)[1] - s/frequency(Ymat),
+              frequency = frequency(Ymat))
+
 
 
   # OUTPUT ------------------------------------------------------------------
 
   out <- list("factor" = f_mean,
               "factor_var" = f_var,
+              "factor_std" = f_std,
               "index" = i_mean,
               "nowcast" = ncst_mean,
               "nowcast_var" = ncst_var,

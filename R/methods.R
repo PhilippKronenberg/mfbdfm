@@ -29,11 +29,25 @@ fit_dims <- function(object){
 #'
 #' \describe{
 #'   \item{`print()`}{Model dimensions and the most recent target nowcasts.}
-#'   \item{`summary()`}{Dimensions, posterior mean parameters and residual fit;
-#'     returns an object with its own `print()` method. It carries the
-#'     [mfbdfm_table_loadings()] and [mfbdfm_table_parameters()] tables in
-#'     `loadings_table` and `parameters_table`, and prints from them, so a
-#'     printed summary and a tabulated one report the same numbers.}
+#'   \item{`summary()`}{Dimensions, posterior mean parameters, residual fit and
+#'     a per-series R-squared; returns an object with its own `print()` method.
+#'     It carries the [mfbdfm_table_loadings()] and [mfbdfm_table_parameters()]
+#'     tables in `loadings_table` and `parameters_table`, and prints from them,
+#'     so a printed summary and a tabulated one report the same numbers.
+#'     The R-squared is `1 - Var(residual)/Var(observed)` over the periods where
+#'     that series was observed, with the fitted value taken to be the **common
+#'     component** -- loadings times factors, temporally aggregated -- so it
+#'     measures what the factor explains and not the idiosyncratic AR part. It
+#'     is therefore not `1 - Var(residuals(fit))/Var(observed)`: `fitted()`
+#'     returns the augmented dataset, whose observed entries are pinned to the
+#'     observed values by the sampler. For [ind_dfm()] the target's R-squared is
+#'     ~1 by construction, since its loading is fixed to 1 and its measurement
+#'     error shrunk towards zero to identify the factor. Read the **ranking**
+#'     across the other series rather than the level: the common component is
+#'     built from posterior *mean* parameters, which attenuates it, and in
+#'     `ind_dfm()` the factor's scale is pinned to the target, so a
+#'     high-frequency series' common component is necessarily a small fraction
+#'     of its variance.}
 #'   \item{`plot()`}{The factor with a 95% band.}
 #'   \item{`coef()`}{The posterior mean factor loadings, named by series. The
 #'     other parameter blocks (`phi`, `sigma`, `rho`, `h`) remain in
@@ -118,9 +132,10 @@ fit_dims <- function(object){
 #' @return `coef()` a named numeric vector; `fitted()` and `residuals()` `ts`
 #'   matrices with one column per series; `as.data.frame()` a data frame with
 #'   `time` and the factor with bands; `summary()` an object of class
-#'   `"summary.mfbdfm_fit"`; `logLik()` an object of class `"logLik"` with `df`
-#'   and `nobs` attributes; `print()` and `plot()` return their input
-#'   invisibly.
+#'   `"summary.mfbdfm_fit"`, whose `$r_squared` element is a data frame with
+#'   columns `series`, `freq`, `n_obs` and `r_squared`, sorted by fit;
+#'   `logLik()` an object of class `"logLik"` with `df` and `nobs` attributes;
+#'   `print()` and `plot()` return their input invisibly.
 #'
 #' @examples
 #' \donttest{
@@ -298,6 +313,108 @@ rescale_fit_matrix <- function(x, sd, mean){
 
   out <- x
   out[] <- sweep(sweep(as.matrix(x), 2, sd, "*"), 2, mean, "+")
+  out
+
+}
+
+
+# ------------------------------------------------------- per-series fit ----
+
+#' The factor on the scale the observation equation uses
+#'
+#' The two classes surface this under different names, because `fcast_dfm()`'s
+#' `$factor` *is* the standardized factor while `ind_dfm()`'s is the
+#' de-standardized, annualized growth rate and the latter cannot be inverted
+#' back (see `?ind_dfm`'s `factor_std`).
+#'
+#' `NULL` for a fit object saved before `factor_std` existed, which is what lets
+#' [fit_r_squared()] degrade to "not reported" instead of erroring.
+#'
+#' @noRd
+fit_factor_state <- function(object){
+
+  f <- if(inherits(object, "fcast_dfm")) object$factor else object$factor_std
+  if(is.null(f)) return(NULL)
+  as.matrix(f)
+
+}
+
+#' The common component: loadings x factors, temporally aggregated
+#'
+#' The model's fit to series `i` that the factor(s) alone explain, excluding the
+#' idiosyncratic AR component. Deliberately not `fitted()`: that returns the
+#' augmented dataset, whose observed entries are pinned to the observed values
+#' by a 1e-9 measurement prior, so residuals against it are sampling noise of
+#' order 1e-5 and every R-squared computed from them would be ~1.
+#'
+#' Mirrors the `Xfit` accumulation in `draw_rho()` exactly: row `tx` of series
+#' `i` is `sum_sx w[i, sx] * lambda[i, ] %*% f[tx + s - sx, ]`.
+#'
+#' @noRd
+#' @importFrom stats ts time frequency
+fit_common_component <- function(object){
+
+  f <- fit_factor_state(object)
+  if(is.null(f)) return(NULL)
+
+  lambda <- as.matrix(object$pars$lambda)
+  Llist <- get_distributed_lags(object$inventory)
+  s <- length(Llist) - 1L
+  t <- nrow(object$data)
+
+  # a fit whose factor does not span the t + s periods the aggregation needs
+  # cannot be evaluated this way; report nothing rather than something wrong
+  if(nrow(f) != t + s || ncol(f) != ncol(lambda)) return(NULL)
+
+  out <- matrix(0, t, nrow(lambda))
+  for(sx in 0:s){
+    w <- diag(Llist[[as.character(sx)]])
+    out <- out + f[seq(from = 1 + s - sx, to = t + s - sx), , drop = FALSE] %*%
+      t(lambda * w)
+  }
+
+  colnames(out) <- object$inventory$key
+  ts(out, start = time(object$data)[1], frequency = frequency(object$data))
+
+}
+
+#' Per-series R-squared of the common component
+#'
+#' `1 - Var(residual_i)/Var(observed_i)` over the periods where series `i` was
+#' actually observed, the residual being observed minus common component.
+#'
+#' @noRd
+#' @importFrom stats var
+fit_r_squared <- function(object){
+
+  cc <- fit_common_component(object)
+  if(is.null(cc)) return(NULL)
+
+  obs <- object$data
+  # 0 encodes "not observed", exactly as in fit_residuals()
+  obs[obs == 0] <- NA_real_
+
+  r2 <- vapply(seq_len(ncol(obs)), function(j){
+
+    o <- obs[, j]
+    keep <- !is.na(o)
+    if(sum(keep) < 2L) return(NA_real_)
+
+    vo <- var(o[keep])
+    if(!is.finite(vo) || vo == 0) return(NA_real_)
+    1 - var(o[keep] - cc[keep, j])/vo
+
+  }, numeric(1))
+
+  out <- data.frame(series = object$inventory$key,
+                    freq = object$inventory$freq,
+                    n_obs = unname(colSums(!is.na(obs))),
+                    r_squared = r2,
+                    stringsAsFactors = FALSE,
+                    row.names = NULL)
+
+  out <- out[order(out$r_squared, decreasing = TRUE, na.last = TRUE), ]
+  row.names(out) <- NULL
   out
 
 }
@@ -717,7 +834,8 @@ fit_summary <- function(object, model){
                  parameters_table = mfbdfm_table_parameters(object),
                  nowcast = object$nowcast,
                  n_observed = sum(!is.na(res)),
-                 rmse = sqrt(mean(res^2, na.rm = TRUE))),
+                 rmse = sqrt(mean(res^2, na.rm = TRUE)),
+                 r_squared = fit_r_squared(object)),
             class = "summary.mfbdfm_fit")
 
 }
@@ -797,7 +915,51 @@ print.summary.mfbdfm_fit <- function(x, ...){
   cat("  observed values: ", x$n_observed, "\n", sep = "")
   cat("  residual RMSE  : ", signif(x$rmse, 4), " (standardized scale)\n", sep = "")
 
+  if(!is.null(x$r_squared)){
+
+    cat("\nR-squared of the common component, by series:\n")
+    print_r_squared(x$r_squared)
+
+    if(x$model == "ind_dfm"){
+      cat("  Note: the target's loading is fixed to 1 and its measurement error\n")
+      cat("  shrunk towards zero to identify the factor, so its R-squared is ~1\n")
+      cat("  by construction rather than as a finding.\n")
+    }
+
+  }
+
   invisible(x)
+
+}
+
+#' Print the per-series R-squared table
+#'
+#' All of it when there are few series, otherwise the best and worst handful:
+#' the WAI runs to over fifty series, and a fifty-row block buries the
+#' dimensions and parameters printed above it.
+#'
+#' @noRd
+print_r_squared <- function(r2, n_max = 14L, n_ends = 5L){
+
+  rows <- function(d){
+    for(i in seq_len(nrow(d))){
+      cat(sprintf("  %-38s %5s %6s %9s\n",
+                  substr(d$series[i], 1, 38), d$freq[i], d$n_obs[i],
+                  formatC(d$r_squared[i], format = "f", digits = 3)))
+    }
+  }
+
+  cat(sprintf("  %-38s %5s %6s %9s\n", "series", "freq", "n_obs", "R-squared"))
+
+  if(nrow(r2) <= n_max){
+    rows(r2)
+  } else {
+    rows(utils::head(r2, n_ends))
+    cat("  ... ", nrow(r2) - 2L*n_ends, " series not shown ...\n", sep = "")
+    rows(utils::tail(r2, n_ends))
+  }
+
+  invisible(r2)
 
 }
 
