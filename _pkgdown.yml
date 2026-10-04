@@ -28,11 +28,13 @@ reference:
 - title: Methods on fitted models
   desc: >
     The generics both fit classes support: print, summary, plot, coef,
-    fitted, residuals, as.data.frame and logLik (and hence AIC/BIC).
+    fitted, residuals, as.data.frame and logLik (and hence AIC/BIC), plus the
+    decomposition of the factor and nowcast into per-series contributions.
   contents:
   - ind_dfm_methods
   - fcast_dfm_methods
   - print.summary.mfbdfm_fit
+  - mfbdfm_contributions
 
 - title: Tables from a fitted model
   desc: >
