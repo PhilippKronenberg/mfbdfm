@@ -143,3 +143,60 @@ test_that("ind_dfm(plots = TRUE) restores the caller's graphics state", {
 # path by test-backcast.R's "the level index compounds the net growth rate, not
 # exp() of it". Adding `index` to dev/baseline.R's snapshot would give this
 # component proper regression cover (#92).
+
+
+test_that("ind_dfm is quiet under verbose = FALSE, messages under TRUE (BS2.13)", {
+
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  fit_quiet <- function(verbose){
+    set.seed(3)
+    ind_dfm(flows = flows, stocks = stocks, target = target,
+            length_sample = 8, burn_in = 4, plots = FALSE,
+            control = dfm_control("ind_dfm", verbose = verbose))
+  }
+
+  # Both channels, because they are silenced by different mechanisms: the
+  # message() calls go to stderr, the txtProgressBar writes with cat() and so
+  # survives suppressMessages() entirely - which was the gap in #118.
+  printed <- utils::capture.output(expect_no_message(fit <- fit_quiet(FALSE)))
+  expect_identical(printed, character(0))
+  expect_s3_class(fit, "ind_dfm")
+
+  # the default is still verbose, on both channels
+  printed_on <- utils::capture.output(expect_message(fit_quiet(TRUE)))
+  expect_true(any(nzchar(printed_on)))
+})
+
+
+test_that("the rho stationarity fallback warns once per fit, with a class", {
+
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  # A screen this tight rejects essentially every draw, so the fallback is
+  # guaranteed to fire. Forcing it is the only reliable way to reach the branch
+  # on a short, well-behaved fit.
+  run <- function(){
+    set.seed(3)
+    ind_dfm(flows = flows, stocks = stocks, target = target,
+            length_sample = 6, burn_in = 2, plots = FALSE,
+            control = dfm_control("ind_dfm", verbose = FALSE,
+                                  rho_max = 1e-6, rho_fallback = 1e-7))
+  }
+
+  w <- expect_warning(run(), class = "mfbdfm_warning_rho_fallback")
+  # one warning for the whole chain, not one per series per draw
+  expect_match(conditionMessage(w), "stationarity screen")
+
+  expect_silent(withCallingHandlers(
+    run(),
+    mfbdfm_warning_rho_fallback = function(w) invokeRestart("muffleWarning")))
+})

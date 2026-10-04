@@ -578,26 +578,22 @@ mfbdfm_table_nowcast <- function(fit,
 
 #' Assemble the nowcast table from the stored nowcast
 #'
-#' The single place that reads `$nowcast`/`$nowcast_var`, so that when the
-#' dedicated nowcast accessor of #104 lands on `main` there is one line to
-#' delegate from rather than a second copy of this arithmetic to reconcile.
+#' The mean, sd and band come from [mfbdfm_nowcast()]'s own `fit_nowcast()`,
+#' so the two accessors cannot disagree; this only lines the observed target
+#' up against them.
 #'
 #' @noRd
-#' @importFrom stats time qnorm
+#' @importFrom stats time
 fit_nowcast_table <- function(fit){
 
-  z <- qnorm(0.975)
+  nc <- fit_nowcast(fit, last = FALSE, level = 0.95)
 
-  ncst <- fit$nowcast
-  sd <- sqrt(as.numeric(fit$nowcast_var))
-  m <- as.numeric(ncst)
-
-  out <- data.frame(time = as.numeric(time(ncst)),
+  out <- data.frame(time = nc$time,
                     observed = NA_real_,
-                    nowcast = m,
-                    sd = sd,
-                    lower = m - z*sd,
-                    upper = m + z*sd)
+                    nowcast = nc$nowcast,
+                    sd = nc$sd,
+                    lower = nc$lower,
+                    upper = nc$upper)
 
   # the observed target, matched on time. Rounded before matching because the
   # two time axes are both decimal dates built by different routes, and

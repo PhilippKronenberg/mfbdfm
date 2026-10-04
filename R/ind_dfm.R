@@ -66,7 +66,8 @@
 #'   numerical guards that were previously hard-coded -- the stationarity screen
 #'   on the measurement-error autocorrelations, the caps on `phi` and `sigma`,
 #'   and the numerical jitter. Omit it (the default) and the published behaviour
-#'   is reproduced exactly.
+#'   is reproduced exactly. `dfm_control("ind_dfm", verbose = FALSE)` silences
+#'   the progress messages and the progress bar.
 #'
 #' @return An object of class `"ind_dfm"`: a list with components
 #'   \describe{
@@ -94,8 +95,9 @@
 #'   }
 #'
 #' @seealso [fcast_dfm()] for the multi-factor model, [dfm_priors()] to vary
-#'   the priors, and [ind_dfm_methods] for the `print`, `summary`, `plot`,
-#'   `coef`, `fitted`, `residuals` and `as.data.frame` methods.
+#'   the priors, [mfbdfm_nowcast()] to extract the nowcasts from the fit, and
+#'   [ind_dfm_methods] for the `print`, `summary`, `plot`, `coef`, `fitted`,
+#'   `residuals` and `as.data.frame` methods.
 #'
 #' @examples
 #' \donttest{
@@ -202,7 +204,9 @@ ind_dfm <- function(flows = NULL,
 
   }
 
-  message("preallocating..")
+  verbose <- isTRUE(control$verbose)
+
+  if(verbose) message("preallocating..")
   # q = 1 for this model
   Gmat_prealloc <- get_gmat_prealloc(n = n, q = 1, s = s, t = t)
 
@@ -210,7 +214,7 @@ ind_dfm <- function(flows = NULL,
   # SAMPLING ----------------------------------------------------------------
 
   # run markov chain monte carlo sampling
-  message("simulating posterior distribution..")
+  if(verbose) message("simulating posterior distribution..")
   par_save <- run_sampling(Ymat = Ymat,
                            target = target,
                            n = n,
@@ -228,9 +232,10 @@ ind_dfm <- function(flows = NULL,
                            stochastic_volatility = stochastic_volatility,
                            serial_correlation = serial_correlation,
                            priors = priors,
-                       control = control)
+                       control = control,
+                       verbose = verbose)
 
-  message("processing output..")
+  if(verbose) message("processing output..")
 
 
   # EVALUATE POSTERIOR ------------------------------------------------------

@@ -65,7 +65,8 @@ identification rather than being tuning knobs; see \code{\link[=dfm_priors]{dfm_
 numerical guards that were previously hard-coded -- the stationarity screen
 on the measurement-error autocorrelations, the caps on \code{phi} and \code{sigma},
 and the numerical jitter. Omit it (the default) and the published behaviour
-is reproduced exactly.}
+is reproduced exactly. \code{dfm_control("ind_dfm", verbose = FALSE)} silences
+the progress messages and the progress bar.}
 }
 \value{
 An object of class \code{"ind_dfm"}: a list with components
@@ -154,8 +155,9 @@ Tracking economic activity with alternative high-frequency data.
 }
 \seealso{
 \code{\link[=fcast_dfm]{fcast_dfm()}} for the multi-factor model, \code{\link[=dfm_priors]{dfm_priors()}} to vary
-the priors, and \link{ind_dfm_methods} for the \code{print}, \code{summary}, \code{plot},
-\code{coef}, \code{fitted}, \code{residuals} and \code{as.data.frame} methods.
+the priors, \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to extract the nowcasts from the fit, and
+\link{ind_dfm_methods} for the \code{print}, \code{summary}, \code{plot}, \code{coef}, \code{fitted},
+\code{residuals} and \code{as.data.frame} methods.
 
 Other model fitting functions: 
 \code{\link{dfm_memory}()},
