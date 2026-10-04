@@ -62,6 +62,60 @@
 <li>the <strong>table and plot generators</strong> used in the accompanying analysis.</li>
 </ul>
 <div class="section level2">
+<h2 id="scope-and-alternatives">Scope and alternatives<a class="anchor" aria-label="anchor" href="#scope-and-alternatives"></a>
+</h2>
+<p>Deliberately <strong>out of scope</strong>:</p>
+<ul>
+<li>
+<strong><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> / h-step forecasting</strong> — nowcasts are computed during fitting and stored on the fit object, so a <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> returning them would advertise a capability the model does not have (see <code><a href="reference/ind_dfm_methods.html">?ind_dfm_methods</a></code>).</li>
+<li>
+<strong>General state-space modelling</strong> — the state equation is a factor VAR and the measurement side is fixed by the mixed-frequency aggregation scheme.</li>
+<li>
+<strong>Maximum-likelihood / EM estimation</strong> — the package is Bayesian throughout, estimated by Gibbs sampling.</li>
+<li>
+<strong>CRAN distribution</strong> — installation is from GitHub; a CRAN release is tracked in issue #21.</li>
+</ul>
+<p><strong>Alternatives</strong>, and how they differ:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th>Package</th>
+<th>How it differs</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+<a href="https://docs.ropensci.org/dfms/" class="external-link"><code>dfms</code></a> (R, CRAN)</td>
+<td>EM and two-step estimation rather than Bayesian; monthly–quarterly mixed frequency; adds Bai–Ng factor-count criteria and Bańbura–Modugno news decomposition</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/dhopp1/nowcastDFM" class="external-link"><code>nowcastDFM</code></a> (R, GitHub)</td>
+<td>EM estimation with per-release news contributions; archived from CRAN on 2022-05-25</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/nmecsys/nowcasting" class="external-link"><code>nowcasting</code></a> (R, GitHub)</td>
+<td>EM and two-step estimation plus pseudo-real-time vintage construction; archived from CRAN on 2022-05-25</td>
+</tr>
+<tr>
+<td>
+<a href="https://cran.r-project.org/package=MARSS" class="external-link"><code>MARSS</code></a>, <a href="https://cran.r-project.org/package=KFAS" class="external-link"><code>KFAS</code></a> (R, CRAN)</td>
+<td>General state-space frameworks by maximum likelihood; much freer model specification, no nowcasting- or mixed-frequency-specific tooling</td>
+</tr>
+<tr>
+<td>
+<a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.dynamic_factor_mq.DynamicFactorMQ.html" class="external-link"><code>DynamicFactorMQ</code></a> (Python, statsmodels)</td>
+<td>Monthly–quarterly dynamic factor model estimated by EM / maximum likelihood</td>
+</tr>
+</tbody>
+</table>
+<p>Specific to <code>mfbdfm</code>: Bayesian mixed-frequency estimation at weekly frequency with stochastic volatility, target-anchored identification so the factor reads directly as the target’s growth rate (Kronenberg 2026), and the multi-factor, rotation-identified model of Eckert et al. (2025) alongside it.</p>
+</div>
+<div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
