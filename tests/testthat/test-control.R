@@ -190,3 +190,71 @@ test_that("print.dfm_control() marks non-defaults and flags the weak criterion",
 
   expect_invisible(print(dfm_control("ind_dfm")))
 })
+
+
+# Verbosity (BS2.12, BS2.13) and the condition classes (BS2.14) -------------
+
+test_that("verbose is a validated logical defaulting to TRUE for both models", {
+
+  expect_true(dfm_control("ind_dfm")$verbose)
+  expect_true(dfm_control("fcast_dfm")$verbose)
+
+  expect_false(dfm_control("ind_dfm", verbose = FALSE)$verbose)
+  expect_false(dfm_control("fcast_dfm", verbose = FALSE)$verbose)
+
+  # a logical flag, not a number or a string, and never NA
+  expect_error(dfm_control("ind_dfm", verbose = 0), "must be TRUE or FALSE")
+  expect_error(dfm_control("ind_dfm", verbose = "yes"), "must be TRUE or FALSE")
+  expect_error(dfm_control("ind_dfm", verbose = NA), "must be TRUE or FALSE")
+  expect_error(dfm_control("ind_dfm", verbose = c(TRUE, FALSE)),
+               "must be TRUE or FALSE")
+
+  out <- paste(utils::capture.output(print(dfm_control("ind_dfm", verbose = FALSE))),
+               collapse = "\n")
+  expect_match(out, "verbose")
+  expect_match(out, "default TRUE")
+})
+
+
+test_that("mfbdfm warnings carry a class that can be muffled individually", {
+
+  # Every class inherits from mfbdfm_warning, so the family can be muffled at
+  # once, and each class on its own, which is the point of BS2.14.
+  expect_warning(mfbdfm_warn("boom", "mfbdfm_warning_rho_fallback"),
+                 class = "mfbdfm_warning_rho_fallback")
+  expect_warning(mfbdfm_warn("boom", "mfbdfm_warning_rho_fallback"),
+                 class = "mfbdfm_warning")
+
+  # muffling the specific class silences it
+  expect_silent(
+    withCallingHandlers(
+      mfbdfm_warn("boom", "mfbdfm_warning_rho_fallback"),
+      mfbdfm_warning_rho_fallback = function(w) invokeRestart("muffleWarning")))
+
+  # ... and leaves a sibling class alone
+  expect_warning(
+    withCallingHandlers(
+      mfbdfm_warn("boom", "mfbdfm_warning_rotation_cap"),
+      mfbdfm_warning_rho_fallback = function(w) invokeRestart("muffleWarning")),
+    class = "mfbdfm_warning_rotation_cap")
+})
+
+
+test_that("the rho fallback is counted once per substitution, not per draw", {
+
+  # The counter lives in an environment because the increment happens inside
+  # draw_rho()'s sapply() closure.
+  tally <- new_rho_tally()
+  expect_identical(tally$n, 0L)
+
+  # nothing to report
+  expect_silent(warn_rho_fallback(tally, dfm_control("ind_dfm")))
+
+  tally$n <- 3L
+  expect_warning(warn_rho_fallback(tally, dfm_control("ind_dfm")),
+                 "3 times", class = "mfbdfm_warning_rho_fallback")
+
+  tally$n <- 1L
+  expect_warning(warn_rho_fallback(tally, dfm_control("ind_dfm")),
+                 "1 time ")
+})

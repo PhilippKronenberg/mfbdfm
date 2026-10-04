@@ -51,9 +51,9 @@ fit_tabs$RMSE
 \code{\link[=get_insample_fit_table]{get_insample_fit_table()}}, \code{\link[=get_combined_cor_table]{get_combined_cor_table()}},
 \code{\link[=get_insample_error_details]{get_insample_error_details()}}
 
-Other data preparation functions:
-\code{\link[=create_inventory]{create_inventory()}},
-\code{\link[=mfbdfm_data]{mfbdfm_data()}},
-\code{\link[=prepare_data]{prepare_data()}}
+Other data preparation functions: 
+\code{\link{create_inventory}()},
+\code{\link{mfbdfm_data}()},
+\code{\link{prepare_data}()}
 }
 \concept{data preparation functions}

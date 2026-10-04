@@ -180,9 +180,9 @@ mfbdfm_data(series, meta, target = "ch.seco.gdp.real.gdp.ssa")
 \seealso{
 \code{\link[=ind_dfm]{ind_dfm()}}, \code{\link[=fcast_dfm]{fcast_dfm()}}, \code{\link[=create_inventory]{create_inventory()}}, \code{\link[=prepare_data]{prepare_data()}}
 
-Other data preparation functions:
-\code{\link[=create_inventory]{create_inventory()}},
-\code{\link[=mfbdfm_example_inputs]{mfbdfm_example_inputs()}},
-\code{\link[=prepare_data]{prepare_data()}}
+Other data preparation functions: 
+\code{\link{create_inventory}()},
+\code{\link{mfbdfm_example_inputs}()},
+\code{\link{prepare_data}()}
 }
 \concept{data preparation functions}

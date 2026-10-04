@@ -149,10 +149,10 @@ factor models. \emph{Econometrica}, 70(1), 191-221.
 \link{select_factors_methods} for \code{print()}, \code{plot()} and
 \code{screeplot()}; \code{\link[=fcast_dfm]{fcast_dfm()}}, whose \code{q} this is for.
 
-Other model fitting functions:
-\code{\link[=dfm_memory]{dfm_memory()}},
-\code{\link[=fcast_dfm]{fcast_dfm()}},
-\code{\link[=ind_dfm]{ind_dfm()}},
-\code{\link[=run_fcast]{run_fcast()}}
+Other model fitting functions: 
+\code{\link{dfm_memory}()},
+\code{\link{fcast_dfm}()},
+\code{\link{ind_dfm}()},
+\code{\link{run_fcast}()}
 }
 \concept{model fitting functions}

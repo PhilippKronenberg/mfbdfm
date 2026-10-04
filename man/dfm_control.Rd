@@ -75,6 +75,40 @@ others cap or reject a draw for numerical stability: \code{phi_sum_max} and
 \code{sigma_max} in \code{\link[=ind_dfm]{ind_dfm()}}, \code{omega_max} in \code{\link[=fcast_dfm]{fcast_dfm()}}.
 }
 
+\section{Verbosity}{
+\code{verbose = FALSE} silences both the progress \code{message()}s and the
+\code{utils::txtProgressBar}. The progress bar writes with \code{cat()}, so
+\code{suppressMessages()} alone does not quieten a fit -- which is why this is a
+setting rather than something a caller can arrange from outside. Use it for
+scripted sweeps and for the worker processes planned by \code{\link[=dfm_workers]{dfm_workers()}}.
+}
+
+\section{Muffling one warning but not the others}{
+The warnings a fit can raise repeatedly over a sweep carry their own
+condition classes, so a single kind can be suppressed without hiding the
+rest:
+
+\describe{
+\item{\code{mfbdfm_warning_rho_fallback}}{the measurement-error autocorrelation
+hit \code{rho_max_tries} redraws for at least one series and \code{rho_fallback}
+was substituted. Raised once per fit, with the number of substitutions.}
+\item{\code{mfbdfm_warning_rotation_cap}}{the \code{\link[=fcast_dfm]{fcast_dfm()}} rotation (or its
+initialisation) stopped on its iteration cap rather than on convergence.}
+\item{\code{mfbdfm_warning_fit_failed}}{a fit failed and
+\code{\link[=run_fcast]{run_fcast()}}\code{(on_error = "warn")} turned the error into a warning.}
+}
+
+All of them also inherit from \code{mfbdfm_warning}. To muffle one:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{withCallingHandlers(
+  fcast_dfm(flows = flows, stocks = stocks, target = target),
+  mfbdfm_warning_rho_fallback = function(w) invokeRestart("muffleWarning")
+)
+}\if{html}{\out{</div>}}
+
+Substituting \code{mfbdfm_warning} for the class name muffles all of them.
+}
+
 \examples{
 dfm_control("fcast_dfm")
 
@@ -84,6 +118,9 @@ dfm_control("fcast_dfm", strict = TRUE)
 # or one setting at a time
 dfm_control("fcast_dfm", rotation_criterion = "sum", rotation_tol = 1e-10)
 dfm_control("ind_dfm", sigma_max = 10)
+
+# silence the messages and the progress bar
+dfm_control("ind_dfm", verbose = FALSE)
 
 }
 \references{
@@ -99,7 +136,7 @@ Tracking economic activity with alternative high-frequency data.
 \seealso{
 \code{\link[=ind_dfm]{ind_dfm()}}, \code{\link[=fcast_dfm]{fcast_dfm()}}, \code{\link[=dfm_priors]{dfm_priors()}}
 
-Other model specification:
-\code{\link[=dfm_priors]{dfm_priors()}}
+Other model specification: 
+\code{\link{dfm_priors}()}
 }
 \concept{model specification}

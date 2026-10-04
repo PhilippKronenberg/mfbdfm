@@ -25,7 +25,7 @@ fit <- list(nowcast = stats::ts(c(0.3, 0.5), start = 2024, frequency = 4))
 retrieve_nowcast(fit, model = "wai")
 }
 \seealso{
-Other backcasting functions:
-\code{\link[=retrieve_nowcast_var]{retrieve_nowcast_var()}}
+Other backcasting functions: 
+\code{\link{retrieve_nowcast_var}()}
 }
 \concept{backcasting functions}

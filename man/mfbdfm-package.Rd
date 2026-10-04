@@ -77,10 +77,5 @@ Useful links:
 \author{
 \strong{Maintainer}: Philipp Kronenberg \email{philippkronenberg@gmx.ch} [copyright holder]
 
-Authors:
-\itemize{
-  \item Philipp Kronenberg \email{philippkronenberg@gmx.ch} [copyright holder]
-}
-
 }
 \keyword{internal}

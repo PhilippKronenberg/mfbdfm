@@ -20,7 +20,8 @@ run_fcast(
   extend = 0.5,
   ncores = NULL,
   control = NULL,
-  output_dir = NULL
+  output_dir = NULL,
+  on_error = c("stop", "warn")
 )
 }
 \arguments{
@@ -69,14 +70,26 @@ the rotation step.}
 
 \item{control}{Optional settings from \code{\link[=dfm_control]{dfm_control()}}, passed to
 \code{\link[=fcast_dfm]{fcast_dfm()}}. Use \code{dfm_control("fcast_dfm", strict = TRUE)} to run the
-rotation as specified in the online appendix.}
+rotation as specified in the online appendix, or
+\code{dfm_control("fcast_dfm", verbose = FALSE)} to silence the progress
+messages and the progress bar in a sweep.}
 
 \item{output_dir}{Directory to save the fit to, or \code{NULL} (default) to
 skip saving. When given, the fit is saved as
 \code{file.path(output_dir, dataset_used, "fit_<date>.Rda")}.}
+
+\item{on_error}{Character, what to do when \code{\link[=fcast_dfm]{fcast_dfm()}} fails: \code{"stop"}
+(the default, the error propagates) or \code{"warn"}, which converts it into a
+warning naming the vintage and returns \code{NULL} for that vintage. Matched
+with \code{\link[=match.arg]{match.arg()}}. \code{"warn"} is for the expanding-window loops in
+\verb{analysis/}, where one vintage that fails to converge should not discard
+the dozens already estimated; the caller is then responsible for skipping
+the \code{NULL}. The warning has condition class
+\code{"mfbdfm_warning_fit_failed"} -- see \code{\link[=dfm_control]{dfm_control()}} on muffling.}
 }
 \value{
-Invisibly, the windowed \code{fcast_dfm} fit object.
+Invisibly, the windowed \code{fcast_dfm} fit object, or \code{NULL} if the fit
+failed and \code{on_error = "warn"}.
 }
 \description{
 Runs \code{\link[=fcast_dfm]{fcast_dfm()}} at one evaluation date and windows the factor and
@@ -117,10 +130,10 @@ fit$nowcast
 \code{\link[=run_wai_adj]{run_wai_adj()}} for the single-factor equivalent, \code{\link[=fcast_dfm]{fcast_dfm()}}
 for the model itself.
 
-Other model fitting functions:
-\code{\link[=dfm_memory]{dfm_memory()}},
-\code{\link[=fcast_dfm]{fcast_dfm()}},
-\code{\link[=ind_dfm]{ind_dfm()}},
-\code{\link[=select_factors]{select_factors()}}
+Other model fitting functions: 
+\code{\link{dfm_memory}()},
+\code{\link{fcast_dfm}()},
+\code{\link{ind_dfm}()},
+\code{\link{select_factors}()}
 }
 \concept{model fitting functions}
