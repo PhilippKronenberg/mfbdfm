@@ -60,16 +60,19 @@
 #'
 #' `fcast_dfm()` is a fresh port rather than a copy, and it knowingly
 #' diverges from the published multi-factor *factor* estimates in one
-#' respect; see the package's `CLAUDE.md` and `NEWS.md` for the detail.
+#' respect -- the orientation of the VAR coefficients when `q > 1`; see the
+#' entry for #66 in `NEWS.md` for the detail.
 #'
 #' @section Life cycle:
 #' **Experimental.** The package is distributed from GitHub only and has not
 #' been released to CRAN. Version numbers follow `0.1.x`, and while the
-#' model results are stable and reproducible (`dev/baseline.R` guards them),
-#' the *user-facing API is not yet frozen*: exported function and argument
-#' names may still change without a deprecation cycle before 1.0.0. Changes
-#' that alter results or break existing calls are recorded in `NEWS.md`. For
-#' reproducible work, install a tagged release rather than `main`.
+#' model results are stable and reproducible (a seeded baseline in the source
+#' repository guards them), the *user-facing API is not yet frozen*: exported
+#' function and argument names may still change without a deprecation cycle
+#' before 1.0.0. Changes that alter results or break existing calls are
+#' recorded in `NEWS.md`. For reproducible work, pin a fixed version (a
+#' release or a commit) rather than the moving `main`, e.g.
+#' `remotes::install_github("PhilippKronenberg/mfbdfm", ref = "<commit>")`.
 #'
 #' @section Getting started:
 #' The package ships the curated indicator datasets [data_ch_dataset]

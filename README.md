@@ -46,8 +46,8 @@ and has not been released to CRAN. Model results are stable and
 reproducible — `dev/baseline.R` guards them and changes that alter results
 are called out in [`NEWS.md`](NEWS.md) — but the **user-facing API is not
 yet frozen**: exported function and argument names may still change without
-a deprecation cycle before 1.0.0. For reproducible work, install a tagged
-release rather than `main` (see below).
+a deprecation cycle before 1.0.0. For reproducible work, pin a fixed
+version (a release or a commit) rather than the moving `main` (see below).
 
 ## Installation
 

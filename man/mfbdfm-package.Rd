@@ -69,18 +69,21 @@ exists it is used as a benchmark rather than replaced (see
 
 \code{fcast_dfm()} is a fresh port rather than a copy, and it knowingly
 diverges from the published multi-factor \emph{factor} estimates in one
-respect; see the package's \code{CLAUDE.md} and \code{NEWS.md} for the detail.
+respect -- the orientation of the VAR coefficients when \code{q > 1}; see the
+entry for #66 in \code{NEWS.md} for the detail.
 }
 
 \section{Life cycle}{
 
 \strong{Experimental.} The package is distributed from GitHub only and has not
 been released to CRAN. Version numbers follow \verb{0.1.x}, and while the
-model results are stable and reproducible (\code{dev/baseline.R} guards them),
-the \emph{user-facing API is not yet frozen}: exported function and argument
-names may still change without a deprecation cycle before 1.0.0. Changes
-that alter results or break existing calls are recorded in \code{NEWS.md}. For
-reproducible work, install a tagged release rather than \code{main}.
+model results are stable and reproducible (a seeded baseline in the source
+repository guards them), the \emph{user-facing API is not yet frozen}: exported
+function and argument names may still change without a deprecation cycle
+before 1.0.0. Changes that alter results or break existing calls are
+recorded in \code{NEWS.md}. For reproducible work, pin a fixed version (a
+release or a commit) rather than the moving \code{main}, e.g.
+\code{remotes::install_github("PhilippKronenberg/mfbdfm", ref = "<commit>")}.
 }
 
 \section{Getting started}{
