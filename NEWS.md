@@ -25,6 +25,63 @@
   with `logLik()` (whose values are bit-identical) and available for the news
   decomposition of #101. Sampling is untouched (#109).
 
+* `summary()` on either fit class now reports a **per-series R-squared**, so the
+  question "which of my series does the factor actually explain?" has an answer
+  in the fit object (`$r_squared`: `series`, `freq`, `n_obs`, `r_squared`, sorted
+  best-first). It is `1 - Var(residual)/Var(observed)` over the periods where
+  each series was observed, with the fitted value taken to be the **common
+  component** - loadings times factors, temporally aggregated - so it measures
+  what the factor explains rather than the idiosyncratic AR part. Deliberately
+  not computed from `residuals()`: `fitted()` is the augmented dataset, whose
+  observed entries the sampler pins to the observed values with a 1e-9
+  measurement prior, so every R-squared derived from it would be ~1. Read the
+  ranking across series rather than the level - the common component is built
+  from posterior *mean* parameters, and in `ind_dfm()` the factor's scale is
+  pinned to the target, which caps how much of a high-frequency series it can
+  account for. `print()` flags the target's own ~1 as identification rather than
+  a finding (#99).
+
+* `ind_dfm()` gains a `$factor_std` component: the posterior mean factor on the
+  model's own standardized scale, over the `2*(k - 1)` latent periods the
+  distributed-lag aggregation reaches back into as well as the sample. This is
+  the quantity the observation equation multiplies by the loadings, and it is not
+  recoverable from `$factor`, which is de-standardized and annualized through a
+  convex transform. `fcast_dfm()` already returns exactly this as its `$factor`
+  (#99).
+
+* New `mfbdfm_nowcast()`, an exported generic with methods for both fit
+  classes, returns the stored nowcasts of the target series as a data frame of
+  `time`, `nowcast`, `sd` and `level` credible bounds; `last = TRUE` returns
+  only the most recent period. Previously the nowcasts were reachable only as
+  `fit$nowcast`/`fit$nowcast_var` or through `retrieve_nowcast()`, which takes
+  a `model` string, returns a single value and is really a helper for the
+  `run_ar()`/`run_wai_adj()` backcast workflow. Those two are unchanged and
+  keep serving the AR benchmark. There is still **no** `predict()` method, for
+  the reason recorded in `?ind_dfm_methods`: the nowcasts are computed while
+  the model is fitted, so a `predict()` returning stored values would
+  advertise a capability the model does not have (#104).
+
+* `dfm_control()` gains `verbose`, which turns the samplers quiet. Both models
+  honour it, and it silences the `utils::txtProgressBar` as well as the
+  progress `message()`s — the bar writes with `cat()`, so `suppressMessages()`
+  never reached it and a scripted or parallel sweep had no way to run quietly
+  at all (#118).
+
+* The warnings a fit can raise repeatedly over a sweep now carry condition
+  classes, so one kind can be muffled without hiding the rest:
+  `mfbdfm_warning_rho_fallback`, `mfbdfm_warning_rotation_cap` and
+  `mfbdfm_warning_fit_failed`, all inheriting from `mfbdfm_warning`.
+  `?dfm_control` documents the `withCallingHandlers()` idiom. The rho
+  stationarity-screen fallback did not warn at all before this — it had a
+  commented-out `print()` where the substitution happens — so it is a **new**
+  warning, raised once per fit with a count rather than once per series per
+  MCMC draw (#118).
+
+* `run_fcast()` gains `on_error`. The default `"stop"` is unchanged; with
+  `"warn"`, a vintage whose fit fails becomes a warning naming the vintage and
+  returns `NULL`, so an expanding-window loop does not discard the vintages it
+  has already estimated (#118).
+
 * Both fit classes gain a `logLik()` method, so `AIC()` and `BIC()` work on
   them. Neither sampler computes a likelihood and there is no Kalman filter in
   the package, so the quantity had to be *defined*: it is the Gaussian log

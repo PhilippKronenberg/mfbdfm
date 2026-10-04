@@ -13,6 +13,7 @@ reference:
   contents:
   - ind_dfm
   - fcast_dfm
+  - mfbdfm_nowcast
   - dfm_priors
   - print.dfm_priors
   - dfm_control

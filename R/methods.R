@@ -29,8 +29,22 @@ fit_dims <- function(object){
 #'
 #' \describe{
 #'   \item{`print()`}{Model dimensions and the most recent target nowcasts.}
-#'   \item{`summary()`}{Dimensions, posterior mean parameters and residual fit;
-#'     returns an object with its own `print()` method.}
+#'   \item{`summary()`}{Dimensions, posterior mean parameters, residual fit and
+#'     a per-series R-squared; returns an object with its own `print()` method.
+#'     The R-squared is `1 - Var(residual)/Var(observed)` over the periods where
+#'     that series was observed, with the fitted value taken to be the **common
+#'     component** -- loadings times factors, temporally aggregated -- so it
+#'     measures what the factor explains and not the idiosyncratic AR part. It
+#'     is therefore not `1 - Var(residuals(fit))/Var(observed)`: `fitted()`
+#'     returns the augmented dataset, whose observed entries are pinned to the
+#'     observed values by the sampler. For [ind_dfm()] the target's R-squared is
+#'     ~1 by construction, since its loading is fixed to 1 and its measurement
+#'     error shrunk towards zero to identify the factor. Read the **ranking**
+#'     across the other series rather than the level: the common component is
+#'     built from posterior *mean* parameters, which attenuates it, and in
+#'     `ind_dfm()` the factor's scale is pinned to the target, so a
+#'     high-frequency series' common component is necessarily a small fraction
+#'     of its variance.}
 #'   \item{`plot()`}{The factor with a 95% band.}
 #'   \item{`coef()`}{The posterior mean factor loadings, named by series. The
 #'     other parameter blocks (`phi`, `sigma`, `rho`, `h`) remain in
@@ -53,19 +67,18 @@ fit_dims <- function(object){
 #' There is deliberately no `predict()` method: the model does not forecast in
 #' the usual sense -- nowcasts are computed during fitting and stored -- so a
 #' `predict()` returning stored values would advertise a capability that does
-#' not exist.
+#' not exist. Use [mfbdfm_nowcast()] to get at those stored nowcasts; it is
+#' the accessor the missing `predict()` would otherwise be mistaken for.
 #'
 #' @section What `logLik()` means here:
 #'
 #' Neither model computes a likelihood while sampling -- the factors are drawn
 #' jointly from a stacked, precision-based conditional, and there is no Kalman
 #' filter anywhere in the package. So the value has to be *defined*, and the
-#' definition adopted is:
-#'
-#' > the Gaussian log density of the **observed** entries of the prepared data,
-#' > evaluated at the posterior mean parameters and the posterior mean
-#' > volatility path, with the factors and the unobserved data entries
-#' > marginalised out.
+#' definition adopted is: *the Gaussian log density of the **observed** entries
+#' of the prepared data, evaluated at the posterior mean parameters and the
+#' posterior mean volatility path, with the factors and the unobserved data
+#' entries marginalised out.*
 #'
 #' It is computed exactly (not by simulation) from the stacked Gaussian form
 #' the samplers already use, so nothing is approximated in the *arithmetic*.
@@ -107,9 +120,10 @@ fit_dims <- function(object){
 #' @return `coef()` a named numeric vector; `fitted()` and `residuals()` `ts`
 #'   matrices with one column per series; `as.data.frame()` a data frame with
 #'   `time` and the factor with bands; `summary()` an object of class
-#'   `"summary.mfbdfm_fit"`; `logLik()` an object of class `"logLik"` with `df`
-#'   and `nobs` attributes; `print()` and `plot()` return their input
-#'   invisibly.
+#'   `"summary.mfbdfm_fit"`, whose `$r_squared` element is a data frame with
+#'   columns `series`, `freq`, `n_obs` and `r_squared`, sorted by fit;
+#'   `logLik()` an object of class `"logLik"` with `df` and `nobs` attributes;
+#'   `print()` and `plot()` return their input invisibly.
 #'
 #' @examples
 #' \donttest{
@@ -125,9 +139,11 @@ fit_dims <- function(object){
 #' head(as.data.frame(fit))
 #' logLik(fit)
 #' AIC(fit)              # approximate here - see "What logLik() means"
+#' mfbdfm_nowcast(fit, last = TRUE)
 #' }
 #'
-#' @seealso [ind_dfm()], [fcast_dfm_methods]
+#' @seealso [ind_dfm()], [fcast_dfm_methods], [mfbdfm_nowcast()] for the
+#'   nowcasts
 #' @name ind_dfm_methods
 NULL
 
@@ -140,6 +156,9 @@ NULL
 #'
 #' `coef()` returns an `n x q` loading matrix here rather than a vector, and
 #' `as.data.frame()` returns one mean/lower/upper triple per factor.
+#'
+#' As for [ind_dfm()] fits, the stored nowcasts are reached with
+#' [mfbdfm_nowcast()].
 #'
 #' `logLik()` uses the same definition as it does for [ind_dfm()] -- see
 #' "What `logLik()` means here" in [ind_dfm_methods], including why `AIC()` and
@@ -172,9 +191,11 @@ NULL
 #' head(as.data.frame(fit))
 #' logLik(fit)
 #' BIC(fit)           # approximate here - see ?ind_dfm_methods
+#' mfbdfm_nowcast(fit, last = TRUE)
 #' }
 #'
-#' @seealso [fcast_dfm()], [ind_dfm_methods]
+#' @seealso [fcast_dfm()], [ind_dfm_methods], [mfbdfm_nowcast()] for the
+#'   nowcasts
 #' @name fcast_dfm_methods
 NULL
 
@@ -237,6 +258,108 @@ fit_residuals <- function(object){
   # meaningless rather than zero
   res[obs == 0] <- NA_real_
   res
+
+}
+
+
+# ------------------------------------------------------- per-series fit ----
+
+#' The factor on the scale the observation equation uses
+#'
+#' The two classes surface this under different names, because `fcast_dfm()`'s
+#' `$factor` *is* the standardized factor while `ind_dfm()`'s is the
+#' de-standardized, annualized growth rate and the latter cannot be inverted
+#' back (see `?ind_dfm`'s `factor_std`).
+#'
+#' `NULL` for a fit object saved before `factor_std` existed, which is what lets
+#' [fit_r_squared()] degrade to "not reported" instead of erroring.
+#'
+#' @noRd
+fit_factor_state <- function(object){
+
+  f <- if(inherits(object, "fcast_dfm")) object$factor else object$factor_std
+  if(is.null(f)) return(NULL)
+  as.matrix(f)
+
+}
+
+#' The common component: loadings x factors, temporally aggregated
+#'
+#' The model's fit to series `i` that the factor(s) alone explain, excluding the
+#' idiosyncratic AR component. Deliberately not `fitted()`: that returns the
+#' augmented dataset, whose observed entries are pinned to the observed values
+#' by a 1e-9 measurement prior, so residuals against it are sampling noise of
+#' order 1e-5 and every R-squared computed from them would be ~1.
+#'
+#' Mirrors the `Xfit` accumulation in `draw_rho()` exactly: row `tx` of series
+#' `i` is `sum_sx w[i, sx] * lambda[i, ] %*% f[tx + s - sx, ]`.
+#'
+#' @noRd
+#' @importFrom stats ts time frequency
+fit_common_component <- function(object){
+
+  f <- fit_factor_state(object)
+  if(is.null(f)) return(NULL)
+
+  lambda <- as.matrix(object$pars$lambda)
+  Llist <- get_distributed_lags(object$inventory)
+  s <- length(Llist) - 1L
+  t <- nrow(object$data)
+
+  # a fit whose factor does not span the t + s periods the aggregation needs
+  # cannot be evaluated this way; report nothing rather than something wrong
+  if(nrow(f) != t + s || ncol(f) != ncol(lambda)) return(NULL)
+
+  out <- matrix(0, t, nrow(lambda))
+  for(sx in 0:s){
+    w <- diag(Llist[[as.character(sx)]])
+    out <- out + f[seq(from = 1 + s - sx, to = t + s - sx), , drop = FALSE] %*%
+      t(lambda * w)
+  }
+
+  colnames(out) <- object$inventory$key
+  ts(out, start = time(object$data)[1], frequency = frequency(object$data))
+
+}
+
+#' Per-series R-squared of the common component
+#'
+#' `1 - Var(residual_i)/Var(observed_i)` over the periods where series `i` was
+#' actually observed, the residual being observed minus common component.
+#'
+#' @noRd
+#' @importFrom stats var
+fit_r_squared <- function(object){
+
+  cc <- fit_common_component(object)
+  if(is.null(cc)) return(NULL)
+
+  obs <- object$data
+  # 0 encodes "not observed", exactly as in fit_residuals()
+  obs[obs == 0] <- NA_real_
+
+  r2 <- vapply(seq_len(ncol(obs)), function(j){
+
+    o <- obs[, j]
+    keep <- !is.na(o)
+    if(sum(keep) < 2L) return(NA_real_)
+
+    vo <- var(o[keep])
+    if(!is.finite(vo) || vo == 0) return(NA_real_)
+    1 - var(o[keep] - cc[keep, j])/vo
+
+  }, numeric(1))
+
+  out <- data.frame(series = object$inventory$key,
+                    freq = object$inventory$freq,
+                    n_obs = unname(colSums(!is.na(obs))),
+                    r_squared = r2,
+                    stringsAsFactors = FALSE,
+                    row.names = NULL)
+
+  out <- out[order(out$r_squared, decreasing = TRUE, na.last = TRUE), ]
+  row.names(out) <- NULL
+  out
 
 }
 
@@ -399,6 +522,116 @@ fit_as_data_frame <- function(x){
 }
 
 
+# ------------------------------------------------------ mfbdfm_nowcast ----
+
+#' Extract the nowcasts from a model fit
+#'
+#' The accessor for the nowcasts of the target series, for fits from either
+#' [ind_dfm()] or [fcast_dfm()]. The nowcasts are computed while the model is
+#' fitted and stored in the fit object; this returns them as a data frame,
+#' with the posterior standard deviation and a credible band where the fit
+#' records the nowcast variance.
+#'
+#' This is deliberately **not** a `predict()` method. These models do not
+#' forecast in the usual sense -- there is no separate prediction step to run
+#' on new data -- so a `predict()` returning stored values would advertise a
+#' capability that does not exist. The name is prefixed rather than a bare
+#' `nowcast()` to avoid masking the same verb in other packages.
+#'
+#' @param object A fit from [ind_dfm()] or [fcast_dfm()].
+#' @param last Logical. If `TRUE`, only the most recent period is returned
+#'   (one row) -- the usual real-time query. Defaults to `FALSE`, the whole
+#'   path.
+#' @param level Numeric in `(0, 1)`, the width of the credible interval
+#'   reported in `lower`/`upper`. Defaults to `0.95`.
+#' @param ... Ignored, present for compatibility with the generic.
+#'
+#' @return A data frame with one row per period of the target series'
+#'   frequency and columns
+#'   \describe{
+#'     \item{time}{Numeric (decimal) time of the period.}
+#'     \item{nowcast}{Posterior mean nowcast, the values in `object$nowcast`.}
+#'     \item{sd}{Posterior standard deviation, `sqrt(object$nowcast_var)`.}
+#'     \item{lower, upper}{The `level` credible bounds, normal-approximated
+#'       from `nowcast` and `sd`.}
+#'   }
+#'   The last three columns are present only when the fit stores
+#'   `nowcast_var`, which both model entry points currently do.
+#'
+#' @examples
+#' \donttest{
+#' data(data_ch_dataset_test)
+#' target <- "ch.seco.gdp.real.gdp.ssa"
+#' flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+#'                 stats::window, start = 2021)
+#' stocks <- lapply(data_ch_dataset_test$stocks[1:2],
+#'                  stats::window, start = 2021)
+#' set.seed(1)
+#' fit <- ind_dfm(flows = flows, stocks = stocks, target = target,
+#'                length_sample = 20, burn_in = 5)
+#'
+#' head(mfbdfm_nowcast(fit))
+#' mfbdfm_nowcast(fit, last = TRUE)          # just the current quarter
+#' mfbdfm_nowcast(fit, last = TRUE, level = 0.68)
+#' }
+#'
+#' @seealso [ind_dfm()], [fcast_dfm()], [ind_dfm_methods] and
+#'   [fcast_dfm_methods] for the other accessors, and [retrieve_nowcast()]
+#'   for the backcast-workflow helper it replaces for ordinary fits.
+#' @export
+mfbdfm_nowcast <- function(object, last = FALSE, level = 0.95, ...){
+  UseMethod("mfbdfm_nowcast")
+}
+
+#' @rdname mfbdfm_nowcast
+#' @method mfbdfm_nowcast ind_dfm
+#' @export
+mfbdfm_nowcast.ind_dfm <- function(object, last = FALSE, level = 0.95, ...){
+  fit_nowcast(object, last = last, level = level)
+}
+
+#' @rdname mfbdfm_nowcast
+#' @method mfbdfm_nowcast fcast_dfm
+#' @export
+mfbdfm_nowcast.fcast_dfm <- function(object, last = FALSE, level = 0.95, ...){
+  fit_nowcast(object, last = last, level = level)
+}
+
+#' @noRd
+#' @importFrom stats time qnorm
+fit_nowcast <- function(object, last = FALSE, level = 0.95){
+
+  if(!(is.logical(last) && length(last) == 1L && !is.na(last)))
+    stop("`last` must be a single TRUE or FALSE.", call. = FALSE)
+  if(!(is.numeric(level) && length(level) == 1L && !is.na(level) &&
+       level > 0 && level < 1))
+    stop("`level` must be a single number strictly between 0 and 1.",
+         call. = FALSE)
+
+  nc <- object$nowcast
+  if(is.null(nc))
+    stop("this fit has no `$nowcast` component to extract.", call. = FALSE)
+
+  out <- data.frame(time = as.numeric(time(nc)),
+                    nowcast = as.numeric(nc))
+
+  vr <- object$nowcast_var
+  if(!is.null(vr)){
+    s <- sqrt(as.numeric(vr))
+    z <- qnorm(1 - (1 - level) / 2)
+    out$sd <- s
+    out$lower <- out$nowcast - z * s
+    out$upper <- out$nowcast + z * s
+  }
+
+  if(last) out <- out[nrow(out), , drop = FALSE]
+  rownames(out) <- NULL
+
+  out
+
+}
+
+
 # ---------------------------------------------------------------- plot ----
 
 #' @rdname ind_dfm_methods
@@ -471,7 +704,8 @@ fit_summary <- function(object, model){
                  rho = object$pars$rho,
                  nowcast = object$nowcast,
                  n_observed = sum(!is.na(res)),
-                 rmse = sqrt(mean(res^2, na.rm = TRUE))),
+                 rmse = sqrt(mean(res^2, na.rm = TRUE)),
+                 r_squared = fit_r_squared(object)),
             class = "summary.mfbdfm_fit")
 
 }
@@ -520,7 +754,51 @@ print.summary.mfbdfm_fit <- function(x, ...){
   cat("  observed values: ", x$n_observed, "\n", sep = "")
   cat("  residual RMSE  : ", signif(x$rmse, 4), " (standardized scale)\n", sep = "")
 
+  if(!is.null(x$r_squared)){
+
+    cat("\nR-squared of the common component, by series:\n")
+    print_r_squared(x$r_squared)
+
+    if(x$model == "ind_dfm"){
+      cat("  Note: the target's loading is fixed to 1 and its measurement error\n")
+      cat("  shrunk towards zero to identify the factor, so its R-squared is ~1\n")
+      cat("  by construction rather than as a finding.\n")
+    }
+
+  }
+
   invisible(x)
+
+}
+
+#' Print the per-series R-squared table
+#'
+#' All of it when there are few series, otherwise the best and worst handful:
+#' the WAI runs to over fifty series, and a fifty-row block buries the
+#' dimensions and parameters printed above it.
+#'
+#' @noRd
+print_r_squared <- function(r2, n_max = 14L, n_ends = 5L){
+
+  rows <- function(d){
+    for(i in seq_len(nrow(d))){
+      cat(sprintf("  %-38s %5s %6s %9s\n",
+                  substr(d$series[i], 1, 38), d$freq[i], d$n_obs[i],
+                  formatC(d$r_squared[i], format = "f", digits = 3)))
+    }
+  }
+
+  cat(sprintf("  %-38s %5s %6s %9s\n", "series", "freq", "n_obs", "R-squared"))
+
+  if(nrow(r2) <= n_max){
+    rows(r2)
+  } else {
+    rows(utils::head(r2, n_ends))
+    cat("  ... ", nrow(r2) - 2L*n_ends, " series not shown ...\n", sep = "")
+    rows(utils::tail(r2, n_ends))
+  }
+
+  invisible(r2)
 
 }
 
@@ -550,8 +828,9 @@ print.ind_dfm <- function(x, n_show = 8, ...){
                 formatC(nc$nowcast[i], format = "f", digits = 5, width = 12)))
   }
 
-  cat("\nFull results: $factor, $nowcast, $index, $pars; summary(), plot(),\n")
-  cat("as.data.frame(), coef(), fitted(), residuals(), logLik()\n")
+  cat("\nFull results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),\n")
+  cat("summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),\n")
+  cat("logLik()\n")
 
   invisible(x)
 
