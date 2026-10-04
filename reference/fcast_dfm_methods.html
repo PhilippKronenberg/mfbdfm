@@ -65,7 +65,16 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">x</span>, row.names <span class="op">=</span> <span class="cn">NULL</span>, optional <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'fcast_dfm'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"factor"</span>, <span class="st">"nowcast"</span>, <span class="st">"loadings"</span>, <span class="st">"residuals"</span>, <span class="st">"volatility"</span>, <span class="st">"fit"</span><span class="op">)</span>,</span>
+<span>  series <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'fcast_dfm'</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'fcast_dfm'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
@@ -83,7 +92,8 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Ignored, present for compatibility with the generics.</p></dd>
+<dd><p>Ignored, present for compatibility with the generics. For
+<code>autoplot()</code>, passed on to <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>.</p></dd>
 
 
 <dt id="arg-object-x">object, x<a class="anchor" aria-label="anchor" href="#arg-object-x"></a></dt>
@@ -101,17 +111,30 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
 <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> generic.</p></dd>
 
 
+<dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
+<dd><p>Character. For <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>, which view to draw (see "Plot views"
+in <a href="ind_dfm_methods.html">ind_dfm_methods</a>); for <code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot()</a></code>, <code>"barplot"</code> or <code>"lines"</code>, as
+for <code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">stats::screeplot()</a></code>.</p></dd>
+
+
+<dt id="arg-series">series<a class="anchor" aria-label="anchor" href="#arg-series"></a></dt>
+<dd><p>Character vector of series names, or a numeric vector of
+column positions, restricting the <code>"residuals"</code> and <code>"fit"</code> views.
+<code>NULL</code> (the default) draws every series.</p></dd>
+
+
+<dt id="arg-level">level<a class="anchor" aria-label="anchor" href="#arg-level"></a></dt>
+<dd><p>Numeric in <code>(0, 1)</code>, the coverage of the credible band drawn
+by the <code>"factor"</code> and <code>"nowcast"</code> views. Defaults to <code>0.95</code>.</p></dd>
+
+
 <dt id="arg-npcs">npcs<a class="anchor" aria-label="anchor" href="#arg-npcs"></a></dt>
 <dd><p>Integer, how many factors <code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot()</a></code> shows, or <code>NULL</code> for all
 of them.</p></dd>
 
 
-<dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
-<dd><p><code>"barplot"</code> or <code>"lines"</code>, as for <code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">stats::screeplot()</a></code>.</p></dd>
-
-
 <dt id="arg-main">main<a class="anchor" aria-label="anchor" href="#arg-main"></a></dt>
-<dd><p>Plot title, or <code>NULL</code> for the default.</p></dd>
+<dd><p><code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot()</a></code> title, or <code>NULL</code> for the default.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -142,6 +165,11 @@ unrestricted in sampling and identified post hoc by rotation, so
 contributes a parameter only when <code>stochastic_volatility = TRUE</code> (with it
 off the factor innovation variance is <em>fixed</em> at one and carries the
 identification, where <code><a href="ind_dfm.html">ind_dfm()</a></code> still estimates a constant).</p>
+<p><code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> offers the same views as <a href="ind_dfm_methods.html">ind_dfm_methods</a> – <code>"factor"</code>,
+<code>"nowcast"</code>, <code>"loadings"</code>, <code>"residuals"</code>, <code>"volatility"</code> and <code>"fit"</code> – and
+returns a <code>ggplot</code>. The <code>"factor"</code> view gets one panel per factor here, and
+<code>"loadings"</code> one facet per factor, with the series ordered by their loading
+on the first factor so that a series sits in the same row of every panel.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -228,6 +256,13 @@ nowcasts</p></div>
 <span class="r-in"><span><span class="fu"><a href="mfbdfm_nowcast.html">mfbdfm_nowcast</a></span><span class="op">(</span><span class="va">fit</span>, last <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      time     nowcast           sd       lower       upper</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 2025.75 0.001506308 2.021811e-07 0.001505912 0.001506705</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>                       <span class="co"># one panel per factor</span></span></span>
+<span class="r-plt img"><img src="fcast_dfm_methods-2.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"loadings"</span><span class="op">)</span>    <span class="co"># one facet per factor</span></span></span>
+<span class="r-plt img"><img src="fcast_dfm_methods-3.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"fit"</span>, series <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="fcast_dfm_methods-4.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

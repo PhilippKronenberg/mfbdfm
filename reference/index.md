@@ -55,6 +55,7 @@ contributions.
   [`logLik(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`as.data.frame(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`plot(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  [`autoplot(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`summary(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`print(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`screeplot(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
@@ -66,6 +67,7 @@ contributions.
   [`logLik(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`as.data.frame(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`plot(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+  [`autoplot(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`summary(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`screeplot(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   : Methods for multi-factor model fits

@@ -29,7 +29,16 @@ logLik(object, ...)
 as.data.frame(x, row.names = NULL, optional = FALSE, ...)
 
 # S3 method for class 'fcast_dfm'
-plot(x, ...)
+plot(
+  x,
+  type = c("factor", "nowcast", "loadings", "residuals", "volatility", "fit"),
+  series = NULL,
+  level = 0.95,
+  ...
+)
+
+# S3 method for class 'fcast_dfm'
+autoplot(object, ...)
 
 # S3 method for class 'fcast_dfm'
 summary(object, ...)
@@ -47,7 +56,9 @@ screeplot(x, npcs = NULL, type = c("barplot", "lines"), main = NULL, ...)
 
 - ...:
 
-  Ignored, present for compatibility with the generics.
+  Ignored, present for compatibility with the generics. For
+  `autoplot()`, passed on to
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html).
 
 - object, x:
 
@@ -70,20 +81,37 @@ screeplot(x, npcs = NULL, type = c("barplot", "lines"), main = NULL, ...)
   [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
   generic.
 
+- type:
+
+  Character. For
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html), which view
+  to draw (see "Plot views" in
+  [ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md));
+  for [`screeplot()`](https://rdrr.io/r/stats/screeplot.html),
+  `"barplot"` or `"lines"`, as for
+  [`stats::screeplot()`](https://rdrr.io/r/stats/screeplot.html).
+
+- series:
+
+  Character vector of series names, or a numeric vector of column
+  positions, restricting the `"residuals"` and `"fit"` views. `NULL`
+  (the default) draws every series.
+
+- level:
+
+  Numeric in `(0, 1)`, the coverage of the credible band drawn by the
+  `"factor"` and `"nowcast"` views. Defaults to `0.95`.
+
 - npcs:
 
   Integer, how many factors
   [`screeplot()`](https://rdrr.io/r/stats/screeplot.html) shows, or
   `NULL` for all of them.
 
-- type:
-
-  `"barplot"` or `"lines"`, as for
-  [`stats::screeplot()`](https://rdrr.io/r/stats/screeplot.html).
-
 - main:
 
-  Plot title, or `NULL` for the default.
+  [`screeplot()`](https://rdrr.io/r/stats/screeplot.html) title, or
+  `NULL` for the default.
 
 ## Value
 
@@ -132,6 +160,15 @@ counted as free, and the volatility contributes a parameter only when
 variance is *fixed* at one and carries the identification, where
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
 still estimates a constant).
+
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) offers the same
+views as
+[ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+– `"factor"`, `"nowcast"`, `"loadings"`, `"residuals"`, `"volatility"`
+and `"fit"` – and returns a `ggplot`. The `"factor"` view gets one panel
+per factor here, and `"loadings"` one facet per factor, with the series
+ordered by their loading on the first factor so that a series sits in
+the same row of every panel.
 
 ## See also
 
@@ -220,5 +257,12 @@ BIC(fit)           # approximate here - see ?ind_dfm_methods
 mfbdfm_nowcast(fit, last = TRUE)
 #>      time     nowcast           sd       lower       upper
 #> 1 2025.75 0.001506308 2.021811e-07 0.001505912 0.001506705
+
+plot(fit)                       # one panel per factor
+
+plot(fit, type = "loadings")    # one facet per factor
+
+plot(fit, type = "fit", series = 1:2)
+
 # }
 ```

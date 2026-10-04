@@ -26,7 +26,16 @@ logLik(object, ...)
 as.data.frame(x, row.names = NULL, optional = FALSE, ...)
 
 # S3 method for class 'ind_dfm'
-plot(x, ...)
+plot(
+  x,
+  type = c("factor", "nowcast", "loadings", "residuals", "volatility", "fit"),
+  series = NULL,
+  level = 0.95,
+  ...
+)
+
+# S3 method for class 'ind_dfm'
+autoplot(object, ...)
 
 # S3 method for class 'ind_dfm'
 summary(object, ...)
@@ -47,7 +56,9 @@ screeplot(x, ...)
 
 - ...:
 
-  Ignored, present for compatibility with the generics.
+  Ignored, present for compatibility with the generics. For
+  `autoplot()`, passed on to
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html).
 
 - scale:
 
@@ -64,6 +75,24 @@ screeplot(x, ...)
   Ignored, present for compatibility with the
   [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
   generic.
+
+- type:
+
+  Character, which view
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) draws – one
+  of `"factor"`, `"nowcast"`, `"loadings"`, `"residuals"`,
+  `"volatility"` or `"fit"`. See "Plot views".
+
+- series:
+
+  Character vector of series names, or a numeric vector of column
+  positions, restricting the `"residuals"` and `"fit"` views. `NULL`
+  (the default) draws every series. Ignored by the other views.
+
+- level:
+
+  Numeric in `(0, 1)`, the coverage of the credible band drawn by the
+  `"factor"` and `"nowcast"` views. Defaults to `0.95`.
 
 - n_show:
 
@@ -83,9 +112,11 @@ frame with `time` and the factor with bands;
 columns `series`, `freq`, `n_obs` and `r_squared`, sorted by fit;
 [`logLik()`](https://rdrr.io/r/stats/logLik.html) an object of class
 `"logLik"` with `df` and `nobs` attributes;
-[`print()`](https://rdrr.io/r/base/print.html) and
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html) return their
-input invisibly.
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) and
+`autoplot()` a `ggplot` object (or `NULL` invisibly for
+`type = "volatility"` on a fit without stochastic volatility);
+[`print()`](https://rdrr.io/r/base/print.html) returns its input
+invisibly.
 
 ## Details
 
@@ -125,7 +156,9 @@ input invisibly.
 
 - [`plot()`](https://rdrr.io/r/graphics/plot.default.html):
 
-  The factor with a 95% band.
+  One of several views of the fit, selected by `type` – see "Plot views"
+  below. Returns a **ggplot object**, so it can be modified before
+  printing; `autoplot()` is an alias.
 
 - [`coef()`](https://rdrr.io/r/stats/coef.html):
 
@@ -189,6 +222,72 @@ values would advertise a capability that does not exist. Use
 to get at those stored nowcasts; it is the accessor the missing
 [`predict()`](https://rdrr.io/r/stats/predict.html) would otherwise be
 mistaken for.
+
+## Plot views
+
+`plot(fit, type = )` selects what to draw. Both fit classes support the
+same set, and every view returns a `ggplot` object drawn in one shared
+package style:
+
+- `"factor"`:
+
+  (default) the factor – or one panel per factor for a
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  fit – with a credible band.
+
+- `"nowcast"`:
+
+  the target's nowcast with a credible band, overlaid with the observed
+  target values where the series has them.
+
+- `"loadings"`:
+
+  the posterior mean loading of each series with its 95% posterior
+  interval (from
+  [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)),
+  sorted, and faceted by factor for
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
+  A fit saved before `$pars_dist` existed has no interval to draw and
+  shows the means alone.
+
+- `"residuals"`:
+
+  one panel per series of observed minus the **common component**, on
+  the standardized scale, with unobserved periods left as gaps rather
+  than plotted as zeros.
+
+- `"volatility"`:
+
+  the posterior mean volatility path `exp(h)`, a standard deviation.
+  With `stochastic_volatility = FALSE` the path is constant, so this
+  reports the constant in a message and returns `NULL` invisibly instead
+  of drawing a flat line.
+
+- `"fit"`:
+
+  observed values against the **common component**, one panel per
+  series, on the standardized scale.
+
+The common component is loadings times factors, temporally aggregated –
+the part of each series the factor explains, the same quantity the
+R-squared in [`summary()`](https://rdrr.io/r/base/summary.html) is built
+on. `"residuals"` and `"fit"` use it rather than
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html)/[`residuals()`](https://rdrr.io/r/stats/residuals.html)
+deliberately: [`fitted()`](https://rdrr.io/r/stats/fitted.values.html)
+is the augmented dataset, whose observed entries the sampler pins to the
+data, so a residual against it is sampling noise of order `1e-5` and an
+observed-versus-fitted plot of it is the data drawn twice. Both views
+need `$factor_std` on an
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+fit, and error on a fit saved before it existed.
+
+`"residuals"` and `"fit"` draw every series by default, which is a lot
+of panels for a real dataset; use `series` to pick a few.
+
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) returned its
+input invisibly and drew in base graphics before version 0.1.0.9000. It
+now *returns* the plot, which still draws it when called at the console
+because the object auto-prints.
 
 ## What [`logLik()`](https://rdrr.io/r/stats/logLik.html) means here
 
@@ -304,5 +403,18 @@ AIC(fit)              # approximate here - see "What logLik() means"
 mfbdfm_nowcast(fit, last = TRUE)
 #>      time     nowcast           sd       lower       upper
 #> 1 2025.75 0.001506226 2.025925e-07 0.001505829 0.001506623
+
+plot(fit)                                  # the factor, with a 95% band
+
+plot(fit, type = "nowcast", level = 0.68)
+
+plot(fit, type = "loadings")
+
+plot(fit, type = "residuals", series = c(target, "SWISSMI"))
+
+
+# a ggplot, so it can be modified before printing
+plot(fit, type = "volatility") + ggplot2::labs(title = "Volatility")
+
 # }
 ```

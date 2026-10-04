@@ -112,7 +112,7 @@ back up to the target’s own (here quarterly) frequency:
 
 ``` r
 
-plot(fit$factor, ylab = "WAI (annualized %, weekly)", xlab = NULL)
+plot(fit)
 ```
 
 ![](mfbdfm_files/figure-html/plot-factor-1.png)
@@ -157,6 +157,60 @@ construction:
 fit$pars$lambda[which(fit$inventory$key == target)]
 #> [1] 1
 ```
+
+### Looking at the fit
+
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) takes a `type`
+argument and returns a **ggplot** object, so any view can be modified
+before it is printed. The available views are `"factor"` (the default,
+above), `"nowcast"`, `"loadings"`, `"residuals"`, `"volatility"` and
+`"fit"`; they are the same for both model entry points.
+
+The nowcast view puts the target’s own observations on top of the
+model’s estimate of them:
+
+``` r
+
+plot(fit, type = "nowcast")
+```
+
+![](mfbdfm_files/figure-html/plot-nowcast-1.png)
+
+The loadings view shows how strongly each series is tied to the factor.
+The target’s loading is the fixed 1 that identifies the model:
+
+``` r
+
+plot(fit, type = "loadings")
+```
+
+![](mfbdfm_files/figure-html/plot-loadings-1.png)
+
+The volatility view is the posterior mean of `exp(h)`, the standard
+deviation of the factor innovation — this is what lets the model absorb
+a crisis instead of smearing it across the whole sample:
+
+``` r
+
+plot(fit, type = "volatility")
+```
+
+![](mfbdfm_files/figure-html/plot-volatility-1.png)
+
+`"residuals"` and `"fit"` compare each series with its **common
+component** – loadings times factors, the part the factor explains – so
+they show how much of a series the factor accounts for. They draw one
+panel per series and accept a `series` argument to pick a few, which
+matters once the dataset is the full several dozen series rather than
+the handful used here:
+
+``` r
+
+plot(fit, type = "fit", series = c(target, "SWISSMI")) +
+  ggplot2::labs(title = "GDP and the SMI against the common component")
+```
+
+![](mfbdfm_files/figure-html/plot-fit-1.png)
 
 ## Bringing your own data
 
