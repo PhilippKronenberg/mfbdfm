@@ -106,7 +106,7 @@ the WAI itself — and `fit$nowcast` is that same information aggregated
 back up to the target's own (here quarterly) frequency:
 
 ```{r plot-factor, fig.width = 6, fig.height = 4}
-plot(fit$factor, ylab = "WAI (annualized %, weekly)", xlab = NULL)
+plot(fit)
 ```
 
 `mfbdfm_nowcast()` is the accessor for those nowcasts, returning them
@@ -132,6 +132,48 @@ construction:
 
 ```{r loadings}
 fit$pars$lambda[which(fit$inventory$key == target)]
+```
+
+### Looking at the fit
+
+`plot()` takes a `type` argument and returns a **ggplot** object, so any
+view can be modified before it is printed. The available views are
+`"factor"` (the default, above), `"nowcast"`, `"loadings"`,
+`"residuals"`, `"volatility"` and `"fit"`; they are the same for both
+model entry points.
+
+The nowcast view puts the target's own observations on top of the
+model's estimate of them:
+
+```{r plot-nowcast, fig.width = 6, fig.height = 4}
+plot(fit, type = "nowcast")
+```
+
+The loadings view shows how strongly each series is tied to the factor.
+The target's loading is the fixed 1 that identifies the model:
+
+```{r plot-loadings, fig.width = 6, fig.height = 3}
+plot(fit, type = "loadings")
+```
+
+The volatility view is the posterior mean of `exp(h)`, the standard
+deviation of the factor innovation — this is what lets the model absorb
+a crisis instead of smearing it across the whole sample:
+
+```{r plot-volatility, fig.width = 6, fig.height = 3}
+plot(fit, type = "volatility")
+```
+
+`"residuals"` and `"fit"` compare each series with its **common
+component** -- loadings times factors, the part the factor explains --
+so they show how much of a series the factor accounts for. They draw one
+panel per series and accept a `series` argument to pick a few, which
+matters once the dataset is the full several dozen series rather than the
+handful used here:
+
+```{r plot-fit, fig.width = 6, fig.height = 3}
+plot(fit, type = "fit", series = c(target, "SWISSMI")) +
+  ggplot2::labs(title = "GDP and the SMI against the common component")
 ```
 
 ## Bringing your own data
