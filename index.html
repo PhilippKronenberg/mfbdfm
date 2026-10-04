@@ -33,6 +33,12 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="articles/mfbdfm.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/methodology.html">The model behind mfbdfm</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -137,7 +143,7 @@
 <div class="section level2">
 <h2 id="getting-started">Getting started<a class="anchor" aria-label="anchor" href="#getting-started"></a>
 </h2>
-<p>For a fuller walkthrough of the model (data augmentation, stochastic volatility, the identification restriction) with a runnable example, see <code><a href="articles/mfbdfm.html">vignette("mfbdfm")</a></code> — also browsable on the <a href="https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.html">package website</a>.</p>
+<p>For an applied walkthrough — data in, fit, inspect, nowcast — see <code><a href="articles/mfbdfm.html">vignette("mfbdfm")</a></code>, also browsable on the <a href="https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.html">package website</a>. The model itself (measurement and state equations, mixed-frequency aggregation, data augmentation, stochastic volatility, and the identification restriction) has its own vignette, <code><a href="articles/methodology.html">vignette("methodology", package = "mfbdfm")</a></code> — <a href="https://philippkronenberg.github.io/mfbdfm/articles/methodology.html">also on the website</a>.</p>
 <p>The indicator datasets ship with the package, including <code>mfbdfm_example_data</code> — eight series with the quarterly GDP target already in them and already classified, so a small (fast, demonstration-sized) nowcast is two lines:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/PhilippKronenberg/mfbdfm" class="external-link">mfbdfm</a></span><span class="op">)</span></span>

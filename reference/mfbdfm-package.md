@@ -34,6 +34,11 @@ Estimation is by Gibbs sampling using the precision sampler of Chan and
 Jeliazkov (2009), with temporal aggregation of flow variables following
 the geometric-mean approximation of Mariano and Murasawa (2003).
 
+The measurement and state equations, the mixed-frequency aggregation
+weights, and how the scale is identified in each of the two models are
+set out in
+[`vignette("methodology", package = "mfbdfm")`](https://philippkronenberg.github.io/mfbdfm/articles/methodology.md).
+
 ## Status of the algorithms implemented here
 
 The samplers in this package are **not** novel algorithms, and are not
@@ -91,12 +96,14 @@ two lines out of the box - see the example in
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
 for the minimal version, or
 [`vignette("mfbdfm")`](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.md)
-for a worked walkthrough. The full curated datasets
+for an applied walkthrough. The full curated datasets
 [data_ch_dataset](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md)
 and
 [data_ch_dataset_test](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset_test.md)
 and the real-time GDP vintage database (in `inst/extdata/`) are there
-for the real application.
+for the real application. For the model itself rather than the workflow,
+see
+[`vignette("methodology", package = "mfbdfm")`](https://philippkronenberg.github.io/mfbdfm/articles/methodology.md).
 
 ## References
 

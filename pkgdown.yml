@@ -2,8 +2,9 @@ pandoc: 3.8.3
 pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
+  methodology: methodology.html
   mfbdfm: mfbdfm.html
-last_built: 2026-10-04T15:06Z
+last_built: 2026-10-04T15:19Z
 urls:
   reference: https://philippkronenberg.github.io/mfbdfm/reference
   article: https://philippkronenberg.github.io/mfbdfm/articles

@@ -2,6 +2,26 @@
 
 ## mfbdfm 0.1.0.9000
 
+- The vignette is split in two by audience.
+  [`vignette("mfbdfm")`](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.md)
+  is now purely applied - data in, fit, inspect, nowcast - and states no
+  model equations; the measurement and state equations, the
+  mixed-frequency aggregation weights, the estimation blocks and the
+  identification of each of the two models move to a new
+  [`vignette("methodology")`](https://philippkronenberg.github.io/mfbdfm/articles/methodology.md),
+  which fits nothing and so costs nothing to build. The applied vignette
+  gained sections it did not have (the standard extractors, nowcast
+  uncertainty, the mixed-frequency and
+  `stochastic_volatility`/`serial_correlation` options, and a pointer to
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)),
+  and lost its one dead `eval = FALSE` model fit: it now fits an
+  [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+  object (`mfbdfm_example_data`) rather than showing that entry point as
+  unexecuted code. The glossary, plot views, nowcast accessor and
+  factor-count selection added to it alongside are kept, in the applied
+  vignette’s order. Both vignettes are in the pkgdown article index
+  ([\#106](https://github.com/PhilippKronenberg/mfbdfm/issues/106)).
+
 - Documentation gaps found by a self-audit against the [rOpenSci
   Statistical Software
   standards](https://stats-devguide.ropensci.org/standards.html)

@@ -17,6 +17,10 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/mfbdfm.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/methodology.html">The model behind mfbdfm</a></li>
+  </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -35,7 +39,8 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0.9000" id="mfbdfm-0109000">mfbdfm 0.1.0.9000<a class="anchor" aria-label="anchor" href="#mfbdfm-0109000"></a></h2>
-<ul><li>
+<ul><li><p>The vignette is split in two by audience. <code><a href="../articles/mfbdfm.html">vignette("mfbdfm")</a></code> is now purely applied - data in, fit, inspect, nowcast - and states no model equations; the measurement and state equations, the mixed-frequency aggregation weights, the estimation blocks and the identification of each of the two models move to a new <code><a href="../articles/methodology.html">vignette("methodology")</a></code>, which fits nothing and so costs nothing to build. The applied vignette gained sections it did not have (the standard extractors, nowcast uncertainty, the mixed-frequency and <code>stochastic_volatility</code>/<code>serial_correlation</code> options, and a pointer to <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code>), and lost its one dead <code>eval = FALSE</code> model fit: it now fits an <code><a href="../reference/mfbdfm_data.html">mfbdfm_data()</a></code> object (<code>mfbdfm_example_data</code>) rather than showing that entry point as unexecuted code. The glossary, plot views, nowcast accessor and factor-count selection added to it alongside are kept, in the applied vignette’s order. Both vignettes are in the pkgdown article index (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/106" class="external-link">#106</a>).</p></li>
+<li>
 <p>Documentation gaps found by a self-audit against the <a href="https://stats-devguide.ropensci.org/standards.html" class="external-link">rOpenSci Statistical Software standards</a> (General, Bayesian, and Time Series categories) are closed. The audit itself is recorded on issue <a href="https://github.com/PhilippKronenberg/mfbdfm/issues/107" class="external-link">#107</a>; it was done without adopting the <code>srr</code> package, so no standards tags appear in the source. Concretely (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/107" class="external-link">#107</a>):</p>
 <ul><li>
 <strong>Algorithm status (G1.1).</strong> <code><a href="../reference/mfbdfm-package.html">?mfbdfm</a></code> and the README now state plainly that the samplers are neither novel algorithms nor an improvement on an existing R implementation: they are the first <em>packaged</em> R implementation of two published estimators that previously existed only as unpackaged replication scripts, with each constituent method cited to its own source.</li>
