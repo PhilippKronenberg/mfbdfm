@@ -1,5 +1,33 @@
 # mfbdfm 0.1.0.9000
 
+* Documentation gaps found by a self-audit against the
+  [rOpenSci Statistical Software standards](https://stats-devguide.ropensci.org/standards.html)
+  (General, Bayesian, and Time Series categories) are closed. The audit itself
+  is recorded on issue #107; it was done without adopting the `srr` package, so
+  no standards tags appear in the source. Concretely (#107):
+  - **Algorithm status (G1.1).** `?mfbdfm` and the README now state plainly
+    that the samplers are neither novel algorithms nor an improvement on an
+    existing R implementation: they are the first *packaged* R implementation
+    of two published estimators that previously existed only as unpackaged
+    replication scripts, with each constituent method cited to its own source.
+  - **Life cycle statement (G1.2).** A lifecycle badge in the README, plus a
+    `Life cycle` section in `?mfbdfm`: results are stable and guarded by
+    `dev/baseline.R`, but the user-facing API is not frozen before 1.0.0.
+  - **Terminology (G1.3).** `vignette("mfbdfm")` gains a Glossary defining the
+    model, estimation and output vocabulary the documentation assumes -
+    factor, loading, identification, anchoring, data augmentation,
+    quasi-differencing, stochastic volatility, burn-in, thinning, nowcast
+    versus backcast, vintage, and the rest. It also records that the package
+    deliberately does not use the word "hyperparameter" (BS1.0), and what it
+    says instead.
+  - **Internal documentation (G1.4a).** The eight internal functions that
+    carried plain `#` comments rather than roxygen - one in
+    `analytics-config.R` and seven in `web-export.R` - are documented in
+    roxygen with `@noRd`, so every function in `R/` is now documented.
+
+  Gaps that are not documentation-only were opened as their own issues rather
+  than fixed here; they are listed in the audit comment on #107.
+
 * New shipped dataset `mfbdfm_example_data`: eight series — the quarterly GDP
   target plus seven indicators covering all three modelled frequencies (4, 12,
   48) and both aggregation types — windowed to 2015 and shipped as a ready

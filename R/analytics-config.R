@@ -2,17 +2,25 @@
 # workflow. Replaces the former initialize_plots_insample_context(), which
 # assigned its results into the caller's environment.
 
-# Create an output directory on demand, immediately before something is written
-# into it. Used only by the two functions that actually write - not by
-# output_figure_path(), which builds a path and nothing more.
-#
-# wai_sample_config() used to create all three output directories merely by being
-# called, so a pure configuration query touched the file system: asking for a
-# decimal date created `analysis/outputs/...` as a side effect. That contradicted
-# the package's own no-side-effects-by-default rule, and with a *relative*
-# default output_root it also wrote wherever the caller happened to be, which
-# CRAN policy forbids outside the session temp directory. Directories are created
-# at the point of writing instead.
+#' Create an output directory on demand
+#'
+#' Called immediately before something is written into the directory. Used only
+#' by the two functions that actually write - not by [output_figure_path()],
+#' which builds a path and nothing more.
+#'
+#' [wai_sample_config()] used to create all three output directories merely by
+#' being called, so a pure configuration query touched the file system: asking
+#' for a decimal date created `analysis/outputs/...` as a side effect. That
+#' contradicted the package's own no-side-effects-by-default rule, and with a
+#' *relative* default `output_root` it also wrote wherever the caller happened
+#' to be, which CRAN policy forbids outside the session temp directory.
+#' Directories are created at the point of writing instead.
+#'
+#' @param path Character, the directory to create if it does not exist.
+#'
+#' @return `path`, invisibly.
+#'
+#' @noRd
 ensure_output_dir <- function(path) {
   if (!dir.exists(path)) {
     dir.create(path, recursive = TRUE, showWarnings = FALSE)
