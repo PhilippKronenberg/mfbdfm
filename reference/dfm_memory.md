@@ -208,8 +208,7 @@ matrix, and has **not** been measured here.
 Other model fitting functions:
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
-[`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md),
-[`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
+[`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
 
 ## Examples
 

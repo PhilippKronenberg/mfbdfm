@@ -105,8 +105,6 @@ ind_dfm(
   the measurement-error autocorrelations, the caps on `phi` and `sigma`,
   and the numerical jitter. Omit it (the default) and the published
   behaviour is reproduced exactly.
-  `dfm_control("ind_dfm", verbose = FALSE)` silences the progress
-  messages and the progress bar.
 
 ## Value
 
@@ -119,15 +117,6 @@ An object of class `"ind_dfm"`: a list with components
 - factor_var:
 
   `ts`, posterior variance of the factor.
-
-- factor_std:
-
-  `ts`, posterior mean of the factor on the model's own standardized
-  scale – the quantity the observation equation multiplies by the
-  loadings – covering the `2*(k - 1)` latent periods the distributed-lag
-  aggregation reaches back into as well as the sample. `factor` is the
-  same path de-standardized and annualized, and that transform is
-  convex, so it cannot be inverted back to this.
 
 - index:
 
@@ -149,17 +138,6 @@ An object of class `"ind_dfm"`: a list with components
 
   List of posterior parameter means (`h`, `lambda`, `phi`, `sigma`,
   `omega`, `rho`, `rho_var`).
-
-- pars_dist:
-
-  List of posterior spreads – `sd` and the 2.5%/97.5% quantiles – for
-  `lambda`, `phi`, `sigma`, `rho`, `h` and the volatility parameter,
-  summarised from the retained draws at fit time. The posterior *mean*
-  stays in `pars`, so the two cannot disagree. Used by
-  [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
-  and
-  [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md);
-  see there for which blocks are present and why.
 
 - data:
 
@@ -227,9 +205,7 @@ Applied Econometrics*, 40(3), 270-290.
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
 for the multi-factor model,
 [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
-to vary the priors,
-[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
-to extract the nowcasts from the fit, and
+to vary the priors, and
 [ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
 for the `print`, `summary`, `plot`, `coef`, `fitted`, `residuals` and
 `as.data.frame` methods.
@@ -237,35 +213,34 @@ for the `print`, `summary`, `plot`, `coef`, `fitted`, `residuals` and
 Other model fitting functions:
 [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md),
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
-[`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md),
-[`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
+[`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
 
 ## Examples
 
 ``` r
 # \donttest{
-# the shipped example dataset already carries the GDP target and its
-# flow/stock classification, so no `target =` is needed here
-data(mfbdfm_example_data)
+data(data_ch_dataset_test)
+target <- "ch.seco.gdp.real.gdp.ssa"
+flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                stats::window, start = 2018)
+stocks <- lapply(data_ch_dataset_test$stocks[1:2],
+                 stats::window, start = 2018)
 set.seed(1)
-fit <- ind_dfm(mfbdfm_example_data, length_sample = 50, burn_in = 10)
+fit <- ind_dfm(flows = flows, stocks = stocks, target = target,
+             length_sample = 50, burn_in = 10)
 #> preallocating..
 #> simulating posterior distribution..
 #>   |                                                                              |                                                                      |   0%  |                                                                              |=                                                                     |   2%  |                                                                              |==                                                                    |   3%  |                                                                              |====                                                                  |   5%  |                                                                              |=====                                                                 |   7%  |                                                                              |======                                                                |   8%  |                                                                              |=======                                                               |  10%  |                                                                              |========                                                              |  12%  |                                                                              |=========                                                             |  13%  |                                                                              |==========                                                            |  15%  |                                                                              |============                                                          |  17%  |                                                                              |=============                                                         |  18%  |                                                                              |==============                                                        |  20%  |                                                                              |===============                                                       |  22%  |                                                                              |================                                                      |  23%  |                                                                              |==================                                                    |  25%  |                                                                              |===================                                                   |  27%  |                                                                              |====================                                                  |  28%  |                                                                              |=====================                                                 |  30%  |                                                                              |======================                                                |  32%  |                                                                              |=======================                                               |  33%  |                                                                              |========================                                              |  35%  |                                                                              |==========================                                            |  37%  |                                                                              |===========================                                           |  38%  |                                                                              |============================                                          |  40%  |                                                                              |=============================                                         |  42%  |                                                                              |==============================                                        |  43%  |                                                                              |================================                                      |  45%  |                                                                              |=================================                                     |  47%  |                                                                              |==================================                                    |  48%  |                                                                              |===================================                                   |  50%  |                                                                              |====================================                                  |  52%  |                                                                              |=====================================                                 |  53%  |                                                                              |======================================                                |  55%  |                                                                              |========================================                              |  57%  |                                                                              |=========================================                             |  58%  |                                                                              |==========================================                            |  60%  |                                                                              |===========================================                           |  62%  |                                                                              |============================================                          |  63%  |                                                                              |==============================================                        |  65%  |                                                                              |===============================================                       |  67%  |                                                                              |================================================                      |  68%  |                                                                              |=================================================                     |  70%  |                                                                              |==================================================                    |  72%  |                                                                              |===================================================                   |  73%  |                                                                              |====================================================                  |  75%  |                                                                              |======================================================                |  77%  |                                                                              |=======================================================               |  78%  |                                                                              |========================================================              |  80%  |                                                                              |=========================================================             |  82%  |                                                                              |==========================================================            |  83%  |                                                                              |============================================================          |  85%  |                                                                              |=============================================================         |  87%  |                                                                              |==============================================================        |  88%  |                                                                              |===============================================================       |  90%  |                                                                              |================================================================      |  92%  |                                                                              |=================================================================     |  93%  |                                                                              |==================================================================    |  95%  |                                                                              |====================================================================  |  97%  |                                                                              |===================================================================== |  98%  |                                                                              |======================================================================| 100%
 #> processing output..
 fit$nowcast
-#>               Qtr1          Qtr2          Qtr3          Qtr4
-#> 2015 -0.0005457821  0.0016735161  0.0070059377  0.0073791601
-#> 2016  0.0034291850  0.0027131206  0.0023326337  0.0004948659
-#> 2017  0.0026201328  0.0080289835  0.0079216768  0.0100127632
-#> 2018  0.0103582772  0.0073478143 -0.0014074899  0.0052685685
-#> 2019  0.0020117112  0.0065039405  0.0030231110  0.0019994312
-#> 2020 -0.0107536782 -0.0657944736  0.0590156258  0.0091010431
-#> 2021  0.0059674967  0.0253669460  0.0197806613  0.0101044823
-#> 2022  0.0023577208  0.0068062698  0.0049971521  0.0020753634
-#> 2023  0.0061921887 -0.0036206665  0.0045565814  0.0036724468
-#> 2024 -0.0011813762  0.0078460374  0.0029016447  0.0051753960
-#> 2025  0.0078586654  0.0012306668 -0.0044007476  0.0015063229
-#> 2026  0.0142494596                                          
+#>              Qtr1         Qtr2         Qtr3         Qtr4
+#> 2018  0.010358423  0.007347718 -0.001407741  0.005268504
+#> 2019  0.002011790  0.006503837  0.003023097  0.001999369
+#> 2020 -0.010753687 -0.065794475  0.059015687  0.009101038
+#> 2021  0.005967522  0.025366881  0.019780812  0.010104476
+#> 2022  0.002357706  0.006806281  0.004997254  0.002075209
+#> 2023  0.006192308 -0.003620620  0.004556568  0.003672424
+#> 2024 -0.001181540  0.007845926  0.002901892  0.005175521
+#> 2025  0.007858584  0.001230728 -0.004400683  0.001506290
 # }
 ```

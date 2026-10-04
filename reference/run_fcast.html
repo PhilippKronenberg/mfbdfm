@@ -25,10 +25,6 @@ backcasting loop."></head><body>
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/mfbdfm.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/methodology.html">The model behind mfbdfm</a></li>
-  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -42,7 +38,7 @@ backcasting loop."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Fit the multi-factor model at a given evaluation date</h1>
-      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/main/R/backcast.R" class="external-link"><code>R/backcast.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/v0.1.0/R/backcast.R" class="external-link"><code>R/backcast.R</code></a></small>
       <div class="d-none name"><code>run_fcast.Rd</code></div>
     </div>
 
@@ -72,8 +68,7 @@ backcasting loop.</p>
 <span>  extend <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  ncores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  control <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  output_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  on_error <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stop"</span>, <span class="st">"warn"</span><span class="op">)</span></span>
+<span>  output_dir <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -108,7 +103,7 @@ when saving.</p></dd>
 
 
 <dt id="arg-p">p<a class="anchor" aria-label="anchor" href="#arg-p"></a></dt>
-<dd><p>Integer, number of factor lags in the factor state equation.</p></dd>
+<dd><p>Integer, number of lags in the factor VAR.</p></dd>
 
 
 <dt id="arg-length-sample">length_sample<a class="anchor" aria-label="anchor" href="#arg-length-sample"></a></dt>
@@ -124,16 +119,13 @@ when saving.</p></dd>
 
 
 <dt id="arg-stochastic-volatility">stochastic_volatility<a class="anchor" aria-label="anchor" href="#arg-stochastic-volatility"></a></dt>
-<dd><p>Logical. If <code>TRUE</code> (default) the factor
-innovation variance follows a stochastic volatility process. If <code>FALSE</code>
-it is a single constant variance, <strong>still estimated</strong> rather than fixed
-– see <code>@details</code>.</p></dd>
+<dd><p>Logical, passed to <code><a href="ind_dfm.html">ind_dfm()</a></code> (currently
+without effect there).</p></dd>
 
 
 <dt id="arg-serial-correlation">serial_correlation<a class="anchor" aria-label="anchor" href="#arg-serial-correlation"></a></dt>
-<dd><p>Logical. If <code>TRUE</code> (default) the measurement
-errors are allowed to be serially correlated and their autocorrelations
-are drawn. If <code>FALSE</code> they are held at (effectively) zero.</p></dd>
+<dd><p>Logical, model serial correlation in the
+measurement errors. If <code>FALSE</code>, the autocorrelations are fixed near zero.</p></dd>
 
 
 <dt id="arg-extend">extend<a class="anchor" aria-label="anchor" href="#arg-extend"></a></dt>
@@ -155,9 +147,7 @@ the rotation step.</p></dd>
 <dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
 <dd><p>Optional settings from <code><a href="dfm_control.html">dfm_control()</a></code>, passed to
 <code><a href="fcast_dfm.html">fcast_dfm()</a></code>. Use <code>dfm_control("fcast_dfm", strict = TRUE)</code> to run the
-rotation as specified in the online appendix, or
-<code>dfm_control("fcast_dfm", verbose = FALSE)</code> to silence the progress
-messages and the progress bar in a sweep.</p></dd>
+rotation as specified in the online appendix.</p></dd>
 
 
 <dt id="arg-output-dir">output_dir<a class="anchor" aria-label="anchor" href="#arg-output-dir"></a></dt>
@@ -165,22 +155,10 @@ messages and the progress bar in a sweep.</p></dd>
 skip saving. When given, the fit is saved as
 <code>file.path(output_dir, dataset_used, "fit_&lt;date&gt;.Rda")</code>.</p></dd>
 
-
-<dt id="arg-on-error">on_error<a class="anchor" aria-label="anchor" href="#arg-on-error"></a></dt>
-<dd><p>Character, what to do when <code><a href="fcast_dfm.html">fcast_dfm()</a></code> fails: <code>"stop"</code>
-(the default, the error propagates) or <code>"warn"</code>, which converts it into a
-warning naming the vintage and returns <code>NULL</code> for that vintage. Matched
-with <code><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg()</a></code>. <code>"warn"</code> is for the expanding-window loops in
-<code>analysis/</code>, where one vintage that fails to converge should not discard
-the dozens already estimated; the caller is then responsible for skipping
-the <code>NULL</code>. The warning has condition class
-<code>"mfbdfm_warning_fit_failed"</code> – see <code><a href="dfm_control.html">dfm_control()</a></code> on muffling.</p></dd>
-
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Invisibly, the windowed <code>fcast_dfm</code> fit object, or <code>NULL</code> if the fit
-failed and <code>on_error = "warn"</code>.</p>
+    <p>Invisibly, the windowed <code>fcast_dfm</code> fit object.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -200,45 +178,43 @@ for the model itself.</p>
 <p>Other model fitting functions:
 <code><a href="dfm_memory.html">dfm_memory()</a></code>,
 <code><a href="fcast_dfm.html">fcast_dfm()</a></code>,
-<code><a href="ind_dfm.html">ind_dfm()</a></code>,
-<code><a href="select_factors.html">select_factors()</a></code></p></div>
+<code><a href="ind_dfm.html">ind_dfm()</a></code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># Short chain on the shipped data; a real evaluation uses the defaults.</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">mfbdfm_example_data</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="va">mfbdfm_example_data</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">target</span> <span class="op">&lt;-</span> <span class="st">"ch.seco.gdp.real.gdp.ssa"</span></span></span>
+<span class="r-in"><span><span class="va">flows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>                <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">stocks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>                 <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">run_fcast</span><span class="op">(</span>flows <span class="op">=</span> <span class="va">d</span><span class="op">$</span><span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">d</span><span class="op">$</span><span class="va">stocks</span>, target <span class="op">=</span> <span class="va">d</span><span class="op">$</span><span class="va">target</span>,</span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">run_fcast</span><span class="op">(</span>flows <span class="op">=</span> <span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">stocks</span>, target <span class="op">=</span> <span class="va">target</span>,</span></span>
 <span class="r-in"><span>                 date <span class="op">=</span> <span class="fl">2023</span>, dataset_used <span class="op">=</span> <span class="st">"example"</span>,</span></span>
 <span class="r-in"><span>                 q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">20</span>, burn_in <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> preallocating..</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> simulating posterior distribution..</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> running rotation of each draw..</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 1: convergence 1.82e-05</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 2: convergence 7.69e-07</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 3: convergence 1.1e-07</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 4: convergence 3.21e-08</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 5: convergence 5.81e-11</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 1: convergence 5.47e-05</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 2: convergence 3.39e-06</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 3: convergence 4.66e-07</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 4: convergence 1.5e-06</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 5: convergence 2.54e-07</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Rotation did not converge after 5 iterations (last change 2.54e-07, criterion "mean", tolerance 1e-09). Factor draws may not be rotated onto a common reference; consider raising `rotation_max_iter` in dfm_control().</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> running identification..</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> processing output..</span>
 <span class="r-in"><span><span class="va">fit</span><span class="op">$</span><span class="va">nowcast</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               Qtr1          Qtr2          Qtr3          Qtr4</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2015 -0.0005457777  0.0016734689  0.0070060435  0.0073792248</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2016  0.0034291100  0.0027133241  0.0023325914  0.0004950102</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2017  0.0026201842  0.0080290734  0.0079216424  0.0100129498</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2018  0.0103582565  0.0073476527 -0.0014077117  0.0052685929</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2019  0.0020117534  0.0065038703  0.0030228106  0.0019994823</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2020 -0.0107536280 -0.0657943919  0.0590154565  0.0091011455</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2021  0.0059674596  0.0253671027  0.0197808844  0.0101045641</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2022  0.0023575771  0.0068062518  0.0049973213  0.0020753150</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2023  0.0061922311 -0.0036208059  0.0045565963  0.0036725607</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2024 -0.0011814128  0.0078458378  0.0029016349  0.0051752458</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2025  0.0078586584  0.0012305450 -0.0044007044  0.0015063365</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2026  0.0033609305                                          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              Qtr1         Qtr2         Qtr3         Qtr4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2021  0.005967557  0.025366966  0.019780820  0.010104478</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2022  0.002357692  0.006806119  0.004997249  0.002075261</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2023  0.006192138 -0.003620645  0.004556591  0.003672488</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2024 -0.001181443  0.007846066  0.002901737  0.005175346</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2025  0.007858543  0.001230692 -0.004400705  0.001506235</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2026 -0.001819610                                       </span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

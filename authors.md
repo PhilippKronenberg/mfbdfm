@@ -7,7 +7,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/PhilippKronenberg/mfbdfm/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/PhilippKronenberg/mfbdfm/blob/v0.1.0/DESCRIPTION)
 
 Kronenberg P (2026). *mfbdfm: Mixed-Frequency Bayesian Dynamic Factor
 Model*. R package version 0.1.0,

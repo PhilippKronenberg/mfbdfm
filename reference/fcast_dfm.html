@@ -25,10 +25,6 @@ nowcasts are derived for every input series."></head><body>
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/mfbdfm.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/methodology.html">The model behind mfbdfm</a></li>
-  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -42,7 +38,7 @@ nowcasts are derived for every input series."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Estimate a multi-factor mixed-frequency dynamic factor model</h1>
-      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/main/R/fcast_dfm.R" class="external-link"><code>R/fcast_dfm.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/v0.1.0/R/fcast_dfm.R" class="external-link"><code>R/fcast_dfm.R</code></a></small>
       <div class="d-none name"><code>fcast_dfm.Rd</code></div>
     </div>
 
@@ -156,19 +152,13 @@ rotation to work; see <code><a href="dfm_priors.html">dfm_priors()</a></code>.</
 rule and the stability bounds that were previously hard-coded. Omit it (the
 default) and the published behaviour is reproduced exactly;
 <code>dfm_control("fcast_dfm", strict = TRUE)</code> switches the rotation to the
-algorithm as specified in the online appendix, and
-<code>dfm_control("fcast_dfm", verbose = FALSE)</code> silences the progress messages
-and the progress bar.</p></dd>
+algorithm as specified in the online appendix.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>"fcast_dfm"</code>: a list with components</p><dl><dt>factor</dt>
-<dd><p><code>ts</code> matrix of the <code>q</code> posterior mean factors, on the
-model's own standardized scale and covering the <code>2*(k - 1)</code> latent
-periods the distributed-lag aggregation reaches back into as well as
-the sample. (<code><a href="ind_dfm.html">ind_dfm()</a></code> annualizes and de-standardizes its <code>factor</code>;
-the counterpart of this component there is <code>factor_std</code>.)</p></dd>
+<dd><p><code>ts</code> matrix of the <code>q</code> posterior mean factors.</p></dd>
 
 <dt>factor_var</dt>
 <dd><p><code>ts</code> matrix of the corresponding variances.</p></dd>
@@ -184,14 +174,6 @@ nowcast for <code>target</code>, extracted from <code>ncst</code>.</p></dd>
 <dd><p>List of posterior means (<code>lambda</code>, <code>phi</code>, <code>sigma</code>, <code>rho</code>,
 <code>rho_var</code>, <code>h</code>) and the model dimensions (<code>n</code>, <code>q</code>, <code>p</code>, <code>s</code>, <code>t</code>,
 <code>k</code>).</p></dd>
-
-<dt>pars_dist</dt>
-<dd><p>List of posterior spreads – <code>sd</code> and the 2.5%/97.5%
-quantiles – for <code>lambda</code>, <code>phi</code>, <code>sigma</code>, <code>rho</code> and <code>h</code>, read out of
-the rotated draws at fit time. The posterior <em>mean</em> stays in <code>pars</code>,
-so the two cannot disagree. There is deliberately no <code>omega</code> entry:
-<code>omega</code> is drawn here but not retained. Used by
-<code><a href="mfbdfm_table_loadings.html">mfbdfm_table_loadings()</a></code> and <code><a href="mfbdfm_table_parameters.html">mfbdfm_table_parameters()</a></code>.</p></dd>
 
 <dt>ncst</dt>
 <dd><p>List with <code>mean</code> and <code>var</code>, each a named list of nowcasts
@@ -297,48 +279,51 @@ Switzerland. <em>Swiss Journal of Economics and Statistics</em>, 162, 10.
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="ind_dfm.html">ind_dfm()</a></code> for the single-factor, target-anchored model,
-<code><a href="mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code> to extract the nowcasts from the fit, and
-<a href="fcast_dfm_methods.html">fcast_dfm_methods</a> for the methods the fit supports.</p>
+    <div class="dont-index"><p><code><a href="ind_dfm.html">ind_dfm()</a></code> for the single-factor, target-anchored model.</p>
 <p>Other model fitting functions:
 <code><a href="dfm_memory.html">dfm_memory()</a></code>,
 <code><a href="ind_dfm.html">ind_dfm()</a></code>,
-<code><a href="run_fcast.html">run_fcast()</a></code>,
-<code><a href="select_factors.html">select_factors()</a></code></p></div>
+<code><a href="run_fcast.html">run_fcast()</a></code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">mfbdfm_example_data</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">target</span> <span class="op">&lt;-</span> <span class="st">"ch.seco.gdp.real.gdp.ssa"</span></span></span>
+<span class="r-in"><span><span class="va">flows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>                <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">stocks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>                 <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">fcast_dfm</span><span class="op">(</span><span class="va">mfbdfm_example_data</span>, q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">20</span>, burn_in <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">fcast_dfm</span><span class="op">(</span>flows <span class="op">=</span> <span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">stocks</span>, target <span class="op">=</span> <span class="va">target</span>,</span></span>
+<span class="r-in"><span>                 q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">20</span>, burn_in <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> preallocating..</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> simulating posterior distribution..</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> running rotation of each draw..</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 1: convergence 3.46e-06</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 2: convergence 5.1e-06</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 3: convergence 6.52e-07</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 4: convergence 1.28e-08</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 5: convergence 1.12e-08</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Rotation did not converge after 5 iterations (last change 1.12e-08, criterion "mean", tolerance 1e-09). Factor draws may not be rotated onto a common reference; consider raising `rotation_max_iter` in dfm_control().</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 1: convergence 2.12e-05</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 2: convergence 6.86e-06</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 3: convergence 3.11e-06</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 4: convergence 2.57e-09</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rotation iteration 5: convergence 1.13e-11</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> running identification..</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> processing output..</span>
 <span class="r-in"><span><span class="va">fit</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Multi-factor mixed-frequency dynamic factor model (Eckert et al. 2025)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Call: fcast_dfm(flows = mfbdfm_example_data, q = 2, length_sample = 20,     burn_in = 5)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Call: fcast_dfm(flows = flows, stocks = stocks, target = target, q = 2,     length_sample = 20, burn_in = 5)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   series (n)      : 8</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   series (n)      : 4</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   factors (q)     : 2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   factor lags (p) : 1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   periods (t)     : 541</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   periods (t)     : 250</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Target series: ch.seco.gdp.real.gdp.ssa</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Most recent nowcasts (95% band):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         time   observed    nowcast      lower      upper</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2024.000    -0.0012    -0.0012    -0.0012    -0.0012</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2024.250     0.0078     0.0078     0.0078     0.0078</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2024.500     0.0029     0.0029     0.0029     0.0029</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2024.750     0.0052     0.0052     0.0052     0.0052</span>
@@ -346,14 +331,8 @@ Switzerland. <em>Swiss Journal of Economics and Statistics</em>, 162, 10.
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2025.250     0.0012     0.0012     0.0012     0.0012</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2025.500    -0.0044    -0.0044    -0.0044    -0.0044</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2025.750     0.0015     0.0015     0.0015     0.0015</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     2026.000         NA     0.0035    -0.0117     0.0187</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1 of 45 periods have no observed value (nowcast/backcast).</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $ncst (all series), $data_hf, $target_series;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_nowcast() for the target's nowcasts</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_table_nowcast()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $ncst (all series), $data_hf, $target_series</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

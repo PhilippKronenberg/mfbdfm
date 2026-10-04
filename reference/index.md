@@ -11,14 +11,6 @@ the helpers that prepare their input data.
   : Estimate a single-factor, target-anchored dynamic factor model
 - [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
   : Estimate a multi-factor mixed-frequency dynamic factor model
-- [`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
-  : Choose the number of factors with the Bai-Ng information criteria
-- [`print(`*`<select_factors>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors_methods.md)
-  [`plot(`*`<select_factors>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors_methods.md)
-  [`screeplot(`*`<select_factors>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors_methods.md)
-  : Methods for factor-count selection
-- [`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
-  : Extract the nowcasts from a model fit
 - [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
   : Specify the prior distributions for a dynamic factor model
 - [`print(`*`<dfm_priors>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_priors.md)
@@ -45,54 +37,26 @@ the helpers that prepare their input data.
 ## Methods on fitted models
 
 The generics both fit classes support: print, summary, plot, coef,
-fitted, residuals, as.data.frame and logLik (and hence AIC/BIC), plus
-the decomposition of the factor and nowcast into per-series
-contributions.
+fitted, residuals and as.data.frame.
 
 - [`coef(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`fitted(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`residuals(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
-  [`logLik(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`as.data.frame(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`plot(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
-  [`autoplot(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`summary(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`print(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
-  [`screeplot(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   : Methods for single-factor model fits
 - [`print(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`coef(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`fitted(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`residuals(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
-  [`logLik(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`as.data.frame(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`plot(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
-  [`autoplot(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`summary(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
-  [`screeplot(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   : Methods for multi-factor model fits
 - [`print(`*`<summary.mfbdfm_fit>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.summary.mfbdfm_fit.md)
   : Print a fit summary
-- [`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)
-  [`print(`*`<mfbdfm_contributions>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)
-  [`as.data.frame(`*`<mfbdfm_contributions>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)
-  [`plot(`*`<mfbdfm_contributions>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)
-  : Contribution of each input series to the factor and to the nowcast
-
-## Tables from a fitted model
-
-Table-ready summaries of a fit – loadings, parameters and the nowcast,
-each with posterior uncertainty – as tidy data frames or rendered to
-LaTeX, HTML or Markdown.
-
-- [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
-  : Factor loadings as a table, with posterior uncertainty
-- [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md)
-  : Estimated parameters as a table, with posterior uncertainty
-- [`mfbdfm_table_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_nowcast.md)
-  : The target series' nowcast as a table, with posterior uncertainty
-- [`mfbdfm_kable()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_kable.md)
-  : Render a table in one of the supported output formats
 
 ## Backcasting & real-time vintages
 
@@ -111,10 +75,6 @@ handling real-time GDP vintages.
   : Extract the nowcast variance from a fit object
 - [`extract_wai_data()`](https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.md)
   : Extract WAI growth, level and year-over-year tables from a saved fit
-- [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md)
-  : Export WAI results as a web-ready CSV and metadata file
-- [`gdp_web_series()`](https://philippkronenberg.github.io/mfbdfm/reference/gdp_web_series.md)
-  : Published GDP on the same scale as the exported WAI series
 - [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md)
   : Read the real-time GDP vintage database
 - [`select_most_recent_GDP_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/select_most_recent_GDP_vintage.md)
@@ -212,8 +172,6 @@ In-sample and out-of-sample forecast evaluation tables and plots.
 
 ## Data
 
-- [`mfbdfm_example_data`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_data.md)
-  : Small self-contained example dataset, GDP target included
 - [`data_ch_dataset`](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md)
   : Harmonized Swiss indicator dataset for the WAI model
 - [`data_ch_dataset_test`](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset_test.md)

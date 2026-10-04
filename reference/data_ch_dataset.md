@@ -43,8 +43,7 @@ source and metadata.
 data(data_ch_dataset)
 names(data_ch_dataset)
 #> [1] "flows"  "stocks"
-# NOTE: this one does NOT carry the GDP target series. For a small
-# self-contained dataset that does, see mfbdfm_example_data; otherwise use
+# NOTE: this one does NOT carry the GDP target series; see
 # data_ch_dataset_test, or inject it via get_real_time_gdp_vintages().
 head(names(data_ch_dataset$flows))
 #> [1] "SWCONPRCE"                    "SWPROPRCE"                   

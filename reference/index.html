@@ -17,10 +17,6 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/mfbdfm.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/methodology.html">The model behind mfbdfm</a></li>
-  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -59,27 +55,6 @@
 
         </dt>
         <dd>Estimate a multi-factor mixed-frequency dynamic factor model</dd>
-
-        <dt>
-
-          <code><a href="select_factors.html">select_factors()</a></code>
-
-        </dt>
-        <dd>Choose the number of factors with the Bai-Ng information criteria</dd>
-
-        <dt>
-
-          <code><a href="select_factors_methods.html">print(<i>&lt;select_factors&gt;</i>)</a></code> <code><a href="select_factors_methods.html">plot(<i>&lt;select_factors&gt;</i>)</a></code> <code><a href="select_factors_methods.html">screeplot(<i>&lt;select_factors&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Methods for factor-count selection</dd>
-
-        <dt>
-
-          <code><a href="mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code>
-
-        </dt>
-        <dd>Extract the nowcasts from a model fit</dd>
 
         <dt>
 
@@ -153,7 +128,7 @@
       </dl></div><div class="section level2">
       <h2 id="methods-on-fitted-models">Methods on fitted models<a class="anchor" aria-label="anchor" href="#methods-on-fitted-models"></a></h2>
 
-      <div class="section-desc"><p>The generics both fit classes support: print, summary, plot, coef, fitted, residuals, as.data.frame and logLik (and hence AIC/BIC), plus the decomposition of the factor and nowcast into per-series contributions.</p></div>
+      <div class="section-desc"><p>The generics both fit classes support: print, summary, plot, coef, fitted, residuals and as.data.frame.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -162,14 +137,14 @@
 
       <dl><dt>
 
-          <code><a href="ind_dfm_methods.html">coef(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">fitted(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">residuals(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">logLik(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">as.data.frame(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">plot(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">autoplot(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">summary(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">print(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">screeplot(<i>&lt;ind_dfm&gt;</i>)</a></code>
+          <code><a href="ind_dfm_methods.html">coef(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">fitted(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">residuals(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">as.data.frame(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">plot(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">summary(<i>&lt;ind_dfm&gt;</i>)</a></code> <code><a href="ind_dfm_methods.html">print(<i>&lt;ind_dfm&gt;</i>)</a></code>
 
         </dt>
         <dd>Methods for single-factor model fits</dd>
 
         <dt>
 
-          <code><a href="fcast_dfm_methods.html">print(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">coef(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">fitted(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">residuals(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">logLik(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">as.data.frame(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">plot(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">autoplot(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">summary(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">screeplot(<i>&lt;fcast_dfm&gt;</i>)</a></code>
+          <code><a href="fcast_dfm_methods.html">print(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">coef(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">fitted(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">residuals(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">as.data.frame(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">plot(<i>&lt;fcast_dfm&gt;</i>)</a></code> <code><a href="fcast_dfm_methods.html">summary(<i>&lt;fcast_dfm&gt;</i>)</a></code>
 
         </dt>
         <dd>Methods for multi-factor model fits</dd>
@@ -180,50 +155,6 @@
 
         </dt>
         <dd>Print a fit summary</dd>
-
-        <dt>
-
-          <code><a href="mfbdfm_contributions.html">mfbdfm_contributions()</a></code> <code><a href="mfbdfm_contributions.html">print(<i>&lt;mfbdfm_contributions&gt;</i>)</a></code> <code><a href="mfbdfm_contributions.html">as.data.frame(<i>&lt;mfbdfm_contributions&gt;</i>)</a></code> <code><a href="mfbdfm_contributions.html">plot(<i>&lt;mfbdfm_contributions&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Contribution of each input series to the factor and to the nowcast</dd>
-      </dl></div><div class="section level2">
-      <h2 id="tables-from-a-fitted-model">Tables from a fitted model<a class="anchor" aria-label="anchor" href="#tables-from-a-fitted-model"></a></h2>
-
-      <div class="section-desc"><p>Table-ready summaries of a fit – loadings, parameters and the nowcast, each with posterior uncertainty – as tidy data frames or rendered to LaTeX, HTML or Markdown.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="mfbdfm_table_loadings.html">mfbdfm_table_loadings()</a></code>
-
-        </dt>
-        <dd>Factor loadings as a table, with posterior uncertainty</dd>
-
-        <dt>
-
-          <code><a href="mfbdfm_table_parameters.html">mfbdfm_table_parameters()</a></code>
-
-        </dt>
-        <dd>Estimated parameters as a table, with posterior uncertainty</dd>
-
-        <dt>
-
-          <code><a href="mfbdfm_table_nowcast.html">mfbdfm_table_nowcast()</a></code>
-
-        </dt>
-        <dd>The target series' nowcast as a table, with posterior uncertainty</dd>
-
-        <dt>
-
-          <code><a href="mfbdfm_kable.html">mfbdfm_kable()</a></code>
-
-        </dt>
-        <dd>Render a table in one of the supported output formats</dd>
       </dl></div><div class="section level2">
       <h2 id="backcasting-real-time-vintages">Backcasting &amp; real-time vintages<a class="anchor" aria-label="anchor" href="#backcasting-real-time-vintages"></a></h2>
 
@@ -275,20 +206,6 @@
 
         </dt>
         <dd>Extract WAI growth, level and year-over-year tables from a saved fit</dd>
-
-        <dt>
-
-          <code><a href="export_wai_web.html">export_wai_web()</a></code>
-
-        </dt>
-        <dd>Export WAI results as a web-ready CSV and metadata file</dd>
-
-        <dt>
-
-          <code><a href="gdp_web_series.html">gdp_web_series()</a></code>
-
-        </dt>
-        <dd>Published GDP on the same scale as the exported WAI series</dd>
 
         <dt>
 
@@ -600,13 +517,6 @@
 
 
       <dl><dt>
-
-          <code><a href="mfbdfm_example_data.html">mfbdfm_example_data</a></code>
-
-        </dt>
-        <dd>Small self-contained example dataset, GDP target included</dd>
-
-        <dt>
 
           <code><a href="data_ch_dataset.html">data_ch_dataset</a></code>
 

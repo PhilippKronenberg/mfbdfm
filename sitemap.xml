@@ -4,7 +4,6 @@
 <url><loc>https://philippkronenberg.github.io/mfbdfm/LICENSE-text.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/LICENSE.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/articles/index.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/articles/methodology.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/authors.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/index.html</loc></url>
@@ -31,12 +30,10 @@
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/drop_financial.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/drop_retail.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/drop_weekly.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/filter_to_sample.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/gdp_web_series.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/get_insample_error_details.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/get_insample_fit_table.html</loc></url>
@@ -51,15 +48,8 @@
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period_fcast.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/latest_fit_file.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm-package.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_data.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_inputs.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_kable.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_nowcast.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/output_figure_path.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/plot_comparison.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.html</loc></url>
@@ -77,8 +67,6 @@
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/save_result_output.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/select_factors.html</loc></url>
-<url><loc>https://philippkronenberg.github.io/mfbdfm/reference/select_factors_methods.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/select_most_recent_GDP_vintage.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/suffix_cols.html</loc></url>
 <url><loc>https://philippkronenberg.github.io/mfbdfm/reference/wai_sample_config.html</loc></url>
