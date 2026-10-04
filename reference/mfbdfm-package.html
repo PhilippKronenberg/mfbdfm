@@ -84,6 +84,48 @@ following the geometric-mean approximation of Mariano and Murasawa
 (2003).</p>
     </div>
     <div class="section level2">
+    <h2 id="status-of-the-algorithms-implemented-here">Status of the algorithms implemented here<a class="anchor" aria-label="anchor" href="#status-of-the-algorithms-implemented-here"></a></h2>
+
+
+<p>The samplers in this package are <strong>not</strong> novel algorithms, and are not
+presented as an improvement on any existing R implementation. They are
+the <strong>first packaged R implementation</strong> of two published estimators that
+previously existed only as the authors' own unpackaged replication
+scripts:</p><ul><li><p><code><a href="ind_dfm.html">ind_dfm()</a></code> implements the single-factor, target-anchored model
+of Kronenberg (2026), the estimator behind the Weekly Activity Index.</p></li>
+<li><p><code><a href="fcast_dfm.html">fcast_dfm()</a></code> implements the multi-factor model of Eckert,
+Kronenberg, Mikosch &amp; Neuwirth (2025), which in turn builds on
+Assmann, Boysen-Hogrefe &amp; Pape (2016).</p></li>
+</ul><p>The constituent methods are themselves established and cited to their
+original sources: Gibbs sampling with the precision sampler of Chan and
+Jeliazkov (2009), temporal aggregation following Mariano and Murasawa
+(2003), quasi-differencing following Chib and Greenberg (1994), and (for
+<code><a href="fcast_dfm.html">fcast_dfm()</a></code>) the Procrustes-plus-varimax rotation of Assmann et
+al. (2016). What is new here is the packaging, validation, testing and
+documentation, not the statistics. To our knowledge no other R package
+estimates either model; where an implementation of a <em>related</em> model
+exists it is used as a benchmark rather than replaced (see
+<code>analysis/fcast/bmdfm_benchmark.R</code>).</p>
+<p><code><a href="fcast_dfm.html">fcast_dfm()</a></code> is a fresh port rather than a copy, and it knowingly
+diverges from the published multi-factor <em>factor</em> estimates in one
+respect – the orientation of the VAR coefficients when <code>q &gt; 1</code>; see the
+entry for #66 in <code>NEWS.md</code> for the detail.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="life-cycle">Life cycle<a class="anchor" aria-label="anchor" href="#life-cycle"></a></h2>
+
+
+<p><strong>Experimental.</strong> The package is distributed from GitHub only and has not
+been released to CRAN. Version numbers follow <code>0.1.x</code>, and while the
+model results are stable and reproducible (a seeded baseline in the source
+repository guards them), the <em>user-facing API is not yet frozen</em>: exported
+function and argument names may still change without a deprecation cycle
+before 1.0.0. Changes that alter results or break existing calls are
+recorded in <code>NEWS.md</code>. For reproducible work, pin a fixed version (a
+release or a commit) rather than the moving <code>main</code>, e.g.
+<code>remotes::install_github("PhilippKronenberg/mfbdfm", ref = "&lt;commit&gt;")</code>.</p>
+    </div>
+    <div class="section level2">
     <h2 id="getting-started">Getting started<a class="anchor" aria-label="anchor" href="#getting-started"></a></h2>
 
 
@@ -106,6 +148,10 @@ Tracking economic activity with alternative high-frequency data.
  (The mixed-frequency
 dynamic factor model underlying <code>mfbdfm</code>; this package estimates the
 single-factor, GDP-identified special case used in the WAI.)</p>
+<p>Assmann, C., Boysen-Hogrefe, J., &amp; Pape, M. (2016). Bayesian analysis of
+static and dynamic factor models with an unknown number of factors, and
+structural instability. <em>Journal of Applied Econometrics</em>, 31(8),
+1518-1533. <a href="https://doi.org/10.1002/jae.2404" class="external-link">doi:10.1002/jae.2404</a></p>
 <p>A reference list of the related business-cycle-indicator literature
 is in the "References" section of <code><a href="../articles/mfbdfm.html">vignette("mfbdfm")</a></code>.</p>
     </div>

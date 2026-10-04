@@ -16,6 +16,37 @@ package also provides:
   AR(1) benchmark, modified Diebold–Mariano tests),
 - the **table and plot generators** used in the accompanying analysis.
 
+## What this implements, and how settled it is
+
+**The algorithms are not novel.** `mfbdfm` is the **first packaged R
+implementation** of two published estimators that previously existed
+only as the authors’ own unpackaged replication scripts:
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+implements the single-factor, target-anchored model of Kronenberg
+(2026), and
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+the multi-factor model of Eckert, Kronenberg, Mikosch & Neuwirth (2025).
+It is not offered as an improvement on any existing R implementation —
+to our knowledge no other R package estimates either model. The
+constituent methods are established and cited to their original sources
+(Gibbs sampling with the precision sampler of Chan & Jeliazkov 2009;
+temporal aggregation following Mariano & Murasawa 2003;
+quasi-differencing following Chib & Greenberg 1994; the rotation of
+Assmann, Boysen-Hogrefe & Pape 2016). What is new here is the packaging,
+validation, testing and documentation, not the statistics. Where an
+implementation of a *related* model exists it is used as a benchmark
+rather than replaced (`analysis/fcast/bmdfm_benchmark.R`).
+
+**Life cycle: experimental.** The package is distributed from GitHub
+only and has not been released to CRAN. Model results are stable and
+reproducible — `dev/baseline.R` guards them and changes that alter
+results are called out in
+[`NEWS.md`](https://philippkronenberg.github.io/mfbdfm/NEWS.md) — but
+the **user-facing API is not yet frozen**: exported function and
+argument names may still change without a deprecation cycle before
+1.0.0. For reproducible work, pin a fixed version (a release or a
+commit) rather than the moving `main` (see below).
+
 ## Scope and alternatives
 
 Deliberately **out of scope**:
@@ -38,7 +69,7 @@ Deliberately **out of scope**:
 
 | Package | How it differs |
 |----|----|
-| [`dfms`](https://docs.ropensci.org/dfms/) (R, CRAN) | EM and two-step estimation rather than Bayesian; monthly–quarterly mixed frequency; adds Bai–Ng factor-count criteria and Bańbura–Modugno news decomposition |
+| [`dfms`](https://docs.ropensci.org/dfms/) (R, CRAN) | EM and two-step estimation rather than Bayesian; monthly–quarterly mixed frequency; Bańbura–Modugno news decomposition (both packages offer Bai–Ng factor-count criteria, here [`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)) |
 | [`nowcastDFM`](https://github.com/dhopp1/nowcastDFM) (R, GitHub) | EM estimation with per-release news contributions; archived from CRAN on 2022-05-25 |
 | [`nowcasting`](https://github.com/nmecsys/nowcasting) (R, GitHub) | EM and two-step estimation plus pseudo-real-time vintage construction; archived from CRAN on 2022-05-25 |
 | [`MARSS`](https://cran.r-project.org/package=MARSS), [`KFAS`](https://cran.r-project.org/package=KFAS) (R, CRAN) | General state-space frameworks by maximum likelihood; much freer model specification, no nowcasting- or mixed-frequency-specific tooling |
@@ -325,6 +356,12 @@ name, provider, category, unit, frequency, flow/stock role):
 
 Full function reference, the vignette, and the change log are published
 at **<https://philippkronenberg.github.io/mfbdfm/>**.
+
+[`vignette("mfbdfm")`](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.md)
+includes a **Glossary** defining the statistical vocabulary the rest of
+the documentation assumes — factor, loading, identification, anchoring,
+data augmentation, quasi-differencing, stochastic volatility, burn-in,
+thinning, nowcast versus backcast, vintage.
 
 ## Development
 

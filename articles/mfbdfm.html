@@ -131,6 +131,152 @@ for the details and references, and <code><a href="../articles/mfbdfm.html">vign
 is constructed for live use.</p>
 </div>
 <div class="section level2">
+<h2 id="glossary">Glossary<a class="anchor" aria-label="anchor" href="#glossary"></a>
+</h2>
+<p>The package’s documentation uses the vocabulary of Bayesian dynamic
+factor models throughout. Each term below means exactly this, everywhere
+in <code>mfbdfm</code>.</p>
+<p><strong>Model structure</strong></p>
+<ul>
+<li>
+<strong>Mixed frequency</strong> — input series observed at
+different sampling intervals (here weekly, monthly, quarterly) entering
+one model without first being aggregated to the slowest of them.
+Internally everything is placed on a common 48-periods-per-year weekly
+grid.</li>
+<li>
+<strong>Factor</strong>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>f</mi><mi>t</mi></msub><annotation encoding="application/x-tex">f_t</annotation></semantics></math>)
+— the single unobserved (latent) weekly series that the model extracts
+as the common movement shared by all input series. In
+<code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> it is reported as an <em>annualised growth
+rate</em>, not as a level.</li>
+<li>
+<strong>Loading</strong>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\lambda_i</annotation></semantics></math>)
+— the coefficient linking series
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
+to the factor in the measurement equation: how strongly, and with what
+sign, that series responds to a one-unit move in the factor.</li>
+<li>
+<strong>Measurement equation</strong> — the equation linking each
+observed series to the factor, its distributed lags, and a
+series-specific <em>idiosyncratic</em> error. <strong>State
+equation</strong> — the autoregressive equation governing how the factor
+itself evolves through time.</li>
+<li>
+<strong>Flow versus stock</strong> — a <em>flow</em> variable
+accumulates within a period (GDP, exports), so its low-frequency value
+aggregates the weekly values inside it; a <em>stock</em> variable is a
+snapshot (a survey balance, an index level). The classification selects
+the temporal-aggregation weights, so it changes results.</li>
+<li>
+<strong>Temporal aggregation</strong> — the arithmetic that relates
+a low-frequency observation to the weekly factor values covering the
+same span; flows use the geometric-mean approximation of Mariano and
+Murasawa (2003).</li>
+<li>
+<strong>Data augmentation</strong> — treating unobserved values
+(missing entries, and the weekly values of a series that is only
+published monthly or quarterly) as additional unknowns sampled alongside
+the parameters, rather than imputing or discarding them.</li>
+<li>
+<strong>Quasi-differencing</strong> — transforming the measurement
+equation by each series’ own estimated error autocorrelation, so that
+serially correlated idiosyncratic noise is not misread as a movement in
+the common factor (Chib and Greenberg, 1994).</li>
+<li>
+<strong>Stochastic volatility</strong> — letting the variance of the
+factor’s innovations vary over time as its own latent process, so a
+crisis shows up as a genuinely higher variance rather than as a string
+of implausible draws under a constant variance.</li>
+<li>
+<strong>Identification</strong> — resolving the fact that a factor
+model cannot distinguish
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>f</mi><mi>t</mi></msub><mo>,</mo><mi>λ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(f_t, \lambda)</annotation></semantics></math>
+from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>c</mi><msub><mi>f</mi><mi>t</mi></msub><mo>,</mo><mi>λ</mi><mi>/</mi><mi>c</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(c f_t, \lambda / c)</annotation></semantics></math>:
+the likelihood is unchanged, so something must pin the scale (and sign).
+<code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> pins it by fixing the loading on the
+<strong>target</strong> series to one during sampling;
+<code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> leaves the loadings free and resolves the
+indeterminacy after sampling by rotation.</li>
+<li>
+<strong>Target / anchoring</strong> — the series whose loading is
+fixed to one in <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> (for the WAI, quarterly real
+GDP). Anchoring is what makes the extracted factor interpretable as that
+series’ growth rate at weekly frequency, rather than a generic index
+that merely correlates with it. In <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> the
+<code>target</code> argument does <strong>not</strong> affect
+estimation; it only selects which series’ nowcast is surfaced.</li>
+</ul>
+<p><strong>Estimation</strong></p>
+<ul>
+<li>
+<strong>Prior</strong> — the distribution expressing what is assumed
+about a parameter before seeing the data; <strong>posterior</strong> —
+the distribution of that parameter after conditioning on the data.
+<code><a href="../reference/dfm_priors.html">dfm_priors()</a></code> builds the former; every value in a fitted
+object is a summary of the latter.</li>
+<li>
+<strong>Hyperparameter</strong> — in this package the term is
+avoided. The numbers passed through <code><a href="../reference/dfm_priors.html">dfm_priors()</a></code> are the
+<em>parameters of the prior distributions</em> (e.g. the shape and scale
+of an inverse-gamma prior on a variance), and are called prior
+parameters. Settings that control the sampler rather than the model —
+stability bounds, rotation tolerances — are <strong>not</strong> priors
+and live in <code><a href="../reference/dfm_control.html">dfm_control()</a></code>.</li>
+<li>
+<strong>Gibbs sampling</strong> — the Markov chain Monte Carlo
+scheme used here: each block of unknowns is drawn in turn from its
+distribution conditional on the current value of all the others, and the
+chain of such sweeps converges on the joint posterior.</li>
+<li>
+<strong>Draw</strong> — one complete sweep of the sampler, i.e. one
+sample from the posterior. <strong>Burn-in</strong>
+(<code>burn_in</code>) — the initial draws discarded, before the chain
+has reached its stationary distribution. <strong>Thinning</strong>
+(<code>thinning</code>) — keeping only every
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>-th
+retained draw, to reduce the autocorrelation between stored draws.
+<code>length_sample</code> is the number of draws kept <em>after</em>
+burn-in.</li>
+<li>
+<strong>Posterior mean / posterior variance</strong> — the average
+and the variance of a quantity across the retained draws.
+<code>fit$factor</code> and <code>fit$nowcast</code> are posterior
+means; <code>fit$factor_var</code> and <code>fit$nowcast_var</code> the
+matching variances.</li>
+<li>
+<strong>Standardisation</strong> — rescaling each non-target input
+series to mean zero and unit variance before estimation, so loadings are
+comparable and no series dominates through its units alone.
+<code><a href="../reference/prepare_data.html">prepare_data()</a></code> does this; note that in the prepared matrix
+a <code>0</code> encodes <em>missing</em>, not the mean.</li>
+</ul>
+<p><strong>Output</strong></p>
+<ul>
+<li>
+<strong>Nowcast</strong> — an estimate of the current period’s value
+of a series that has not yet been published (quarterly GDP, weeks before
+its release). <strong>Backcast</strong> — the same for a period that is
+already over but still unpublished. <strong>Forecast</strong> — a period
+that has not yet ended. All three come out of the same smoothed state
+here; they differ only in where the estimated period sits relative to
+the data.</li>
+<li>
+<strong>Vintage</strong> — the version of a series as it stood at a
+given past date, before subsequent revisions. Real-time evaluation uses
+the vintage that was actually available at each decision date, which is
+what <code><a href="../reference/get_real_time_gdp_vintages.html">get_real_time_gdp_vintages()</a></code> and
+<code><a href="../reference/cut_data_real_time.html">cut_data_real_time()</a></code> supply.</li>
+<li>
+<strong>Index</strong> — the cumulated level path implied by the
+factor’s growth rates (<code>fit$index</code>), as opposed to the growth
+rate itself.</li>
+</ul>
+</div>
+<div class="section level2">
 <h2 id="a-minimal-worked-example">A minimal worked example<a class="anchor" aria-label="anchor" href="#a-minimal-worked-example"></a>
 </h2>
 <p>The package ships <code>mfbdfm_example_data</code>, a small

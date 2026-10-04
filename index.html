@@ -62,6 +62,12 @@
 <li>the <strong>table and plot generators</strong> used in the accompanying analysis.</li>
 </ul>
 <div class="section level2">
+<h2 id="what-this-implements-and-how-settled-it-is">What this implements, and how settled it is<a class="anchor" aria-label="anchor" href="#what-this-implements-and-how-settled-it-is"></a>
+</h2>
+<p><strong>The algorithms are not novel.</strong> <code>mfbdfm</code> is the <strong>first packaged R implementation</strong> of two published estimators that previously existed only as the authors’ own unpackaged replication scripts: <code><a href="reference/ind_dfm.html">ind_dfm()</a></code> implements the single-factor, target-anchored model of Kronenberg (2026), and <code><a href="reference/fcast_dfm.html">fcast_dfm()</a></code> the multi-factor model of Eckert, Kronenberg, Mikosch &amp; Neuwirth (2025). It is not offered as an improvement on any existing R implementation — to our knowledge no other R package estimates either model. The constituent methods are established and cited to their original sources (Gibbs sampling with the precision sampler of Chan &amp; Jeliazkov 2009; temporal aggregation following Mariano &amp; Murasawa 2003; quasi-differencing following Chib &amp; Greenberg 1994; the rotation of Assmann, Boysen-Hogrefe &amp; Pape 2016). What is new here is the packaging, validation, testing and documentation, not the statistics. Where an implementation of a <em>related</em> model exists it is used as a benchmark rather than replaced (<code>analysis/fcast/bmdfm_benchmark.R</code>).</p>
+<p><strong>Life cycle: experimental.</strong> The package is distributed from GitHub only and has not been released to CRAN. Model results are stable and reproducible — <code>dev/baseline.R</code> guards them and changes that alter results are called out in <a href="NEWS.html"><code>NEWS.md</code></a> — but the <strong>user-facing API is not yet frozen</strong>: exported function and argument names may still change without a deprecation cycle before 1.0.0. For reproducible work, pin a fixed version (a release or a commit) rather than the moving <code>main</code> (see below).</p>
+</div>
+<div class="section level2">
 <h2 id="scope-and-alternatives">Scope and alternatives<a class="anchor" aria-label="anchor" href="#scope-and-alternatives"></a>
 </h2>
 <p>Deliberately <strong>out of scope</strong>:</p>
@@ -89,7 +95,7 @@
 <tr>
 <td>
 <a href="https://docs.ropensci.org/dfms/" class="external-link"><code>dfms</code></a> (R, CRAN)</td>
-<td>EM and two-step estimation rather than Bayesian; monthly–quarterly mixed frequency; adds Bai–Ng factor-count criteria and Bańbura–Modugno news decomposition</td>
+<td>EM and two-step estimation rather than Bayesian; monthly–quarterly mixed frequency; Bańbura–Modugno news decomposition (both packages offer Bai–Ng factor-count criteria, here <code><a href="reference/select_factors.html">select_factors()</a></code>)</td>
 </tr>
 <tr>
 <td>
@@ -721,6 +727,7 @@
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
 <p>Full function reference, the vignette, and the change log are published at <strong><a href="https://philippkronenberg.github.io/mfbdfm/" class="uri">https://philippkronenberg.github.io/mfbdfm/</a></strong>.</p>
+<p><code><a href="articles/mfbdfm.html">vignette("mfbdfm")</a></code> includes a <strong>Glossary</strong> defining the statistical vocabulary the rest of the documentation assumes — factor, loading, identification, anchoring, data augmentation, quasi-differencing, stochastic volatility, burn-in, thinning, nowcast versus backcast, vintage.</p>
 </div>
 <div class="section level2">
 <h2 id="development">Development<a class="anchor" aria-label="anchor" href="#development"></a>
@@ -785,6 +792,7 @@
 <div class="dev-status">
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
+<li><a href="https://lifecycle.r-lib.org/articles/stages.html#experimental" class="external-link"><img src="https://img.shields.io/badge/lifecycle-experimental-orange.svg" alt="Lifecycle: experimental"></a></li>
 <li><a href="https://github.com/PhilippKronenberg/mfbdfm/actions/workflows/r.yml" class="external-link"><img src="https://github.com/PhilippKronenberg/mfbdfm/actions/workflows/r.yml/badge.svg" alt="R-CMD-check"></a></li>
 <li><a href="https://github.com/PhilippKronenberg/mfbdfm/actions/workflows/test-coverage.yaml" class="external-link"><img src="https://github.com/PhilippKronenberg/mfbdfm/actions/workflows/test-coverage.yaml/badge.svg" alt="test-coverage"></a></li>
 <li><a href="https://app.codecov.io/gh/PhilippKronenberg/mfbdfm" class="external-link"><img src="https://codecov.io/gh/PhilippKronenberg/mfbdfm/branch/main/graph/badge.svg" alt="Codecov test coverage"></a></li>
