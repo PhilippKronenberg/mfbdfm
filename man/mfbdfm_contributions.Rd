@@ -123,8 +123,10 @@ identified orientation and \code{W} is built from them.
 
 The reported time axis covers all \code{t+s} periods of the factor path, including
 the \code{s} pre-sample periods the distributed lags carry. \code{totals$posterior} is
-\code{NA} there for an \code{\link[=ind_dfm]{ind_dfm()}} fit, which stores only the \code{t} in-sample
-periods (#49).
+read from \verb{$factor} for a \code{\link[=fcast_dfm]{fcast_dfm()}} fit and from \verb{$factor_std} for an
+\code{\link[=ind_dfm]{ind_dfm()}} fit, both on the sampler's scale over all \code{t+s} periods. (An
+\code{\link[=ind_dfm]{ind_dfm()}} fit saved before \verb{$factor_std} existed falls back to inverting
+the annualised \verb{$factor}, which leaves the pre-sample periods \code{NA}.)
 }
 }
 \examples{
