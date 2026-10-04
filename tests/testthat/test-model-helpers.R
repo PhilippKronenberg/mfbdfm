@@ -91,3 +91,18 @@ test_that("distributed lag and system matrices have the right dimensions", {
   Zmat <- mfbdfm:::get_zmat(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
   expect_equal(dim(Zmat), c(n * (t - 1), n))
 })
+
+test_that("prepare_data(fill = NA) keeps the missingness mask", {
+  dat <- make_synth_dat()
+  inv <- create_inventory(flows = dat$flows, stocks = dat$stocks)
+  zero <- prepare_data(flows = dat$flows, stocks = dat$stocks,
+                       inventory = inv, target = "gdp")
+  na <- prepare_data(flows = dat$flows, stocks = dat$stocks,
+                     inventory = inv, target = "gdp", fill = NA)
+
+  expect_equal(dim(na), dim(zero))
+  expect_true(anyNA(na))
+  # the two agree everywhere the zero-coded version is not a missing marker
+  expect_equal(which(is.na(na)), which(zero == 0))
+  expect_equal(na[!is.na(na)], zero[zero != 0])
+})

@@ -62,3 +62,32 @@ withr_defer <- function(expr, envir) {
   do.call(base::on.exit, list(substitute(expr), add = TRUE, after = FALSE),
           envir = envir)
 }
+
+# A single-frequency panel generated from a known number of factors, for the
+# Bai-Ng criteria to recover. All series share the highest frequency on purpose:
+# select_factors() keeps only that block, so a mixed-frequency fixture would
+# silently test a smaller panel than the one generated.
+make_synth_factor_panel <- function(q = 2, n = 20, t = 200, freq = 12,
+                                    noise = 0.5, seed = 11) {
+  set.seed(seed)
+  f <- matrix(0, t, q)
+  for (j in seq_len(q)) {
+    e <- rnorm(t)
+    for (i in 2:t) f[i, j] <- 0.7 * f[i - 1, j] + e[i]
+  }
+  # loadings bounded away from zero on purpose. With lambda ~ N(0, 1) a good
+  # share of the series get a near-zero loading, and standardizing the panel
+  # then blows their idiosyncratic noise up to dominate the column - which puts
+  # heterogeneous, factor-like structure into the residual and makes the
+  # criteria over-select. That is a property of the fixture, not of the code.
+  lambda <- matrix(runif(n * q, 0.4, 1.2) * sample(c(-1, 1), n * q, TRUE), n, q)
+  x <- f %*% t(lambda) + matrix(rnorm(n * t, sd = noise * sqrt(q)), t, n)
+
+  series <- lapply(seq_len(n), function(i)
+    stats::ts(x[, i], start = c(2000, 1), frequency = freq))
+  names(series) <- paste0("x", seq_len(n))
+
+  list(flows = series[seq_len(n %/% 2)],
+       stocks = series[(n %/% 2 + 1):n],
+       factors = stats::ts(f, start = c(2000, 1), frequency = freq))
+}

@@ -25,6 +25,13 @@ fit <- list(nowcast = stats::ts(c(0.3, 0.5), start = 2024, frequency = 4))
 retrieve_nowcast(fit, model = "wai")
 }
 \seealso{
+\code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}}, which is the accessor to reach for with an
+\code{\link[=ind_dfm]{ind_dfm()}} or \code{\link[=fcast_dfm]{fcast_dfm()}} fit in hand: it dispatches on the fit's
+class rather than taking a \code{model} string, and returns the whole nowcast
+path with its credible band. This function exists for the
+\code{\link[=run_ar]{run_ar()}}/\code{\link[=run_wai_adj]{run_wai_adj()}} backcast workflow, which also needs the AR
+benchmark, and returns only the latest value.
+
 Other backcasting functions: 
 \code{\link{retrieve_nowcast_var}()}
 }
