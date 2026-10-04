@@ -38,11 +38,11 @@ per year. Let
   dataset (weekly to quarterly: $k = 12$), with $s = 2(k - 1)$ the
   longest distributed lag any series needs.
 
-Every series other than the target is standardized to mean zero and
+Every series, the target included, is standardized to mean zero and
 unit variance before estimation, so loadings are comparable across
 series; `create_inventory()` records the mean and standard deviation
-used, and the nowcast is converted back to the target's original units
-at the end.
+used, and the nowcast and the factor are converted back to the target's
+original units at the end.
 
 ## The measurement equation
 
@@ -276,7 +276,7 @@ common factors.
 - Bai, J., & Wang, P. (2015) — *Identification and Bayesian estimation
   of dynamic factor models*, Journal of Business & Economic Statistics,
   33(2), 221-240. Factor loading normalization used for identification.
-- Kim, S., Shepherd, N., & Chib, S. (1998) — *Stochastic volatility:
+- Kim, S., Shephard, N., & Chib, S. (1998) — *Stochastic volatility:
   Likelihood inference and comparison with ARCH models*, Review of
   Economic Studies, 65(3), 361-393. Mixture-of-normals approximation
   used to linearize the stochastic volatility measurement equation.
