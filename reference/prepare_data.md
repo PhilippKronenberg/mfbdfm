@@ -10,7 +10,7 @@ sampler).
 ## Usage
 
 ``` r
-prepare_data(flows, stocks, inventory, target)
+prepare_data(flows, stocks, inventory, target, fill = 0)
 ```
 
 ## Arguments
@@ -33,10 +33,18 @@ prepare_data(flows, stocks, inventory, target)
   Character, name of the target series (currently unused here; kept for
   interface stability).
 
+- fill:
+
+  Value written into the unobserved cells of the aligned matrix. The
+  default `0` is what the samplers expect and encodes "missing". Pass
+  `NA` to keep the missingness mask instead, which is what
+  [`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
+  needs and no model fit does.
+
 ## Value
 
 A multivariate `ts` at the highest input frequency with one column per
-series; missing values are encoded as `0`.
+series; missing values are encoded as `fill` (`0` by default).
 
 ## See also
 

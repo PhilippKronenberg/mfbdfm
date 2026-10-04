@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>mfbdfm: A Mixed-Frequency Bayesian Dynamic Factor Model • mfbdfm</title>
+<title>Get started with mfbdfm • mfbdfm</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="mfbdfm: A Mixed-Frequency Bayesian Dynamic Factor Model">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Get started with mfbdfm">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mfbdfm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,6 +31,12 @@
       <ul class="navbar-nav me-auto">
 <li class="active nav-item"><a class="nav-link" href="../articles/mfbdfm.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="../articles/methodology.html">The model behind mfbdfm</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -51,10 +57,10 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>mfbdfm: A Mixed-Frequency Bayesian Dynamic Factor Model</h1>
+      <h1>Get started with mfbdfm</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/v0.1.0/vignettes/mfbdfm.Rmd" class="external-link"><code>vignettes/mfbdfm.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/main/vignettes/mfbdfm.Rmd" class="external-link"><code>vignettes/mfbdfm.Rmd</code></a></small>
       <div class="d-none name"><code>mfbdfm.Rmd</code></div>
     </div>
 
@@ -63,189 +69,517 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/PhilippKronenberg/mfbdfm" class="external-link">mfbdfm</a></span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
-<h2 id="what-is-mfbdfm">What is mfbdfm?<a class="anchor" aria-label="anchor" href="#what-is-mfbdfm"></a>
+<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p><code>mfbdfm</code> estimates a Bayesian mixed-frequency dynamic
-factor model: a single dynamic factor extracted from indicators observed
-at different frequencies, optionally anchored to a target series so the
-factor is directly interpretable as that series’ growth rate rather than
-a generic activity index. The package ships a flagship application, the
-<strong>Weekly Activity Index (WAI)</strong>, a high-frequency GDP
-indicator for Switzerland anchored to GDP growth, which this vignette
-uses as the worked example throughout. WAI is built to combine two kinds
-of data:</p>
-<ul>
-<li>
-<strong>Conventional macroeconomic indicators</strong> — surveys,
-prices, trade, purchasing manager indices — published monthly or
-quarterly, and</li>
-<li>
-<strong>Alternative high-frequency data</strong> — payment and
-transaction volumes, mobility indicators, search-trend indices, traffic
-and flight counts — available daily or weekly, often with very short
-histories and irregular publication lags.</li>
-</ul>
-<p>Unlike unsupervised approaches that extract a factor from
-high-frequency data alone (e.g. principal components), the WAI is
-<em>supervised</em>: an identification restriction anchors the factor to
-observed GDP growth, so it is a direct high-frequency proxy for GDP
-rather than a generic activity index that merely correlates with it.</p>
-<p>The methodology, full empirical results, and a real-time forecast
-evaluation are described in Kronenberg (2026); see <code><a href="../reference/mfbdfm-package.html">?mfbdfm</a></code>
-for the full citation and the underlying multi-factor framework of
-Eckert, Kronenberg, Mikosch &amp; Neuwirth (2025). This vignette covers
-the package’s user-facing workflow only.</p>
+<p><code>mfbdfm</code> combines indicators observed at different
+frequencies — weekly, monthly, quarterly — into a single high-frequency
+activity factor, and can anchor that factor to a low-frequency target
+series so it reads directly as the target’s growth rate. The package
+ships a flagship application, the <strong>Weekly Activity Index
+(WAI)</strong>, a weekly GDP indicator for Switzerland, which this
+vignette uses as the worked example throughout.</p>
+<p>This vignette is purely applied: it walks the workflow from data to
+nowcast and does not state the model. For the measurement and state
+equations, the mixed-frequency aggregation weights, identification and
+stochastic volatility, see
+<code><a href="../articles/methodology.html">vignette("methodology", package = "mfbdfm")</a></code>. The full
+empirical results and a real-time forecast evaluation are in Kronenberg
+(2026); see <code><a href="../reference/mfbdfm-package.html">?mfbdfm</a></code> for the citation and for the underlying
+multi-factor framework of Eckert, Kronenberg, Mikosch &amp; Neuwirth
+(2025).</p>
 </div>
 <div class="section level2">
-<h2 id="the-model-briefly">The model, briefly<a class="anchor" aria-label="anchor" href="#the-model-briefly"></a>
+<h2 id="glossary">Glossary<a class="anchor" aria-label="anchor" href="#glossary"></a>
 </h2>
-<p><code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> estimates a single latent weekly factor
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>f</mi><mi>t</mi></msub><annotation encoding="application/x-tex">f_t</annotation></semantics></math>
-whose (distributed-lag, temporally aggregated) measurement equation
-links it to every input series, and whose autoregressive state equation
-includes <strong>stochastic volatility</strong> so the variance of
-common shocks can rise during crises instead of being smoothed away.
-Three features make this work with real-world mixed-frequency data:</p>
+<p>The package’s documentation uses the vocabulary of Bayesian dynamic
+factor models throughout. Each term below means exactly this, everywhere
+in <code>mfbdfm</code>.</p>
+<p><strong>Model structure</strong></p>
 <ul>
 <li>
-<strong>Data augmentation</strong> treats missing and
-lower-frequency observations as latent states, so a series that starts
-in 2020 and updates weekly, another that starts in 1990 and updates
-monthly, and quarterly GDP itself can all enter the same state-space
-model.</li>
+<strong>Mixed frequency</strong> — input series observed at
+different sampling intervals (here weekly, monthly, quarterly) entering
+one model without first being aggregated to the slowest of them.
+Internally everything is placed on a common 48-periods-per-year weekly
+grid.</li>
 <li>
-<strong>Stochastic volatility</strong> in the factor state equation
-lets abrupt swings (e.g. the COVID-19 pandemic) show up as genuinely
-higher volatility rather than being averaged away.</li>
+<strong>Factor</strong>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>f</mi><mi>t</mi></msub><annotation encoding="application/x-tex">f_t</annotation></semantics></math>)
+— the single unobserved (latent) weekly series that the model extracts
+as the common movement shared by all input series. In
+<code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> it is reported as an <em>annualised growth
+rate</em>, not as a level.</li>
 <li>
-<strong>Quasi-differencing</strong> of the measurement equation
-removes serial correlation in each series’ idiosyncratic errors, so
-persistent indicator-specific noise doesn’t get misattributed to the
-common factor.</li>
+<strong>Loading</strong>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>λ</mi><mi>i</mi></msub><annotation encoding="application/x-tex">\lambda_i</annotation></semantics></math>)
+— the coefficient linking series
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
+to the factor in the measurement equation: how strongly, and with what
+sign, that series responds to a one-unit move in the factor.</li>
+<li>
+<strong>Measurement equation</strong> — the equation linking each
+observed series to the factor, its distributed lags, and a
+series-specific <em>idiosyncratic</em> error. <strong>State
+equation</strong> — the autoregressive equation governing how the factor
+itself evolves through time.</li>
+<li>
+<strong>Flow versus stock</strong> — a <em>flow</em> variable
+accumulates within a period (GDP, exports), so its low-frequency value
+aggregates the weekly values inside it; a <em>stock</em> variable is a
+snapshot (a survey balance, an index level). The classification selects
+the temporal-aggregation weights, so it changes results.</li>
+<li>
+<strong>Temporal aggregation</strong> — the arithmetic that relates
+a low-frequency observation to the weekly factor values covering the
+same span; flows use the geometric-mean approximation of Mariano and
+Murasawa (2003).</li>
+<li>
+<strong>Data augmentation</strong> — treating unobserved values
+(missing entries, and the weekly values of a series that is only
+published monthly or quarterly) as additional unknowns sampled alongside
+the parameters, rather than imputing or discarding them.</li>
+<li>
+<strong>Quasi-differencing</strong> — transforming the measurement
+equation by each series’ own estimated error autocorrelation, so that
+serially correlated idiosyncratic noise is not misread as a movement in
+the common factor (Chib and Greenberg, 1994).</li>
+<li>
+<strong>Stochastic volatility</strong> — letting the variance of the
+factor’s innovations vary over time as its own latent process, so a
+crisis shows up as a genuinely higher variance rather than as a string
+of implausible draws under a constant variance.</li>
+<li>
+<strong>Identification</strong> — resolving the fact that a factor
+model cannot distinguish
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>f</mi><mi>t</mi></msub><mo>,</mo><mi>λ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(f_t, \lambda)</annotation></semantics></math>
+from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>c</mi><msub><mi>f</mi><mi>t</mi></msub><mo>,</mo><mi>λ</mi><mi>/</mi><mi>c</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(c f_t, \lambda / c)</annotation></semantics></math>:
+the likelihood is unchanged, so something must pin the scale (and sign).
+<code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> pins it by fixing the loading on the
+<strong>target</strong> series to one during sampling;
+<code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> leaves the loadings free and resolves the
+indeterminacy after sampling by rotation.</li>
+<li>
+<strong>Target / anchoring</strong> — the series whose loading is
+fixed to one in <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> (for the WAI, quarterly real
+GDP). Anchoring is what makes the extracted factor interpretable as that
+series’ growth rate at weekly frequency, rather than a generic index
+that merely correlates with it. In <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> the
+<code>target</code> argument does <strong>not</strong> affect
+estimation; it only selects which series’ nowcast is surfaced.</li>
+<li>
+<strong>Common component</strong> — loadings times factors,
+temporally aggregated: the part of a series the factor explains, as
+opposed to its idiosyncratic part.</li>
 </ul>
-<p>Identification fixes the factor’s loading on the target series (GDP)
-to one and shrinks its measurement error toward zero, so the factor
-tracks GDP growth closely by construction — see <code><a href="../reference/ind_dfm.html">?ind_dfm</a></code>
-for the details and references, and <code><a href="../articles/mfbdfm.html">vignette("mfbdfm")</a></code>’s
-“Real-time GDP vintages” section below for how the target series itself
-is constructed for live use.</p>
+<p><strong>Estimation</strong></p>
+<ul>
+<li>
+<strong>Prior</strong> — the distribution expressing what is assumed
+about a parameter before seeing the data; <strong>posterior</strong> —
+the distribution of that parameter after conditioning on the data.
+<code><a href="../reference/dfm_priors.html">dfm_priors()</a></code> builds the former; every value in a fitted
+object is a summary of the latter.</li>
+<li>
+<strong>Hyperparameter</strong> — in this package the term is
+avoided. The numbers passed through <code><a href="../reference/dfm_priors.html">dfm_priors()</a></code> are the
+<em>parameters of the prior distributions</em> (e.g. the shape and scale
+of an inverse-gamma prior on a variance), and are called prior
+parameters. Settings that control the sampler rather than the model —
+stability bounds, rotation tolerances — are <strong>not</strong> priors
+and live in <code><a href="../reference/dfm_control.html">dfm_control()</a></code>.</li>
+<li>
+<strong>Gibbs sampling</strong> — the Markov chain Monte Carlo
+scheme used here: each block of unknowns is drawn in turn from its
+distribution conditional on the current value of all the others, and the
+chain of such sweeps converges on the joint posterior.</li>
+<li>
+<strong>Draw</strong> — one complete sweep of the sampler, i.e. one
+sample from the posterior. <strong>Burn-in</strong>
+(<code>burn_in</code>) — the initial draws discarded, before the chain
+has reached its stationary distribution. <strong>Thinning</strong>
+(<code>thinning</code>) — keeping only every
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>-th
+retained draw, to reduce the autocorrelation between stored draws.
+<code>length_sample</code> is the number of draws kept <em>after</em>
+burn-in.</li>
+<li>
+<strong>Posterior mean / posterior variance</strong> — the average
+and the variance of a quantity across the retained draws.
+<code>fit$factor</code> and <code>fit$nowcast</code> are posterior
+means; <code>fit$factor_var</code> and <code>fit$nowcast_var</code> the
+matching variances.</li>
+<li>
+<strong>Standardisation</strong> — rescaling every input series, the
+target included, to mean zero and unit variance before estimation, so
+loadings are comparable and no series dominates through its units alone.
+<code><a href="../reference/prepare_data.html">prepare_data()</a></code> does this, and the nowcast is converted back
+to the target’s own units afterwards; note that in the prepared matrix a
+<code>0</code> encodes <em>missing</em>, not the mean.</li>
+</ul>
+<p><strong>Output</strong></p>
+<ul>
+<li>
+<strong>Nowcast</strong> — an estimate of the current period’s value
+of a series that has not yet been published (quarterly GDP, weeks before
+its release). <strong>Backcast</strong> — the same for a period that is
+already over but still unpublished. <strong>Forecast</strong> — a period
+that has not yet ended. All three come out of the same smoothed state
+here; they differ only in where the estimated period sits relative to
+the data.</li>
+<li>
+<strong>Vintage</strong> — the version of a series as it stood at a
+given past date, before subsequent revisions. Real-time evaluation uses
+the vintage that was actually available at each decision date, which is
+what <code><a href="../reference/get_real_time_gdp_vintages.html">get_real_time_gdp_vintages()</a></code> and
+<code><a href="../reference/cut_data_real_time.html">cut_data_real_time()</a></code> supply.</li>
+<li>
+<strong>Index</strong> — the cumulated level path implied by the
+factor’s growth rates (<code>fit$index</code>), as opposed to the growth
+rate itself.</li>
+</ul>
 </div>
 <div class="section level2">
-<h2 id="a-minimal-worked-example">A minimal worked example<a class="anchor" aria-label="anchor" href="#a-minimal-worked-example"></a>
+<h2 id="the-data">The data<a class="anchor" aria-label="anchor" href="#the-data"></a>
 </h2>
-<p>The package ships a curated, model-ready dataset,
-<code>data_ch_dataset_test</code>, so a small demonstration model can be
-estimated without any external data. Real analyses use the full
-indicator set and a much longer chain (the accompanying paper uses
-<code>length_sample = 5000</code> after a burn-in of 1000); here we use
-a tiny subset and a short chain purely so this vignette builds
-quickly.</p>
+<p>Three datasets ship with the package.
+<code>mfbdfm_example_data</code> is the one used here: eight series —
+quarterly GDP plus seven indicators at monthly and weekly frequency —
+that already include the GDP target. It is a ready
+<code><a href="../reference/mfbdfm_data.html">mfbdfm_data()</a></code> object (see “Bringing your own data” below),
+so it carries its own target and its own flow/stock classification, and
+prints what it contains:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">target</span> <span class="op">&lt;-</span> <span class="st">"ch.seco.gdp.real.gdp.ssa"</span></span>
-<span><span class="va">flows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span></span>
-<span>  <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span>, <span class="st">"traffic_PW"</span><span class="op">)</span><span class="op">]</span>,</span>
-<span>  <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2018</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">stocks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span>, <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2018</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ind_dfm.html">ind_dfm</a></span><span class="op">(</span></span>
-<span>  flows <span class="op">=</span> <span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">stocks</span>, target <span class="op">=</span> <span class="va">target</span>,</span>
-<span>  length_sample <span class="op">=</span> <span class="fl">200</span>, burn_in <span class="op">=</span> <span class="fl">50</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; preallocating..</span></span>
-<span><span class="co">#&gt; simulating posterior distribution..</span></span>
-<span><span class="co">#&gt;   |                                                                              |                                                                      |   0%  |                                                                              |=                                                                     |   1%  |                                                                              |=                                                                     |   2%  |                                                                              |==                                                                    |   2%  |                                                                              |==                                                                    |   3%  |                                                                              |===                                                                   |   4%  |                                                                              |===                                                                   |   5%  |                                                                              |====                                                                  |   5%  |                                                                              |====                                                                  |   6%  |                                                                              |=====                                                                 |   7%  |                                                                              |=====                                                                 |   8%  |                                                                              |======                                                                |   8%  |                                                                              |======                                                                |   9%  |                                                                              |=======                                                               |  10%  |                                                                              |========                                                              |  11%  |                                                                              |========                                                              |  12%  |                                                                              |=========                                                             |  12%  |                                                                              |=========                                                             |  13%  |                                                                              |==========                                                            |  14%  |                                                                              |==========                                                            |  15%  |                                                                              |===========                                                           |  15%  |                                                                              |===========                                                           |  16%  |                                                                              |============                                                          |  17%  |                                                                              |============                                                          |  18%  |                                                                              |=============                                                         |  18%  |                                                                              |=============                                                         |  19%  |                                                                              |==============                                                        |  20%  |                                                                              |===============                                                       |  21%  |                                                                              |===============                                                       |  22%  |                                                                              |================                                                      |  22%  |                                                                              |================                                                      |  23%  |                                                                              |=================                                                     |  24%  |                                                                              |=================                                                     |  25%  |                                                                              |==================                                                    |  25%  |                                                                              |==================                                                    |  26%  |                                                                              |===================                                                   |  27%  |                                                                              |===================                                                   |  28%  |                                                                              |====================                                                  |  28%  |                                                                              |====================                                                  |  29%  |                                                                              |=====================                                                 |  30%  |                                                                              |======================                                                |  31%  |                                                                              |======================                                                |  32%  |                                                                              |=======================                                               |  32%  |                                                                              |=======================                                               |  33%  |                                                                              |========================                                              |  34%  |                                                                              |========================                                              |  35%  |                                                                              |=========================                                             |  35%  |                                                                              |=========================                                             |  36%  |                                                                              |==========================                                            |  37%  |                                                                              |==========================                                            |  38%  |                                                                              |===========================                                           |  38%  |                                                                              |===========================                                           |  39%  |                                                                              |============================                                          |  40%  |                                                                              |=============================                                         |  41%  |                                                                              |=============================                                         |  42%  |                                                                              |==============================                                        |  42%  |                                                                              |==============================                                        |  43%  |                                                                              |===============================                                       |  44%  |                                                                              |===============================                                       |  45%  |                                                                              |================================                                      |  45%  |                                                                              |================================                                      |  46%  |                                                                              |=================================                                     |  47%  |                                                                              |=================================                                     |  48%  |                                                                              |==================================                                    |  48%  |                                                                              |==================================                                    |  49%  |                                                                              |===================================                                   |  50%  |                                                                              |====================================                                  |  51%  |                                                                              |====================================                                  |  52%  |                                                                              |=====================================                                 |  52%  |                                                                              |=====================================                                 |  53%  |                                                                              |======================================                                |  54%  |                                                                              |======================================                                |  55%  |                                                                              |=======================================                               |  55%  |                                                                              |=======================================                               |  56%  |                                                                              |========================================                              |  57%  |                                                                              |========================================                              |  58%  |                                                                              |=========================================                             |  58%  |                                                                              |=========================================                             |  59%  |                                                                              |==========================================                            |  60%  |                                                                              |===========================================                           |  61%  |                                                                              |===========================================                           |  62%  |                                                                              |============================================                          |  62%  |                                                                              |============================================                          |  63%  |                                                                              |=============================================                         |  64%  |                                                                              |=============================================                         |  65%  |                                                                              |==============================================                        |  65%  |                                                                              |==============================================                        |  66%  |                                                                              |===============================================                       |  67%  |                                                                              |===============================================                       |  68%  |                                                                              |================================================                      |  68%  |                                                                              |================================================                      |  69%  |                                                                              |=================================================                     |  70%  |                                                                              |==================================================                    |  71%  |                                                                              |==================================================                    |  72%  |                                                                              |===================================================                   |  72%  |                                                                              |===================================================                   |  73%  |                                                                              |====================================================                  |  74%  |                                                                              |====================================================                  |  75%  |                                                                              |=====================================================                 |  75%  |                                                                              |=====================================================                 |  76%  |                                                                              |======================================================                |  77%  |                                                                              |======================================================                |  78%  |                                                                              |=======================================================               |  78%  |                                                                              |=======================================================               |  79%  |                                                                              |========================================================              |  80%  |                                                                              |=========================================================             |  81%  |                                                                              |=========================================================             |  82%  |                                                                              |==========================================================            |  82%  |                                                                              |==========================================================            |  83%  |                                                                              |===========================================================           |  84%  |                                                                              |===========================================================           |  85%  |                                                                              |============================================================          |  85%  |                                                                              |============================================================          |  86%  |                                                                              |=============================================================         |  87%  |                                                                              |=============================================================         |  88%  |                                                                              |==============================================================        |  88%  |                                                                              |==============================================================        |  89%  |                                                                              |===============================================================       |  90%  |                                                                              |================================================================      |  91%  |                                                                              |================================================================      |  92%  |                                                                              |=================================================================     |  92%  |                                                                              |=================================================================     |  93%  |                                                                              |==================================================================    |  94%  |                                                                              |==================================================================    |  95%  |                                                                              |===================================================================   |  95%  |                                                                              |===================================================================   |  96%  |                                                                              |====================================================================  |  97%  |                                                                              |====================================================================  |  98%  |                                                                              |===================================================================== |  98%  |                                                                              |===================================================================== |  99%  |                                                                              |======================================================================| 100%</span></span>
-<span><span class="co">#&gt; processing output..</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "ind_dfm"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1] "factor"         "factor_var"     "index"          "nowcast"       </span></span>
-<span><span class="co">#&gt;  [5] "nowcast_var"    "target"         "pars"           "data"          </span></span>
-<span><span class="co">#&gt;  [9] "data_raw"       "data_augmented" "inventory"      "call"</span></span></code></pre></div>
-<p><code>fit$factor</code> is the annualized weekly growth rate implied
-by the model — the WAI itself — and <code>fit$nowcast</code> is that
-same information aggregated back up to the target’s own (here quarterly)
-frequency:</p>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">mfbdfm_example_data</span><span class="op">)</span></span>
+<span><span class="va">mfbdfm_example_data</span></span>
+<span><span class="co">#&gt; &lt;mfbdfm_data&gt;  8 series  (6 flow, 2 stock)</span></span>
+<span><span class="co">#&gt; target: ch.seco.gdp.real.gdp.ssa</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   by frequency:</span></span>
+<span><span class="co">#&gt;         4   1 flow   0 stock</span></span>
+<span><span class="co">#&gt;        12   2 flow   1 stock</span></span>
+<span><span class="co">#&gt;        48   3 flow   1 stock   &lt;- highest; flow/stock has no effect here</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   series (first 10):</span></span>
+<span><span class="co">#&gt;     ch.fso.rtt.ind.r.noga0801.sa flow   freq   12  n   133</span></span>
+<span><span class="co">#&gt;     ch.ozd.e.wa.index.re.d11     flow   freq   12  n   131</span></span>
+<span><span class="co">#&gt;     SWPMIPROQ                    stock  freq   12  n   134</span></span>
+<span><span class="co">#&gt;     SWISSMI                      flow   freq   48  n   538</span></span>
+<span><span class="co">#&gt;     traffic_PW                   flow   freq   48  n   532</span></span>
+<span><span class="co">#&gt;     electricity_out              flow   freq   48  n   529</span></span>
+<span><span class="co">#&gt;     Arbeitsmarkt                 stock  freq   48  n   541</span></span>
+<span><span class="co">#&gt;     ch.seco.gdp.real.gdp.ssa     flow   freq    4  n    44</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Pass to ind_dfm() or fcast_dfm() as the first argument.</span></span></code></pre></div>
+<p><code>data_ch_dataset</code> is the full curated indicator set and
+deliberately does <strong>not</strong> contain GDP — real analyses
+inject it at runtime from the real-time vintage database (see “Mixed
+frequency and real-time vintages” below).
+<code>data_ch_dataset_test</code> is a variant that includes it.</p>
+<p>The flow/stock split matters: whether a series is a <em>flow</em> or
+a <em>stock</em> selects its temporal aggregation weights, so
+misclassifying a series changes the results.</p>
+</div>
+<div class="section level2">
+<h2 id="fitting-the-model">Fitting the model<a class="anchor" aria-label="anchor" href="#fitting-the-model"></a>
+</h2>
+<p>Real analyses use the full indicator set and a much longer chain —
+the accompanying paper uses <code>length_sample = 5000</code> after a
+burn-in of 1000 — whereas here the eight example series and 2000
+retained draws after a burn-in of 500 are used. This vignette is
+<em>precomputed</em>: the fits below were run once when it was written,
+so the output is real rather than illustrative, and
+<code>R CMD check</code> does not re-run them (see
+<code>vignettes/precompile.R</code> in the source repository).</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">factor</span>, ylab <span class="op">=</span> <span class="st">"WAI (annualized %, weekly)"</span>, xlab <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mfbdfm_files/figure-html/plot-factor-1.png" class="r-plt" alt="" width="576"></p>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ind_dfm.html">ind_dfm</a></span><span class="op">(</span><span class="va">mfbdfm_example_data</span>, length_sample <span class="op">=</span> <span class="fl">2000</span>, burn_in <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></code></pre></div>
+<p>Because the object carries <code>target</code>, there is no
+<code>target =</code> argument at the call site:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">nowcast</span></span>
-<span><span class="co">#&gt;              Qtr1         Qtr2         Qtr3         Qtr4</span></span>
-<span><span class="co">#&gt; 2018  0.010358258  0.007347781 -0.001407579  0.005268532</span></span>
-<span><span class="co">#&gt; 2019  0.002011808  0.006503894  0.003023009  0.001999370</span></span>
-<span><span class="co">#&gt; 2020 -0.010753651 -0.065794476  0.059015689  0.009101004</span></span>
-<span><span class="co">#&gt; 2021  0.005967472  0.025366943  0.019780739  0.010104565</span></span>
-<span><span class="co">#&gt; 2022  0.002357652  0.006806208  0.004997186  0.002075334</span></span>
-<span><span class="co">#&gt; 2023  0.006192212 -0.003620587  0.004556616  0.003672437</span></span>
-<span><span class="co">#&gt; 2024 -0.001181404  0.007846092  0.002901754  0.005175476</span></span>
-<span><span class="co">#&gt; 2025  0.007858613  0.001230707 -0.004400680  0.001506296</span></span></code></pre></div>
-<p><code>fit$index</code> gives the cumulated activity level (rebased to
-100 at the start of the estimation window), and <code>fit$pars</code>
-holds the posterior means of the model parameters, including the factor
-loadings (<code>fit$pars$lambda</code>) — the target series’ loading is
-fixed at 1 by construction:</p>
+<code class="sourceCode R"><span><span class="va">target</span> <span class="op">&lt;-</span> <span class="va">mfbdfm_example_data</span><span class="op">$</span><span class="va">target</span></span>
+<span><span class="va">target</span></span>
+<span><span class="co">#&gt; [1] "ch.seco.gdp.real.gdp.ssa"</span></span></code></pre></div>
+<p>Printing the fit gives the shape of the model and the most recent
+nowcasts:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">pars</span><span class="op">$</span><span class="va">lambda</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">inventory</span><span class="op">$</span><span class="va">key</span> <span class="op">==</span> <span class="va">target</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt; [1] 1</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">fit</span></span>
+<span><span class="co">#&gt; Single-factor mixed-frequency dynamic factor model (Kronenberg 2026)</span></span>
+<span><span class="co">#&gt; Call: ind_dfm(flows = mfbdfm_example_data, length_sample = 2000, burn_in = 500)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   series (n) : 8</span></span>
+<span><span class="co">#&gt;   periods (t): 541</span></span>
+<span><span class="co">#&gt;   target     : ch.seco.gdp.real.gdp.ssa</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   Most recent nowcasts for ch.seco.gdp.real.gdp.ssa:</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;         time      nowcast</span></span>
+<span><span class="co">#&gt;     2024.250      0.00785</span></span>
+<span><span class="co">#&gt;     2024.500      0.00290</span></span>
+<span><span class="co">#&gt;     2024.750      0.00518</span></span>
+<span><span class="co">#&gt;     2025.000      0.00786</span></span>
+<span><span class="co">#&gt;     2025.250      0.00123</span></span>
+<span><span class="co">#&gt;     2025.500     -0.00440</span></span>
+<span><span class="co">#&gt;     2025.750      0.00151</span></span>
+<span><span class="co">#&gt;     2026.000      0.01136</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Full results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),</span></span>
+<span><span class="co">#&gt; summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),</span></span>
+<span><span class="co">#&gt; logLik()</span></span>
+<span><span class="co">#&gt; Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),</span></span>
+<span><span class="co">#&gt; mfbdfm_table_nowcast()</span></span></code></pre></div>
+<p><code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> adds the posterior loadings and
+measurement-error variances, each with a 95% interval, the residual fit
+on the observed entries, and a per-series R-squared of the common
+component. The target’s loading is fixed at 1 by construction — that
+restriction is what makes the factor a GDP growth rate rather than a
+generic index — and its measurement error is shrunk toward zero, which
+is also why its own R-squared is close to one by construction rather
+than as a finding:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Single-factor mixed-frequency dynamic factor model (Kronenberg 2026)</span></span>
+<span><span class="co">#&gt; Call: ind_dfm(flows = mfbdfm_example_data, length_sample = 2000, burn_in = 500)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   series (n) : 8</span></span>
+<span><span class="co">#&gt;   factors (q): 1</span></span>
+<span><span class="co">#&gt;   periods (t): 541</span></span>
+<span><span class="co">#&gt;   target     : ch.seco.gdp.real.gdp.ssa</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Factor loadings (posterior mean, 95% interval):</span></span>
+<span><span class="co">#&gt;                         series   mean     sd   lower  upper</span></span>
+<span><span class="co">#&gt; 1 ch.fso.rtt.ind.r.noga0801.sa 0.3244 0.1963 -0.0673 0.7037</span></span>
+<span><span class="co">#&gt; 2     ch.ozd.e.wa.index.re.d11 0.6120 0.1560  0.3256 0.9395</span></span>
+<span><span class="co">#&gt; 3                      SWISSMI 0.2065 0.1702 -0.1216 0.5389</span></span>
+<span><span class="co">#&gt; 4                   traffic_PW 0.9686 0.1856  0.6047 1.3338</span></span>
+<span><span class="co">#&gt; 5              electricity_out 0.1815 0.1677 -0.1481 0.5135</span></span>
+<span><span class="co">#&gt; 6     ch.seco.gdp.real.gdp.ssa 1.0000 0.0000  1.0000 1.0000</span></span>
+<span><span class="co">#&gt; 7                    SWPMIPROQ 0.7955 0.2203  0.3715 1.2365</span></span>
+<span><span class="co">#&gt; 8                 Arbeitsmarkt 0.5126 0.1244  0.2705 0.7544</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Measurement error variance (posterior mean, 95% interval):</span></span>
+<span><span class="co">#&gt;                         series   mean     sd  lower  upper</span></span>
+<span><span class="co">#&gt; 1 ch.fso.rtt.ind.r.noga0801.sa 0.8751 0.1174 0.6720 1.1330</span></span>
+<span><span class="co">#&gt; 2     ch.ozd.e.wa.index.re.d11 0.8116 0.1039 0.6219 1.0258</span></span>
+<span><span class="co">#&gt; 3                      SWISSMI 0.8326 0.0511 0.7412 0.9444</span></span>
+<span><span class="co">#&gt; 4                   traffic_PW 0.7195 0.0445 0.6364 0.8095</span></span>
+<span><span class="co">#&gt; 5              electricity_out 0.9736 0.0638 0.8582 1.1036</span></span>
+<span><span class="co">#&gt; 6     ch.seco.gdp.real.gdp.ssa 0.0010 0.0001 0.0009 0.0011</span></span>
+<span><span class="co">#&gt; 7                    SWPMIPROQ 0.0855 0.0116 0.0664 0.1117</span></span>
+<span><span class="co">#&gt; 8                 Arbeitsmarkt 0.3106 0.0196 0.2741 0.3523</span></span>
+<span><span class="co">#&gt;   (the measurement error sd is the square root of `mean`)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Fit to observed data:</span></span>
+<span><span class="co">#&gt;   observed values: 2582</span></span>
+<span><span class="co">#&gt;   residual RMSE  : 6.915e-07 (standardized scale)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; R-squared of the common component, by series:</span></span>
+<span><span class="co">#&gt;   series                                  freq  n_obs R-squared</span></span>
+<span><span class="co">#&gt;   ch.seco.gdp.real.gdp.ssa                   4     44     1.000</span></span>
+<span><span class="co">#&gt;   ch.ozd.e.wa.index.re.d11                  12    131     0.137</span></span>
+<span><span class="co">#&gt;   traffic_PW                                48    532     0.116</span></span>
+<span><span class="co">#&gt;   Arbeitsmarkt                              48    541     0.065</span></span>
+<span><span class="co">#&gt;   ch.fso.rtt.ind.r.noga0801.sa              12    133     0.057</span></span>
+<span><span class="co">#&gt;   SWPMIPROQ                                 12    134     0.052</span></span>
+<span><span class="co">#&gt;   SWISSMI                                   48    538     0.008</span></span>
+<span><span class="co">#&gt;   electricity_out                           48    529     0.002</span></span>
+<span><span class="co">#&gt;   Note: the target's loading is fixed to 1 and its measurement error</span></span>
+<span><span class="co">#&gt;   shrunk towards zero to identify the factor, so its R-squared is ~1</span></span>
+<span><span class="co">#&gt;   by construction rather than as a finding.</span></span></code></pre></div>
+<p>The standard extractors all work. <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> returns the
+loadings, <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> gives a tidy frame of the factor
+and its band, and <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>/<code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> return
+the augmented dataset and its residuals with missing observations
+masked. For tables with posterior uncertainty, ready for a report, see
+<code><a href="../reference/mfbdfm_table_loadings.html">mfbdfm_table_loadings()</a></code>,
+<code><a href="../reference/mfbdfm_table_parameters.html">mfbdfm_table_parameters()</a></code> and
+<code><a href="../reference/mfbdfm_table_nowcast.html">mfbdfm_table_nowcast()</a></code>:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; ch.fso.rtt.ind.r.noga0801.sa     ch.ozd.e.wa.index.re.d11 </span></span>
+<span><span class="co">#&gt;                        0.324                        0.612 </span></span>
+<span><span class="co">#&gt;                      SWISSMI                   traffic_PW </span></span>
+<span><span class="co">#&gt;                        0.206                        0.969 </span></span>
+<span><span class="co">#&gt;              electricity_out     ch.seco.gdp.real.gdp.ssa </span></span>
+<span><span class="co">#&gt;                        0.181                        1.000 </span></span>
+<span><span class="co">#&gt;                    SWPMIPROQ                 Arbeitsmarkt </span></span>
+<span><span class="co">#&gt;                        0.795                        0.513</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       time    factor factor_lower factor_upper</span></span>
+<span><span class="co">#&gt; 1 2015.000 -1.297848    -6.845525     4.249828</span></span>
+<span><span class="co">#&gt; 2 2015.021 -1.719795    -7.520727     4.081138</span></span>
+<span><span class="co">#&gt; 3 2015.042 -1.535142    -7.630262     4.559978</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="looking-at-the-fit">Looking at the fit<a class="anchor" aria-label="anchor" href="#looking-at-the-fit"></a>
+</h2>
+<p><code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> takes a <code>type</code> argument and returns a
+<strong>ggplot</strong> object, so any view can be modified before it is
+printed. The available views are <code>"factor"</code> (the default),
+<code>"nowcast"</code>, <code>"loadings"</code>,
+<code>"residuals"</code>, <code>"volatility"</code> and
+<code>"fit"</code>; they are the same for both model entry points. The
+default is the factor — the WAI itself, an annualized weekly growth rate
+— with a 95% posterior credible band:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<div class="float">
+<img src="mfbdfm-plot-factor-1.png" alt="plot of chunk plot-factor"><div class="figcaption">plot of chunk plot-factor</div>
+</div>
+<p>The nowcast view puts the target’s own observations on top of the
+model’s estimate of them:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"nowcast"</span><span class="op">)</span></span></code></pre></div>
+<div class="float">
+<img src="mfbdfm-plot-nowcast-1.png" alt="plot of chunk plot-nowcast"><div class="figcaption">plot of chunk plot-nowcast</div>
+</div>
+<p>The loadings view shows how strongly each series is tied to the
+factor, with a 95% posterior interval. The target’s loading is the fixed
+1 that identifies the model:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"loadings"</span><span class="op">)</span></span></code></pre></div>
+<div class="float">
+<img src="mfbdfm-plot-loadings-1.png" alt="plot of chunk plot-loadings"><div class="figcaption">plot of chunk plot-loadings</div>
+</div>
+<p>The volatility view is the posterior mean of <code>exp(h)</code>, the
+standard deviation of the factor innovation — this is what lets the
+model absorb a crisis instead of smearing it across the whole
+sample:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"volatility"</span><span class="op">)</span></span></code></pre></div>
+<div class="float">
+<img src="mfbdfm-plot-volatility-1.png" alt="plot of chunk plot-volatility"><div class="figcaption">plot of chunk plot-volatility</div>
+</div>
+<p><code>"residuals"</code> and <code>"fit"</code> compare each series
+with its <strong>common component</strong> — loadings times factors, the
+part the factor explains — so they show how much of a series the factor
+accounts for. They draw one panel per series and accept a
+<code>series</code> argument to pick a few, which matters once the
+dataset is the full several dozen series rather than the handful used
+here:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"fit"</span>, series <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"GDP and the SMI against the common component"</span><span class="op">)</span></span></code></pre></div>
+<div class="float">
+<img src="mfbdfm-plot-fit-1.png" alt="plot of chunk plot-fit"><div class="figcaption">plot of chunk plot-fit</div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="nowcasts">Nowcasts<a class="anchor" aria-label="anchor" href="#nowcasts"></a>
+</h2>
+<p><code>fit$nowcast</code> is the factor’s information at the target’s
+own (here quarterly) frequency, back in the target’s original units.
+<code><a href="../reference/mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code> is the accessor for it, returning the
+nowcasts with a credible band rather than as a bare <code>ts</code>. It
+works the same way for a <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> fit, and
+<code>last = TRUE</code> gives just the current period — the usual
+real-time query:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="../reference/mfbdfm_nowcast.html">mfbdfm_nowcast</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       time      nowcast           sd        lower        upper</span></span>
+<span><span class="co">#&gt; 40 2024.75  0.005175413 4.624780e-07  0.005174507  0.005176320</span></span>
+<span><span class="co">#&gt; 41 2025.00  0.007858623 4.646870e-07  0.007857713  0.007859534</span></span>
+<span><span class="co">#&gt; 42 2025.25  0.001230718 4.541081e-07  0.001229828  0.001231608</span></span>
+<span><span class="co">#&gt; 43 2025.50 -0.004400680 4.662971e-07 -0.004401594 -0.004399767</span></span>
+<span><span class="co">#&gt; 44 2025.75  0.001506242 4.633840e-07  0.001505333  0.001507150</span></span>
+<span><span class="co">#&gt; 45 2026.00  0.011359580 3.461420e-03  0.004575323  0.018143838</span></span>
+<span><span class="fu"><a href="../reference/mfbdfm_nowcast.html">mfbdfm_nowcast</a></span><span class="op">(</span><span class="va">fit</span>, last <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   time    nowcast         sd       lower      upper</span></span>
+<span><span class="co">#&gt; 1 2026 0.01135958 0.00346142 0.004575323 0.01814384</span></span></code></pre></div>
+<p>The band comes from <code>fit$nowcast_var</code>, the posterior
+variance of each nowcast. Note that it is essentially zero in quarters
+where the target is actually observed — the identifying prior shrinks
+the target’s measurement error toward zero, so the model has nothing to
+be uncertain about there. It is informative for the periods the model
+has to fill in, which is where a nowcast interval is wanted anyway.</p>
+<p>There is deliberately no <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> method. The nowcasts
+are computed while the model is fitted, so there is no separate
+prediction step to run on new data, and a <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>
+returning stored values would advertise a capability the model does not
+have.</p>
+<p><code>fit$index</code> is the cumulated activity level, rebased to
+100 at the start of the estimation window — the level counterpart of the
+growth-rate factor:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">index</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Time Series:</span></span>
+<span><span class="co">#&gt; Start = c(2026, 8) </span></span>
+<span><span class="co">#&gt; End = c(2026, 13) </span></span>
+<span><span class="co">#&gt; Frequency = 48 </span></span>
+<span><span class="co">#&gt; [1] 122.16 122.27 122.38 122.49 122.58 122.66</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="bringing-your-own-data">Bringing your own data<a class="anchor" aria-label="anchor" href="#bringing-your-own-data"></a>
 </h2>
-<p>Above, the series were passed as two lists split by type, which is
-what the models use internally. When the data comes from somewhere else
-— a spreadsheet, a database query — <code><a href="../reference/mfbdfm_data.html">mfbdfm_data()</a></code> builds
-that structure from a long or wide data frame, an <code>mts</code>, or a
-list of <code>ts</code>, and takes the flow/stock classification from a
+<p><code>mfbdfm_example_data</code> arrived ready-made. The models
+themselves take <code>flows</code> and <code>stocks</code> as two lists
+split by type; when the data comes from somewhere else — a spreadsheet,
+a database query — <code><a href="../reference/mfbdfm_data.html">mfbdfm_data()</a></code> builds that structure from
+a long or wide data frame, an <code>mts</code>, or a list of
+<code>ts</code>, and takes the flow/stock classification from a
 <code>meta</code> table:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">series</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">]</span>,</span>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">series</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span>, <span class="st">"traffic_PW"</span><span class="op">)</span><span class="op">]</span>,</span>
 <span>            <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">series</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">series</span>, <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2018</span><span class="op">)</span></span>
+<span></span>
 <span><span class="va">meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>series <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">series</span><span class="op">)</span>,</span>
-<span>                   type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"flow"</span>, <span class="st">"stock"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span>                   type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"flow"</span>, <span class="st">"flow"</span>, <span class="st">"flow"</span>, <span class="st">"stock"</span>, <span class="st">"stock"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mfbdfm_data.html">mfbdfm_data</a></span><span class="op">(</span><span class="va">series</span>, <span class="va">meta</span>, target <span class="op">=</span> <span class="va">target</span><span class="op">)</span></span>
 <span><span class="va">d</span></span>
-<span><span class="co">#&gt; &lt;mfbdfm_data&gt;  4 series  (2 flow, 2 stock)</span></span>
+<span><span class="co">#&gt; &lt;mfbdfm_data&gt;  5 series  (3 flow, 2 stock)</span></span>
 <span><span class="co">#&gt; target: ch.seco.gdp.real.gdp.ssa</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   by frequency:</span></span>
 <span><span class="co">#&gt;         4   1 flow   0 stock</span></span>
 <span><span class="co">#&gt;        12   0 flow   2 stock</span></span>
-<span><span class="co">#&gt;        48   1 flow   0 stock   &lt;- highest; flow/stock has no effect here</span></span>
+<span><span class="co">#&gt;        48   2 flow   0 stock   &lt;- highest; flow/stock has no effect here</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   series (first 10):</span></span>
-<span><span class="co">#&gt;     ch.seco.gdp.real.gdp.ssa     flow   freq    4  n   144</span></span>
-<span><span class="co">#&gt;     SWISSMI                      flow   freq   48  n  1738</span></span>
-<span><span class="co">#&gt;     SWCONPRCE                    stock  freq   12  n   434</span></span>
-<span><span class="co">#&gt;     SWPROPRCE                    stock  freq   12  n   433</span></span>
+<span><span class="co">#&gt;     ch.seco.gdp.real.gdp.ssa     flow   freq    4  n    32</span></span>
+<span><span class="co">#&gt;     SWISSMI                      flow   freq   48  n   394</span></span>
+<span><span class="co">#&gt;     traffic_PW                   flow   freq   48  n   388</span></span>
+<span><span class="co">#&gt;     SWCONPRCE                    stock  freq   12  n    98</span></span>
+<span><span class="co">#&gt;     SWPROPRCE                    stock  freq   12  n    97</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Pass to ind_dfm() or fcast_dfm() as the first argument.</span></span></code></pre></div>
-<p>The reason to prefer this over assembling the two lists by hand is
-the printout. Whether a series is a flow or a stock selects its temporal
-aggregation weights, so getting it wrong changes the results — and when
-the type is expressed by <em>which argument the series was passed
-in</em>, there is nothing to inspect. Printing the object shows the
-resolved classification and the frequencies actually in use
-<em>before</em> committing to a run that can take minutes to hours. It
-is then passed as the first argument:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ind_dfm.html">ind_dfm</a></span><span class="op">(</span><span class="va">d</span>, length_sample <span class="op">=</span> <span class="fl">200</span>, burn_in <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span></code></pre></div>
-<p><code>flows</code>/<code>stocks</code> continue to work exactly as
-before; this is an additional entry point, not a replacement.</p>
+<p>The reason to prefer this is the printout. When a series’ type is
+expressed by <em>which argument it was passed in</em>, there is nothing
+to inspect; printing the object shows the resolved classification and
+the frequencies actually in use <strong>before</strong> committing to a
+run that can take minutes to hours. The result is passed to
+<code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> exactly as <code>mfbdfm_example_data</code> was
+above. (<code>flows</code>/<code>stocks</code> still work as a pair of
+lists, if you already have them in that shape; the
+<code>mfbdfm_data</code> argument is an additional entry point, not a
+replacement.)</p>
 </div>
 <div class="section level2">
-<h2 id="real-time-gdp-vintages">Real-time GDP vintages<a class="anchor" aria-label="anchor" href="#real-time-gdp-vintages"></a>
+<h2 id="mixed-frequency-and-real-time-vintages">Mixed frequency and real-time vintages<a class="anchor" aria-label="anchor" href="#mixed-frequency-and-real-time-vintages"></a>
 </h2>
-<p>The full <code>data_ch_dataset</code> deliberately ships
-<em>without</em> a GDP target series: real analyses inject GDP at
-runtime from the real-time vintage database, which ships with the
-package and needs no configuration:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<p>Nothing above had to be said about frequencies: the example series
+enter at 4, 12 and 48 observations per year and the model works on the
+highest of them, treating everything unobserved — including the eleven
+weeks in which quarterly GDP says nothing — as a latent state. That is
+the whole point of the model, and it is why <code>fit$factor</code> is
+weekly even though the target is quarterly:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>factor <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/time.html" class="external-link">frequency</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">factor</span><span class="op">)</span>, nowcast <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/time.html" class="external-link">frequency</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">nowcast</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  factor nowcast </span></span>
+<span><span class="co">#&gt;      48       4</span></span></code></pre></div>
+<p>The mixed-frequency case that needs more care is a <em>real-time</em>
+one, where the question is not only which frequency a series has but
+what was actually published at a given date.
+<code>mfbdfm_example_data</code> has one GDP vintage baked in —
+convenient for an example, but the wrong thing for a real-time
+evaluation, which needs the vintage that was current at each evaluation
+date. The real-time GDP vintage database ships with the package and
+needs no configuration:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vintages</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_real_time_gdp_vintages.html">get_real_time_gdp_vintages</a></span><span class="op">(</span><span class="st">"quarterly"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">vintages</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 144 105</span></span></code></pre></div>
@@ -253,7 +587,7 @@ package and needs no configuration:</p>
 have been observable at a given date, substituting the appropriate GDP
 vintage for the target series — the building block for the paper’s
 real-time out-of-sample evaluation:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dat_rt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cut_data_real_time.html">cut_data_real_time</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span>, current_date <span class="op">=</span> <span class="fl">2024.5</span>,</span>
 <span>                             GDP_gr_vintages <span class="op">=</span> <span class="va">vintages</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/time.html" class="external-link">time</a></span><span class="op">(</span><span class="va">dat_rt</span><span class="op">$</span><span class="va">flows</span><span class="op">[[</span><span class="va">target</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
@@ -263,22 +597,188 @@ real-time out-of-sample evaluation:</p>
 <span><span class="co">#&gt; 2024 2024.00</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="stochastic-volatility-and-serial-correlation">Stochastic volatility and serial correlation<a class="anchor" aria-label="anchor" href="#stochastic-volatility-and-serial-correlation"></a>
+</h2>
+<p>Two model features are switchable, and both default to
+<code>TRUE</code> because both are wanted on real data.</p>
+<p><strong>Stochastic volatility</strong> lets the variance of the
+common shocks move over time, so an abrupt swing such as the COVID-19
+pandemic registers as a genuinely more volatile period instead of being
+smoothed away. With <code>stochastic_volatility = FALSE</code> a single
+constant variance is estimated instead:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">fit_const</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ind_dfm.html">ind_dfm</a></span><span class="op">(</span><span class="va">mfbdfm_example_data</span>, length_sample <span class="op">=</span> <span class="fl">2000</span>, burn_in <span class="op">=</span> <span class="fl">500</span>,</span>
+<span>                     stochastic_volatility <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<p><code>fit$pars$h</code> is the posterior mean of the factor’s log
+innovation standard deviation, so <code>exp(2 * h)</code> is the
+innovation variance. Under stochastic volatility it varies over the
+sample; with the option off it is flat by construction:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">fit</span><span class="op">$</span><span class="va">pars</span><span class="op">$</span><span class="va">h</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.00144 0.01120</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">fit_const</span><span class="op">$</span><span class="va">pars</span><span class="op">$</span><span class="va">h</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.0536 0.0536</span></span></code></pre></div>
+<p>Note that switching it off does <strong>not</strong> fix the variance
+at a value in <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> — the loading restriction already
+pins the factor’s scale, so the variance is the free parameter the data
+determines and it is still estimated, just held constant over time. In
+<code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code>, whose loadings are unrestricted, the same
+option <em>does</em> fix it at one. The methodology vignette’s
+“Identification” section explains why.</p>
+<p><strong>Serial correlation</strong> in the measurement errors is
+removed by quasi-differencing, with one autocorrelation per series drawn
+from the data. <code>fit$pars$rho</code> reports them; a series with a
+large <code>rho</code> is one whose own persistent noise would otherwise
+have been attributed to the common factor:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">pars</span><span class="op">$</span><span class="va">rho</span><span class="op">)</span>, <span class="va">fit</span><span class="op">$</span><span class="va">inventory</span><span class="op">$</span><span class="va">key</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; ch.fso.rtt.ind.r.noga0801.sa     ch.ozd.e.wa.index.re.d11 </span></span>
+<span><span class="co">#&gt;                       -0.061                        0.047 </span></span>
+<span><span class="co">#&gt;                      SWISSMI                   traffic_PW </span></span>
+<span><span class="co">#&gt;                        0.402                        0.429 </span></span>
+<span><span class="co">#&gt;              electricity_out     ch.seco.gdp.real.gdp.ssa </span></span>
+<span><span class="co">#&gt;                       -0.125                        0.000 </span></span>
+<span><span class="co">#&gt;                    SWPMIPROQ                 Arbeitsmarkt </span></span>
+<span><span class="co">#&gt;                        0.954                        0.818</span></span></code></pre></div>
+<p><code>serial_correlation = FALSE</code> holds all of them at
+(effectively) zero.</p>
+</div>
+<div class="section level2">
+<h2 id="choosing-the-number-of-factors">Choosing the number of factors<a class="anchor" aria-label="anchor" href="#choosing-the-number-of-factors"></a>
+</h2>
+<p><code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> has exactly one factor by construction.
+<code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> asks for <code>q</code>, and the model gives no
+guidance on it. <code><a href="../reference/select_factors.html">select_factors()</a></code> computes the Bai &amp; Ng
+(2002) information criteria IC1, IC2 and IC3, plus the
+principal-component eigenvalues behind them:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sel</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/select_factors.html">select_factors</a></span><span class="op">(</span>flows <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span>,</span>
+<span>                      stocks <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span>,</span>
+<span>                      max_q <span class="op">=</span> <span class="fl">8</span>, na_action <span class="op">=</span> <span class="st">"interpolate"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: IC1/IC2/IC3 are minimised at `max_q` (8), so the minimum may lie</span></span>
+<span><span class="co">#&gt; beyond the range evaluated. Raise `max_q`; if the minimum stays on the</span></span>
+<span><span class="co">#&gt; boundary, the panel is too narrow for these criteria to settle - see</span></span>
+<span><span class="co">#&gt; `?select_factors`.</span></span>
+<span><span class="va">sel</span></span>
+<span><span class="co">#&gt; Bai-Ng factor-count selection</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Panel: 27 series at frequency 48, 1742 periods</span></span>
+<span><span class="co">#&gt;        19 lower-frequency series excluded: ch.fso.rtt.ind.r.noga0801.sa, ch.seco.gdp.real.gdp.ssa, ch.ozd.e.wa.index.re.d11, ch.ozd.i.wa.index.re.d11, ...</span></span>
+<span><span class="co">#&gt;        missing values: interpolate</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  q       IC1       IC2       IC3 var % cum %</span></span>
+<span><span class="co">#&gt;  1 -0.1380   -0.1375   -0.1393    23.0  23.0</span></span>
+<span><span class="co">#&gt;  2 -0.2397   -0.2386   -0.2424    15.5  38.5</span></span>
+<span><span class="co">#&gt;  3 -0.2863   -0.2845   -0.2902     9.6  48.1</span></span>
+<span><span class="co">#&gt;  4 -0.2988   -0.2965   -0.3040     6.6  54.7</span></span>
+<span><span class="co">#&gt;  5 -0.2976   -0.2947   -0.3041     5.2  59.9</span></span>
+<span><span class="co">#&gt;  6 -0.3063   -0.3028   -0.3142     5.0  64.9</span></span>
+<span><span class="co">#&gt;  7 -0.3167   -0.3127   -0.3259     4.4  69.3</span></span>
+<span><span class="co">#&gt;  8 -0.3332 * -0.3286 * -0.3437 *   4.0  73.3</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Chosen q:  IC1 = 8,  IC2 = 8,  IC3 = 8</span></span>
+<span><span class="co">#&gt; IC1/IC2/IC3 are minimised at max_q = 8, so the minimum may lie beyond</span></span>
+<span><span class="co">#&gt; the range evaluated. Raise `max_q`.</span></span>
+<span><span class="co">#&gt; These are frequentist, principal-component criteria. They inform fcast_dfm()'s</span></span>
+<span><span class="co">#&gt; `q`; they do not determine it.</span></span></code></pre></div>
+<p>Two things in that printout matter more than the numbers.</p>
+<p>The first is <strong>which data the criteria saw</strong>. They are
+defined for a balanced panel of a single frequency, so the
+mixed-frequency input has to be reduced to one: only the
+highest-frequency block is kept, and the quarterly and monthly series —
+including GDP — are dropped. The model is then fitted on data the
+criteria never looked at.</p>
+<p>The second is that here <strong>all three criteria are minimised at
+<code>max_q</code></strong>, which is why the call warns. That is not a
+recommendation to use eight factors; it means the minimum lies outside
+the range evaluated, or nowhere. Raising <code>max_q</code> does not fix
+it on this dataset: the penalties are calibrated for a large
+cross-section, and with 27 weekly series the fall in
+<code>log V(k)</code> outruns them. When that happens, read the variance
+shares instead:</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">sel</span><span class="op">$</span><span class="va">cum_var_explained</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">]</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.230 0.385 0.481 0.547 0.599 0.649</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot</a></span><span class="op">(</span><span class="va">sel</span><span class="op">)</span></span></code></pre></div>
+<div class="float">
+<img src="mfbdfm-scree-1.png" alt="plot of chunk scree"><div class="figcaption">plot of chunk scree</div>
+</div>
+<p>The first component explains about a quarter of the panel’s variance
+and the curve flattens after the third or fourth — which is the sort of
+judgement dfms’ vignette reaches for its own data, and the sort of
+judgement that has to be made here too.</p>
+<p>So: the criteria <strong>inform</strong> <code>q</code>, they do not
+determine it. They are frequentist and principal-component based, while
+<code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> is Bayesian with post-hoc rotation. Fit two or
+three values of <code>q</code> and compare; <code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot()</a></code> on
+the resulting fit shows how much of the panel each <em>rotated</em>
+factor ended up explaining, which is the corresponding description after
+the fact.</p>
+</div>
+<div class="section level2">
 <h2 id="beyond-this-vignette">Beyond this vignette<a class="anchor" aria-label="anchor" href="#beyond-this-vignette"></a>
 </h2>
-<p>The functions used in the accompanying analysis pipeline are exported
-but need either the full (non-shipped) indicator set or previously saved
-model fits, so they aren’t run here:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Estimate the full WAI and optionally save the fit:</span></span>
+<p>For several common factors rather than one target-anchored factor,
+use <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code>. It implements the multi-factor model of
+Eckert et al. (2025) and takes the same data, but identifies the factors
+by a post-hoc rotation rather than by anchoring, so its
+<code>target</code> argument only selects which nowcast is surfaced.
+<code>fcast_dfm(q = 1)</code> is <strong>not</strong> equivalent to
+<code><a href="../reference/ind_dfm.html">ind_dfm()</a></code>; see <code><a href="../reference/fcast_dfm.html">?fcast_dfm</a></code> and the methodology
+vignette.</p>
+<div class="section level3">
+<h3 id="the-evaluation-wrappers">The evaluation wrappers<a class="anchor" aria-label="anchor" href="#the-evaluation-wrappers"></a>
+</h3>
+<p>The analysis pipeline does not call <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> directly.
+It calls <code><a href="../reference/run_wai_adj.html">run_wai_adj()</a></code>, which fits the model at one
+evaluation date, trims the factor and nowcast to that date, and
+optionally writes the fit to disk; and <code><a href="../reference/run_ar.html">run_ar()</a></code>, which fits
+the AR(1) benchmark on the target series alone. Both take the same
+<code>flows</code>/<code>stocks</code>/<code>target</code> arguments as
+<code><a href="../reference/ind_dfm.html">ind_dfm()</a></code>, so they run on the example data:</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="va">mfbdfm_example_data</span></span>
+<span><span class="va">out_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">fit_full</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_wai_adj.html">run_wai_adj</a></span><span class="op">(</span></span>
 <span>  flows <span class="op">=</span> <span class="va">dat</span><span class="op">$</span><span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">dat</span><span class="op">$</span><span class="va">stocks</span>, target <span class="op">=</span> <span class="va">target</span>,</span>
-<span>  date <span class="op">=</span> <span class="fl">2024.5</span>, dataset_used <span class="op">=</span> <span class="st">"full_RT"</span>, output_dir <span class="op">=</span> <span class="st">"fits/updated"</span></span>
+<span>  date <span class="op">=</span> <span class="fl">2024.5</span>, dataset_used <span class="op">=</span> <span class="st">"vignette"</span>,</span>
+<span>  length_sample <span class="op">=</span> <span class="fl">2000</span>, burn_in <span class="op">=</span> <span class="fl">500</span>, output_dir <span class="op">=</span> <span class="va">out_dir</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># AR(1) benchmark, and the Diebold-Mariano test used to compare them:</span></span>
 <span><span class="va">fit_ar</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_ar.html">run_ar</a></span><span class="op">(</span>flows <span class="op">=</span> <span class="va">dat</span><span class="op">$</span><span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">dat</span><span class="op">$</span><span class="va">stocks</span>, target <span class="op">=</span> <span class="va">target</span>,</span>
-<span>                 date <span class="op">=</span> <span class="fl">2024.5</span>, dataset_used <span class="op">=</span> <span class="st">"full_RT"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/dm_test_modified.html">dm_test_modified</a></span><span class="op">(</span><span class="va">errors_wai</span>, <span class="va">errors_ar</span><span class="op">)</span></span></code></pre></div>
+<span>                 date <span class="op">=</span> <span class="fl">2024.5</span>, dataset_used <span class="op">=</span> <span class="st">"vignette"</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">out_dir</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "vignette/fit_2024.5.Rda"</span></span>
+<span><span class="va">fit_ar</span><span class="op">$</span><span class="va">nowcast</span></span>
+<span><span class="co">#&gt;             Qtr1</span></span>
+<span><span class="co">#&gt; 2026 0.004903796</span></span></code></pre></div>
+<p>The two fits are the ingredients of the paper’s out-of-sample
+comparison, but they cannot be compared <em>in</em> sample, and it is
+worth seeing why. Because the factor is anchored to the target, the
+in-sample nowcast reproduces observed GDP almost exactly, while the
+AR(1) benchmark’s one-step errors are of the usual size:</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">gdp</span> <span class="op">&lt;-</span> <span class="va">dat</span><span class="op">$</span><span class="va">flows</span><span class="op">[[</span><span class="va">target</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">errors</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/ts.union.html" class="external-link">ts.intersect</a></span><span class="op">(</span></span>
+<span>  wai <span class="op">=</span> <span class="va">gdp</span> <span class="op">-</span> <span class="va">fit_full</span><span class="op">$</span><span class="va">nowcast</span>,</span>
+<span>  ar  <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/arima.html" class="external-link">arima</a></span><span class="op">(</span><span class="va">gdp</span>, order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">errors</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co">#&gt;          wai           ar </span></span>
+<span><span class="co">#&gt; 1.116141e-16 2.028477e-04</span></span></code></pre></div>
+<p>A <code><a href="../reference/dm_test_modified.html">dm_test_modified()</a></code> p-value computed from those two
+columns would be arithmetic, not evidence: the left-hand number is an
+identity, not a forecast error. The published comparison is therefore
+<em>real-time</em> — <code><a href="../reference/cut_data_real_time.html">cut_data_real_time()</a></code> inside a loop
+over vintage dates, refitting at each one and keeping only the nowcast
+for the quarter that was not yet published, as in
+<code>analysis/real_time_backcast.R</code>.
+<code><a href="../reference/dm_test_modified.html">dm_test_modified()</a></code> then takes the two resulting error
+vectors; see its own help page for a runnable minimal call.</p>
 <p>For the in-sample and out-of-sample evaluation tables and plots shown
 in the paper (correlation heatmaps, relative RMSE/MAE tables against the
 SECO-WEA, F-CURVE, SECO-SEC, SNB-BCI and KOF-BARO benchmarks), see the
@@ -287,6 +787,26 @@ repository, which call <code><a href="../reference/get_combined_cor_table.html">
 <code><a href="../reference/get_insample_fit_table.html">get_insample_fit_table()</a></code>,
 <code><a href="../reference/create_rel_error_tables.html">create_rel_error_tables()</a></code> and related functions documented
 under <code><a href="../reference/get_combined_cor_table.html">?get_combined_cor_table</a></code>.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="conclusion">Conclusion<a class="anchor" aria-label="anchor" href="#conclusion"></a>
+</h2>
+<p>The workflow is short: describe the series with
+<code><a href="../reference/mfbdfm_data.html">mfbdfm_data()</a></code>, fit with <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> (or
+<code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code>), and read the results off the fit with
+<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> and the standard extractors.
+What the package adds over a generic factor model is the mixed-frequency
+handling, which needs no imputation step from you, and the target
+anchoring, which makes the extracted factor a growth rate you can quote
+rather than an index you have to rescale.</p>
+<p>Two things to carry into a real run: use a chain far longer than the
+one above (the paper’s is <code>length_sample = 5000</code>,
+<code>burn_in = 1000</code>, and takes minutes to hours), and check
+<code><a href="../reference/mfbdfm_data.html">mfbdfm_data()</a></code>’s printed flow/stock split before starting
+it.</p>
+<p>For the model itself, see
+<code><a href="../articles/methodology.html">vignette("methodology", package = "mfbdfm")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
@@ -298,15 +818,13 @@ under <code><a href="../reference/get_combined_cor_table.html">?get_combined_cor
 <li>Kronenberg, P. (2026) — <em>A high-frequency GDP indicator for
 Switzerland</em>, Swiss Journal of Economics and Statistics, 162:10. <a href="https://doi.org/10.1186/s41937-026-00157-w" class="external-link uri">https://doi.org/10.1186/s41937-026-00157-w</a>. The primary
 methodology and application paper for this package: derives the WAI as a
-single, GDP-identified factor from the model above, with full in-sample
-and real-time out-of-sample evaluation against the benchmarks listed
-below.</li>
+single, GDP-identified factor, with full in-sample and real-time
+out-of-sample evaluation against the benchmarks listed below.</li>
 <li>Eckert, F., Kronenberg, P., Mikosch, H., &amp; Neuwirth, S. (2025) —
 <em>Tracking economic activity with alternative high-frequency
-data</em>, Journal of Applied Econometrics, 40(3), 270-290. The
-underlying (multi-factor) Bayesian mixed-frequency dynamic factor model
-that <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> implements as a single-factor special
-case.</li>
+data</em>, Journal of Applied Econometrics, 40(3), 270-290. <a href="https://doi.org/10.1002/jae.3104" class="external-link uri">https://doi.org/10.1002/jae.3104</a>. The multi-factor
+Bayesian mixed-frequency dynamic factor model implemented by
+<code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code>.</li>
 <li>Eckert, Kronenberg, Mikosch, Neuwirth — <em>Weekly Activity Index
 (WWA)</em>, SECO technical note and press material, 2021. Available from
 SECO (seco.admin.ch).</li>
@@ -319,42 +837,13 @@ Diskussionspapier.</li>
 list).</li>
 <li>SECO — <em>Methodik</em> note.</li>
 </ul>
-</div>
-<div class="section level3">
-<h3 id="model-derivation-references-cited-in-kronenberg-2026-sect--2">Model derivation references (cited in Kronenberg 2026, Sect. 2)<a class="anchor" aria-label="anchor" href="#model-derivation-references-cited-in-kronenberg-2026-sect--2"></a>
-</h3>
-<ul>
-<li>Chan, J. C., &amp; Jeliazkov, I. (2009) — <em>Efficient simulation
-and integrated likelihood estimation in state space models</em>,
-International Journal of Mathematical Modelling and Numerical
-Optimisation, 1(1-2), 101-120. Precision sampler used for the factor,
-stochastic volatility, and augmented-data Gibbs blocks.</li>
-<li>Chib, S., &amp; Greenberg, E. (1994) — <em>Bayes inference in
-regression models with ARMA(p,q) errors</em>, Journal of Econometrics,
-64(1-2), 183-206. Quasi-differencing approach used to remove serial
-correlation in the measurement errors.</li>
-<li>Mariano, R. S., &amp; Murasawa, Y. (2003) — <em>A new coincident
-index of business cycles based on monthly and quarterly series</em>,
-Journal of Applied Econometrics, 18(4), 427-443. Geometric-mean temporal
-aggregation scheme for flow variables (the distributed lag matrices
-<code>L0, ..., Ls</code>).</li>
-<li>Bai, J., &amp; Wang, P. (2015) — <em>Identification and Bayesian
-estimation of dynamic factor models</em>, Journal of Business &amp;
-Economic Statistics, 33(2), 221-240. Factor loading normalization used
-for identification.</li>
-<li>Kim, S., Shepherd, N., &amp; Chib, S. (1998) — <em>Stochastic
-volatility: Likelihood inference and comparison with ARCH models</em>,
-Review of Economic Studies, 65(3), 361-393. Mixture-of-normals
-approximation used to linearize the stochastic volatility measurement
-equation.</li>
-<li>Primiceri, G. E. (2005) — <em>Time varying structural vector
-autoregressions and monetary policy</em>, Review of Economic Studies,
-72(3), 821-852.</li>
-<li>Indergand, R., &amp; Leist, S. (2014) — <em>A Real-Time Data Set for
-Switzerland</em>, Swiss Journal of Economics and Statistics, 150(4),
-331-352. Source of the real-time GDP vintages read by
-<code><a href="../reference/get_real_time_gdp_vintages.html">get_real_time_gdp_vintages()</a></code>.</li>
-</ul>
+<p>The references for the model’s derivation — Chan &amp; Jeliazkov
+(2009), Chib &amp; Greenberg (1994), Mariano &amp; Murasawa (2003), Bai
+&amp; Wang (2015), Kim, Shephard &amp; Chib (1998), Primiceri (2005),
+Indergand &amp; Leist (2014) — are listed in
+<code><a href="../articles/methodology.html">vignette("methodology", package = "mfbdfm")</a></code>. Bai &amp; Ng
+(2002), used by <code><a href="../reference/select_factors.html">select_factors()</a></code>, is cited in
+<code><a href="../reference/select_factors.html">?select_factors</a></code>.</p>
 </div>
 <div class="section level3">
 <h3 id="swiss-business-cycle-indicator-benchmarks">Swiss business-cycle indicator benchmarks<a class="anchor" aria-label="anchor" href="#swiss-business-cycle-indicator-benchmarks"></a>

@@ -15,7 +15,7 @@ exactly."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">mfbdfm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,6 +25,10 @@ exactly."></head><body>
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/mfbdfm.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/methodology.html">The model behind mfbdfm</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -38,7 +42,7 @@ exactly."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Numerical and algorithmic settings for the samplers</h1>
-      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/v0.1.0/R/control.R" class="external-link"><code>R/control.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/main/R/control.R" class="external-link"><code>R/control.R</code></a></small>
       <div class="d-none name"><code>dfm_control.Rd</code></div>
     </div>
 
@@ -124,6 +128,40 @@ others cap or reject a draw for numerical stability: <code>phi_sum_max</code> an
 <code>sigma_max</code> in <code><a href="ind_dfm.html">ind_dfm()</a></code>, <code>omega_max</code> in <code><a href="fcast_dfm.html">fcast_dfm()</a></code>.</p>
     </div>
     <div class="section level2">
+    <h2 id="verbosity">Verbosity<a class="anchor" aria-label="anchor" href="#verbosity"></a></h2>
+    <p><code>verbose = FALSE</code> silences both the progress <code><a href="https://rdrr.io/r/base/message.html" class="external-link">message()</a></code>s and the
+<code><a href="https://rdrr.io/r/utils/txtProgressBar.html" class="external-link">utils::txtProgressBar</a></code>. The progress bar writes with <code><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat()</a></code>, so
+<code><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages()</a></code> alone does not quieten a fit – which is why this is a
+setting rather than something a caller can arrange from outside. Use it for
+scripted sweeps and for the worker processes planned by <code><a href="dfm_memory.html">dfm_workers()</a></code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="muffling-one-warning-but-not-the-others">Muffling one warning but not the others<a class="anchor" aria-label="anchor" href="#muffling-one-warning-but-not-the-others"></a></h2>
+    <p>The warnings a fit can raise repeatedly over a sweep carry their own
+condition classes, so a single kind can be suppressed without hiding the
+rest:</p>
+<dl><dt><code>mfbdfm_warning_rho_fallback</code></dt>
+<dd><p>the measurement-error autocorrelation
+hit <code>rho_max_tries</code> redraws for at least one series and <code>rho_fallback</code>
+was substituted. Raised once per fit, with the number of substitutions.</p></dd>
+
+<dt><code>mfbdfm_warning_rotation_cap</code></dt>
+<dd><p>the <code><a href="fcast_dfm.html">fcast_dfm()</a></code> rotation (or its
+initialisation) stopped on its iteration cap rather than on convergence.</p></dd>
+
+<dt><code>mfbdfm_warning_fit_failed</code></dt>
+<dd><p>a fit failed and
+<code><a href="run_fcast.html">run_fcast()</a></code><code>(on_error = "warn")</code> turned the error into a warning.</p></dd>
+
+
+</dl><p>All of them also inherit from <code>mfbdfm_warning</code>. To muffle one:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/fcast_dfm.html">fcast_dfm</a></span><span class="op">(</span>flows <span class="op">=</span> <span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">stocks</span>, target <span class="op">=</span> <span class="va">target</span><span class="op">)</span>,</span>
+<span>  mfbdfm_warning_rho_fallback <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">invokeRestart</a></span><span class="op">(</span><span class="st">"muffleWarning"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre><p></p></div>
+<p>Substituting <code>mfbdfm_warning</code> for the class name muffles all of them.</p>
+    </div>
+    <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Assmann, C., Boysen-Hogrefe, J., &amp; Pape, M. (2016). Bayesian analysis of
 static and dynamic factor models with an unknown number of factors, and
@@ -150,6 +188,7 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rho_fallback             0.98      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   omega_max                1         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_criterion       "mean"    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_tol             1e-09     </span>
@@ -170,6 +209,7 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rho_fallback             0.98      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   omega_max                1         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_criterion       "sum"       (default "mean")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_tol             1e-09     </span>
@@ -187,6 +227,7 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rho_fallback             0.98      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   omega_max                1         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_criterion       "sum"       (default "mean")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_tol             1e-10       (default 1e-09)</span>
@@ -202,8 +243,22 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rho_fallback             0.98      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                10          (default 5)</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># silence the messages and the progress bar</span></span></span>
+<span class="r-in"><span><span class="fu">dfm_control</span><span class="op">(</span><span class="st">"ind_dfm"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Control settings for ind_dfm()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max                  0.99      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max_tries            10        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_fallback             0.98      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  FALSE       (default TRUE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                5         </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

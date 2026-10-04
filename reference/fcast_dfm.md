@@ -110,7 +110,9 @@ fcast_dfm(
   stability bounds that were previously hard-coded. Omit it (the
   default) and the published behaviour is reproduced exactly;
   `dfm_control("fcast_dfm", strict = TRUE)` switches the rotation to the
-  algorithm as specified in the online appendix.
+  algorithm as specified in the online appendix, and
+  `dfm_control("fcast_dfm", verbose = FALSE)` silences the progress
+  messages and the progress bar.
 
 ## Value
 
@@ -118,7 +120,12 @@ An object of class `"fcast_dfm"`: a list with components
 
 - factor:
 
-  `ts` matrix of the `q` posterior mean factors.
+  `ts` matrix of the `q` posterior mean factors, on the model's own
+  standardized scale and covering the `2*(k - 1)` latent periods the
+  distributed-lag aggregation reaches back into as well as the sample.
+  ([`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  annualizes and de-standardizes its `factor`; the counterpart of this
+  component there is `factor_std`.)
 
 - factor_var:
 
@@ -137,6 +144,17 @@ An object of class `"fcast_dfm"`: a list with components
 
   List of posterior means (`lambda`, `phi`, `sigma`, `rho`, `rho_var`,
   `h`) and the model dimensions (`n`, `q`, `p`, `s`, `t`, `k`).
+
+- pars_dist:
+
+  List of posterior spreads – `sd` and the 2.5%/97.5% quantiles – for
+  `lambda`, `phi`, `sigma`, `rho` and `h`, read out of the rotated draws
+  at fit time. The posterior *mean* stays in `pars`, so the two cannot
+  disagree. There is deliberately no `omega` entry: `omega` is drawn
+  here but not retained. Used by
+  [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
+  and
+  [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md).
 
 - ncst:
 
@@ -268,52 +286,51 @@ Kronenberg, P. (2026). A high-frequency GDP indicator for Switzerland.
 ## See also
 
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
-for the single-factor, target-anchored model.
+for the single-factor, target-anchored model,
+[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
+to extract the nowcasts from the fit, and
+[fcast_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+for the methods the fit supports.
 
 Other model fitting functions:
 [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md),
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
-[`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
+[`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md),
+[`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
 
 ## Examples
 
 ``` r
 # \donttest{
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"
-flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                stats::window, start = 2021)
-stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-                 stats::window, start = 2021)
+data(mfbdfm_example_data)
 set.seed(1)
-fit <- fcast_dfm(flows = flows, stocks = stocks, target = target,
-                 q = 2, length_sample = 20, burn_in = 5)
+fit <- fcast_dfm(mfbdfm_example_data, q = 2, length_sample = 20, burn_in = 5)
 #> preallocating..
 #> simulating posterior distribution..
 #>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%
 #> running rotation of each draw..
-#> Rotation iteration 1: convergence 2.12e-05
-#> Rotation iteration 2: convergence 6.86e-06
-#> Rotation iteration 3: convergence 3.11e-06
-#> Rotation iteration 4: convergence 2.57e-09
-#> Rotation iteration 5: convergence 1.13e-11
+#> Rotation iteration 1: convergence 3.46e-06
+#> Rotation iteration 2: convergence 5.1e-06
+#> Rotation iteration 3: convergence 6.52e-07
+#> Rotation iteration 4: convergence 1.28e-08
+#> Rotation iteration 5: convergence 1.12e-08
+#> Warning: Rotation did not converge after 5 iterations (last change 1.12e-08, criterion "mean", tolerance 1e-09). Factor draws may not be rotated onto a common reference; consider raising `rotation_max_iter` in dfm_control().
 #> running identification..
 #> processing output..
 fit
 #> Multi-factor mixed-frequency dynamic factor model (Eckert et al. 2025)
-#> Call: fcast_dfm(flows = flows, stocks = stocks, target = target, q = 2,     length_sample = 20, burn_in = 5)
+#> Call: fcast_dfm(flows = mfbdfm_example_data, q = 2, length_sample = 20,     burn_in = 5)
 #> 
-#>   series (n)      : 4
+#>   series (n)      : 8
 #>   factors (q)     : 2
 #>   factor lags (p) : 1
-#>   periods (t)     : 250
+#>   periods (t)     : 541
 #> 
 #> Target series: ch.seco.gdp.real.gdp.ssa
 #> 
 #>   Most recent nowcasts (95% band):
 #> 
 #>         time   observed    nowcast      lower      upper
-#>     2024.000    -0.0012    -0.0012    -0.0012    -0.0012
 #>     2024.250     0.0078     0.0078     0.0078     0.0078
 #>     2024.500     0.0029     0.0029     0.0029     0.0029
 #>     2024.750     0.0052     0.0052     0.0052     0.0052
@@ -321,7 +338,13 @@ fit
 #>     2025.250     0.0012     0.0012     0.0012     0.0012
 #>     2025.500    -0.0044    -0.0044    -0.0044    -0.0044
 #>     2025.750     0.0015     0.0015     0.0015     0.0015
+#>     2026.000         NA     0.0035    -0.0117     0.0187
 #> 
-#> Full results: $factor, $ncst (all series), $data_hf, $target_series
+#>   1 of 45 periods have no observed value (nowcast/backcast).
+#> 
+#> Full results: $factor, $ncst (all series), $data_hf, $target_series;
+#> mfbdfm_nowcast() for the target's nowcasts
+#> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),
+#> mfbdfm_table_nowcast()
 # }
 ```

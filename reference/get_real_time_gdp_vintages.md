@@ -10,10 +10,12 @@ from `gdp_cssa_file_path`.
 
 ``` r
 get_real_time_gdp_vintages(
-  output_type,
+  output_type = c("quarterly", "annual", "level"),
   gdp_file_path = system.file("extdata", "realtime_gdp.csv", package = "mfbdfm"),
   gdp_cssa_file_path = system.file("extdata", "realtime_gdp_cssa.csv", package =
-    "mfbdfm")
+    "mfbdfm"),
+  start_date = as.Date("1990-01-01"),
+  end_date = NULL
 )
 ```
 
@@ -21,8 +23,8 @@ get_real_time_gdp_vintages(
 
 - output_type:
 
-  Character, `"quarterly"` for quarter-on-quarter log differences or
-  `"annual"` for year-on-year growth rates.
+  Character, one of `"quarterly"`, `"annual"` or `"level"`. See the
+  return section for what each one is, and in particular for its units.
 
 - gdp_file_path:
 
@@ -34,10 +36,35 @@ get_real_time_gdp_vintages(
   Path to the 2018Q3-onward vintage CSV. Defaults to the file shipped
   with the package.
 
+- start_date, end_date:
+
+  Optional `Date` bounds on the quarters returned. `start_date` defaults
+  to 1990-01-01; `end_date` defaults to `NULL`, meaning no upper bound.
+
 ## Value
 
 A data frame with a `time` column (Date, quarter start) and one numeric
-column per vintage.
+column per vintage. `output_type` selects the transformation, and the
+three differ in units:
+
+- `"quarterly"`:
+
+  Quarter-on-quarter *log difference*, e.g. `0.00151`.
+
+- `"annual"`:
+
+  Year-on-year growth as a *fraction*, e.g. `0.0241`.
+
+- `"level"`:
+
+  The vintage *levels*, untransformed.
+
+None of these is the annualised percentage that
+[`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md)
+publishes as `wai_qoq`: plotted on one axis unconverted, `"quarterly"`
+and `wai_qoq` differ by a factor of roughly 400.
+[`gdp_web_series()`](https://philippkronenberg.github.io/mfbdfm/reference/gdp_web_series.md)
+does the conversion.
 
 ## Examples
 

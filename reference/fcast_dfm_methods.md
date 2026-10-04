@@ -17,19 +17,34 @@ print(x, n_show = 8, ...)
 coef(object, ...)
 
 # S3 method for class 'fcast_dfm'
-fitted(object, ...)
+fitted(object, scale = c("standardized", "original"), ...)
 
 # S3 method for class 'fcast_dfm'
-residuals(object, ...)
+residuals(object, scale = c("standardized", "original"), ...)
+
+# S3 method for class 'fcast_dfm'
+logLik(object, ...)
 
 # S3 method for class 'fcast_dfm'
 as.data.frame(x, row.names = NULL, optional = FALSE, ...)
 
 # S3 method for class 'fcast_dfm'
-plot(x, ...)
+plot(
+  x,
+  type = c("factor", "nowcast", "loadings", "residuals", "volatility", "fit"),
+  series = NULL,
+  level = 0.95,
+  ...
+)
+
+# S3 method for class 'fcast_dfm'
+autoplot(object, ...)
 
 # S3 method for class 'fcast_dfm'
 summary(object, ...)
+
+# S3 method for class 'fcast_dfm'
+screeplot(x, npcs = NULL, type = c("barplot", "lines"), main = NULL, ...)
 ```
 
 ## Arguments
@@ -41,12 +56,24 @@ summary(object, ...)
 
 - ...:
 
-  Ignored, present for compatibility with the generics.
+  Ignored, present for compatibility with the generics. For
+  `autoplot()`, passed on to
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html).
 
 - object, x:
 
   A fit from
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
+
+- scale:
+
+  Character, the scale
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) report on:
+  `"standardized"` (the default) or `"original"`. As for
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md);
+  see
+  [ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md).
 
 - row.names, optional:
 
@@ -54,12 +81,45 @@ summary(object, ...)
   [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
   generic.
 
+- type:
+
+  Character. For
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html), which view
+  to draw (see "Plot views" in
+  [ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md));
+  for [`screeplot()`](https://rdrr.io/r/stats/screeplot.html),
+  `"barplot"` or `"lines"`, as for
+  [`stats::screeplot()`](https://rdrr.io/r/stats/screeplot.html).
+
+- series:
+
+  Character vector of series names, or a numeric vector of column
+  positions, restricting the `"residuals"` and `"fit"` views. `NULL`
+  (the default) draws every series.
+
+- level:
+
+  Numeric in `(0, 1)`, the coverage of the credible band drawn by the
+  `"factor"` and `"nowcast"` views. Defaults to `0.95`.
+
+- npcs:
+
+  Integer, how many factors
+  [`screeplot()`](https://rdrr.io/r/stats/screeplot.html) shows, or
+  `NULL` for all of them.
+
+- main:
+
+  [`screeplot()`](https://rdrr.io/r/stats/screeplot.html) title, or
+  `NULL` for the default.
+
 ## Value
 
 As
 [ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md),
 except that [`coef()`](https://rdrr.io/r/stats/coef.html) returns a
-matrix.
+matrix and [`screeplot()`](https://rdrr.io/r/stats/screeplot.html)
+invisibly returns the sorted variance shares.
 
 ## Details
 
@@ -68,49 +128,87 @@ matrix here rather than a vector, and
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) returns
 one mean/lower/upper triple per factor.
 
+[`screeplot()`](https://rdrr.io/r/stats/screeplot.html) shows the share
+of the standardized panel's variance explained by each factor, computed
+from the posterior mean loadings and factors: the factor's own variance
+times the sum of squared loadings on it, over the total variance of the
+observed entries of the prepared data. **The rotated factors are not
+ordered by variance the way principal components are** – the post-hoc
+rotation has no such convention – so the bars are sorted for the plot
+and labelled `f1`, `f2`, ... by their position in the fit, not by their
+position in the plot. It is a description of a fitted model, not a
+selection criterion; for choosing `q` before fitting, use
+[`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md).
+
+As for
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+fits, the stored nowcasts are reached with
+[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md).
+
+[`logLik()`](https://rdrr.io/r/stats/logLik.html) uses the same
+definition as it does for
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+– see "What [`logLik()`](https://rdrr.io/r/stats/logLik.html) means
+here" in
+[ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md),
+including why [`AIC()`](https://rdrr.io/r/stats/AIC.html) and
+[`BIC()`](https://rdrr.io/r/stats/AIC.html) are only approximate. The
+`df` count differs: the loadings are unrestricted in sampling and
+identified post hoc by rotation, so `n*q - q*(q-1)/2` of them are
+counted as free, and the volatility contributes a parameter only when
+`stochastic_volatility = TRUE` (with it off the factor innovation
+variance is *fixed* at one and carries the identification, where
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+still estimates a constant).
+
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) offers the same
+views as
+[ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+– `"factor"`, `"nowcast"`, `"loadings"`, `"residuals"`, `"volatility"`
+and `"fit"` – and returns a `ggplot`. The `"factor"` view gets one panel
+per factor here, and `"loadings"` one facet per factor, with the series
+ordered by their loading on the first factor so that a series sits in
+the same row of every panel.
+
 ## See also
 
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
-[ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+[ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md),
+[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
+for the nowcasts
 
 ## Examples
 
 ``` r
 # \donttest{
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"
-fit <- fcast_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                                stats::window, start = 2021),
-                 stocks = lapply(data_ch_dataset_test$stocks[1:2],
-                                 stats::window, start = 2021),
-                 target = target, q = 2, length_sample = 20, burn_in = 5)
+data(mfbdfm_example_data)
+fit <- fcast_dfm(mfbdfm_example_data, q = 2, length_sample = 20, burn_in = 5)
 #> preallocating..
 #> simulating posterior distribution..
 #>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%
 #> running rotation of each draw..
-#> Rotation iteration 1: convergence 2.83e-05
-#> Rotation iteration 2: convergence 2.05e-05
-#> Rotation iteration 3: convergence 2.71e-06
-#> Rotation iteration 4: convergence 1.09e-06
-#> Rotation iteration 5: convergence 4.44e-06
-#> Warning: Rotation did not converge after 5 iterations (last change 4.44e-06, criterion "mean", tolerance 1e-09). Factor draws may not be rotated onto a common reference; consider raising `rotation_max_iter` in dfm_control().
+#> Rotation iteration 1: convergence 5.23e-06
+#> Rotation iteration 2: convergence 3.04e-06
+#> Rotation iteration 3: convergence 2.98e-06
+#> Rotation iteration 4: convergence 4.43e-07
+#> Rotation iteration 5: convergence 2.84e-09
+#> Warning: Rotation did not converge after 5 iterations (last change 2.84e-09, criterion "mean", tolerance 1e-09). Factor draws may not be rotated onto a common reference; consider raising `rotation_max_iter` in dfm_control().
 #> running identification..
 #> processing output..
 fit
 #> Multi-factor mixed-frequency dynamic factor model (Eckert et al. 2025)
-#> Call: fcast_dfm(flows = lapply(data_ch_dataset_test$flows[c(target,     "SWISSMI")], stats::window, start = 2021), stocks = lapply(data_ch_dataset_test$stocks[1:2], 
+#> Call: fcast_dfm(flows = mfbdfm_example_data, q = 2, length_sample = 20,     burn_in = 5)
 #> 
-#>   series (n)      : 4
+#>   series (n)      : 8
 #>   factors (q)     : 2
 #>   factor lags (p) : 1
-#>   periods (t)     : 250
+#>   periods (t)     : 541
 #> 
 #> Target series: ch.seco.gdp.real.gdp.ssa
 #> 
 #>   Most recent nowcasts (95% band):
 #> 
 #>         time   observed    nowcast      lower      upper
-#>     2024.000    -0.0012    -0.0012    -0.0012    -0.0012
 #>     2024.250     0.0078     0.0078     0.0078     0.0078
 #>     2024.500     0.0029     0.0029     0.0029     0.0029
 #>     2024.750     0.0052     0.0052     0.0052     0.0052
@@ -118,28 +216,54 @@ fit
 #>     2025.250     0.0012     0.0012     0.0012     0.0012
 #>     2025.500    -0.0044    -0.0044    -0.0044    -0.0044
 #>     2025.750     0.0015     0.0015     0.0015     0.0015
+#>     2026.000         NA     0.0100    -0.0189     0.0390
 #> 
-#> Full results: $factor, $ncst (all series), $data_hf, $target_series
+#>   1 of 45 periods have no observed value (nowcast/backcast).
+#> 
+#> Full results: $factor, $ncst (all series), $data_hf, $target_series;
+#> mfbdfm_nowcast() for the target's nowcasts
+#> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),
+#> mfbdfm_table_nowcast()
 coef(fit)          # a q-column matrix here, a vector for ind_dfm()
-#>                               factor1      factor2
-#> ch.seco.gdp.real.gdp.ssa -0.006836276 -0.003745831
-#> SWISSMI                  -0.030761363 -0.011022397
-#> SWCONPRCE                 0.149391280  0.084153123
-#> SWPROPRCE                 0.029629679  0.065903122
+#>                                    factor1      factor2
+#> ch.fso.rtt.ind.r.noga0801.sa -0.0120862752 -0.016881013
+#> ch.ozd.e.wa.index.re.d11     -0.0271445425  0.004152994
+#> SWISSMI                      -0.0046837932 -0.001086471
+#> traffic_PW                   -0.0348118875 -0.006993377
+#> electricity_out               0.0000680888 -0.005881285
+#> ch.seco.gdp.real.gdp.ssa     -0.0415743570 -0.011205318
+#> SWPMIPROQ                    -0.0867841729 -0.027084978
+#> Arbeitsmarkt                 -0.0213389057 -0.005447732
+screeplot(fit)     # share of panel variance per rotated factor
+
 head(as.data.frame(fit))
-#>       time      factor1 factor1_lower factor1_upper       factor2 factor2_lower
-#> 1 2020.542 -0.252691442     -2.194676      1.689293 -0.1424790566     -2.159364
-#> 2 2020.562  0.009360814     -2.381884      2.400606 -0.0128411336     -2.196170
-#> 3 2020.583  0.172585741     -2.136737      2.481908 -0.0001786561     -2.151443
-#> 4 2020.604  0.122757753     -2.390788      2.636304  0.5124176087     -2.604608
-#> 5 2020.625  0.221202572     -2.282731      2.725136  0.6161433447     -2.137118
-#> 6 2020.646  0.528782065     -1.917014      2.974578  0.6213008839     -2.296970
+#>       time     factor1 factor1_lower factor1_upper     factor2 factor2_lower
+#> 1 2014.542  0.34747440     -1.556648      2.251596  0.38031034     -1.273450
+#> 2 2014.562 -0.29183474     -3.451399      2.867730  0.05662948     -1.918274
+#> 3 2014.583 -0.39894172     -3.509730      2.711846 -0.41551108     -2.153533
+#> 4 2014.604 -0.17850839     -3.347064      2.990047 -0.08040423     -2.239604
+#> 5 2014.625 -0.05919795     -3.087089      2.968693 -0.46838579     -2.517115
+#> 6 2014.646  0.25966556     -2.492868      3.012199 -0.22720138     -3.299043
 #>   factor2_upper
-#> 1      1.874406
-#> 2      2.170488
-#> 3      2.151086
-#> 4      3.629444
-#> 5      3.369405
-#> 6      3.539572
+#> 1      2.034071
+#> 2      2.031533
+#> 3      1.322511
+#> 4      2.078796
+#> 5      1.580344
+#> 6      2.844640
+logLik(fit)
+#> 'log Lik.' -3298.464 (df=36)
+BIC(fit)           # approximate here - see ?ind_dfm_methods
+#> [1] 6879.755
+mfbdfm_nowcast(fit, last = TRUE)
+#>   time    nowcast         sd       lower     upper
+#> 1 2026 0.01003606 0.01475351 -0.01888029 0.0389524
+
+plot(fit)                       # one panel per factor
+
+plot(fit, type = "loadings")    # one facet per factor
+
+plot(fit, type = "fit", series = 1:2)
+
 # }
 ```
