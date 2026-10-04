@@ -122,6 +122,14 @@ interactively in R/RStudio.
 - [`pkgdown::build_site()`](https://pkgdown.r-lib.org/reference/build_site.html)
   — preview the documentation website locally (writes to gitignored
   `docs/`).
+- `Rscript vignettes/precompile.R` — regenerate the **precomputed**
+  vignette. `vignettes/mfbdfm.Rmd.orig` is the file to edit;
+  `vignettes/mfbdfm.Rmd` and the `vignettes/mfbdfm-*.png` figures are
+  generated from it and committed (`fig.path = "mfbdfm-"` is a filename
+  prefix, not a `figure/` subdirectory, which `R CMD check` would flag
+  as a knitr leftover). Takes ~5 min (three short-chain fits). Run it
+  after any vignette edit, and commit the regenerated `.Rmd` and figures
+  together with the `.orig`.
 - `R CMD build .` then `R CMD check --no-manual <tarball>` — what CI
   actually runs; useful when `devtools` behavior and `R CMD check`
   behavior diverge.
@@ -753,6 +761,32 @@ published figures are not reproducible from it, so that nobody later
   the Kronenberg (2026) paper’s own description of the model. Keep it
   and `R/mfbdfm-package.R` in sync with the actual model description if
   either changes.
+- **The vignette is precomputed and `vignettes/mfbdfm.Rmd` is generated
+  — edit `vignettes/mfbdfm.Rmd.orig` instead** (#98, rOpenSci’s
+  `.Rmd.orig` pattern:
+  <https://ropensci.org/blog/2019/12/08/precompute-vignettes/>). Every
+  chunk in the `.orig` evaluates, at chain lengths long enough to be
+  meaningful (2000 draws after 500 burn-in) rather than short enough for
+  `R CMD check`; `Rscript vignettes/precompile.R` knits it into
+  `mfbdfm.Rmd` with output and figures baked in, so the built vignette
+  contains **no live chunks at all** and check/pkgdown time is
+  unaffected by the chain lengths. `^vignettes/.*\.orig$` and
+  `^vignettes/precompile\.R$` are in `.Rbuildignore`, so neither ships.
+  Two consequences: a vignette edit that is not followed by a precompile
+  run is invisible in the built package, and the fitting chunks need
+  `results = "hide", message = FALSE` — the samplers’ `txtProgressBar`
+  goes to stdout and would otherwise be frozen into the output as a wall
+  of `=`.
+- **Don’t demonstrate
+  [`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md)
+  on in-sample errors.** The anchoring makes the in-sample WAI nowcast
+  reproduce observed GDP to ~1e-16, so a DM p-value against any
+  benchmark is a statement about an identity, not about forecast
+  accuracy. A real comparison needs the real-time loop
+  ([`cut_data_real_time()`](https://philippkronenberg.github.io/mfbdfm/reference/cut_data_real_time.md)
+  over vintage dates). The vignette shows the 1e-16 explicitly and
+  explains it, which is the honest version of what the old
+  `\dontrun`-style sketch was gesturing at.
 - `NEWS.md` uses the `# mfbdfm X.Y.Z.9000` heading format (not
   `(development version)` — R 4.3’s NEWS parser rejects that heading and
   produces a “no news entries found” check NOTE).

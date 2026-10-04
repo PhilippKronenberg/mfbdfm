@@ -199,13 +199,16 @@ changes the results.
 
 Real analyses use the full indicator set and a much longer chain — the
 accompanying paper uses `length_sample = 5000` after a burn-in of 1000 —
-whereas here the eight example series and a short chain keep this
-vignette quick to build:
+whereas here the eight example series and 2000 retained draws after a
+burn-in of 500 are used. This vignette is *precomputed*: the fits below
+were run once when it was written, so the output is real rather than
+illustrative, and `R CMD check` does not re-run them (see
+`vignettes/precompile.R` in the source repository).
 
 ``` r
 
 set.seed(1)
-fit <- ind_dfm(mfbdfm_example_data, length_sample = 200, burn_in = 50)
+fit <- ind_dfm(mfbdfm_example_data, length_sample = 2000, burn_in = 500)
 ```
 
 Because the object carries `target`, there is no `target =` argument at
@@ -225,7 +228,7 @@ nowcasts:
 
 fit
 #> Single-factor mixed-frequency dynamic factor model (Kronenberg 2026)
-#> Call: ind_dfm(flows = mfbdfm_example_data, length_sample = 200, burn_in = 50)
+#> Call: ind_dfm(flows = mfbdfm_example_data, length_sample = 2000, burn_in = 500)
 #> 
 #>   series (n) : 8
 #>   periods (t): 541
@@ -241,7 +244,7 @@ fit
 #>     2025.250      0.00123
 #>     2025.500     -0.00440
 #>     2025.750      0.00151
-#>     2026.000      0.01246
+#>     2026.000      0.01136
 #> 
 #> Full results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),
 #> summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),
@@ -263,7 +266,7 @@ than as a finding:
 
 summary(fit)
 #> Single-factor mixed-frequency dynamic factor model (Kronenberg 2026)
-#> Call: ind_dfm(flows = mfbdfm_example_data, length_sample = 200, burn_in = 50)
+#> Call: ind_dfm(flows = mfbdfm_example_data, length_sample = 2000, burn_in = 500)
 #> 
 #>   series (n) : 8
 #>   factors (q): 1
@@ -272,40 +275,40 @@ summary(fit)
 #> 
 #> Factor loadings (posterior mean, 95% interval):
 #>                         series   mean     sd   lower  upper
-#> 1 ch.fso.rtt.ind.r.noga0801.sa 0.0586 0.2314 -0.3539 0.4632
-#> 2     ch.ozd.e.wa.index.re.d11 0.5983 0.1645  0.2585 0.9458
-#> 3                      SWISSMI 0.0736 0.1681 -0.2489 0.4048
-#> 4                   traffic_PW 0.6610 0.1941  0.2705 1.0361
-#> 5              electricity_out 0.2054 0.1729 -0.0959 0.4920
+#> 1 ch.fso.rtt.ind.r.noga0801.sa 0.3244 0.1963 -0.0673 0.7037
+#> 2     ch.ozd.e.wa.index.re.d11 0.6120 0.1560  0.3256 0.9395
+#> 3                      SWISSMI 0.2065 0.1702 -0.1216 0.5389
+#> 4                   traffic_PW 0.9686 0.1856  0.6047 1.3338
+#> 5              electricity_out 0.1815 0.1677 -0.1481 0.5135
 #> 6     ch.seco.gdp.real.gdp.ssa 1.0000 0.0000  1.0000 1.0000
-#> 7                    SWPMIPROQ 0.7670 0.2438  0.1737 1.1989
-#> 8                 Arbeitsmarkt 0.2758 0.1396  0.0062 0.5358
+#> 7                    SWPMIPROQ 0.7955 0.2203  0.3715 1.2365
+#> 8                 Arbeitsmarkt 0.5126 0.1244  0.2705 0.7544
 #> 
 #> Measurement error variance (posterior mean, 95% interval):
 #>                         series   mean     sd  lower  upper
-#> 1 ch.fso.rtt.ind.r.noga0801.sa 0.9202 0.1122 0.7470 1.1632
-#> 2     ch.ozd.e.wa.index.re.d11 0.8544 0.1152 0.6316 1.0994
-#> 3                      SWISSMI 0.8340 0.0508 0.7433 0.9247
-#> 4                   traffic_PW 0.7377 0.0494 0.6434 0.8243
-#> 5              electricity_out 0.9712 0.0631 0.8492 1.1020
+#> 1 ch.fso.rtt.ind.r.noga0801.sa 0.8751 0.1174 0.6720 1.1330
+#> 2     ch.ozd.e.wa.index.re.d11 0.8116 0.1039 0.6219 1.0258
+#> 3                      SWISSMI 0.8326 0.0511 0.7412 0.9444
+#> 4                   traffic_PW 0.7195 0.0445 0.6364 0.8095
+#> 5              electricity_out 0.9736 0.0638 0.8582 1.1036
 #> 6     ch.seco.gdp.real.gdp.ssa 0.0010 0.0001 0.0009 0.0011
-#> 7                    SWPMIPROQ 0.0838 0.0116 0.0664 0.1095
-#> 8                 Arbeitsmarkt 0.3149 0.0169 0.2885 0.3490
+#> 7                    SWPMIPROQ 0.0855 0.0116 0.0664 0.1117
+#> 8                 Arbeitsmarkt 0.3106 0.0196 0.2741 0.3523
 #>   (the measurement error sd is the square root of `mean`)
 #> 
 #> Fit to observed data:
 #>   observed values: 2582
-#>   residual RMSE  : 2.205e-06 (standardized scale)
+#>   residual RMSE  : 6.915e-07 (standardized scale)
 #> 
 #> R-squared of the common component, by series:
 #>   series                                  freq  n_obs R-squared
 #>   ch.seco.gdp.real.gdp.ssa                   4     44     1.000
-#>   ch.ozd.e.wa.index.re.d11                  12    131     0.143
-#>   traffic_PW                                48    532     0.068
-#>   SWPMIPROQ                                 12    134     0.050
-#>   Arbeitsmarkt                              48    541     0.033
-#>   ch.fso.rtt.ind.r.noga0801.sa              12    133     0.008
-#>   SWISSMI                                   48    538     0.002
+#>   ch.ozd.e.wa.index.re.d11                  12    131     0.137
+#>   traffic_PW                                48    532     0.116
+#>   Arbeitsmarkt                              48    541     0.065
+#>   ch.fso.rtt.ind.r.noga0801.sa              12    133     0.057
+#>   SWPMIPROQ                                 12    134     0.052
+#>   SWISSMI                                   48    538     0.008
 #>   electricity_out                           48    529     0.002
 #>   Note: the target's loading is fixed to 1 and its measurement error
 #>   shrunk towards zero to identify the factor, so its R-squared is ~1
@@ -328,19 +331,19 @@ and
 
 round(coef(fit), 3)
 #> ch.fso.rtt.ind.r.noga0801.sa     ch.ozd.e.wa.index.re.d11 
-#>                        0.059                        0.598 
+#>                        0.324                        0.612 
 #>                      SWISSMI                   traffic_PW 
-#>                        0.074                        0.661 
+#>                        0.206                        0.969 
 #>              electricity_out     ch.seco.gdp.real.gdp.ssa 
-#>                        0.205                        1.000 
+#>                        0.181                        1.000 
 #>                    SWPMIPROQ                 Arbeitsmarkt 
-#>                        0.767                        0.276
+#>                        0.795                        0.513
 
 head(as.data.frame(fit), 3)
 #>       time    factor factor_lower factor_upper
-#> 1 2015.000 0.9408094    -4.962933     6.844552
-#> 2 2015.021 0.8273151    -5.183677     6.838307
-#> 3 2015.042 0.9508580    -4.681205     6.582921
+#> 1 2015.000 -1.297848    -6.845525     4.249828
+#> 2 2015.021 -1.719795    -7.520727     4.081138
+#> 3 2015.042 -1.535142    -7.630262     4.559978
 ```
 
 ## Looking at the fit
@@ -358,7 +361,9 @@ posterior credible band:
 plot(fit)
 ```
 
-![](mfbdfm_files/figure-html/plot-factor-1.png)
+![plot of chunk plot-factor](mfbdfm-plot-factor-1.png)
+
+plot of chunk plot-factor
 
 The nowcast view puts the target’s own observations on top of the
 model’s estimate of them:
@@ -368,7 +373,9 @@ model’s estimate of them:
 plot(fit, type = "nowcast")
 ```
 
-![](mfbdfm_files/figure-html/plot-nowcast-1.png)
+![plot of chunk plot-nowcast](mfbdfm-plot-nowcast-1.png)
+
+plot of chunk plot-nowcast
 
 The loadings view shows how strongly each series is tied to the factor,
 with a 95% posterior interval. The target’s loading is the fixed 1 that
@@ -379,7 +386,9 @@ identifies the model:
 plot(fit, type = "loadings")
 ```
 
-![](mfbdfm_files/figure-html/plot-loadings-1.png)
+![plot of chunk plot-loadings](mfbdfm-plot-loadings-1.png)
+
+plot of chunk plot-loadings
 
 The volatility view is the posterior mean of `exp(h)`, the standard
 deviation of the factor innovation — this is what lets the model absorb
@@ -390,7 +399,9 @@ a crisis instead of smearing it across the whole sample:
 plot(fit, type = "volatility")
 ```
 
-![](mfbdfm_files/figure-html/plot-volatility-1.png)
+![plot of chunk plot-volatility](mfbdfm-plot-volatility-1.png)
+
+plot of chunk plot-volatility
 
 `"residuals"` and `"fit"` compare each series with its **common
 component** — loadings times factors, the part the factor explains — so
@@ -405,7 +416,9 @@ plot(fit, type = "fit", series = c(target, "SWISSMI")) +
   ggplot2::labs(title = "GDP and the SMI against the common component")
 ```
 
-![](mfbdfm_files/figure-html/plot-fit-1.png)
+![plot of chunk plot-fit](mfbdfm-plot-fit-1.png)
+
+plot of chunk plot-fit
 
 ## Nowcasts
 
@@ -422,15 +435,15 @@ real-time query:
 
 tail(mfbdfm_nowcast(fit))
 #>       time      nowcast           sd        lower        upper
-#> 40 2024.75  0.005175401 4.813297e-07  0.005174458  0.005176345
-#> 41 2025.00  0.007858644 4.978055e-07  0.007857669  0.007859620
-#> 42 2025.25  0.001230638 4.450101e-07  0.001229765  0.001231510
-#> 43 2025.50 -0.004400662 4.235615e-07 -0.004401492 -0.004399832
-#> 44 2025.75  0.001506250 4.490028e-07  0.001505370  0.001507130
-#> 45 2026.00  0.012457413 1.801153e-03  0.008927219  0.015987608
+#> 40 2024.75  0.005175413 4.624780e-07  0.005174507  0.005176320
+#> 41 2025.00  0.007858623 4.646870e-07  0.007857713  0.007859534
+#> 42 2025.25  0.001230718 4.541081e-07  0.001229828  0.001231608
+#> 43 2025.50 -0.004400680 4.662971e-07 -0.004401594 -0.004399767
+#> 44 2025.75  0.001506242 4.633840e-07  0.001505333  0.001507150
+#> 45 2026.00  0.011359580 3.461420e-03  0.004575323  0.018143838
 mfbdfm_nowcast(fit, last = TRUE)
-#>   time    nowcast          sd       lower      upper
-#> 1 2026 0.01245741 0.001801153 0.008927219 0.01598761
+#>   time    nowcast         sd       lower      upper
+#> 1 2026 0.01135958 0.00346142 0.004575323 0.01814384
 ```
 
 The band comes from `fit$nowcast_var`, the posterior variance of each
@@ -458,7 +471,7 @@ round(tail(fit$index), 2)
 #> Start = c(2026, 8) 
 #> End = c(2026, 13) 
 #> Frequency = 48 
-#> [1] 122.33 122.35 122.38 122.42 122.47 122.51
+#> [1] 122.16 122.27 122.38 122.49 122.58 122.66
 ```
 
 ## Bringing your own data
@@ -573,7 +586,7 @@ instead:
 ``` r
 
 set.seed(1)
-fit_const <- ind_dfm(mfbdfm_example_data, length_sample = 200, burn_in = 50,
+fit_const <- ind_dfm(mfbdfm_example_data, length_sample = 2000, burn_in = 500,
                      stochastic_volatility = FALSE)
 ```
 
@@ -585,9 +598,9 @@ is flat by construction:
 ``` r
 
 signif(range(exp(2 * fit$pars$h)), 3)
-#> [1] 0.00134 0.01060
+#> [1] 0.00144 0.01120
 signif(range(exp(2 * fit_const$pars$h)), 3)
-#> [1] 0.0317 0.0317
+#> [1] 0.0536 0.0536
 ```
 
 Note that switching it off does **not** fix the variance at a value in
@@ -609,13 +622,13 @@ common factor:
 
 round(stats::setNames(as.numeric(fit$pars$rho), fit$inventory$key), 3)
 #> ch.fso.rtt.ind.r.noga0801.sa     ch.ozd.e.wa.index.re.d11 
-#>                       -0.028                        0.005 
+#>                       -0.061                        0.047 
 #>                      SWISSMI                   traffic_PW 
-#>                        0.411                        0.450 
+#>                        0.402                        0.429 
 #>              electricity_out     ch.seco.gdp.real.gdp.ssa 
-#>                       -0.122                        0.000 
+#>                       -0.125                        0.000 
 #>                    SWPMIPROQ                 Arbeitsmarkt 
-#>                        0.956                        0.820
+#>                        0.954                        0.818
 ```
 
 `serial_correlation = FALSE` holds all of them at (effectively) zero.
@@ -686,7 +699,9 @@ round(sel$cum_var_explained[1:6], 3)
 screeplot(sel)
 ```
 
-![](mfbdfm_files/figure-html/scree-1.png)
+![plot of chunk scree](mfbdfm-scree-1.png)
+
+plot of chunk scree
 
 The first component explains about a quarter of the panel’s variance and
 the curve flattens after the third or fourth — which is the sort of
@@ -714,23 +729,75 @@ see
 [`?fcast_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
 and the methodology vignette.
 
-The functions used in the accompanying analysis pipeline are exported
-but need either the full (non-shipped) indicator set or previously saved
-model fits, so they aren’t run here:
+### The evaluation wrappers
+
+The analysis pipeline does not call
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+directly. It calls
+[`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md),
+which fits the model at one evaluation date, trims the factor and
+nowcast to that date, and optionally writes the fit to disk; and
+[`run_ar()`](https://philippkronenberg.github.io/mfbdfm/reference/run_ar.md),
+which fits the AR(1) benchmark on the target series alone. Both take the
+same `flows`/`stocks`/`target` arguments as
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+so they run on the example data:
 
 ``` r
 
-# Estimate the full WAI and optionally save the fit:
+dat <- mfbdfm_example_data
+out_dir <- tempfile()
+
+set.seed(1)
 fit_full <- run_wai_adj(
   flows = dat$flows, stocks = dat$stocks, target = target,
-  date = 2024.5, dataset_used = "full_RT", output_dir = "fits/updated"
+  date = 2024.5, dataset_used = "vignette",
+  length_sample = 2000, burn_in = 500, output_dir = out_dir
 )
 
-# AR(1) benchmark, and the Diebold-Mariano test used to compare them:
 fit_ar <- run_ar(flows = dat$flows, stocks = dat$stocks, target = target,
-                 date = 2024.5, dataset_used = "full_RT")
-dm_test_modified(errors_wai, errors_ar)
+                 date = 2024.5, dataset_used = "vignette")
 ```
+
+``` r
+
+list.files(out_dir, recursive = TRUE)
+#> [1] "vignette/fit_2024.5.Rda"
+fit_ar$nowcast
+#>             Qtr1
+#> 2026 0.004903796
+```
+
+The two fits are the ingredients of the paper’s out-of-sample
+comparison, but they cannot be compared *in* sample, and it is worth
+seeing why. Because the factor is anchored to the target, the in-sample
+nowcast reproduces observed GDP almost exactly, while the AR(1)
+benchmark’s one-step errors are of the usual size:
+
+``` r
+
+gdp <- dat$flows[[target]]
+errors <- stats::ts.intersect(
+  wai = gdp - fit_full$nowcast,
+  ar  = stats::residuals(stats::arima(gdp, order = c(1, 0, 0)))
+)
+colMeans(errors^2)
+#>          wai           ar 
+#> 1.116141e-16 2.028477e-04
+```
+
+A
+[`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md)
+p-value computed from those two columns would be arithmetic, not
+evidence: the left-hand number is an identity, not a forecast error. The
+published comparison is therefore *real-time* —
+[`cut_data_real_time()`](https://philippkronenberg.github.io/mfbdfm/reference/cut_data_real_time.md)
+inside a loop over vintage dates, refitting at each one and keeping only
+the nowcast for the quarter that was not yet published, as in
+`analysis/real_time_backcast.R`.
+[`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md)
+then takes the two resulting error vectors; see its own help page for a
+runnable minimal call.
 
 For the in-sample and out-of-sample evaluation tables and plots shown in
 the paper (correlation heatmaps, relative RMSE/MAE tables against the
