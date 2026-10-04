@@ -9,6 +9,7 @@
 \alias{logLik.fcast_dfm}
 \alias{as.data.frame.fcast_dfm}
 \alias{plot.fcast_dfm}
+\alias{autoplot.fcast_dfm}
 \alias{summary.fcast_dfm}
 \alias{screeplot.fcast_dfm}
 \title{Methods for multi-factor model fits}
@@ -25,7 +26,15 @@
 
 \method{as.data.frame}{fcast_dfm}(x, row.names = NULL, optional = FALSE, ...)
 
-\method{plot}{fcast_dfm}(x, ...)
+\method{plot}{fcast_dfm}(
+  x,
+  type = c("factor", "nowcast", "loadings", "residuals", "volatility", "fit"),
+  series = NULL,
+  level = 0.95,
+  ...
+)
+
+\method{autoplot}{fcast_dfm}(object, ...)
 
 \method{summary}{fcast_dfm}(object, ...)
 
@@ -34,7 +43,8 @@
 \arguments{
 \item{n_show}{Integer, how many of the most recent periods \code{print()} shows.}
 
-\item{...}{Ignored, present for compatibility with the generics.}
+\item{...}{Ignored, present for compatibility with the generics. For
+\code{autoplot()}, passed on to \code{plot()}.}
 
 \item{object, x}{A fit from \code{\link[=fcast_dfm]{fcast_dfm()}}.}
 
@@ -45,12 +55,21 @@
 \item{row.names, optional}{Ignored, present for compatibility with the
 \code{\link[=as.data.frame]{as.data.frame()}} generic.}
 
+\item{type}{Character. For \code{plot()}, which view to draw (see "Plot views"
+in \link{ind_dfm_methods}); for \code{screeplot()}, \code{"barplot"} or \code{"lines"}, as
+for \code{\link[stats:screeplot]{stats::screeplot()}}.}
+
+\item{series}{Character vector of series names, or a numeric vector of
+column positions, restricting the \code{"residuals"} and \code{"fit"} views.
+\code{NULL} (the default) draws every series.}
+
+\item{level}{Numeric in \verb{(0, 1)}, the coverage of the credible band drawn
+by the \code{"factor"} and \code{"nowcast"} views. Defaults to \code{0.95}.}
+
 \item{npcs}{Integer, how many factors \code{screeplot()} shows, or \code{NULL} for all
 of them.}
 
-\item{type}{\code{"barplot"} or \code{"lines"}, as for \code{\link[stats:screeplot]{stats::screeplot()}}.}
-
-\item{main}{Plot title, or \code{NULL} for the default.}
+\item{main}{\code{screeplot()} title, or \code{NULL} for the default.}
 }
 \value{
 As \link{ind_dfm_methods}, except that \code{coef()} returns a matrix and
@@ -86,16 +105,17 @@ unrestricted in sampling and identified post hoc by rotation, so
 contributes a parameter only when \code{stochastic_volatility = TRUE} (with it
 off the factor innovation variance is \emph{fixed} at one and carries the
 identification, where \code{\link[=ind_dfm]{ind_dfm()}} still estimates a constant).
+
+\code{plot()} offers the same views as \link{ind_dfm_methods} -- \code{"factor"},
+\code{"nowcast"}, \code{"loadings"}, \code{"residuals"}, \code{"volatility"} and \code{"fit"} -- and
+returns a \code{ggplot}. The \code{"factor"} view gets one panel per factor here, and
+\code{"loadings"} one facet per factor, with the series ordered by their loading
+on the first factor so that a series sits in the same row of every panel.
 }
 \examples{
 \donttest{
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"
-fit <- fcast_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                                stats::window, start = 2021),
-                 stocks = lapply(data_ch_dataset_test$stocks[1:2],
-                                 stats::window, start = 2021),
-                 target = target, q = 2, length_sample = 20, burn_in = 5)
+data(mfbdfm_example_data)
+fit <- fcast_dfm(mfbdfm_example_data, q = 2, length_sample = 20, burn_in = 5)
 fit
 coef(fit)          # a q-column matrix here, a vector for ind_dfm()
 screeplot(fit)     # share of panel variance per rotated factor
@@ -103,6 +123,10 @@ head(as.data.frame(fit))
 logLik(fit)
 BIC(fit)           # approximate here - see ?ind_dfm_methods
 mfbdfm_nowcast(fit, last = TRUE)
+
+plot(fit)                       # one panel per factor
+plot(fit, type = "loadings")    # one facet per factor
+plot(fit, type = "fit", series = 1:2)
 }
 
 }

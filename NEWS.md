@@ -28,6 +28,54 @@
   Gaps that are not documentation-only were opened as their own issues rather
   than fixed here; they are listed in the audit comment on #107.
 
+* New shipped dataset `mfbdfm_example_data`: eight series — the quarterly GDP
+  target plus seven indicators covering all three modelled frequencies (4, 12,
+  48) and both aggregation types — windowed to 2015 and shipped as a ready
+  `mfbdfm_data()` object, 17 KB as `.rda`. It exists because neither previous
+  dataset made a self-contained example easy: `data_ch_dataset` carries no GDP
+  target at all, and `data_ch_dataset_test` needed a three-line
+  `lapply(..., window, start = )` prelude plus an explicit `target =` before
+  anything could be fitted. Now `ind_dfm(mfbdfm_example_data)` is the whole
+  call — the target comes off the object. The examples for `ind_dfm()`,
+  `fcast_dfm()`, both method topics, `run_wai_adj()`, `run_fcast()`,
+  `extract_wai_data()` and `export_wai_web()`, plus the vignette's and README's
+  fitting demos, are switched to it; the real-time and frequency-utility
+  examples stay on `data_ch_dataset_test`, which is what they are actually
+  about. The GDP target is **pinned to the 2026.167 vintage** so the dataset
+  does not shift when a newer vintage is appended to
+  `inst/extdata/realtime_gdp.csv`; `data-raw/example_data.R` rebuilds it. Fit
+  on the same 2015– window, the eight series give a factor of essentially the
+  same scale as all 46 (sd 8.0 against 8.6) and a comparable activity index
+  (99.7–122.9 against 98.8–121.1), so it is a small dataset rather than a toy
+  one. Not for real-time evaluation — one baked-in vintage is the wrong thing
+  there (#105).
+
+* **`plot()` on a fit now returns a ggplot object rather than its input, and
+  takes a `type` argument selecting one of six views.** This is a user-visible
+  change to the return value: `plot(fit)` still draws at the console, because
+  the returned object auto-prints, but code that relied on the old
+  `invisible(x)` return will see a `ggplot` instead, and code that expected base
+  graphics (adding to the plot with `lines()`, say) has to add a ggplot layer
+  instead. In exchange every view can be modified before printing, and `plot()`
+  no longer touches the caller's `par()` at all. The views are `"factor"` (the
+  default, the previous behaviour), `"nowcast"` (the target's nowcast overlaid
+  with its observed values), `"loadings"`, `"residuals"`, `"volatility"` (the
+  posterior mean `exp(h)`) and `"fit"` (observed against the common
+  component). `"residuals"` and `"fit"` are built on the **common component**
+  -- loadings times factors, temporally aggregated, as in the `summary()`
+  R-squared -- not on `fitted()`: the augmented data `fitted()` returns is
+  pinned to the observations, so residuals against it are `1e-5` noise and an
+  observed-versus-fitted plot of it would be the data drawn twice. They take a
+  `series` argument, and `"factor"`/`"nowcast"` a `level` one; an unknown
+  `type` is an error naming the valid ones. Both fit classes get the identical
+  set, per the parity rule. `autoplot()` is registered as an alias on both.
+  The `"loadings"` view draws the 95% posterior interval from
+  `mfbdfm_table_loadings()`. `type = "volatility"` on a fit
+  with `stochastic_volatility = FALSE` reports the constant in a message and
+  returns `NULL` invisibly rather than drawing a flat line. One shared palette,
+  theme and credible-band layer (`R/plots.R`) back every view, and are what
+  later plot methods should build on (#112).
+
 * New `select_factors()`, which computes the Bai & Ng (2002) information
   criteria IC1/IC2/IC3 and answers the question `fcast_dfm()`'s `q` argument
   poses and the model itself gives no guidance on. It takes the same data
