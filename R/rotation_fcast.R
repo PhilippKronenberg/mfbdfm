@@ -111,7 +111,9 @@ run_rotation_fcast <- function(theta_out, n, q, p, s, t, ncores = NULL,
     #    dfm_control() and the deviations note at the top of this file (#46).
     sq <- (theta_star_new - theta_star)^2
     delta <- if(identical(criterion, "sum")) sum(sq) else mean(sq)
-    message("Rotation iteration ", as.integer(i), ": convergence ", signif(delta, 3))
+    if(isTRUE(control$verbose)){
+      message("Rotation iteration ", as.integer(i), ": convergence ", signif(delta, 3))
+    }
 
     # 4. Convergence check
     converged <- delta < tol
@@ -130,7 +132,7 @@ run_rotation_fcast <- function(theta_out, n, q, p, s, t, ncores = NULL,
                   "`rotation_max_iter` in dfm_control().")
     switch(control$rotation_on_failure,
            error = stop(msg, call. = FALSE),
-           warning = warning(msg, call. = FALSE),
+           warning = mfbdfm_warn(msg, "mfbdfm_warning_rotation_cap"),
            ignore = invisible(NULL))
   }
 
@@ -261,10 +263,11 @@ initialize_theta_star_fcast <- function(theta_out, length_sample, n, q, p, s, t,
     # This loop was previously uncapped, so it had no termination guarantee.
     # The cap is a safety valve, not a target: 100 against 7 observed.
     if(i >= max_iter && check_convergence){
-      warning("Rotation initialization did not converge after ", max_iter,
-              " iterations (tolerance ", tol, "). Raise ",
-              "`rotation_init_max_iter` in dfm_control() if this is expected.",
-              call. = FALSE)
+      mfbdfm_warn(paste0("Rotation initialization did not converge after ",
+                         max_iter, " iterations (tolerance ", tol, "). Raise ",
+                         "`rotation_init_max_iter` in dfm_control() if this is ",
+                         "expected."),
+                  "mfbdfm_warning_rotation_cap")
       break
     }
 

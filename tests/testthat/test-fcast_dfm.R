@@ -119,3 +119,57 @@ test_that("create_inventory accepts flows-only and stocks-only input", {
   expect_true(all(create_inventory(flows, NULL)$type == "flow"))
   expect_true(all(create_inventory(NULL, stocks)$type == "stock"))
 })
+
+
+test_that("fcast_dfm is quiet under verbose = FALSE, messages under TRUE (BS2.13)", {
+
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  fit_quiet <- function(verbose){
+    set.seed(3)
+    # the rotation cap can bind on a chain this short; that warning is the
+    # subject of its own test below, not of this one
+    suppressWarnings(
+      fcast_dfm(flows = flows, stocks = stocks, target = target,
+                q = 2, p = 1, length_sample = 8, burn_in = 4, plots = FALSE,
+                control = dfm_control("fcast_dfm", verbose = verbose)))
+  }
+
+  # verbose = FALSE must also silence run_rotation_fcast()'s per-iteration
+  # convergence message, not only the two in fcast_dfm() itself
+  printed <- utils::capture.output(expect_no_message(fit <- fit_quiet(FALSE)))
+  expect_identical(printed, character(0))
+  expect_s3_class(fit, "fcast_dfm")
+
+  printed_on <- utils::capture.output(expect_message(fit_quiet(TRUE)))
+  expect_true(any(nzchar(printed_on)))
+})
+
+
+test_that("the rotation cap warning is classed and muffleable (BS2.14)", {
+
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  # one rotation iteration cannot converge, so the cap binds for certain
+  run <- function(){
+    set.seed(3)
+    fcast_dfm(flows = flows, stocks = stocks, target = target,
+              q = 2, p = 1, length_sample = 8, burn_in = 4, plots = FALSE,
+              control = dfm_control("fcast_dfm", verbose = FALSE,
+                                    rotation_max_iter = 1))
+  }
+
+  expect_warning(run(), class = "mfbdfm_warning_rotation_cap")
+
+  expect_silent(withCallingHandlers(
+    run(),
+    mfbdfm_warning_rotation_cap = function(w) invokeRestart("muffleWarning")))
+})

@@ -51,6 +51,41 @@
 #' others cap or reject a draw for numerical stability: `phi_sum_max` and
 #' `sigma_max` in [ind_dfm()], `omega_max` in [fcast_dfm()].
 #'
+#' # Verbosity
+#'
+#' `verbose = FALSE` silences both the progress `message()`s and the
+#' `utils::txtProgressBar`. The progress bar writes with `cat()`, so
+#' `suppressMessages()` alone does not quieten a fit -- which is why this is a
+#' setting rather than something a caller can arrange from outside. Use it for
+#' scripted sweeps and for the worker processes planned by [dfm_workers()].
+#'
+#' # Muffling one warning but not the others
+#'
+#' The warnings a fit can raise repeatedly over a sweep carry their own
+#' condition classes, so a single kind can be suppressed without hiding the
+#' rest:
+#'
+#' \describe{
+#'   \item{`mfbdfm_warning_rho_fallback`}{the measurement-error autocorrelation
+#'     hit `rho_max_tries` redraws for at least one series and `rho_fallback`
+#'     was substituted. Raised once per fit, with the number of substitutions.}
+#'   \item{`mfbdfm_warning_rotation_cap`}{the [fcast_dfm()] rotation (or its
+#'     initialisation) stopped on its iteration cap rather than on convergence.}
+#'   \item{`mfbdfm_warning_fit_failed`}{a fit failed and
+#'     [run_fcast()]`(on_error = "warn")` turned the error into a warning.}
+#' }
+#'
+#' All of them also inherit from `mfbdfm_warning`. To muffle one:
+#'
+#' ```r
+#' withCallingHandlers(
+#'   fcast_dfm(flows = flows, stocks = stocks, target = target),
+#'   mfbdfm_warning_rho_fallback = function(w) invokeRestart("muffleWarning")
+#' )
+#' ```
+#'
+#' Substituting `mfbdfm_warning` for the class name muffles all of them.
+#'
 #' @param model Character, which model the settings are for: `"ind_dfm"` or
 #'   `"fcast_dfm"`. Determines which knobs are present, since the two samplers
 #'   do not share all of them.
@@ -74,6 +109,9 @@
 #' # or one setting at a time
 #' dfm_control("fcast_dfm", rotation_criterion = "sum", rotation_tol = 1e-10)
 #' dfm_control("ind_dfm", sigma_max = 10)
+#'
+#' # silence the messages and the progress bar
+#' dfm_control("ind_dfm", verbose = FALSE)
 #'
 #' @references
 #' Assmann, C., Boysen-Hogrefe, J., & Pape, M. (2016). Bayesian analysis of
@@ -160,7 +198,10 @@ control_defaults <- function(model){
     # matrices; the "+ 1e-9" at the draw sites
     jitter = 1e-9,
     # offset in log(err^2 + offset) for the Kim-Shephard-Chib mixture step
-    sv_offset = 0.001
+    sv_offset = 0.001,
+    # progress messages and the txtProgressBar; TRUE reproduces the long-standing
+    # behaviour, which had no way to turn either off (#118)
+    verbose = TRUE
   )
 
   if(model == "ind_dfm"){
@@ -208,6 +249,16 @@ validate_control <- function(ctrl){
     }
   }
 
+  flag <- function(nm){
+    v <- ctrl[[nm]]
+    if(is.null(v)) return(invisible())
+    if(!is.logical(v) || length(v) != 1 || is.na(v)){
+      stop("`", nm, "` must be TRUE or FALSE, not ", deparse(v), ".",
+           call. = FALSE)
+    }
+  }
+
+  flag("verbose")
   pos_num("rho_max", upper = 1)
   pos_num("rho_fallback", upper = 1)
   pos_num("jitter")
@@ -313,5 +364,63 @@ print.dfm_control <- function(x, ...){
   }
 
   invisible(x)
+
+}
+
+
+#' Raise a warning carrying an mfbdfm condition class
+#'
+#' The warnings a fit can raise repeatedly over a sweep get their own class so a
+#' caller can muffle one kind and keep the rest (BS2.14). Every class also
+#' inherits from `"mfbdfm_warning"`, so the whole family can be muffled at once.
+#' Documented for users under [dfm_control()].
+#'
+#' @noRd
+mfbdfm_warn <- function(message, class){
+
+  rlang::warn(message, class = c(class, "mfbdfm_warning"))
+
+}
+
+
+#' Warn once per fit that the rho stationarity screen fell back
+#'
+#' `draw_rho()`/`draw_rho_fcast()` substitute `control$rho_fallback` after
+#' `control$rho_max_tries` rejected draws, which until #118 happened in complete
+#' silence -- the original code had a commented-out `print()` there. Warning
+#' inside the draw would fire once per series per MCMC iteration, so the samplers
+#' tally the substitutions in an environment and report the total once, after the
+#' chain has finished.
+#'
+#' @noRd
+warn_rho_fallback <- function(tally, control){
+
+  n_fallback <- tally$n
+  if(!is.numeric(n_fallback) || n_fallback < 1) return(invisible(NULL))
+
+  mfbdfm_warn(
+    paste0("The measurement-error autocorrelation hit the stationarity screen ",
+           n_fallback, " time", if(n_fallback > 1) "s" else "", " during ",
+           "sampling and was set to `rho_fallback` (", control$rho_fallback,
+           ") instead of drawn. Those draws are not from the posterior; if the ",
+           "count is large relative to the number of iterations, treat `rho` ",
+           "as unreliable. Raise `rho_max_tries` or `rho_max` in ",
+           "dfm_control() to screen less aggressively."),
+    "mfbdfm_warning_rho_fallback")
+
+}
+
+
+#' A fresh tally environment for the rho fallback counter
+#'
+#' An environment rather than a counter in the sampler's own frame because the
+#' increment happens inside the `sapply()` closure in `draw_rho()`.
+#'
+#' @noRd
+new_rho_tally <- function(){
+
+  e <- new.env(parent = emptyenv())
+  e$n <- 0L
+  e
 
 }

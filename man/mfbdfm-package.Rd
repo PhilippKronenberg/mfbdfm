@@ -46,14 +46,59 @@ weights, and how the scale is identified in each of the two models
 are set out in \code{vignette("methodology", package = "mfbdfm")}.
 }
 
+\section{Status of the algorithms implemented here}{
+
+The samplers in this package are \strong{not} novel algorithms, and are not
+presented as an improvement on any existing R implementation. They are
+the \strong{first packaged R implementation} of two published estimators that
+previously existed only as the authors' own unpackaged replication
+scripts:
+\itemize{
+\item \code{\link[=ind_dfm]{ind_dfm()}} implements the single-factor, target-anchored model
+of Kronenberg (2026), the estimator behind the Weekly Activity Index.
+\item \code{\link[=fcast_dfm]{fcast_dfm()}} implements the multi-factor model of Eckert,
+Kronenberg, Mikosch & Neuwirth (2025), which in turn builds on
+Assmann, Boysen-Hogrefe & Pape (2016).
+}
+The constituent methods are themselves established and cited to their
+original sources: Gibbs sampling with the precision sampler of Chan and
+Jeliazkov (2009), temporal aggregation following Mariano and Murasawa
+(2003), quasi-differencing following Chib and Greenberg (1994), and (for
+\code{\link[=fcast_dfm]{fcast_dfm()}}) the Procrustes-plus-varimax rotation of Assmann et
+al. (2016). What is new here is the packaging, validation, testing and
+documentation, not the statistics. To our knowledge no other R package
+estimates either model; where an implementation of a \emph{related} model
+exists it is used as a benchmark rather than replaced (see
+\code{analysis/fcast/bmdfm_benchmark.R}).
+
+\code{fcast_dfm()} is a fresh port rather than a copy, and it knowingly
+diverges from the published multi-factor \emph{factor} estimates in one
+respect -- the orientation of the VAR coefficients when \code{q > 1}; see the
+entry for #66 in \code{NEWS.md} for the detail.
+}
+
+\section{Life cycle}{
+
+\strong{Experimental.} The package is distributed from GitHub only and has not
+been released to CRAN. Version numbers follow \verb{0.1.x}, and while the
+model results are stable and reproducible (a seeded baseline in the source
+repository guards them), the \emph{user-facing API is not yet frozen}: exported
+function and argument names may still change without a deprecation cycle
+before 1.0.0. Changes that alter results or break existing calls are
+recorded in \code{NEWS.md}. For reproducible work, pin a fixed version (a
+release or a commit) rather than the moving \code{main}, e.g.
+\code{remotes::install_github("PhilippKronenberg/mfbdfm", ref = "<commit>")}.
+}
+
 \section{Getting started}{
 
-The package ships the curated indicator datasets \link{data_ch_dataset}
-and \link{data_ch_dataset_test}, plus the real-time GDP vintage database
-(in \verb{inst/extdata/}), so a small nowcast can be estimated out of the
-box - see \code{vignette("mfbdfm")} for an applied walkthrough, or the
-example in \code{\link[=ind_dfm]{ind_dfm()}} for the minimal version. For the model itself
-rather than the workflow, see
+The package ships \link{mfbdfm_example_data}, a small self-contained
+dataset including the GDP target, so a nowcast is two lines out of the
+box - see the example in \code{\link[=ind_dfm]{ind_dfm()}} for the minimal version, or
+\code{vignette("mfbdfm")} for an applied walkthrough. The full curated
+datasets \link{data_ch_dataset} and \link{data_ch_dataset_test} and the
+real-time GDP vintage database (in \verb{inst/extdata/}) are there for the
+real application. For the model itself rather than the workflow, see
 \code{vignette("methodology", package = "mfbdfm")}.
 }
 
@@ -67,6 +112,11 @@ Tracking economic activity with alternative high-frequency data.
 \emph{Journal of Applied Econometrics}, 40(3), 270-290. \doi{10.1002/jae.3104} (The mixed-frequency
 dynamic factor model underlying \code{mfbdfm}; this package estimates the
 single-factor, GDP-identified special case used in the WAI.)
+
+Assmann, C., Boysen-Hogrefe, J., & Pape, M. (2016). Bayesian analysis of
+static and dynamic factor models with an unknown number of factors, and
+structural instability. \emph{Journal of Applied Econometrics}, 31(8),
+1518-1533. \doi{10.1002/jae.2404}
 
 A reference list of the related business-cycle-indicator literature
 is in the "References" section of \code{vignette("mfbdfm")}.

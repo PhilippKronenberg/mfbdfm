@@ -15,7 +15,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(mfbdfm)
 ```
 
-## Introduction and the data
+## Introduction
 
 `mfbdfm` combines indicators observed at different frequencies — weekly,
 monthly, quarterly — into a single high-frequency activity factor, and
@@ -29,34 +29,284 @@ This vignette is purely applied: it walks the workflow from data to
 nowcast and does not state the model. For the measurement and state
 equations, the mixed-frequency aggregation weights, identification and
 stochastic volatility, see `vignette("methodology", package = "mfbdfm")`.
+The full empirical results and a real-time forecast evaluation are in
+Kronenberg (2026); see `?mfbdfm` for the citation and for the underlying
+multi-factor framework of Eckert, Kronenberg, Mikosch & Neuwirth (2025).
 
-Two datasets ship with the package. `data_ch_dataset` is the full
-curated indicator set; `data_ch_dataset_test` is the variant used here,
-and is the one that **also contains the GDP target series** (the full
-dataset deliberately does not — real analyses inject GDP at runtime from
-the real-time vintage database, see "Mixed frequency" below). Both are
-lists split into `flows` and `stocks`:
+## Glossary
 
-```{r data}
-data(data_ch_dataset_test)
+The package's documentation uses the vocabulary of Bayesian dynamic factor
+models throughout. Each term below means exactly this, everywhere in
+`mfbdfm`.
 
-lengths(data_ch_dataset_test)
+**Model structure**
 
-target <- "ch.seco.gdp.real.gdp.ssa"
+- **Mixed frequency** — input series observed at different sampling
+  intervals (here weekly, monthly, quarterly) entering one model without
+  first being aggregated to the slowest of them. Internally everything is
+  placed on a common 48-periods-per-year weekly grid.
+- **Factor** ($f_t$) — the single unobserved (latent) weekly series that
+  the model extracts as the common movement shared by all input series. In
+  `ind_dfm()` it is reported as an *annualised growth rate*, not as a level.
+- **Loading** ($\lambda_i$) — the coefficient linking series $i$ to the
+  factor in the measurement equation: how strongly, and with what sign,
+  that series responds to a one-unit move in the factor.
+- **Measurement equation** — the equation linking each observed series to
+  the factor, its distributed lags, and a series-specific *idiosyncratic*
+  error. **State equation** — the autoregressive equation governing how the
+  factor itself evolves through time.
+- **Flow versus stock** — a *flow* variable accumulates within a period
+  (GDP, exports), so its low-frequency value aggregates the weekly values
+  inside it; a *stock* variable is a snapshot (a survey balance, an index
+  level). The classification selects the temporal-aggregation weights, so
+  it changes results.
+- **Temporal aggregation** — the arithmetic that relates a low-frequency
+  observation to the weekly factor values covering the same span; flows use
+  the geometric-mean approximation of Mariano and Murasawa (2003).
+- **Data augmentation** — treating unobserved values (missing entries,
+  and the weekly values of a series that is only published monthly or
+  quarterly) as additional unknowns sampled alongside the parameters,
+  rather than imputing or discarding them.
+- **Quasi-differencing** — transforming the measurement equation by each
+  series' own estimated error autocorrelation, so that serially correlated
+  idiosyncratic noise is not misread as a movement in the common factor
+  (Chib and Greenberg, 1994).
+- **Stochastic volatility** — letting the variance of the factor's
+  innovations vary over time as its own latent process, so a crisis shows
+  up as a genuinely higher variance rather than as a string of implausible
+  draws under a constant variance.
+- **Identification** — resolving the fact that a factor model cannot
+  distinguish $(f_t, \lambda)$ from $(c f_t, \lambda / c)$: the likelihood
+  is unchanged, so something must pin the scale (and sign). `ind_dfm()`
+  pins it by fixing the loading on the **target** series to one during
+  sampling; `fcast_dfm()` leaves the loadings free and resolves the
+  indeterminacy after sampling by rotation.
+- **Target / anchoring** — the series whose loading is fixed to one in
+  `ind_dfm()` (for the WAI, quarterly real GDP). Anchoring is what makes
+  the extracted factor interpretable as that series' growth rate at weekly
+  frequency, rather than a generic index that merely correlates with it.
+  In `fcast_dfm()` the `target` argument does **not** affect estimation; it
+  only selects which series' nowcast is surfaced.
+- **Common component** — loadings times factors, temporally aggregated:
+  the part of a series the factor explains, as opposed to its
+  idiosyncratic part.
+
+**Estimation**
+
+- **Prior** — the distribution expressing what is assumed about a
+  parameter before seeing the data; **posterior** — the distribution of
+  that parameter after conditioning on the data. `dfm_priors()` builds the
+  former; every value in a fitted object is a summary of the latter.
+- **Hyperparameter** — in this package the term is avoided. The numbers
+  passed through `dfm_priors()` are the *parameters of the prior
+  distributions* (e.g. the shape and scale of an inverse-gamma prior on a
+  variance), and are called prior parameters. Settings that control the
+  sampler rather than the model — stability bounds, rotation tolerances —
+  are **not** priors and live in `dfm_control()`.
+- **Gibbs sampling** — the Markov chain Monte Carlo scheme used here: each
+  block of unknowns is drawn in turn from its distribution conditional on
+  the current value of all the others, and the chain of such sweeps
+  converges on the joint posterior.
+- **Draw** — one complete sweep of the sampler, i.e. one sample from the
+  posterior. **Burn-in** (`burn_in`) — the initial draws discarded, before
+  the chain has reached its stationary distribution. **Thinning**
+  (`thinning`) — keeping only every $k$-th retained draw, to reduce the
+  autocorrelation between stored draws. `length_sample` is the number of
+  draws kept *after* burn-in.
+- **Posterior mean / posterior variance** — the average and the variance
+  of a quantity across the retained draws. `fit$factor` and `fit$nowcast`
+  are posterior means; `fit$factor_var` and `fit$nowcast_var` the matching
+  variances.
+- **Standardisation** — rescaling every input series, the target
+  included, to mean zero and unit variance before estimation, so loadings
+  are comparable and no series dominates through its units alone.
+  `prepare_data()` does this, and the nowcast is converted back to the
+  target's own units afterwards; note that in the prepared matrix a `0`
+  encodes *missing*, not the mean.
+
+**Output**
+
+- **Nowcast** — an estimate of the current period's value of a series that
+  has not yet been published (quarterly GDP, weeks before its release).
+  **Backcast** — the same for a period that is already over but still
+  unpublished. **Forecast** — a period that has not yet ended. All three
+  come out of the same smoothed state here; they differ only in where the
+  estimated period sits relative to the data.
+- **Vintage** — the version of a series as it stood at a given past date,
+  before subsequent revisions. Real-time evaluation uses the vintage that
+  was actually available at each decision date, which is what
+  `get_real_time_gdp_vintages()` and `cut_data_real_time()` supply.
+- **Index** — the cumulated level path implied by the factor's growth
+  rates (`fit$index`), as opposed to the growth rate itself.
+
+## The data
+
+Three datasets ship with the package. `mfbdfm_example_data` is the one
+used here: eight series — quarterly GDP plus seven indicators at monthly
+and weekly frequency — that already include the GDP target. It is a
+ready `mfbdfm_data()` object (see "Bringing your own data" below), so it
+carries its own target and its own flow/stock classification, and prints
+what it contains:
+
+```{r example-data}
+data(mfbdfm_example_data)
+mfbdfm_example_data
 ```
 
-The split matters: whether a series is a *flow* (a quantity accumulated
-over the period — GDP, transactions, traffic counts) or a *stock* (a
-level measured at or averaged within the period — prices, indices,
-survey balances) selects its temporal aggregation weights, so
-misclassifying a series changes the results.
+`data_ch_dataset` is the full curated indicator set and deliberately does
+**not** contain GDP — real analyses inject it at runtime from the
+real-time vintage database (see "Mixed frequency and real-time vintages"
+below). `data_ch_dataset_test` is a variant that includes it.
 
-Rather than assembling the two lists by hand, pass the series and a
-`meta` table to `mfbdfm_data()`. It accepts a long or wide data frame,
-an `mts`, or a list of `ts` — whatever your spreadsheet or database
-query produced:
+The flow/stock split matters: whether a series is a *flow* or a *stock*
+selects its temporal aggregation weights, so misclassifying a series
+changes the results.
+
+## Fitting the model
+
+Real analyses use the full indicator set and a much longer chain — the
+accompanying paper uses `length_sample = 5000` after a burn-in of 1000 —
+whereas here the eight example series and a short chain keep this
+vignette quick to build:
+
+```{r fit, results = "hide", message = FALSE}
+set.seed(1)
+fit <- ind_dfm(mfbdfm_example_data, length_sample = 200, burn_in = 50)
+```
+
+Because the object carries `target`, there is no `target =` argument at
+the call site:
+
+```{r target}
+target <- mfbdfm_example_data$target
+target
+```
+
+Printing the fit gives the shape of the model and the most recent
+nowcasts:
+
+```{r print}
+fit
+```
+
+`summary()` adds the posterior loadings and measurement-error variances,
+each with a 95% interval, the residual fit on the observed entries, and
+a per-series R-squared of the common component. The target's loading is
+fixed at 1 by construction — that restriction is what makes the factor a
+GDP growth rate rather than a generic index — and its measurement error
+is shrunk toward zero, which is also why its own R-squared is close to
+one by construction rather than as a finding:
+
+```{r summary}
+summary(fit)
+```
+
+The standard extractors all work. `coef()` returns the loadings,
+`as.data.frame()` gives a tidy frame of the factor and its band, and
+`fitted()`/`residuals()` return the augmented dataset and its residuals
+with missing observations masked. For tables with posterior uncertainty,
+ready for a report, see `mfbdfm_table_loadings()`,
+`mfbdfm_table_parameters()` and `mfbdfm_table_nowcast()`:
+
+```{r extractors}
+round(coef(fit), 3)
+
+head(as.data.frame(fit), 3)
+```
+
+## Looking at the fit
+
+`plot()` takes a `type` argument and returns a **ggplot** object, so any
+view can be modified before it is printed. The available views are
+`"factor"` (the default), `"nowcast"`, `"loadings"`, `"residuals"`,
+`"volatility"` and `"fit"`; they are the same for both model entry
+points. The default is the factor — the WAI itself, an annualized weekly
+growth rate — with a 95% posterior credible band:
+
+```{r plot-factor, fig.width = 6, fig.height = 4}
+plot(fit)
+```
+
+The nowcast view puts the target's own observations on top of the
+model's estimate of them:
+
+```{r plot-nowcast, fig.width = 6, fig.height = 4}
+plot(fit, type = "nowcast")
+```
+
+The loadings view shows how strongly each series is tied to the factor,
+with a 95% posterior interval. The target's loading is the fixed 1 that
+identifies the model:
+
+```{r plot-loadings, fig.width = 6, fig.height = 3}
+plot(fit, type = "loadings")
+```
+
+The volatility view is the posterior mean of `exp(h)`, the standard
+deviation of the factor innovation — this is what lets the model absorb
+a crisis instead of smearing it across the whole sample:
+
+```{r plot-volatility, fig.width = 6, fig.height = 3}
+plot(fit, type = "volatility")
+```
+
+`"residuals"` and `"fit"` compare each series with its **common
+component** — loadings times factors, the part the factor explains — so
+they show how much of a series the factor accounts for. They draw one
+panel per series and accept a `series` argument to pick a few, which
+matters once the dataset is the full several dozen series rather than the
+handful used here:
+
+```{r plot-fit, fig.width = 6, fig.height = 3}
+plot(fit, type = "fit", series = c(target, "SWISSMI")) +
+  ggplot2::labs(title = "GDP and the SMI against the common component")
+```
+
+## Nowcasts
+
+`fit$nowcast` is the factor's information at the target's own (here
+quarterly) frequency, back in the target's original units.
+`mfbdfm_nowcast()` is the accessor for it, returning the nowcasts with a
+credible band rather than as a bare `ts`. It works the same way for a
+`fcast_dfm()` fit, and `last = TRUE` gives just the current period — the
+usual real-time query:
+
+```{r nowcast}
+tail(mfbdfm_nowcast(fit))
+mfbdfm_nowcast(fit, last = TRUE)
+```
+
+The band comes from `fit$nowcast_var`, the posterior variance of each
+nowcast. Note that it is essentially zero in quarters where the target is
+actually observed — the identifying prior shrinks the target's
+measurement error toward zero, so the model has nothing to be uncertain
+about there. It is informative for the periods the model has to fill in,
+which is where a nowcast interval is wanted anyway.
+
+There is deliberately no `predict()` method. The nowcasts are computed
+while the model is fitted, so there is no separate prediction step to
+run on new data, and a `predict()` returning stored values would
+advertise a capability the model does not have.
+
+`fit$index` is the cumulated activity level, rebased to 100 at the start
+of the estimation window — the level counterpart of the growth-rate
+factor:
+
+```{r index}
+round(tail(fit$index), 2)
+```
+
+## Bringing your own data
+
+`mfbdfm_example_data` arrived ready-made. The models themselves take
+`flows` and `stocks` as two lists split by type; when the data comes from
+somewhere else — a spreadsheet, a database query — `mfbdfm_data()` builds
+that structure from a long or wide data frame, an `mts`, or a list of
+`ts`, and takes the flow/stock classification from a `meta` table:
 
 ```{r data-input}
+data(data_ch_dataset_test)
+
 series <- c(data_ch_dataset_test$flows[c(target, "SWISSMI", "traffic_PW")],
             data_ch_dataset_test$stocks[1:2])
 series <- lapply(series, stats::window, start = 2018)
@@ -72,90 +322,16 @@ The reason to prefer this is the printout. When a series' type is
 expressed by *which argument it was passed in*, there is nothing to
 inspect; printing the object shows the resolved classification and the
 frequencies actually in use **before** committing to a run that can take
-minutes to hours.
+minutes to hours. The result is passed to `ind_dfm()` exactly as
+`mfbdfm_example_data` was above. (`flows`/`stocks` still work as a pair
+of lists, if you already have them in that shape; the `mfbdfm_data`
+argument is an additional entry point, not a replacement.)
 
-## Estimation and exploration
+## Mixed frequency and real-time vintages
 
-`ind_dfm()` takes the `mfbdfm_data` object as its first argument. Real
-analyses use the full indicator set and a much longer chain — the
-accompanying paper uses `length_sample = 5000` after a burn-in of 1000 —
-whereas here a five-series subset and a short chain keep this vignette
-quick to build:
-
-```{r fit, results = "hide", message = FALSE}
-set.seed(1)
-fit <- ind_dfm(d, length_sample = 200, burn_in = 50)
-```
-
-(`flows`/`stocks` still work as a pair of lists, if you already have
-them in that shape; the `mfbdfm_data` argument is an additional entry
-point, not a replacement.)
-
-Printing the fit gives the shape of the model and the most recent
-nowcasts:
-
-```{r print}
-fit
-```
-
-`summary()` adds the posterior means of the loadings and the measurement
-error standard deviations, plus the residual fit on the observed
-entries. The target's loading is fixed at 1 by construction — that
-restriction is what makes the factor a GDP growth rate rather than a
-generic index — and its measurement error is shrunk toward zero:
-
-```{r summary}
-summary(fit)
-```
-
-`plot()` shows the factor with a 95% posterior credible band:
-
-```{r plot, fig.width = 6, fig.height = 4}
-plot(fit)
-```
-
-The standard extractors all work. `coef()` returns the loadings,
-`as.data.frame()` gives a tidy frame of the factor and its band, and
-`fitted()`/`residuals()` return the augmented dataset and its residuals
-with missing observations masked:
-
-```{r extractors}
-round(coef(fit), 3)
-
-head(as.data.frame(fit), 3)
-```
-
-## Nowcasts
-
-`fit$factor` is the annualized weekly growth rate implied by the model —
-the WAI itself — and `fit$nowcast` is the same information at the
-target's own (here quarterly) frequency, back in the target's original
-units:
-
-```{r nowcast}
-window(fit$nowcast, start = 2024)
-```
-
-`fit$nowcast_var` carries the posterior variance of each nowcast, for
-credible intervals. Note that it is essentially zero in quarters where
-the target is actually observed — the identifying prior shrinks the
-target's measurement error toward zero, so the model has nothing to be
-uncertain about there. It is informative for the periods the model has
-to fill in, which is where a nowcast interval is wanted anyway.
-
-`fit$index` is the cumulated activity level, rebased to 100 at the start
-of the estimation window — the level counterpart of the growth-rate
-factor:
-
-```{r index}
-round(window(fit$index, start = c(2025, 40)), 2)
-```
-
-## Mixed frequency
-
-Nothing above had to be said about frequencies: the five series enter at
-4, 12 and 48 observations per year and the model works on the highest of
-them, treating everything unobserved — including the eleven weeks in
+Nothing above had to be said about frequencies: the example series enter
+at 4, 12 and 48 observations per year and the model works on the highest
+of them, treating everything unobserved — including the eleven weeks in
 which quarterly GDP says nothing — as a latent state. That is the whole
 point of the model, and it is why `fit$factor` is weekly even though the
 target is quarterly:
@@ -166,8 +342,11 @@ c(factor = frequency(fit$factor), nowcast = frequency(fit$nowcast))
 
 The mixed-frequency case that needs more care is a *real-time* one,
 where the question is not only which frequency a series has but what was
-actually published at a given date. The real-time GDP vintage database
-ships with the package and needs no configuration:
+actually published at a given date. `mfbdfm_example_data` has one GDP
+vintage baked in — convenient for an example, but the wrong thing for a
+real-time evaluation, which needs the vintage that was current at each
+evaluation date. The real-time GDP vintage database ships with the
+package and needs no configuration:
 
 ```{r vintages}
 vintages <- get_real_time_gdp_vintages("quarterly")
@@ -198,7 +377,7 @@ instead:
 
 ```{r fit-const, results = "hide", message = FALSE}
 set.seed(1)
-fit_const <- ind_dfm(d, length_sample = 200, burn_in = 50,
+fit_const <- ind_dfm(mfbdfm_example_data, length_sample = 200, burn_in = 50,
                      stochastic_volatility = FALSE)
 ```
 
@@ -230,6 +409,53 @@ round(stats::setNames(as.numeric(fit$pars$rho), fit$inventory$key), 3)
 ```
 
 `serial_correlation = FALSE` holds all of them at (effectively) zero.
+
+## Choosing the number of factors
+
+`ind_dfm()` has exactly one factor by construction. `fcast_dfm()` asks
+for `q`, and the model gives no guidance on it. `select_factors()`
+computes the Bai & Ng (2002) information criteria IC1, IC2 and IC3, plus
+the principal-component eigenvalues behind them:
+
+```{r select-factors}
+sel <- select_factors(flows = data_ch_dataset_test$flows,
+                      stocks = data_ch_dataset_test$stocks,
+                      max_q = 8, na_action = "interpolate")
+sel
+```
+
+Two things in that printout matter more than the numbers.
+
+The first is **which data the criteria saw**. They are defined for a
+balanced panel of a single frequency, so the mixed-frequency input has to
+be reduced to one: only the highest-frequency block is kept, and the
+quarterly and monthly series — including GDP — are dropped. The model is
+then fitted on data the criteria never looked at.
+
+The second is that here **all three criteria are minimised at `max_q`**,
+which is why the call warns. That is not a recommendation to use eight
+factors; it means the minimum lies outside the range evaluated, or
+nowhere. Raising `max_q` does not fix it on this dataset: the penalties
+are calibrated for a large cross-section, and with 27 weekly series the
+fall in `log V(k)` outruns them. When that happens, read the variance
+shares instead:
+
+```{r scree, fig.width = 6, fig.height = 4}
+round(sel$cum_var_explained[1:6], 3)
+screeplot(sel)
+```
+
+The first component explains about a quarter of the panel's variance and
+the curve flattens after the third or fourth — which is the sort of
+judgement dfms' vignette reaches for its own data, and the sort of
+judgement that has to be made here too.
+
+So: the criteria **inform** `q`, they do not determine it. They are
+frequentist and principal-component based, while `fcast_dfm()` is
+Bayesian with post-hoc rotation. Fit two or three values of `q` and
+compare; `screeplot()` on the resulting fit shows how much of the panel
+each *rotated* factor ended up explaining, which is the corresponding
+description after the fact.
 
 ## Beyond this vignette
 
@@ -311,6 +537,8 @@ The references for the model's derivation — Chan & Jeliazkov (2009),
 Chib & Greenberg (1994), Mariano & Murasawa (2003), Bai & Wang (2015),
 Kim, Shephard & Chib (1998), Primiceri (2005), Indergand & Leist (2014)
 — are listed in `vignette("methodology", package = "mfbdfm")`.
+Bai & Ng (2002), used by `select_factors()`, is cited in
+`?select_factors`.
 
 ### Swiss business-cycle indicator benchmarks
 

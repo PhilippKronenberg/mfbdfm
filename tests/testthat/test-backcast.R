@@ -210,3 +210,41 @@ test_that("the level index compounds the net growth rate, not exp() of it", {
                  info = paste("annualised factor", annual))
   }
 })
+
+
+test_that("run_fcast(on_error) turns a failed vintage into a warning (BS2.15)", {
+
+  data(data_ch_dataset_test)
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  # q beyond the number of series is rejected by fcast_dfm()'s own validation,
+  # which is a cheap, deterministic way to make the fit fail without waiting
+  # for a chain to run
+  call_it <- function(...){
+    run_fcast(flows = flows, stocks = stocks, target = target,
+              date = 2023, dataset_used = "synth",
+              q = 99, length_sample = 4, burn_in = 2, ...)
+  }
+
+  # the default is unchanged: the error propagates
+  expect_error(call_it())
+  expect_error(call_it(on_error = "stop"))
+
+  # with "warn" the loop can carry on
+  out_dir <- tempfile(); on.exit(unlink(out_dir, recursive = TRUE))
+  res <- "untouched"
+  expect_warning(res <- call_it(on_error = "warn", output_dir = out_dir),
+                 class = "mfbdfm_warning_fit_failed")
+  expect_null(res)
+  # a failed vintage writes nothing
+  expect_false(dir.exists(file.path(out_dir, "synth")))
+
+  w <- tryCatch(call_it(on_error = "warn"), warning = function(w) w)
+  expect_match(conditionMessage(w), "2023")        # names the vintage
+  expect_match(conditionMessage(w), "synth")       # and the dataset
+
+  expect_error(call_it(on_error = "nonsense"))
+})

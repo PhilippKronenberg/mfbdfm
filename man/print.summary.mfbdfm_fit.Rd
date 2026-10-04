@@ -19,13 +19,8 @@ Print a fit summary
 }
 \examples{
 \donttest{
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"
-fit <- ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                              stats::window, start = 2021),
-               stocks = lapply(data_ch_dataset_test$stocks[1:2],
-                               stats::window, start = 2021),
-               target = target, length_sample = 20, burn_in = 5)
+data(mfbdfm_example_data)
+fit <- ind_dfm(mfbdfm_example_data, length_sample = 20, burn_in = 5)
 summary(fit)          # dispatches here
 }
 

@@ -20,9 +20,10 @@ test_that("ind_dfm returns a complete, finite fit object", {
   fit <- run_small_ind_dfm(42)
 
   expect_s3_class(fit, "ind_dfm")
-  expect_named(fit, c("factor", "factor_var", "index", "nowcast", "nowcast_var",
-                      "target", "pars", "data", "data_raw", "data_augmented",
-                      "inventory", "call"))
+  expect_named(fit, c("factor", "factor_var", "factor_std", "index", "nowcast",
+                      "nowcast_var", "target", "pars", "pars_dist", "data",
+                      "data_raw",
+                      "data_augmented", "inventory", "call"))
   expect_s3_class(fit$factor, "ts")
   expect_equal(frequency(fit$factor), 48)
   expect_equal(frequency(fit$nowcast), 4)
@@ -33,6 +34,24 @@ test_that("ind_dfm returns a complete, finite fit object", {
   expect_equal(fit$target, "ch.seco.gdp.real.gdp.ssa")
   # identifying restriction: target loading fixed at 1
   expect_equal(as.numeric(fit$pars$lambda[fit$inventory$key == fit$target]), 1)
+})
+
+test_that("factor_std spans the sample plus the aggregation's latent periods", {
+  fit <- run_small_ind_dfm(42)
+
+  k <- max(fit$inventory$freq)/min(fit$inventory$freq)
+  s <- 2*(k - 1)
+
+  expect_s3_class(fit$factor_std, "ts")
+  expect_length(fit$factor_std, nrow(fit$data) + s)
+  expect_false(anyNA(fit$factor_std))
+
+  # it leads $data by exactly the s latent periods, on the same frequency -
+  # this alignment is what the common-component reconstruction in summary()
+  # depends on
+  expect_equal(frequency(fit$factor_std), frequency(fit$data))
+  expect_equal(as.numeric(stats::time(fit$factor_std))[s + 1],
+               as.numeric(stats::time(fit$data))[1])
 })
 
 test_that("pars$h is complete and aligned with the factor (#49)", {
@@ -143,3 +162,60 @@ test_that("ind_dfm(plots = TRUE) restores the caller's graphics state", {
 # path by test-backcast.R's "the level index compounds the net growth rate, not
 # exp() of it". Adding `index` to dev/baseline.R's snapshot would give this
 # component proper regression cover (#92).
+
+
+test_that("ind_dfm is quiet under verbose = FALSE, messages under TRUE (BS2.13)", {
+
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  fit_quiet <- function(verbose){
+    set.seed(3)
+    ind_dfm(flows = flows, stocks = stocks, target = target,
+            length_sample = 8, burn_in = 4, plots = FALSE,
+            control = dfm_control("ind_dfm", verbose = verbose))
+  }
+
+  # Both channels, because they are silenced by different mechanisms: the
+  # message() calls go to stderr, the txtProgressBar writes with cat() and so
+  # survives suppressMessages() entirely - which was the gap in #118.
+  printed <- utils::capture.output(expect_no_message(fit <- fit_quiet(FALSE)))
+  expect_identical(printed, character(0))
+  expect_s3_class(fit, "ind_dfm")
+
+  # the default is still verbose, on both channels
+  printed_on <- utils::capture.output(expect_message(fit_quiet(TRUE)))
+  expect_true(any(nzchar(printed_on)))
+})
+
+
+test_that("the rho stationarity fallback warns once per fit, with a class", {
+
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  # A screen this tight rejects essentially every draw, so the fallback is
+  # guaranteed to fire. Forcing it is the only reliable way to reach the branch
+  # on a short, well-behaved fit.
+  run <- function(){
+    set.seed(3)
+    ind_dfm(flows = flows, stocks = stocks, target = target,
+            length_sample = 6, burn_in = 2, plots = FALSE,
+            control = dfm_control("ind_dfm", verbose = FALSE,
+                                  rho_max = 1e-6, rho_fallback = 1e-7))
+  }
+
+  w <- expect_warning(run(), class = "mfbdfm_warning_rho_fallback")
+  # one warning for the whole chain, not one per series per draw
+  expect_match(conditionMessage(w), "stationarity screen")
+
+  expect_silent(withCallingHandlers(
+    run(),
+    mfbdfm_warning_rho_fallback = function(w) invokeRestart("muffleWarning")))
+})
