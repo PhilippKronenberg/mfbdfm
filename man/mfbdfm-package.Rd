@@ -40,6 +40,10 @@ Estimation is by Gibbs sampling using the precision sampler of Chan
 and Jeliazkov (2009), with temporal aggregation of flow variables
 following the geometric-mean approximation of Mariano and Murasawa
 (2003).
+
+The measurement and state equations, the mixed-frequency aggregation
+weights, and how the scale is identified in each of the two models
+are set out in \code{vignette("methodology", package = "mfbdfm")}.
 }
 
 \section{Status of the algorithms implemented here}{
@@ -91,10 +95,11 @@ release or a commit) rather than the moving \code{main}, e.g.
 The package ships \link{mfbdfm_example_data}, a small self-contained
 dataset including the GDP target, so a nowcast is two lines out of the
 box - see the example in \code{\link[=ind_dfm]{ind_dfm()}} for the minimal version, or
-\code{vignette("mfbdfm")} for a worked walkthrough. The full curated
+\code{vignette("mfbdfm")} for an applied walkthrough. The full curated
 datasets \link{data_ch_dataset} and \link{data_ch_dataset_test} and the
 real-time GDP vintage database (in \verb{inst/extdata/}) are there for the
-real application.
+real application. For the model itself rather than the workflow, see
+\code{vignette("methodology", package = "mfbdfm")}.
 }
 
 \references{

@@ -119,3 +119,14 @@ reference:
   - mfbdfm_example_data
   - data_ch_dataset
   - data_ch_dataset_test
+
+articles:
+- title: Articles
+  desc: >
+    The applied walkthrough, and the model it walks through: the getting-started
+    vignette is purely applied, with the measurement and state equations,
+    mixed-frequency aggregation and identification kept separate.
+  navbar: ~
+  contents:
+  - mfbdfm
+  - methodology
