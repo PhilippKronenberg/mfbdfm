@@ -71,7 +71,9 @@ rotation to work; see \code{\link[=dfm_priors]{dfm_priors()}}.}
 rule and the stability bounds that were previously hard-coded. Omit it (the
 default) and the published behaviour is reproduced exactly;
 \code{dfm_control("fcast_dfm", strict = TRUE)} switches the rotation to the
-algorithm as specified in the online appendix.}
+algorithm as specified in the online appendix, and
+\code{dfm_control("fcast_dfm", verbose = FALSE)} silences the progress messages
+and the progress bar.}
 }
 \value{
 An object of class \code{"fcast_dfm"}: a list with components
