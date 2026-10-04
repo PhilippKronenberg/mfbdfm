@@ -84,7 +84,7 @@ rotation-identified model of Eckert et al. (2025) alongside it.
 # install.packages("remotes")
 
 # the latest release - reproducible, recommended
-remotes::install_github("PhilippKronenberg/mfbdfm", ref = "v0.1.0")
+remotes::install_github("PhilippKronenberg/mfbdfm", ref = "v0.2.0")
 
 # or the development version, which tracks main
 remotes::install_github("PhilippKronenberg/mfbdfm")
