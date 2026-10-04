@@ -95,6 +95,52 @@ used. The others cap or reject a draw for numerical stability:
 `omega_max` in
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
 
+## Verbosity
+
+`verbose = FALSE` silences both the progress
+[`message()`](https://rdrr.io/r/base/message.html)s and the
+[`utils::txtProgressBar`](https://rdrr.io/r/utils/txtProgressBar.html).
+The progress bar writes with [`cat()`](https://rdrr.io/r/base/cat.html),
+so [`suppressMessages()`](https://rdrr.io/r/base/message.html) alone
+does not quieten a fit – which is why this is a setting rather than
+something a caller can arrange from outside. Use it for scripted sweeps
+and for the worker processes planned by
+[`dfm_workers()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md).
+
+## Muffling one warning but not the others
+
+The warnings a fit can raise repeatedly over a sweep carry their own
+condition classes, so a single kind can be suppressed without hiding the
+rest:
+
+- `mfbdfm_warning_rho_fallback`:
+
+  the measurement-error autocorrelation hit `rho_max_tries` redraws for
+  at least one series and `rho_fallback` was substituted. Raised once
+  per fit, with the number of substitutions.
+
+- `mfbdfm_warning_rotation_cap`:
+
+  the
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  rotation (or its initialisation) stopped on its iteration cap rather
+  than on convergence.
+
+- `mfbdfm_warning_fit_failed`:
+
+  a fit failed and
+  [`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)`(on_error = "warn")`
+  turned the error into a warning.
+
+All of them also inherit from `mfbdfm_warning`. To muffle one:
+
+    withCallingHandlers(
+      fcast_dfm(flows = flows, stocks = stocks, target = target),
+      mfbdfm_warning_rho_fallback = function(w) invokeRestart("muffleWarning")
+    )
+
+Substituting `mfbdfm_warning` for the class name muffles all of them.
+
 ## References
 
 Assmann, C., Boysen-Hogrefe, J., & Pape, M. (2016). Bayesian analysis of
@@ -127,6 +173,7 @@ dfm_control("fcast_dfm")
 #>   rho_fallback             0.98      
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
+#>   verbose                  TRUE      
 #>   omega_max                1         
 #>   rotation_criterion       "mean"    
 #>   rotation_tol             1e-09     
@@ -147,6 +194,7 @@ dfm_control("fcast_dfm", strict = TRUE)
 #>   rho_fallback             0.98      
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
+#>   verbose                  TRUE      
 #>   omega_max                1         
 #>   rotation_criterion       "sum"       (default "mean")
 #>   rotation_tol             1e-09     
@@ -164,6 +212,7 @@ dfm_control("fcast_dfm", rotation_criterion = "sum", rotation_tol = 1e-10)
 #>   rho_fallback             0.98      
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
+#>   verbose                  TRUE      
 #>   omega_max                1         
 #>   rotation_criterion       "sum"       (default "mean")
 #>   rotation_tol             1e-10       (default 1e-09)
@@ -179,6 +228,20 @@ dfm_control("ind_dfm", sigma_max = 10)
 #>   rho_fallback             0.98      
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
+#>   verbose                  TRUE      
 #>   phi_sum_max              0.9       
 #>   sigma_max                10          (default 5)
+
+# silence the messages and the progress bar
+dfm_control("ind_dfm", verbose = FALSE)
+#> Control settings for ind_dfm()
+#> 
+#>   rho_max                  0.99      
+#>   rho_max_tries            10        
+#>   rho_fallback             0.98      
+#>   jitter                   1e-09     
+#>   sv_offset                0.001     
+#>   verbose                  FALSE       (default TRUE)
+#>   phi_sum_max              0.9       
+#>   sigma_max                5         
 ```

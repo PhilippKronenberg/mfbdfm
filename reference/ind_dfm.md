@@ -105,6 +105,8 @@ ind_dfm(
   the measurement-error autocorrelations, the caps on `phi` and `sigma`,
   and the numerical jitter. Omit it (the default) and the published
   behaviour is reproduced exactly.
+  `dfm_control("ind_dfm", verbose = FALSE)` silences the progress
+  messages and the progress bar.
 
 ## Value
 

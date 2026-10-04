@@ -36,6 +36,7 @@ dfm_control("fcast_dfm", strict = TRUE)
 #>   rho_fallback             0.98      
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
+#>   verbose                  TRUE      
 #>   omega_max                1         
 #>   rotation_criterion       "sum"       (default "mean")
 #>   rotation_tol             1e-09     

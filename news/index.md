@@ -2,6 +2,39 @@
 
 ## mfbdfm 0.1.0.9000
 
+- [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+  gains `verbose`, which turns the samplers quiet. Both models honour
+  it, and it silences the
+  [`utils::txtProgressBar`](https://rdrr.io/r/utils/txtProgressBar.html)
+  as well as the progress
+  [`message()`](https://rdrr.io/r/base/message.html)s — the bar writes
+  with [`cat()`](https://rdrr.io/r/base/cat.html), so
+  [`suppressMessages()`](https://rdrr.io/r/base/message.html) never
+  reached it and a scripted or parallel sweep had no way to run quietly
+  at all
+  ([\#118](https://github.com/PhilippKronenberg/mfbdfm/issues/118)).
+
+- The warnings a fit can raise repeatedly over a sweep now carry
+  condition classes, so one kind can be muffled without hiding the rest:
+  `mfbdfm_warning_rho_fallback`, `mfbdfm_warning_rotation_cap` and
+  `mfbdfm_warning_fit_failed`, all inheriting from `mfbdfm_warning`.
+  [`?dfm_control`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+  documents the
+  [`withCallingHandlers()`](https://rdrr.io/r/base/conditions.html)
+  idiom. The rho stationarity-screen fallback did not warn at all before
+  this — it had a commented-out
+  [`print()`](https://rdrr.io/r/base/print.html) where the substitution
+  happens — so it is a **new** warning, raised once per fit with a count
+  rather than once per series per MCMC draw
+  ([\#118](https://github.com/PhilippKronenberg/mfbdfm/issues/118)).
+
+- [`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
+  gains `on_error`. The default `"stop"` is unchanged; with `"warn"`, a
+  vintage whose fit fails becomes a warning naming the vintage and
+  returns `NULL`, so an expanding-window loop does not discard the
+  vintages it has already estimated
+  ([\#118](https://github.com/PhilippKronenberg/mfbdfm/issues/118)).
+
 - Both fit classes gain a
   [`logLik()`](https://rdrr.io/r/stats/logLik.html) method, so
   [`AIC()`](https://rdrr.io/r/stats/AIC.html) and

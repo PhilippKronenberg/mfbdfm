@@ -68,7 +68,8 @@ backcasting loop.</p>
 <span>  extend <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  ncores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  control <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  output_dir <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  output_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  on_error <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stop"</span>, <span class="st">"warn"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -150,7 +151,9 @@ the rotation step.</p></dd>
 <dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
 <dd><p>Optional settings from <code><a href="dfm_control.html">dfm_control()</a></code>, passed to
 <code><a href="fcast_dfm.html">fcast_dfm()</a></code>. Use <code>dfm_control("fcast_dfm", strict = TRUE)</code> to run the
-rotation as specified in the online appendix.</p></dd>
+rotation as specified in the online appendix, or
+<code>dfm_control("fcast_dfm", verbose = FALSE)</code> to silence the progress
+messages and the progress bar in a sweep.</p></dd>
 
 
 <dt id="arg-output-dir">output_dir<a class="anchor" aria-label="anchor" href="#arg-output-dir"></a></dt>
@@ -158,10 +161,22 @@ rotation as specified in the online appendix.</p></dd>
 skip saving. When given, the fit is saved as
 <code>file.path(output_dir, dataset_used, "fit_&lt;date&gt;.Rda")</code>.</p></dd>
 
+
+<dt id="arg-on-error">on_error<a class="anchor" aria-label="anchor" href="#arg-on-error"></a></dt>
+<dd><p>Character, what to do when <code><a href="fcast_dfm.html">fcast_dfm()</a></code> fails: <code>"stop"</code>
+(the default, the error propagates) or <code>"warn"</code>, which converts it into a
+warning naming the vintage and returns <code>NULL</code> for that vintage. Matched
+with <code><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg()</a></code>. <code>"warn"</code> is for the expanding-window loops in
+<code>analysis/</code>, where one vintage that fails to converge should not discard
+the dozens already estimated; the caller is then responsible for skipping
+the <code>NULL</code>. The warning has condition class
+<code>"mfbdfm_warning_fit_failed"</code> – see <code><a href="dfm_control.html">dfm_control()</a></code> on muffling.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Invisibly, the windowed <code>fcast_dfm</code> fit object.</p>
+    <p>Invisibly, the windowed <code>fcast_dfm</code> fit object, or <code>NULL</code> if the fit
+failed and <code>on_error = "warn"</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

@@ -28,7 +28,8 @@ run_fcast(
   extend = 0.5,
   ncores = NULL,
   control = NULL,
-  output_dir = NULL
+  output_dir = NULL,
+  on_error = c("stop", "warn")
 )
 ```
 
@@ -116,7 +117,9 @@ run_fcast(
   passed to
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
   Use `dfm_control("fcast_dfm", strict = TRUE)` to run the rotation as
-  specified in the online appendix.
+  specified in the online appendix, or
+  `dfm_control("fcast_dfm", verbose = FALSE)` to silence the progress
+  messages and the progress bar in a sweep.
 
 - output_dir:
 
@@ -124,9 +127,25 @@ run_fcast(
   given, the fit is saved as
   `file.path(output_dir, dataset_used, "fit_<date>.Rda")`.
 
+- on_error:
+
+  Character, what to do when
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  fails: `"stop"` (the default, the error propagates) or `"warn"`, which
+  converts it into a warning naming the vintage and returns `NULL` for
+  that vintage. Matched with
+  [`match.arg()`](https://rdrr.io/r/base/match.arg.html). `"warn"` is
+  for the expanding-window loops in `analysis/`, where one vintage that
+  fails to converge should not discard the dozens already estimated; the
+  caller is then responsible for skipping the `NULL`. The warning has
+  condition class `"mfbdfm_warning_fit_failed"` – see
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+  on muffling.
+
 ## Value
 
-Invisibly, the windowed `fcast_dfm` fit object.
+Invisibly, the windowed `fcast_dfm` fit object, or `NULL` if the fit
+failed and `on_error = "warn"`.
 
 ## Details
 

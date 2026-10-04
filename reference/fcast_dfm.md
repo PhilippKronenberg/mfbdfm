@@ -110,7 +110,9 @@ fcast_dfm(
   stability bounds that were previously hard-coded. Omit it (the
   default) and the published behaviour is reproduced exactly;
   `dfm_control("fcast_dfm", strict = TRUE)` switches the rotation to the
-  algorithm as specified in the online appendix.
+  algorithm as specified in the online appendix, and
+  `dfm_control("fcast_dfm", verbose = FALSE)` silences the progress
+  messages and the progress bar.
 
 ## Value
 
