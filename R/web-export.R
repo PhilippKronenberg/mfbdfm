@@ -85,16 +85,12 @@
 #' \donttest{
 #' # run_wai_adj() is what makes a fit file, so the example produces the file it
 #' # then exports, on a short chain.
-#' data(data_ch_dataset_test)
-#' target <- "ch.seco.gdp.real.gdp.ssa"
-#' flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-#'                 stats::window, start = 2021)
-#' stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-#'                  stats::window, start = 2021)
+#' data(mfbdfm_example_data)
+#' d <- mfbdfm_example_data
 #' out <- tempfile(); dir.create(out)
 #'
 #' set.seed(1)
-#' run_wai_adj(flows = flows, stocks = stocks, target = target,
+#' run_wai_adj(flows = d$flows, stocks = d$stocks, target = d$target,
 #'             date = 2023, dataset_used = "example",
 #'             length_sample = 20, burn_in = 5, output_dir = out)
 #'
@@ -184,17 +180,27 @@ export_wai_web <- function(fit_path, dir = NULL, gdp = NULL, digits = 4,
 }
 
 
-# Aggregate the weekly level index to quarterly growth the way GDP is measured.
-#
-# GDP is a FLOW: the quarter's average activity, not its closing level. So the
-# quarterly aggregate is the MEAN of the weekly index over the quarter, and
-# growth is taken between consecutive means - never between quarter endpoints,
-# which on a V-shaped path answers a different question entirely (2020Q2:
-# endpoints say roughly zero, averages say -23% annualised, and GDP reported
-# -23.1%).
-#
-# The result is placed on the last weekly period of each quarter so it sits
-# alongside the published GDP points rather than needing its own index.
+#' Aggregate the weekly level index to quarterly growth the way GDP is measured
+#'
+#' GDP is a FLOW: the quarter's average activity, not its closing level. So the
+#' quarterly aggregate is the MEAN of the weekly index over the quarter, and
+#' growth is taken between consecutive means - never between quarter endpoints,
+#' which on a V-shaped path answers a different question entirely (2020Q2:
+#' endpoints say roughly zero, averages say -23% annualised, and GDP reported
+#' -23.1%).
+#'
+#' The result is placed on the last weekly period of each quarter so it sits
+#' alongside the published GDP points rather than needing its own index.
+#'
+#' @param dates `Date` vector of the weekly grid.
+#' @param index Numeric vector of the weekly level index, same length as
+#'   `dates`; `NA` entries are ignored when forming quarterly means.
+#'
+#' @return A list of two numeric vectors, `qoq` (annualised quarter-on-quarter
+#'   growth, in percent) and `yoy` (year-on-year growth, in percent), each the
+#'   length of `dates` and `NA` everywhere except the last week of a quarter.
+#'
+#' @noRd
 wai_quarterly_flow <- function(dates, index) {
   key <- as.numeric(format(dates, "%Y")) * 4 +
     (as.numeric(format(dates, "%m")) - 1L) %/% 3L
@@ -228,18 +234,39 @@ wai_quarterly_flow <- function(dates, index) {
 }
 
 
-# Align a (time, value) pair onto a target vector of dates, returning NA where
-# the target date has no match. `time` columns coming out of extract_wai_data()
-# are Dates already; as.Date() keeps this honest if that ever changes.
+#' Align a (time, value) pair onto a target vector of dates
+#'
+#' Returns `NA` where the target date has no match. `time` columns coming out of
+#' [extract_wai_data()] are Dates already; `as.Date()` keeps this honest if that
+#' ever changes.
+#'
+#' @param times Vector of dates (or date-coercible values) belonging to `values`.
+#' @param values Vector of values to align, same length as `times`.
+#' @param target `Date` vector to align onto.
+#'
+#' @return A numeric vector the length of `target`.
+#'
+#' @noRd
 match_on_date <- function(times, values, target) {
   as.numeric(values)[match(target, as.Date(times))]
 }
 
 
-# Place quarterly GDP growth on the weekly grid: each quarter's value lands on
-# the last weekly period that falls inside it, and every other week is NA. That
-# is what lets the front end draw GDP as points against a weekly line without
-# carrying a second, differently-indexed file.
+#' Place quarterly GDP growth on the weekly grid
+#'
+#' Each quarter's value lands on the last weekly period that falls inside it,
+#' and every other week is `NA`. That is what lets the front end draw GDP as
+#' points against a weekly line without carrying a second, differently-indexed
+#' file.
+#'
+#' @param gdp Data frame with a `time` column and a `value` column, as
+#'   [gdp_web_series()] returns.
+#' @param target `Date` vector of the weekly grid to place the values on.
+#'
+#' @return A numeric vector the length of `target`, `NA` except on the last week
+#'   of each quarter for which `gdp` carries an observation.
+#'
+#' @noRd
 gdp_on_weekly_grid <- function(gdp, target) {
   if (!all(c("time", "value") %in% names(gdp))) {
     stop("`gdp` must have columns `time` and `value`, or `time` plus any of ",
@@ -258,15 +285,25 @@ gdp_on_weekly_grid <- function(gdp, target) {
 }
 
 
-# `gdp$time` arrives as a Date from get_real_time_gdp_vintages(), but decimal
-# time is the package's other currency, so accept both.
-#
-# The decimal branch ROUNDS rather than floors, deliberately. The package's own
-# decimal_date_local() puts quarter starts at .000/.247/.496/.748 (day-of-year
-# over 365), not at exact quarter fractions: flooring `(t %% 1) * 4` sends
-# 1990.247 to quarter 1 instead of 2, collapsing two quarters onto one key so
-# that one silently overwrites the other. Rounding lands both conventions -
-# .247-style and exact .25-style - on the right quarter.
+#' Map a time vector onto quarter keys
+#'
+#' `gdp$time` arrives as a `Date` from [get_real_time_gdp_vintages()], but
+#' decimal time is the package's other currency, so accept both.
+#'
+#' The decimal branch ROUNDS rather than floors, deliberately. The package's own
+#' [decimal_date_local()] puts quarter starts at .000/.247/.496/.748
+#' (day-of-year over 365), not at exact quarter fractions: flooring
+#' `(t %% 1) * 4` sends 1990.247 to quarter 1 instead of 2, collapsing two
+#' quarters onto one key so that one silently overwrites the other. Rounding
+#' lands both conventions - .247-style and exact .25-style - on the right
+#' quarter.
+#'
+#' @param time `Date` vector, or numeric decimal time.
+#'
+#' @return An integer-valued numeric vector of quarter keys, as built by
+#'   `quarter_key()`.
+#'
+#' @noRd
 quarter_of <- function(time) {
   if (inherits(time, "Date")) {
     return(quarter_key(as.numeric(format(time, "%Y")),
@@ -277,21 +314,46 @@ quarter_of <- function(time) {
 }
 
 
+#' A single comparable key per calendar quarter
+#'
+#' @param year Numeric vector of calendar years.
+#' @param quarter Numeric vector of quarters within the year (1-4).
+#'
+#' @return A numeric vector of keys, ordered as the quarters are.
+#'
+#' @noRd
 quarter_key <- function(year, quarter) year * 4L + as.integer(quarter)
 
 
-# write.csv() would quote the header and spell missing values "NA"; the front
-# end wants a bare header and empty fields. eol is forced to "\n" so a run on
-# Windows does not produce a diff against a run on Linux.
+#' Write the front end's CSV
+#'
+#' `write.csv()` would quote the header and spell missing values `"NA"`; the
+#' front end wants a bare header and empty fields. `eol` is forced to `"\n"` so
+#' a run on Windows does not produce a diff against a run on Linux.
+#'
+#' @param dat Data frame to write.
+#' @param path Character, the file to write to.
+#'
+#' @return `NULL`, invisibly; called for the file it writes.
+#'
+#' @noRd
 write_web_csv <- function(dat, path) {
   utils::write.table(dat, path, sep = ",", row.names = FALSE, col.names = TRUE,
                      quote = FALSE, na = "", eol = "\n", fileEncoding = "UTF-8")
 }
 
 
-# A dependency-free JSON writer for the flat, scalar-or-character-vector
-# metadata list above. jsonlite would do this better, but it is not among the
-# package's Imports and one small writer is a poor reason to add a dependency.
+#' A dependency-free JSON writer
+#'
+#' Handles the flat, scalar-or-character-vector metadata list above and nothing
+#' more. jsonlite would do this better, but it is not among the package's
+#' Imports and one small writer is a poor reason to add a dependency.
+#'
+#' @param x A named list of atomic vectors (character, logical or numeric).
+#'
+#' @return A single character string holding the JSON object.
+#'
+#' @noRd
 to_json <- function(x) {
   render <- function(v) {
     if (is.null(v) || (length(v) == 1L && is.na(v))) return("null")
