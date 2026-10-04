@@ -114,13 +114,8 @@ on the first factor so that a series sits in the same row of every panel.
 }
 \examples{
 \donttest{
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"
-fit <- fcast_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                                stats::window, start = 2021),
-                 stocks = lapply(data_ch_dataset_test$stocks[1:2],
-                                 stats::window, start = 2021),
-                 target = target, q = 2, length_sample = 20, burn_in = 5)
+data(mfbdfm_example_data)
+fit <- fcast_dfm(mfbdfm_example_data, q = 2, length_sample = 20, burn_in = 5)
 fit
 coef(fit)          # a q-column matrix here, a vector for ind_dfm()
 screeplot(fit)     # share of panel variance per rotated factor

@@ -112,14 +112,10 @@ multi-factor sweep varies \code{q} where the WAI sweep varies the dataset.
 \examples{
 \donttest{
 # Short chain on the shipped data; a real evaluation uses the defaults.
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"
-flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                stats::window, start = 2021)
-stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-                 stats::window, start = 2021)
+data(mfbdfm_example_data)
+d <- mfbdfm_example_data
 set.seed(1)
-fit <- run_fcast(flows = flows, stocks = stocks, target = target,
+fit <- run_fcast(flows = d$flows, stocks = d$stocks, target = d$target,
                  date = 2023, dataset_used = "example",
                  q = 2, length_sample = 20, burn_in = 5)
 fit$nowcast

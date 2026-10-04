@@ -116,5 +116,6 @@ reference:
 
 - title: Data
   contents:
+  - mfbdfm_example_data
   - data_ch_dataset
   - data_ch_dataset_test
