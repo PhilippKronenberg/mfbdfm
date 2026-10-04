@@ -93,7 +93,9 @@
 #'   rule and the stability bounds that were previously hard-coded. Omit it (the
 #'   default) and the published behaviour is reproduced exactly;
 #'   `dfm_control("fcast_dfm", strict = TRUE)` switches the rotation to the
-#'   algorithm as specified in the online appendix.
+#'   algorithm as specified in the online appendix, and
+#'   `dfm_control("fcast_dfm", verbose = FALSE)` silences the progress messages
+#'   and the progress bar.
 #'
 #' @return An object of class `"fcast_dfm"`: a list with components
 #'   \describe{
@@ -236,13 +238,15 @@ fcast_dfm <- function(flows = NULL,
 
   }
 
-  message("preallocating..")
+  verbose <- isTRUE(control$verbose)
+
+  if(verbose) message("preallocating..")
   Gmat_prealloc <- get_gmat_prealloc(n = n, q = q, s = s, t = t)
 
 
   # SAMPLING ----------------------------------------------------------------
 
-  message("simulating posterior distribution..")
+  if(verbose) message("simulating posterior distribution..")
   theta_out <- run_sampling_fcast(Ymat = Ymat,
                                q = q, n = n, t = t, p = p, s = s,
                                length_sample = length_sample,
@@ -254,19 +258,20 @@ fcast_dfm <- function(flows = NULL,
                                stochastic_volatility = stochastic_volatility,
                                serial_correlation = serial_correlation,
                                priors = priors,
-                               control = control)
+                               control = control,
+                               verbose = verbose)
 
 
   # ROTATION ----------------------------------------------------------------
 
-  message("running rotation of each draw..")
+  if(verbose) message("running rotation of each draw..")
   D_save <- run_rotation_fcast(theta_out, n = n, q = q, p = p, s = s, t = t,
                                ncores = ncores, control = control)
 
 
   # IDENTIFICATION ----------------------------------------------------------
 
-  message("running identification..")
+  if(verbose) message("running identification..")
   rlist <- run_identification_fcast(theta_out, D_save, n = n, q = q, p = p, s = s, t = t)
 
   # Nothing below reads theta_out or D_save - run_evaluation_fcast() works from
@@ -281,7 +286,7 @@ fcast_dfm <- function(flows = NULL,
 
   # EVALUATION --------------------------------------------------------------
 
-  message("processing output..")
+  if(verbose) message("processing output..")
   out <- run_evaluation_fcast(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t,
                         inventory, flows, stocks, target)
 

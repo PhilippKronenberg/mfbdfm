@@ -12,6 +12,46 @@
   the model is fitted, so a `predict()` returning stored values would
   advertise a capability the model does not have (#104).
 
+* `dfm_control()` gains `verbose`, which turns the samplers quiet. Both models
+  honour it, and it silences the `utils::txtProgressBar` as well as the
+  progress `message()`s — the bar writes with `cat()`, so `suppressMessages()`
+  never reached it and a scripted or parallel sweep had no way to run quietly
+  at all (#118).
+
+* The warnings a fit can raise repeatedly over a sweep now carry condition
+  classes, so one kind can be muffled without hiding the rest:
+  `mfbdfm_warning_rho_fallback`, `mfbdfm_warning_rotation_cap` and
+  `mfbdfm_warning_fit_failed`, all inheriting from `mfbdfm_warning`.
+  `?dfm_control` documents the `withCallingHandlers()` idiom. The rho
+  stationarity-screen fallback did not warn at all before this — it had a
+  commented-out `print()` where the substitution happens — so it is a **new**
+  warning, raised once per fit with a count rather than once per series per
+  MCMC draw (#118).
+
+* `run_fcast()` gains `on_error`. The default `"stop"` is unchanged; with
+  `"warn"`, a vintage whose fit fails becomes a warning naming the vintage and
+  returns `NULL`, so an expanding-window loop does not discard the vintages it
+  has already estimated (#118).
+
+* Both fit classes gain a `logLik()` method, so `AIC()` and `BIC()` work on
+  them. Neither sampler computes a likelihood and there is no Kalman filter in
+  the package, so the quantity had to be *defined*: it is the Gaussian log
+  density of the **observed** entries of the prepared data, at the posterior
+  mean parameters and volatility path, with the factors and the unobserved
+  entries marginalised out. It is computed exactly from the stacked Gaussian
+  form the samplers already use — the factor prior precision from
+  `draw_factors()` and the quasi-differenced measurement block from
+  `draw_augmented_data()` — rather than by adding a filter, and it agrees with
+  a dense brute-force evaluation to ~3e-12. Missing observations are encoded as
+  `0` in the prepared data and are excluded, the same caveat that makes
+  `residuals()` return `NA` there; `nobs` counts genuinely observed values
+  only. **`AIC()`/`BIC()` are approximate for this model class** — the value is
+  a plug-in likelihood at one parameter value rather than a posterior
+  quantity, it conditions on the volatility path rather than integrating over
+  it, and `df` is a raw parameter count that ignores the shrinkage the
+  (structural) priors impose. `?ind_dfm_methods` says so plainly; prefer DIC or
+  WAIC when the posterior matters. Sampling is untouched (#97).
+
 * `extract_wai_data()` compounds the level index with `(1 + gr)` rather than
   `exp(gr)`. `gr` is already a net per-period rate, so the gross growth factor
   is `1 + gr`; `exp(x) > 1 + x` for every `x != 0`, which made the error

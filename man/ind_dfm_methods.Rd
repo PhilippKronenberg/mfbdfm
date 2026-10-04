@@ -5,6 +5,7 @@
 \alias{coef.ind_dfm}
 \alias{fitted.ind_dfm}
 \alias{residuals.ind_dfm}
+\alias{logLik.ind_dfm}
 \alias{as.data.frame.ind_dfm}
 \alias{plot.ind_dfm}
 \alias{summary.ind_dfm}
@@ -16,6 +17,8 @@
 \method{fitted}{ind_dfm}(object, ...)
 
 \method{residuals}{ind_dfm}(object, ...)
+
+\method{logLik}{ind_dfm}(object, ...)
 
 \method{as.data.frame}{ind_dfm}(x, row.names = NULL, optional = FALSE, ...)
 
@@ -39,7 +42,8 @@
 \code{coef()} a named numeric vector; \code{fitted()} and \code{residuals()} \code{ts}
 matrices with one column per series; \code{as.data.frame()} a data frame with
 \code{time} and the factor with bands; \code{summary()} an object of class
-\code{"summary.mfbdfm_fit"}; \code{print()} and \code{plot()} return their input
+\code{"summary.mfbdfm_fit"}; \code{logLik()} an object of class \code{"logLik"} with \code{df}
+and \code{nobs} attributes; \code{print()} and \code{plot()} return their input
 invisibly.
 }
 \description{
@@ -65,6 +69,9 @@ a series was not observed, which in a mixed-frequency model is most of
 the matrix for the low-frequency series.}
 \item{\code{as.data.frame()}}{The factor with 95\% bands, one row per period,
 so downstream code need not reach into the list structure.}
+\item{\code{logLik()}}{A plug-in Gaussian log-likelihood of the observed data,
+with \code{df} and \code{nobs} attributes so that \code{\link[=AIC]{AIC()}} and \code{\link[=BIC]{BIC()}} work. Read
+the definition below before using it.}
 }
 
 There is deliberately no \code{predict()} method: the model does not forecast in
@@ -73,6 +80,46 @@ the usual sense -- nowcasts are computed during fitting and stored -- so a
 not exist. Use \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to get at those stored nowcasts; it is
 the accessor the missing \code{predict()} would otherwise be mistaken for.
 }
+\section{What \code{logLik()} means here}{
+
+
+Neither model computes a likelihood while sampling -- the factors are drawn
+jointly from a stacked, precision-based conditional, and there is no Kalman
+filter anywhere in the package. So the value has to be \emph{defined}, and the
+definition adopted is:the Gaussian log density of the observed entries of the prepared data,evaluated at the posterior mean parameters and the posterior meanvolatility path, with the factors and the unobserved data entriesmarginalised out.
+
+It is computed exactly (not by simulation) from the stacked Gaussian form
+the samplers already use, so nothing is approximated in the \emph{arithmetic}.
+What is approximate is the statistics, in three specific ways:
+
+\itemize{
+\item It is a \strong{plug-in} likelihood at a single parameter value, not the
+marginal likelihood of the data under the posterior, and not an average
+of the likelihood over draws. Posterior uncertainty in the parameters is
+ignored.
+\item It is \strong{conditional on the posterior mean volatility path}, which is
+itself a latent state, rather than integrated over it.
+\item \code{df} counts the parameters of the measurement and state equations
+only -- loadings (net of the identifying restriction), autoregressive
+coefficients, measurement error variances, measurement error
+autocorrelations, and the volatility process. The latent states are not
+counted, and neither is the shrinkage imposed by the priors.
+}
+
+Consequently \strong{\code{AIC()} and \code{BIC()} are approximate for this model class, and
+should be read as rough comparisons rather than as model selection
+criteria.} Both models are hierarchical and Bayesian, and \code{\link[=ind_dfm]{ind_dfm()}}'s
+identification is carried by informative priors (see \code{\link[=dfm_priors]{dfm_priors()}}), so the
+effective number of parameters is not the raw count that \code{df} reports. For a
+criterion that respects the posterior, prefer DIC or WAIC computed from the
+retained draws.
+
+Missing observations are encoded as \code{0} in the prepared data and are
+\strong{excluded} -- they enter as latent quantities to be marginalised out, not
+as observed zeros. \code{nobs} is therefore the number of genuinely observed
+values, which for a mixed-frequency model is far fewer than \code{nrow * ncol}.
+}
+
 \examples{
 \donttest{
 data(data_ch_dataset_test)
@@ -85,6 +132,8 @@ fit <- ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
 fit
 coef(fit)
 head(as.data.frame(fit))
+logLik(fit)
+AIC(fit)              # approximate here - see "What logLik() means"
 mfbdfm_nowcast(fit, last = TRUE)
 }
 

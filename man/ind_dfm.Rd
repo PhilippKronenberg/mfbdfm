@@ -65,7 +65,8 @@ identification rather than being tuning knobs; see \code{\link[=dfm_priors]{dfm_
 numerical guards that were previously hard-coded -- the stationarity screen
 on the measurement-error autocorrelations, the caps on \code{phi} and \code{sigma},
 and the numerical jitter. Omit it (the default) and the published behaviour
-is reproduced exactly.}
+is reproduced exactly. \code{dfm_control("ind_dfm", verbose = FALSE)} silences
+the progress messages and the progress bar.}
 }
 \value{
 An object of class \code{"ind_dfm"}: a list with components

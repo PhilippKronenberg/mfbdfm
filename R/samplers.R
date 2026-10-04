@@ -21,7 +21,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                          inventory, plots,Gmat_prealloc, fdat,
                          stochastic_volatility = TRUE, serial_correlation = TRUE,
                          priors = dfm_priors("ind_dfm"),
-                         control = dfm_control("ind_dfm")){
+                         control = dfm_control("ind_dfm"),
+                         verbose = TRUE){
 
   # fill in the priors whose published default is a rule in terms of t or p
   priors <- resolve_priors(priors, t = t, p = p)
@@ -76,8 +77,12 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   N <- N[-1,] # diffuse (improper) prior distribution
   NtN <- t(N) %*% N
 
-  # initialize progress bar
-  pb <- txtProgressBar(style = 3)
+  # initialize progress bar; NULL when quiet, since the bar writes with cat()
+  # and so cannot be silenced from outside the call (#118)
+  pb <- if(verbose) txtProgressBar(style = 3) else NULL
+
+  # tally of rho stationarity-screen fallbacks, reported once after the chain
+  rho_tally <- new_rho_tally()
 
   # restore the caller's graphics state once, however this function exits,
   # instead of resetting it after every plotted iteration below
@@ -89,7 +94,7 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   # loop until sampling complete
   for(jx in 1:(burn_in + length_sample*thinning)){
 
-    setTxtProgressBar(pb, jx/(burn_in + length_sample * thinning))
+    if(!is.null(pb)) setTxtProgressBar(pb, jx/(burn_in + length_sample * thinning))
 
     Gmat <- get_gmat(Gmat_prealloc, Llist, rho, lambda, s, t, n)
 
@@ -166,7 +171,7 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
       rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
                       lambda = lambda, Llist = Llist, inventory = inventory, target = target,
                       prior_target = priors$rho_target, prior_other = priors$rho_other,
-                      control = control)
+                      control = control, tally = rho_tally)
     }
 
     if(stochastic_volatility) indicators = draw_indicators(h, f, phi, n, p, s, t, control)
@@ -225,7 +230,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
     }
   }
 
-  close(pb)
+  if(!is.null(pb)) close(pb)
+  warn_rho_fallback(rho_tally, control)
   return(par_save)
 
 }
@@ -523,7 +529,7 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma, cont
 #' @importFrom stats rnorm
 draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
                     control,
-                     prior_target, prior_other){
+                     prior_target, prior_other, tally = NULL){
 
   # See appendix A.4 Conditional distributions of Remaining Parameters: Autocorrelation of Measurement Errors
   # construct auxiliary matrix
@@ -599,7 +605,10 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
       # run checks
       if(count > control$rho_max_tries) {
         rho_i <- control$rho_fallback
-        #print(paste0("rho adjusted: ",inventory$key[nx]))
+        # Counted, not warned about here: this runs inside the per-iteration
+        # loop, so a warning would fire once per series per draw. run_sampling()
+        # reports the total once the chain is done (#118).
+        if(!is.null(tally)) tally$n <- tally$n + 1L
       }
       check = abs(rho_i) < control$rho_max
 
