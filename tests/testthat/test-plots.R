@@ -154,18 +154,61 @@ test_that("residuals and fit views honour `series`, and reject a bad one", {
 })
 
 
-test_that("the fit view separates observed from fitted", {
+test_that("the fit view separates observed from the common component", {
   fl <- plot_fits()
 
   for (nm in names(fl)) {
     p <- plot(fl[[nm]], type = "fit")
-    expect_setequal(unique(p$data$kind), c("observed", "fitted"))
+    expect_setequal(unique(p$data$kind), c("observed", "common component"))
 
     # the prepared data encodes missing as 0; those must not be drawn as zeros
     obs <- p$data[p$data$kind == "observed", ]
     expect_true(any(is.na(obs$value)))
     expect_false(any(obs$value == 0, na.rm = TRUE))
   }
+})
+
+
+test_that("residuals and fit are built on the common component, not fitted()", {
+  fl <- plot_fits()
+
+  for (nm in names(fl)) {
+    fit <- fl[[nm]]
+    cc <- fit_common_component(fit)
+    obs <- unclass(as.matrix(fit$data))
+    obs[obs == 0] <- NA_real_
+
+    res <- plot(fit, type = "residuals")$data
+    expect_equal(res$value, as.numeric(obs - unclass(as.matrix(cc))))
+
+    # against fitted() the residuals would be sampling noise; against the
+    # common component a non-target series must leave something unexplained
+    other <- setdiff(fit$inventory$key, fit$target)[1]
+    expect_gt(max(abs(res$value[res$series == other]), na.rm = TRUE), 1e-3)
+  }
+
+  # an ind_dfm fit saved before $factor_std existed has no common component
+  old <- fl$ind_dfm
+  old$factor_std <- NULL
+  expect_error(plot(old, type = "residuals"), "standardized scale")
+  expect_error(plot(old, type = "fit"), "standardized scale")
+})
+
+
+test_that("the loadings view draws the posterior interval when it exists", {
+  fl <- plot_fits()
+
+  for (nm in names(fl)) {
+    p <- plot(fl[[nm]], type = "loadings")
+    tab <- mfbdfm_table_loadings(fl[[nm]])
+    expect_equal(sort(p$data$lower), sort(tab$lower))
+    expect_match(p$labels$subtitle, "95% interval")
+  }
+
+  # a fit saved before $pars_dist existed shows the means alone
+  old <- fl$ind_dfm
+  old$pars_dist <- NULL
+  expect_match(plot(old, type = "loadings")$labels$subtitle, "no interval")
 })
 
 

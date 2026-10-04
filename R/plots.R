@@ -288,45 +288,93 @@ plot_view_nowcast <- function(x, level){
 #' @noRd
 #' @importFrom ggplot2 ggplot aes geom_segment geom_point geom_vline facet_wrap
 #'   vars labs
-#' @importFrom stats coef
 #' @importFrom rlang .data
 plot_view_loadings <- function(x){
 
   pal <- mfbdfm_pal()
-  lam <- as.matrix(coef(x))
-  if(is.null(rownames(lam))) rownames(lam) <- x$inventory$key
-  if(is.null(colnames(lam))) colnames(lam) <- "factor"
+
+  # the same numbers mfbdfm_table_loadings() reports, so the plot and the table
+  # cannot disagree; the interval comes from $pars_dist (#113) and is NA on a
+  # fit saved before that existed
+  tab <- mfbdfm_table_loadings(x)
+  flabs <- unique(tab$factor)
+  has_interval <- any(is.finite(tab$lower))
 
   # one common ordering across facets, taken from the first factor - a per-facet
   # ordering would put the same series in a different row of each panel
-  ord <- rownames(lam)[order(lam[, 1])]
+  first <- tab[tab$factor == flabs[1], ]
+  ord <- first$series[order(first$mean)]
 
-  df <- do.call(rbind, lapply(seq_len(ncol(lam)), function(j){
-
-    data.frame(series = factor(rownames(lam), levels = ord),
-               factor = factor(colnames(lam)[j], levels = colnames(lam)),
-               loading = lam[, j],
-               stringsAsFactors = FALSE)
-
-  }))
+  df <- data.frame(series = factor(tab$series, levels = ord),
+                   factor = factor(tab$factor, levels = flabs),
+                   loading = tab$mean,
+                   lower = tab$lower,
+                   upper = tab$upper,
+                   stringsAsFactors = FALSE)
 
   p <- ggplot(df, aes(x = .data$loading, y = .data$series)) +
     geom_vline(xintercept = 0, colour = unname(pal["reference"]),
-               linewidth = 0.3) +
-    geom_segment(aes(x = 0, xend = .data$loading,
-                     y = .data$series, yend = .data$series),
-                 colour = "grey75") +
+               linewidth = 0.3)
+
+  if(has_interval){
+    p <- p + geom_segment(aes(x = .data$lower, xend = .data$upper,
+                              y = .data$series, yend = .data$series),
+                          colour = unname(pal["band"]), linewidth = 1.2,
+                          na.rm = TRUE)
+  } else {
+    p <- p + geom_segment(aes(x = 0, xend = .data$loading,
+                              y = .data$series, yend = .data$series),
+                          colour = "grey75")
+  }
+
+  p <- p +
     geom_point(colour = unname(pal["estimate"]), size = 2) +
     labs(x = "loading", y = NULL,
          title = "Factor loadings",
-         # the fits store posterior means of lambda only, not draws, so there
-         # is nothing to draw an interval from here
-         subtitle = "posterior mean") +
+         subtitle = if(has_interval) "posterior mean and 95% interval"
+                    else "posterior mean (this fit stores no interval)") +
     theme_mfbdfm()
 
-  if(ncol(lam) > 1) p <- p + facet_wrap(vars(.data$factor), nrow = 1)
+  if(length(flabs) > 1) p <- p + facet_wrap(vars(.data$factor), nrow = 1)
 
   p
+
+}
+
+
+#' The common component of a fit, or an error saying why there is none
+#'
+#' `"residuals"` and `"fit"` are built on [fit_common_component()] rather than
+#' on `fitted()`/`residuals()`: `fitted()` is the augmented dataset, whose
+#' observed entries the sampler pins to the data with a `1e-9` measurement
+#' prior, so residuals against it are noise of order `1e-5` and observed versus
+#' fitted is the data drawn twice. An `ind_dfm()` fit saved before
+#' `$factor_std` existed has no common component to draw.
+#'
+#' @noRd
+plot_common_component <- function(x, view){
+
+  cc <- fit_common_component(x)
+  if(is.null(cc)){
+    stop("`plot(type = \"", view, "\")` needs the factor on the model's ",
+         "standardized scale, which this fit does not store. Refit with the ",
+         "current version of mfbdfm (an ind_dfm() fit gained `$factor_std` in ",
+         "0.1.0.9000).", call. = FALSE)
+  }
+  cc
+
+}
+
+
+#' Observed values in long form, with the unobserved periods as NA
+#'
+#' @noRd
+plot_observed_long <- function(x){
+
+  obs <- fit_matrix_long(x$data, x$inventory$key, "observed")
+  # 0 encodes "not observed" in the prepared data
+  obs$value[obs$value == 0] <- NA_real_
+  obs
 
 }
 
@@ -334,14 +382,16 @@ plot_view_loadings <- function(x){
 #' @noRd
 #' @importFrom ggplot2 ggplot aes geom_line geom_point geom_hline facet_wrap
 #'   vars labs
-#' @importFrom stats residuals
 #' @importFrom rlang .data
 plot_view_residuals <- function(x, series){
 
   pal <- mfbdfm_pal()
   keys <- resolve_plot_series(x, series)
 
-  df <- fit_matrix_long(residuals(x), x$inventory$key, "residual")
+  cc <- plot_common_component(x, "residuals")
+  df <- plot_observed_long(x)
+  df$value <- df$value - fit_matrix_long(cc, x$inventory$key, "cc")$value
+  df$kind <- "residual"
   df <- df[df$series %in% keys, , drop = FALSE]
   df$series <- factor(df$series, levels = keys)
 
@@ -356,9 +406,8 @@ plot_view_residuals <- function(x, series){
     geom_point(colour = unname(pal["estimate"]), size = 0.6, na.rm = TRUE) +
     facet_wrap(vars(.data$series), scales = "free_y") +
     labs(x = NULL, y = "residual",
-         title = "Residuals",
-         # unobserved periods are NA rather than zero, per residuals()
-         subtitle = "observed minus fitted, standardized scale; gaps are unobserved periods") +
+         title = "Residuals from the common component",
+         subtitle = "observed minus loadings x factors, standardized scale; gaps are unobserved periods") +
     theme_mfbdfm()
 
 }
@@ -401,29 +450,26 @@ plot_view_fit <- function(x, series){
 
   pal <- mfbdfm_pal()
   keys <- resolve_plot_series(x, series)
-  all_keys <- x$inventory$key
 
-  obs <- fit_matrix_long(x$data, all_keys, "observed")
-  # 0 encodes "not observed" in the prepared data - the same convention that
-  # makes residuals() return NA there
-  obs$value[obs$value == 0] <- NA_real_
-
-  fit <- fit_matrix_long(x$data_augmented, all_keys, "fitted")
+  cc <- plot_common_component(x, "fit")
+  obs <- plot_observed_long(x)
+  fit <- fit_matrix_long(cc, x$inventory$key, "common component")
 
   df <- rbind(obs, fit)
   df <- df[df$series %in% keys, , drop = FALSE]
   df$series <- factor(df$series, levels = keys)
 
   ggplot(df, aes(x = .data$time, y = .data$value, colour = .data$kind)) +
-    geom_line(data = df[df$kind == "fitted", , drop = FALSE], na.rm = TRUE) +
+    geom_line(data = df[df$kind == "common component", , drop = FALSE],
+              na.rm = TRUE) +
     geom_point(data = df[df$kind == "observed", , drop = FALSE],
                size = 0.9, na.rm = TRUE) +
     facet_wrap(vars(.data$series), scales = "free_y") +
     scale_colour_manual(values = c(observed = unname(pal["observed"]),
-                                   fitted = unname(pal["estimate"]))) +
+                                   `common component` = unname(pal["estimate"]))) +
     labs(x = NULL, y = NULL,
-         title = "Observed and fitted values",
-         subtitle = "standardized scale; observed points are missing where a series was not observed") +
+         title = "Observed values and the common component",
+         subtitle = "loadings x factors, standardized scale; observed points are missing where a series was not observed") +
     theme_mfbdfm()
 
 }

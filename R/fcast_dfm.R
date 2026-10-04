@@ -93,11 +93,17 @@
 #'   rule and the stability bounds that were previously hard-coded. Omit it (the
 #'   default) and the published behaviour is reproduced exactly;
 #'   `dfm_control("fcast_dfm", strict = TRUE)` switches the rotation to the
-#'   algorithm as specified in the online appendix.
+#'   algorithm as specified in the online appendix, and
+#'   `dfm_control("fcast_dfm", verbose = FALSE)` silences the progress messages
+#'   and the progress bar.
 #'
 #' @return An object of class `"fcast_dfm"`: a list with components
 #'   \describe{
-#'     \item{factor}{`ts` matrix of the `q` posterior mean factors.}
+#'     \item{factor}{`ts` matrix of the `q` posterior mean factors, on the
+#'       model's own standardized scale and covering the `2*(k - 1)` latent
+#'       periods the distributed-lag aggregation reaches back into as well as
+#'       the sample. (`ind_dfm()` annualizes and de-standardizes its `factor`;
+#'       the counterpart of this component there is `factor_std`.)}
 #'     \item{factor_var}{`ts` matrix of the corresponding variances.}
 #'     \item{target}{Character, the series named by `target`.}
 #'     \item{nowcast, nowcast_var}{`ts`, posterior mean and variance of the
@@ -105,6 +111,12 @@
 #'     \item{pars}{List of posterior means (`lambda`, `phi`, `sigma`, `rho`,
 #'       `rho_var`, `h`) and the model dimensions (`n`, `q`, `p`, `s`, `t`,
 #'       `k`).}
+#'     \item{pars_dist}{List of posterior spreads -- `sd` and the 2.5%/97.5%
+#'       quantiles -- for `lambda`, `phi`, `sigma`, `rho` and `h`, read out of
+#'       the rotated draws at fit time. The posterior *mean* stays in `pars`,
+#'       so the two cannot disagree. There is deliberately no `omega` entry:
+#'       `omega` is drawn here but not retained. Used by
+#'       [mfbdfm_table_loadings()] and [mfbdfm_table_parameters()].}
 #'     \item{ncst}{List with `mean` and `var`, each a named list of nowcasts
 #'       for every input series at its own frequency.}
 #'     \item{data}{`ts` matrix of the prepared (standardized) data, in which
@@ -154,7 +166,9 @@
 #' Switzerland. *Swiss Journal of Economics and Statistics*, 162, 10.
 #' \doi{10.1186/s41937-026-00157-w}
 #'
-#' @seealso [ind_dfm()] for the single-factor, target-anchored model.
+#' @seealso [ind_dfm()] for the single-factor, target-anchored model,
+#'   [mfbdfm_nowcast()] to extract the nowcasts from the fit, and
+#'   [fcast_dfm_methods] for the methods the fit supports.
 #'
 #' @family model fitting functions
 #' @import Matrix
@@ -234,13 +248,15 @@ fcast_dfm <- function(flows = NULL,
 
   }
 
-  message("preallocating..")
+  verbose <- isTRUE(control$verbose)
+
+  if(verbose) message("preallocating..")
   Gmat_prealloc <- get_gmat_prealloc(n = n, q = q, s = s, t = t)
 
 
   # SAMPLING ----------------------------------------------------------------
 
-  message("simulating posterior distribution..")
+  if(verbose) message("simulating posterior distribution..")
   theta_out <- run_sampling_fcast(Ymat = Ymat,
                                q = q, n = n, t = t, p = p, s = s,
                                length_sample = length_sample,
@@ -252,19 +268,20 @@ fcast_dfm <- function(flows = NULL,
                                stochastic_volatility = stochastic_volatility,
                                serial_correlation = serial_correlation,
                                priors = priors,
-                               control = control)
+                               control = control,
+                               verbose = verbose)
 
 
   # ROTATION ----------------------------------------------------------------
 
-  message("running rotation of each draw..")
+  if(verbose) message("running rotation of each draw..")
   D_save <- run_rotation_fcast(theta_out, n = n, q = q, p = p, s = s, t = t,
                                ncores = ncores, control = control)
 
 
   # IDENTIFICATION ----------------------------------------------------------
 
-  message("running identification..")
+  if(verbose) message("running identification..")
   rlist <- run_identification_fcast(theta_out, D_save, n = n, q = q, p = p, s = s, t = t)
 
   # Nothing below reads theta_out or D_save - run_evaluation_fcast() works from
@@ -279,9 +296,10 @@ fcast_dfm <- function(flows = NULL,
 
   # EVALUATION --------------------------------------------------------------
 
-  message("processing output..")
+  if(verbose) message("processing output..")
   out <- run_evaluation_fcast(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t,
-                        inventory, flows, stocks, target)
+                        inventory, flows, stocks, target,
+                        stochastic_volatility = stochastic_volatility)
 
   out$call <- match.call()
   class(out) <- "fcast_dfm"
@@ -327,7 +345,10 @@ print.fcast_dfm <- function(x, n_show = 8, ...){
         " periods have no observed value (nowcast/backcast).\n", sep = "")
   }
 
-  cat("\nFull results: $factor, $ncst (all series), $data_hf, $target_series\n")
+  cat("\nFull results: $factor, $ncst (all series), $data_hf, $target_series;\n")
+  cat("mfbdfm_nowcast() for the target's nowcasts\n")
+  cat("Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),\n")
+  cat("mfbdfm_table_nowcast()\n")
 
   invisible(x)
 

@@ -63,6 +63,7 @@ Documentation is generated from roxygen2 comments; **do not hand-edit `NAMESPACE
 | `analytics-cor.R` | Correlation tables/plots: `get_combined_cor_table()`, `plot_comparison()`, `render_correlation_heatmap()`, `rescale_to_gdp()` |
 | `analytics-tables.R` | Fit/error tables: `dm_test_modified()`, `get_insample_fit_table()`, `create_error_summary_tables()`, `create_rel_error_tables()` |
 | `methods.R` | S3 methods for both fit classes (`print`/`summary`/`plot`/`coef`/`fitted`/`residuals`/`as.data.frame`), documented under `ind_dfm_methods` and `fcast_dfm_methods` |
+| `contributions.R` | `mfbdfm_contributions()` + its `print`/`as.data.frame`/`plot` methods, and the internal `dfm_joint_precision()` / `dfm_state_weights()` that `logLik()` also builds on (#109) |
 | `priors.R` | `dfm_priors()` + `print.dfm_priors()`; structural vs tunable priors |
 | `control.R` | `dfm_control()` + `print.dfm_control()` — optional numerical/algorithmic knobs (#46) |
 | `data-input.R` | `mfbdfm_data()` + `print.mfbdfm_data()` and the frequency-harmonisation helpers (#56) |

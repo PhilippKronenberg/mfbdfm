@@ -216,9 +216,20 @@ trim_to <- function(x, end){
 #'   the rotation step.
 #' @param control Optional settings from [dfm_control()], passed to
 #'   [fcast_dfm()]. Use `dfm_control("fcast_dfm", strict = TRUE)` to run the
-#'   rotation as specified in the online appendix.
+#'   rotation as specified in the online appendix, or
+#'   `dfm_control("fcast_dfm", verbose = FALSE)` to silence the progress
+#'   messages and the progress bar in a sweep.
+#' @param on_error Character, what to do when [fcast_dfm()] fails: `"stop"`
+#'   (the default, the error propagates) or `"warn"`, which converts it into a
+#'   warning naming the vintage and returns `NULL` for that vintage. Matched
+#'   with [match.arg()]. `"warn"` is for the expanding-window loops in
+#'   `analysis/`, where one vintage that fails to converge should not discard
+#'   the dozens already estimated; the caller is then responsible for skipping
+#'   the `NULL`. The warning has condition class
+#'   `"mfbdfm_warning_fit_failed"` -- see [dfm_control()] on muffling.
 #'
-#' @return Invisibly, the windowed `fcast_dfm` fit object.
+#' @return Invisibly, the windowed `fcast_dfm` fit object, or `NULL` if the fit
+#'   failed and `on_error = "warn"`.
 #'
 #' @seealso [run_wai_adj()] for the single-factor equivalent, [fcast_dfm()]
 #'   for the model itself.
@@ -247,22 +258,50 @@ run_fcast <- function(flows, stocks, target, date, dataset_used,
                       length_sample = 1000, burn_in = 1000, thinning = 1,
                       stochastic_volatility = TRUE, serial_correlation = TRUE,
                       extend = 0.5,
-                      ncores = NULL, control = NULL, output_dir = NULL){
+                      ncores = NULL, control = NULL, output_dir = NULL,
+                      on_error = c("stop", "warn")){
 
-  mod <- fcast_dfm(flows = flows,
-                   stocks = stocks,
-                   target = target,
-                   q = q,
-                   p = p,
-                   burn_in = burn_in,
-                   length_sample = length_sample,
-                   thinning = thinning,
-                   plots = FALSE,
-                   extend = extend,
-                   stochastic_volatility = stochastic_volatility,
-                   serial_correlation = serial_correlation,
-                   ncores = ncores,
-                   control = control)
+  on_error <- match.arg(on_error)
+
+  fit_one <- function(){
+    fcast_dfm(flows = flows,
+              stocks = stocks,
+              target = target,
+              q = q,
+              p = p,
+              burn_in = burn_in,
+              length_sample = length_sample,
+              thinning = thinning,
+              plots = FALSE,
+              extend = extend,
+              stochastic_volatility = stochastic_volatility,
+              serial_correlation = serial_correlation,
+              ncores = ncores,
+              control = control)
+  }
+
+  # With "stop" the call is made directly rather than inside tryCatch(), so the
+  # default path is untouched: the error surfaces with its own call and
+  # traceback, not re-signalled from a handler.
+  if(identical(on_error, "stop")){
+
+    mod <- fit_one()
+
+  } else {
+
+    mod <- tryCatch(fit_one(), error = function(e){
+      mfbdfm_warn(paste0("fcast_dfm() failed at vintage ", format(date),
+                         " (dataset \"", dataset_used, "\"): ",
+                         conditionMessage(e),
+                         "\n  Returning NULL for this vintage; nothing was ",
+                         "written to `output_dir`."),
+                  "mfbdfm_warning_fit_failed")
+      NULL
+    })
+
+    if(is.null(mod)) return(invisible(NULL))
+
+  }
 
   # Window to the evaluation date, as run_wai_adj() does. The factor is a
   # q-column matrix here rather than a single series, but window() handles both.
@@ -302,6 +341,12 @@ run_fcast <- function(flows, stocks, target, date, dataset_used,
 #' @examples
 #' fit <- list(nowcast = stats::ts(c(0.3, 0.5), start = 2024, frequency = 4))
 #' retrieve_nowcast(fit, model = "wai")
+#' @seealso [mfbdfm_nowcast()], which is the accessor to reach for with an
+#'   [ind_dfm()] or [fcast_dfm()] fit in hand: it dispatches on the fit's
+#'   class rather than taking a `model` string, and returns the whole nowcast
+#'   path with its credible band. This function exists for the
+#'   [run_ar()]/[run_wai_adj()] backcast workflow, which also needs the AR
+#'   benchmark, and returns only the latest value.
 #' @family backcasting functions
 #' @export
 retrieve_nowcast <- function(fit, model = c("ar", "wai")){
@@ -325,6 +370,9 @@ retrieve_nowcast <- function(fit, model = c("ar", "wai")){
 #' @examples
 #' fit <- list(nowcast_var = stats::ts(c(0.02, 0.04), start = 2024, frequency = 4))
 #' retrieve_nowcast_var(fit, model = "wai")
+#' @seealso [mfbdfm_nowcast()], which reports the posterior standard deviation
+#'   and credible bounds alongside the nowcast for an [ind_dfm()] or
+#'   [fcast_dfm()] fit. See [retrieve_nowcast()] for why both exist.
 #' @family backcasting functions
 #' @export
 retrieve_nowcast_var <- function(fit, model = c("ar", "wai")){

@@ -17,9 +17,9 @@
 
 \method{coef}{fcast_dfm}(object, ...)
 
-\method{fitted}{fcast_dfm}(object, ...)
+\method{fitted}{fcast_dfm}(object, scale = c("standardized", "original"), ...)
 
-\method{residuals}{fcast_dfm}(object, ...)
+\method{residuals}{fcast_dfm}(object, scale = c("standardized", "original"), ...)
 
 \method{logLik}{fcast_dfm}(object, ...)
 
@@ -45,6 +45,10 @@
 
 \item{object, x}{A fit from \code{\link[=fcast_dfm]{fcast_dfm()}}.}
 
+\item{scale}{Character, the scale \code{fitted()} and \code{residuals()} report on:
+\code{"standardized"} (the default) or \code{"original"}. As for \code{\link[=ind_dfm]{ind_dfm()}}; see
+\link{ind_dfm_methods}.}
+
 \item{row.names, optional}{Ignored, present for compatibility with the
 \code{\link[=as.data.frame]{as.data.frame()}} generic.}
 
@@ -69,6 +73,9 @@ does and for why there is no \code{predict()} method.
 \details{
 \code{coef()} returns an \verb{n x q} loading matrix here rather than a vector, and
 \code{as.data.frame()} returns one mean/lower/upper triple per factor.
+
+As for \code{\link[=ind_dfm]{ind_dfm()}} fits, the stored nowcasts are reached with
+\code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}}.
 
 \code{logLik()} uses the same definition as it does for \code{\link[=ind_dfm]{ind_dfm()}} -- see
 "What \code{logLik()} means here" in \link{ind_dfm_methods}, including why \code{AIC()} and
@@ -99,6 +106,7 @@ coef(fit)          # a q-column matrix here, a vector for ind_dfm()
 head(as.data.frame(fit))
 logLik(fit)
 BIC(fit)           # approximate here - see ?ind_dfm_methods
+mfbdfm_nowcast(fit, last = TRUE)
 
 plot(fit)                       # one panel per factor
 plot(fit, type = "loadings")    # one facet per factor
@@ -107,5 +115,6 @@ plot(fit, type = "fit", series = 1:2)
 
 }
 \seealso{
-\code{\link[=fcast_dfm]{fcast_dfm()}}, \link{ind_dfm_methods}
+\code{\link[=fcast_dfm]{fcast_dfm()}}, \link{ind_dfm_methods}, \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} for the
+nowcasts
 }

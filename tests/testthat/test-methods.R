@@ -100,10 +100,169 @@ test_that("as.data.frame gives ordered 95% bands", {
   }
 })
 
+test_that("mfbdfm_nowcast returns the stored nowcasts for both classes", {
+  fl <- fits()
+
+  for (nm in names(fl)) {
+    fit <- fl[[nm]]
+    nc <- mfbdfm_nowcast(fit)
+
+    expect_s3_class(nc, "data.frame")
+    expect_named(nc, c("time", "nowcast", "sd", "lower", "upper"))
+
+    # the values are the stored ones, not a recomputation
+    expect_equal(nc$nowcast, as.numeric(fit$nowcast))
+    expect_equal(nc$time, as.numeric(stats::time(fit$nowcast)))
+    expect_equal(nc$sd, sqrt(as.numeric(fit$nowcast_var)))
+
+    # bands are ordered and symmetric about the mean
+    expect_true(all(nc$lower <= nc$nowcast))
+    expect_true(all(nc$nowcast <= nc$upper))
+    expect_equal(nc$upper - nc$nowcast, nc$nowcast - nc$lower)
+
+    # last = TRUE is the final period, and only that
+    lastrow <- mfbdfm_nowcast(fit, last = TRUE)
+    expect_equal(nrow(lastrow), 1L)
+    expect_equal(lastrow$nowcast, as.numeric(utils::tail(fit$nowcast, 1)))
+    expect_equal(lastrow, nc[nrow(nc), , drop = FALSE], ignore_attr = TRUE)
+
+    # a narrower level gives a narrower band, same mean
+    narrow <- mfbdfm_nowcast(fit, level = 0.5)
+    expect_equal(narrow$nowcast, nc$nowcast)
+    expect_true(all(narrow$upper - narrow$lower <= nc$upper - nc$lower))
+    expect_true(any(narrow$upper - narrow$lower < nc$upper - nc$lower))
+  }
+})
+
+test_that("mfbdfm_nowcast rejects bad last/level values by name", {
+  fit <- fits()$ind_dfm
+
+  expect_error(mfbdfm_nowcast(fit, last = "yes"), "`last`")
+  expect_error(mfbdfm_nowcast(fit, last = c(TRUE, FALSE)), "`last`")
+  expect_error(mfbdfm_nowcast(fit, level = 0), "`level`")
+  expect_error(mfbdfm_nowcast(fit, level = 1), "`level`")
+  expect_error(mfbdfm_nowcast(fit, level = "95%"), "`level`")
+})
+
 test_that("coef reflects the identifying restriction in ind_dfm", {
   fit <- fits()$ind_dfm
   # lambda on the target is fixed to 1 during sampling
   expect_equal(unname(coef(fit)[fit$target]), 1)
+})
+
+test_that("summary reports a per-series R-squared for both classes (#99)", {
+  fl <- fits()
+
+  for (nm in names(fl)) {
+    fit <- fl[[nm]]
+    r2 <- summary(fit)$r_squared
+
+    expect_s3_class(r2, "data.frame")
+    expect_named(r2, c("series", "freq", "n_obs", "r_squared"))
+    expect_setequal(r2$series, fit$inventory$key)
+    expect_equal(nrow(r2), nrow(fit$inventory))
+
+    # 1 is the ceiling; there is no floor, since the common component is not a
+    # least-squares fit to each series
+    expect_true(all(r2$r_squared <= 1))
+    expect_false(anyNA(r2$r_squared))
+
+    # sorted best-first, so print() can take the ends
+    expect_equal(r2$r_squared, sort(r2$r_squared, decreasing = TRUE))
+
+    # missing observations are excluded: 0 encodes missing, and the quarterly
+    # target is observed in a small fraction of the weekly periods
+    obs_counts <- colSums(fit$data != 0)
+    expect_equal(r2$n_obs, unname(obs_counts[r2$series]))
+    expect_lt(r2$n_obs[r2$series == fit$target], nrow(fit$data))
+  }
+})
+
+# A hand-built ind_dfm-shaped object with a KNOWN factor: one series is exactly
+# the common component, the other is independent noise. Every series is at the
+# same frequency, so k = 1 and the temporal aggregation reduces to a weight of 1
+# at lag 0 - which is what makes the expected R-squared exactly 1 and 0 rather
+# than "whatever a short chain converged to".
+synth_r2_fit <- function(seed = 11, t = 200) {
+  set.seed(seed)
+  f <- as.numeric(stats::filter(stats::rnorm(t), 0.7, method = "recursive"))
+
+  dat <- cbind(driven = 1.5 * f, noise = stats::rnorm(t))
+  dat[1:10, "noise"] <- 0          # 0 encodes "not observed"
+
+  structure(
+    list(factor_std = stats::ts(f, start = c(2000, 1), frequency = 12),
+         pars = list(lambda = matrix(c(1.5, 0), ncol = 1),
+                     sigma = c(1e-9, 1), rho = c(0, 0), phi = 0.7),
+         data = stats::ts(dat, start = c(2000, 1), frequency = 12),
+         data_augmented = stats::ts(dat, start = c(2000, 1), frequency = 12),
+         inventory = data.frame(key = c("driven", "noise"),
+                                type = factor("flow",
+                                              levels = c("stock", "flow")),
+                                freq = c(12, 12), stringsAsFactors = FALSE),
+         target = "driven"),
+    class = "ind_dfm")
+}
+
+test_that("R-squared separates a factor-driven series from pure noise (#99)", {
+  fit <- synth_r2_fit()
+  r2 <- summary(fit)$r_squared
+  get <- function(k) r2$r_squared[r2$series == k]
+
+  # `driven` IS the common component, so nothing is left over
+  expect_equal(get("driven"), 1)
+  # `noise` loads on nothing, so the common component explains none of it
+  expect_equal(get("noise"), 0)
+
+  # missing observations are excluded, not treated as observed zeros
+  expect_equal(r2$n_obs[r2$series == "noise"], 190)
+  expect_equal(r2$n_obs[r2$series == "driven"], 200)
+
+  expect_output(print(summary(fit)), "R-squared of the common component")
+})
+
+test_that("R-squared is reported as absent for a fit that predates it", {
+  fit <- synth_r2_fit()
+  fit$factor_std <- NULL          # as an object saved before #99 would be
+
+  s <- summary(fit)
+  expect_null(s$r_squared)
+  expect_output(print(s), "residual RMSE")   # the rest still prints
+})
+
+test_that("ind_dfm's target R-squared is ~1 by construction (#99)", {
+  # the one value-level assertion that needs a real chain: the target's loading
+  # is fixed to 1 and its measurement error shrunk towards zero to identify the
+  # factor, so its R-squared is identification showing through rather than a
+  # finding - which is what print() warns about. Synthetic data with a known
+  # weekly factor, aggregated to a quarterly target.
+  set.seed(5)
+  freq <- 48
+  tt <- freq * 5
+  f <- as.numeric(stats::filter(stats::rnorm(tt), 0.8, method = "recursive"))
+
+  flows <- list(gdp = stats::ts(colSums(matrix(f, nrow = freq/4)),
+                                start = c(2015, 1), frequency = 4),
+                signal = stats::ts(f + stats::rnorm(tt, 0, 0.05),
+                                   start = c(2015, 1), frequency = freq))
+  stocks <- list(noise = stats::ts(stats::rnorm(tt),
+                                   start = c(2015, 1), frequency = freq))
+
+  set.seed(3)
+  fit <- suppressMessages(ind_dfm(flows = flows, stocks = stocks,
+                                  target = "gdp", length_sample = 100,
+                                  burn_in = 50, plots = FALSE))
+
+  r2 <- summary(fit)$r_squared
+  get <- function(k) r2$r_squared[r2$series == k]
+
+  expect_gt(get("gdp"), 0.9)
+  expect_output(print(summary(fit)), "by construction")
+
+  # the indicator that carries the factor still beats the one that does not,
+  # though both are small: the factor's scale is pinned by the target, so a
+  # weekly series' common component is necessarily a fraction of its variance
+  expect_gt(get("signal"), get("noise"))
 })
 
 test_that("print and summary work and return invisibly", {
