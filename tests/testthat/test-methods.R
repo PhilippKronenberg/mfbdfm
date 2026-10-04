@@ -100,6 +100,50 @@ test_that("as.data.frame gives ordered 95% bands", {
   }
 })
 
+test_that("mfbdfm_nowcast returns the stored nowcasts for both classes", {
+  fl <- fits()
+
+  for (nm in names(fl)) {
+    fit <- fl[[nm]]
+    nc <- mfbdfm_nowcast(fit)
+
+    expect_s3_class(nc, "data.frame")
+    expect_named(nc, c("time", "nowcast", "sd", "lower", "upper"))
+
+    # the values are the stored ones, not a recomputation
+    expect_equal(nc$nowcast, as.numeric(fit$nowcast))
+    expect_equal(nc$time, as.numeric(stats::time(fit$nowcast)))
+    expect_equal(nc$sd, sqrt(as.numeric(fit$nowcast_var)))
+
+    # bands are ordered and symmetric about the mean
+    expect_true(all(nc$lower <= nc$nowcast))
+    expect_true(all(nc$nowcast <= nc$upper))
+    expect_equal(nc$upper - nc$nowcast, nc$nowcast - nc$lower)
+
+    # last = TRUE is the final period, and only that
+    lastrow <- mfbdfm_nowcast(fit, last = TRUE)
+    expect_equal(nrow(lastrow), 1L)
+    expect_equal(lastrow$nowcast, as.numeric(utils::tail(fit$nowcast, 1)))
+    expect_equal(lastrow, nc[nrow(nc), , drop = FALSE], ignore_attr = TRUE)
+
+    # a narrower level gives a narrower band, same mean
+    narrow <- mfbdfm_nowcast(fit, level = 0.5)
+    expect_equal(narrow$nowcast, nc$nowcast)
+    expect_true(all(narrow$upper - narrow$lower <= nc$upper - nc$lower))
+    expect_true(any(narrow$upper - narrow$lower < nc$upper - nc$lower))
+  }
+})
+
+test_that("mfbdfm_nowcast rejects bad last/level values by name", {
+  fit <- fits()$ind_dfm
+
+  expect_error(mfbdfm_nowcast(fit, last = "yes"), "`last`")
+  expect_error(mfbdfm_nowcast(fit, last = c(TRUE, FALSE)), "`last`")
+  expect_error(mfbdfm_nowcast(fit, level = 0), "`level`")
+  expect_error(mfbdfm_nowcast(fit, level = 1), "`level`")
+  expect_error(mfbdfm_nowcast(fit, level = "95%"), "`level`")
+})
+
 test_that("coef reflects the identifying restriction in ind_dfm", {
   fit <- fits()$ind_dfm
   # lambda on the target is fixed to 1 during sampling
