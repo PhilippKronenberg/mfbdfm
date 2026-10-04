@@ -11,6 +11,7 @@
 \alias{plot.fcast_dfm}
 \alias{autoplot.fcast_dfm}
 \alias{summary.fcast_dfm}
+\alias{screeplot.fcast_dfm}
 \title{Methods for multi-factor model fits}
 \usage{
 \method{print}{fcast_dfm}(x, n_show = 8, ...)
@@ -36,6 +37,8 @@
 \method{autoplot}{fcast_dfm}(object, ...)
 
 \method{summary}{fcast_dfm}(object, ...)
+
+\method{screeplot}{fcast_dfm}(x, npcs = NULL, type = c("barplot", "lines"), main = NULL, ...)
 }
 \arguments{
 \item{n_show}{Integer, how many of the most recent periods \code{print()} shows.}
@@ -52,8 +55,9 @@
 \item{row.names, optional}{Ignored, present for compatibility with the
 \code{\link[=as.data.frame]{as.data.frame()}} generic.}
 
-\item{type}{Character, which view \code{plot()} draws. See "Plot views" in
-\link{ind_dfm_methods}.}
+\item{type}{Character. For \code{plot()}, which view to draw (see "Plot views"
+in \link{ind_dfm_methods}); for \code{screeplot()}, \code{"barplot"} or \code{"lines"}, as
+for \code{\link[stats:screeplot]{stats::screeplot()}}.}
 
 \item{series}{Character vector of series names, or a numeric vector of
 column positions, restricting the \code{"residuals"} and \code{"fit"} views.
@@ -61,9 +65,15 @@ column positions, restricting the \code{"residuals"} and \code{"fit"} views.
 
 \item{level}{Numeric in \verb{(0, 1)}, the coverage of the credible band drawn
 by the \code{"factor"} and \code{"nowcast"} views. Defaults to \code{0.95}.}
+
+\item{npcs}{Integer, how many factors \code{screeplot()} shows, or \code{NULL} for all
+of them.}
+
+\item{main}{\code{screeplot()} title, or \code{NULL} for the default.}
 }
 \value{
-As \link{ind_dfm_methods}, except that \code{coef()} returns a matrix.
+As \link{ind_dfm_methods}, except that \code{coef()} returns a matrix and
+\code{screeplot()} invisibly returns the sorted variance shares.
 }
 \description{
 The generics supported by a \code{\link[=fcast_dfm]{fcast_dfm()}} fit. These mirror the
@@ -73,6 +83,16 @@ does and for why there is no \code{predict()} method.
 \details{
 \code{coef()} returns an \verb{n x q} loading matrix here rather than a vector, and
 \code{as.data.frame()} returns one mean/lower/upper triple per factor.
+
+\code{screeplot()} shows the share of the standardized panel's variance explained
+by each factor, computed from the posterior mean loadings and factors: the
+factor's own variance times the sum of squared loadings on it, over the total
+variance of the observed entries of the prepared data. \strong{The rotated factors
+are not ordered by variance the way principal components are} -- the
+post-hoc rotation has no such convention -- so the bars are sorted for the
+plot and labelled \code{f1}, \code{f2}, ... by their position in the fit, not by their
+position in the plot. It is a description of a fitted model, not a selection
+criterion; for choosing \code{q} before fitting, use \code{\link[=select_factors]{select_factors()}}.
 
 As for \code{\link[=ind_dfm]{ind_dfm()}} fits, the stored nowcasts are reached with
 \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}}.
@@ -103,6 +123,7 @@ fit <- fcast_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")]
                  target = target, q = 2, length_sample = 20, burn_in = 5)
 fit
 coef(fit)          # a q-column matrix here, a vector for ind_dfm()
+screeplot(fit)     # share of panel variance per rotated factor
 head(as.data.frame(fit))
 logLik(fit)
 BIC(fit)           # approximate here - see ?ind_dfm_methods

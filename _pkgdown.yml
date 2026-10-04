@@ -13,6 +13,8 @@ reference:
   contents:
   - ind_dfm
   - fcast_dfm
+  - select_factors
+  - select_factors_methods
   - mfbdfm_nowcast
   - dfm_priors
   - print.dfm_priors

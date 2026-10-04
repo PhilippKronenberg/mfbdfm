@@ -209,6 +209,7 @@ Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.
 Other model fitting functions: 
 \code{\link{dfm_memory}()},
 \code{\link{ind_dfm}()},
-\code{\link{run_fcast}()}
+\code{\link{run_fcast}()},
+\code{\link{select_factors}()}
 }
 \concept{model fitting functions}
