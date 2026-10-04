@@ -131,6 +131,34 @@ passed straight through.
 
 A weekly observation's date is taken to label the \strong{end} of its week, which
 is this package's own convention (see \code{\link[=dec2week]{dec2week()}}).
+}
+
+\section{Near-collinear input series}{
+\code{print()} reports pairs of series that are near-perfectly correlated, and
+\code{\link[=ind_dfm]{ind_dfm()}} and \code{\link[=fcast_dfm]{fcast_dfm()}} warn about them with condition class
+\code{mfbdfm_warning_collinear} (see \code{\link[=dfm_control]{dfm_control()}} on muffling it).
+
+This is worth checking because in an indicator panel a duplicated series is
+not hypothetical: the same underlying quantity often enters twice, as a level
+and as an index, or as a total alongside its own components -- and nothing
+about assembling your own \code{flows}/\code{stocks} lists makes that visible.
+
+The statistic is the correlation of each pair \strong{on its overlapping observed
+span only}, flagged at \verb{|r| > 0.99}, with pairs overlapping in fewer than 24
+observations skipped. The overlap restriction matters: the matrix the models
+are fitted to encodes missing as \code{0}, so a correlation taken over it would
+measure the padding as much as the data. Correlation is unaffected by the
+standardization \code{\link[=prepare_data]{prepare_data()}} applies, so the figure reported is the one
+the standardized matrix would give.
+
+\strong{It is a warning and not an error, deliberately.} A factor model does not
+break on collinear inputs -- not even on exactly collinear ones. The
+likelihood stays proper and the sampler still converges; what happens is that
+the loading the two series share is split between them, so that signal is
+silently overweighted in the factor and no later diagnostic flags it. Which
+of the two to drop is a question about the data rather than about the
+numerics, so there is no separate code path for the collinear case: the
+warning names the pair and the choice stays yours.
 
 Note this is one of the things you get by going through \code{mfbdfm_data()}:
 passing \code{flows}/\code{stocks} straight to a model does no such conversion, and a
