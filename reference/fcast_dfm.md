@@ -120,7 +120,12 @@ An object of class `"fcast_dfm"`: a list with components
 
 - factor:
 
-  `ts` matrix of the `q` posterior mean factors.
+  `ts` matrix of the `q` posterior mean factors, on the model's own
+  standardized scale and covering the `2*(k - 1)` latent periods the
+  distributed-lag aggregation reaches back into as well as the sample.
+  ([`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  annualizes and de-standardizes its `factor`; the counterpart of this
+  component there is `factor_std`.)
 
 - factor_var:
 

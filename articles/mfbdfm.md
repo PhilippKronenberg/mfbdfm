@@ -100,9 +100,10 @@ fit <- ind_dfm(
 class(fit)
 #> [1] "ind_dfm"
 names(fit)
-#>  [1] "factor"         "factor_var"     "index"          "nowcast"       
-#>  [5] "nowcast_var"    "target"         "pars"           "data"          
-#>  [9] "data_raw"       "data_augmented" "inventory"      "call"
+#>  [1] "factor"         "factor_var"     "factor_std"     "index"         
+#>  [5] "nowcast"        "nowcast_var"    "target"         "pars"          
+#>  [9] "data"           "data_raw"       "data_augmented" "inventory"     
+#> [13] "call"
 ```
 
 `fit$factor` is the annualized weekly growth rate implied by the model —

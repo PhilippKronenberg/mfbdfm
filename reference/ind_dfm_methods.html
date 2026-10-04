@@ -94,9 +94,10 @@ the same set – see <a href="fcast_dfm_methods.html">fcast_dfm_methods</a>.</p>
     <p><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> a named numeric vector; <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> <code>ts</code>
 matrices with one column per series; <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> a data frame with
 <code>time</code> and the factor with bands; <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> an object of class
-<code>"summary.mfbdfm_fit"</code>; <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> an object of class <code>"logLik"</code> with <code>df</code>
-and <code>nobs</code> attributes; <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> return their input
-invisibly.</p>
+<code>"summary.mfbdfm_fit"</code>, whose <code>$r_squared</code> element is a data frame with
+columns <code>series</code>, <code>freq</code>, <code>n_obs</code> and <code>r_squared</code>, sorted by fit;
+<code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> an object of class <code>"logLik"</code> with <code>df</code> and <code>nobs</code> attributes;
+<code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> return their input invisibly.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -105,8 +106,22 @@ invisibly.</p>
 <dd><p>Model dimensions and the most recent target nowcasts.</p></dd>
 
 <dt><code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code></dt>
-<dd><p>Dimensions, posterior mean parameters and residual fit;
-returns an object with its own <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> method.</p></dd>
+<dd><p>Dimensions, posterior mean parameters, residual fit and
+a per-series R-squared; returns an object with its own <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> method.
+The R-squared is <code>1 - Var(residual)/Var(observed)</code> over the periods where
+that series was observed, with the fitted value taken to be the <strong>common
+component</strong> – loadings times factors, temporally aggregated – so it
+measures what the factor explains and not the idiosyncratic AR part. It
+is therefore not <code>1 - Var(residuals(fit))/Var(observed)</code>: <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>
+returns the augmented dataset, whose observed entries are pinned to the
+observed values by the sampler. For <code><a href="ind_dfm.html">ind_dfm()</a></code> the target's R-squared is
+~1 by construction, since its loading is fixed to 1 and its measurement
+error shrunk towards zero to identify the factor. Read the <strong>ranking</strong>
+across the other series rather than the level: the common component is
+built from posterior <em>mean</em> parameters, which attenuates it, and in
+<code><a href="ind_dfm.html">ind_dfm()</a></code> the factor's scale is pinned to the target, so a
+high-frequency series' common component is necessarily a small fraction
+of its variance.</p></dd>
 
 <dt><code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code></dt>
 <dd><p>The factor with a 95% band.</p></dd>

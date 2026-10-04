@@ -157,6 +157,14 @@ the progress messages and the progress bar.</p></dd>
 <dt>factor_var</dt>
 <dd><p><code>ts</code>, posterior variance of the factor.</p></dd>
 
+<dt>factor_std</dt>
+<dd><p><code>ts</code>, posterior mean of the factor on the model's own
+standardized scale – the quantity the observation equation multiplies
+by the loadings – covering the <code>2*(k - 1)</code> latent periods the
+distributed-lag aggregation reaches back into as well as the sample.
+<code>factor</code> is the same path de-standardized and annualized, and that
+transform is convex, so it cannot be inverted back to this.</p></dd>
+
 <dt>index</dt>
 <dd><p><code>ts</code>, posterior mean of the cumulated activity index.</p></dd>
 

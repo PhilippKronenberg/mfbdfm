@@ -62,5 +62,15 @@ summary(fit)          # dispatches here
 #> Fit to observed data:
 #>   observed values: 393
 #>   residual RMSE  : 6.857e-06 (standardized scale)
+#> 
+#> R-squared of the common component, by series:
+#>   series                                  freq  n_obs R-squared
+#>   ch.seco.gdp.real.gdp.ssa                   4     20     0.806
+#>   SWPROPRCE                                 12     61     0.056
+#>   SWCONPRCE                                 12     62     0.007
+#>   SWISSMI                                   48    250     0.000
+#>   Note: the target's loading is fixed to 1 and its measurement error
+#>   shrunk towards zero to identify the factor, so its R-squared is ~1
+#>   by construction rather than as a finding.
 # }
 ```

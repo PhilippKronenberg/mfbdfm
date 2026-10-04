@@ -120,6 +120,15 @@ An object of class `"ind_dfm"`: a list with components
 
   `ts`, posterior variance of the factor.
 
+- factor_std:
+
+  `ts`, posterior mean of the factor on the model's own standardized
+  scale – the quantity the observation equation multiplies by the
+  loadings – covering the `2*(k - 1)` latent periods the distributed-lag
+  aggregation reaches back into as well as the sample. `factor` is the
+  same path de-standardized and annualized, and that transform is
+  convex, so it cannot be inverted back to this.
+
 - index:
 
   `ts`, posterior mean of the cumulated activity index.

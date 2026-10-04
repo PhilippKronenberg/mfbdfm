@@ -66,7 +66,8 @@ with one column per series;
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) a data
 frame with `time` and the factor with bands;
 [`summary()`](https://rdrr.io/r/base/summary.html) an object of class
-`"summary.mfbdfm_fit"`;
+`"summary.mfbdfm_fit"`, whose `$r_squared` element is a data frame with
+columns `series`, `freq`, `n_obs` and `r_squared`, sorted by fit;
 [`logLik()`](https://rdrr.io/r/stats/logLik.html) an object of class
 `"logLik"` with `df` and `nobs` attributes;
 [`print()`](https://rdrr.io/r/base/print.html) and
@@ -81,9 +82,27 @@ input invisibly.
 
 - [`summary()`](https://rdrr.io/r/base/summary.html):
 
-  Dimensions, posterior mean parameters and residual fit; returns an
-  object with its own [`print()`](https://rdrr.io/r/base/print.html)
-  method.
+  Dimensions, posterior mean parameters, residual fit and a per-series
+  R-squared; returns an object with its own
+  [`print()`](https://rdrr.io/r/base/print.html) method. The R-squared
+  is `1 - Var(residual)/Var(observed)` over the periods where that
+  series was observed, with the fitted value taken to be the **common
+  component** – loadings times factors, temporally aggregated – so it
+  measures what the factor explains and not the idiosyncratic AR part.
+  It is therefore not `1 - Var(residuals(fit))/Var(observed)`:
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) returns the
+  augmented dataset, whose observed entries are pinned to the observed
+  values by the sampler. For
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  the target's R-squared is ~1 by construction, since its loading is
+  fixed to 1 and its measurement error shrunk towards zero to identify
+  the factor. Read the **ranking** across the other series rather than
+  the level: the common component is built from posterior *mean*
+  parameters, which attenuates it, and in
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  the factor's scale is pinned to the target, so a high-frequency
+  series' common component is necessarily a small fraction of its
+  variance.
 
 - [`plot()`](https://rdrr.io/r/graphics/plot.default.html):
 

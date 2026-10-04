@@ -160,7 +160,11 @@ and the progress bar.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>"fcast_dfm"</code>: a list with components</p><dl><dt>factor</dt>
-<dd><p><code>ts</code> matrix of the <code>q</code> posterior mean factors.</p></dd>
+<dd><p><code>ts</code> matrix of the <code>q</code> posterior mean factors, on the
+model's own standardized scale and covering the <code>2*(k - 1)</code> latent
+periods the distributed-lag aggregation reaches back into as well as
+the sample. (<code><a href="ind_dfm.html">ind_dfm()</a></code> annualizes and de-standardizes its <code>factor</code>;
+the counterpart of this component there is <code>factor_std</code>.)</p></dd>
 
 <dt>factor_var</dt>
 <dd><p><code>ts</code> matrix of the corresponding variances.</p></dd>
