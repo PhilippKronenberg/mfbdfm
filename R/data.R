@@ -94,8 +94,8 @@
 #' the shipped real-time database), transformed with
 #' `get_real_time_gdp_vintages("quarterly")`. It is pinned to that vintage so
 #' the dataset does not change when a newer one is appended to
-#' `inst/extdata/realtime_gdp.csv`; rerun `data-raw/example_data.R` to move it
-#' on.
+#' `inst/extdata/realtime_gdp.csv`; to move it on, change `GDP_VINTAGE` in
+#' `data-raw/example_data.R` and rerun it.
 #'
 #' @format An [mfbdfm_data()] object -- a list with four components:
 #' \describe{

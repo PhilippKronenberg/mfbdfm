@@ -68,8 +68,8 @@ The target is the \strong{2026.167 vintage} (published 2026-02-27, the newest in
 the shipped real-time database), transformed with
 \code{get_real_time_gdp_vintages("quarterly")}. It is pinned to that vintage so
 the dataset does not change when a newer one is appended to
-\code{inst/extdata/realtime_gdp.csv}; rerun \code{data-raw/example_data.R} to move it
-on.
+\code{inst/extdata/realtime_gdp.csv}; to move it on, change \code{GDP_VINTAGE} in
+\code{data-raw/example_data.R} and rerun it.
 }
 \examples{
 data(mfbdfm_example_data)

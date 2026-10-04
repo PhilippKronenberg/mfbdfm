@@ -42,14 +42,19 @@ series <- lapply(pool[indicators], stats::window, start = START)
 
 # ---- 2. the GDP target ------------------------------------------------------
 #
-# `data_ch_dataset` carries no GDP, so the target is taken from the newest
-# vintage in the shipped real-time database - the same route the analysis
-# scripts use, via the same transformation ("quarterly" = q/q log difference).
-# The vintage is pinned by name in R/data.R so the dataset stays reproducible
-# when a newer vintage is appended to the CSV.
+# `data_ch_dataset` carries no GDP, so the target is taken from a vintage in
+# the shipped real-time database - the same route the analysis scripts use, via
+# the same transformation ("quarterly" = q/q log difference). The vintage is
+# pinned by name below (and documented in R/data.R) so the dataset stays
+# reproducible when a newer vintage is appended to the CSV.
 
 vintages <- get_real_time_gdp_vintages("quarterly")
-GDP_VINTAGE <- utils::tail(names(vintages), 1)       # newest publication date
+# Pinned by name, not taken as the newest: rerunning this script for any other
+# reason (a label fix, say) must not silently move the target to a newer
+# vintage while R/data.R still documents this one. To move it on, change this
+# line and the vintage named in R/data.R together.
+GDP_VINTAGE <- "2026.167"
+stopifnot(GDP_VINTAGE %in% names(vintages))
 message("GDP vintage used: ", GDP_VINTAGE)
 
 gdp <- zoo::na.trim(stats::ts(vintages[[GDP_VINTAGE]],
