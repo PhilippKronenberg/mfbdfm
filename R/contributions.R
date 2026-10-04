@@ -282,8 +282,10 @@ dfm_resolve_groups <- function(inventory, by, groups){
 #'
 #' The reported time axis covers all `t+s` periods of the factor path, including
 #' the `s` pre-sample periods the distributed lags carry. `totals$posterior` is
-#' `NA` there for an [ind_dfm()] fit, which stores only the `t` in-sample
-#' periods (#49).
+#' read from `$factor` for a [fcast_dfm()] fit and from `$factor_std` for an
+#' [ind_dfm()] fit, both on the sampler's scale over all `t+s` periods. (An
+#' [ind_dfm()] fit saved before `$factor_std` existed falls back to inverting
+#' the annualised `$factor`, which leaves the pre-sample periods `NA`.)
 #'
 #' @param fit A fitted model from [ind_dfm()] or [fcast_dfm()].
 #' @param by Either `"series"` (default, one component per input series) or
@@ -416,24 +418,32 @@ mfbdfm_contributions <- function(fit, by = c("series", "group"), groups = NULL){
 #' The fit's own posterior mean factor, on the sampler's scale
 #'
 #' `fcast_dfm()` stores the factor untransformed and over all `t+s` periods, so
-#' it is returned as is. `ind_dfm()` stores the `t` in-sample periods only, and
-#' de-standardised and annualised; that chain of transformations is invertible,
-#' and inverting it is what makes `residual` comparable with `plugin`. The `s`
-#' pre-sample periods are `NA` rather than guessed.
+#' it is returned as is. `ind_dfm()` stores the same quantity as `$factor_std`
+#' (#99), which is used when present.
+#'
+#' A fit saved before `$factor_std` existed has only `$factor`, de-standardised
+#' and annualised over the `t` in-sample periods. That transformation is
+#' inverted as a fallback, with two caveats: the `s` pre-sample periods are `NA`
+#' rather than guessed, and since `$factor` is the mean of the *transformed*
+#' draws and the transformation is convex, inverting it does not return the
+#' mean of `f` exactly -- the gap then lands in `residual` on top of parameter
+#' uncertainty.
 #'
 #' @noRd
 #' @importFrom stats frequency
 dfm_factor_posterior <- function(fit, jp, t, s, q){
 
-  if(jp$is_fcast){
+  # both classes' sampler-scale posterior mean factor over all t+s periods
+  fac <- if(jp$is_fcast) fit$factor else fit$factor_std
 
-    fac <- as.matrix(fit$factor)
-    # the stored path already spans t+s; guard against an unexpected length
-    # rather than recycling silently
+  if(!is.null(fac)){
+    fac <- as.matrix(fac)
+    # guard against an unexpected length rather than recycling silently
     if(nrow(fac) != t + s) return(matrix(NA_real_, t + s, q))
-    return(fac)
-
+    return(unclass(fac))
   }
+
+  if(jp$is_fcast) return(matrix(NA_real_, t + s, q))
 
   inv <- jp$inventory
   tsd <- inv[which(inv$key == fit$target), "sd"]

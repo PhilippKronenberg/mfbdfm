@@ -69,14 +69,19 @@ test_that("the reported time axis covers the whole factor path", {
     expect_equal(utils::tail(tms, nrow(fit$data)),
                  as.numeric(stats::time(fit$data)), tolerance = 1e-6)
 
-    # ind_dfm() stores only the t in-sample periods (#49), so the posterior is
-    # unavailable for the s pre-sample ones rather than guessed
+    # both classes now store the sampler-scale factor over all t+s periods
+    # ($factor for fcast_dfm, $factor_std for ind_dfm, #99)
+    expect_true(all(is.finite(ct$totals$posterior)))
+
+    # an ind_dfm fit saved before $factor_std existed falls back to inverting
+    # the annualised $factor, which covers only the t in-sample periods
     if (nm == "ind_dfm") {
-      expect_true(all(is.na(utils::head(ct$totals$posterior, s))))
-      expect_true(all(is.finite(utils::tail(ct$totals$posterior,
+      old <- fit
+      old$factor_std <- NULL
+      ct_old <- mfbdfm_contributions(old)
+      expect_true(all(is.na(utils::head(ct_old$totals$posterior, s))))
+      expect_true(all(is.finite(utils::tail(ct_old$totals$posterior,
                                            nrow(fit$data)))))
-    } else {
-      expect_true(all(is.finite(ct$totals$posterior)))
     }
   }
 })
