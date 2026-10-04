@@ -33,6 +33,52 @@
 #' scale in different places, so switching the same option off means
 #' something different in each.)
 #'
+#' @section Degenerate input series:
+#' Every series is standardized by its own standard deviation before it enters
+#' the model, so a series that is constant, or that has no non-missing
+#' observations at all, cannot be used: standardizing it divides by zero or by
+#' `NA`. Such a series also carries no information about the factor, so it is
+#' **dropped before fitting**, with a warning naming every series dropped
+#' (condition class `mfbdfm_warning_dropped_series` -- see [dfm_control()] on
+#' muffling it). A series with a single non-missing observation counts as
+#' constant.
+#'
+#' `target` is the exception. The factor is anchored to it in [ind_dfm()] and it
+#' selects the surfaced nowcast in [fcast_dfm()], so a degenerate target is an
+#' error rather than a drop. A zero-length series, or one whose storage mode is
+#' not numeric (a character or complex `ts` is still a valid `ts`), is likewise
+#' an error, naming the series.
+#'
+#' More series than time periods is *not* degenerate -- summarising many series
+#' with few factors is what the model is for -- and both entry points fit such
+#' a panel.
+#'
+#' @section Reproducibility across seeds:
+#' A fit is exactly reproducible given a seed, but two *different* seeds give
+#' two different chains, and on a finite chain they do not land in the same
+#' place. How far apart they land was measured rather than assumed: five seeds
+#' at `length_sample = 300`, `burn_in = 100`, on `data_ch_dataset_test`
+#' windowed from 2019 (three flows, two stocks), pairwise correlations across
+#' all ten pairs of seeds.
+#'
+#' \tabular{lll}{
+#'   **component** \tab **worst pair** \tab **best pair** \cr
+#'   `nowcast`     \tab 0.987         \tab 1.000         \cr
+#'   `factor`      \tab 0.950         \tab 0.988         \cr
+#'   `pars$lambda` \tab 0.994         \tab 1.000
+#' }
+#'
+#' So the quarterly nowcast is reproducible to about three digits across seeds
+#' and the weekly factor to about two; raise `length_sample` if a tighter
+#' agreement is wanted. The same measurement for [fcast_dfm()] is in
+#' `?fcast_dfm`, and its factors agree much less closely, for a reason
+#' specific to that model.
+#'
+#' Perturbing the inputs by noise of `.Machine$double.eps` scale, with the seed
+#' held fixed, moved the nowcast by 1.5e-16 at most -- the perturbation
+#' propagates, it is not amplified. Both measurements are asserted against in
+#' the extended test suite (`MFBDFM_EXTENDED_TESTS=true`).
+#'
 #' @param flows Either an [mfbdfm_data()] object carrying every series with its
 #'   flow/stock classification -- in which case `stocks` is left empty -- or a
 #'   named list of `ts` objects treated as flow variables. Must contain
@@ -154,6 +200,11 @@ ind_dfm <- function(flows = NULL,
   validate_model_inputs(flows = flows, stocks = stocks, target = target,
                         p = p, length_sample = length_sample, burn_in = burn_in,
                         thinning = thinning, call = "ind_dfm")
+
+  # a constant or all-missing series cannot be standardized (G5.8c)
+  .d <- screen_degenerate_series(flows, stocks, target)
+  flows <- .d$flows; stocks <- .d$stocks
+
   check_priors(priors, "ind_dfm")
   control <- resolve_control(control, "ind_dfm")
 

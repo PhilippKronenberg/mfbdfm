@@ -96,6 +96,10 @@ was substituted. Raised once per fit, with the number of substitutions.}
 initialisation) stopped on its iteration cap rather than on convergence.}
 \item{\code{mfbdfm_warning_fit_failed}}{a fit failed and
 \code{\link[=run_fcast]{run_fcast()}}\code{(on_error = "warn")} turned the error into a warning.}
+\item{\code{mfbdfm_warning_dropped_series}}{at least one input series was
+constant or entirely missing, so it could not be standardized, and was
+dropped before fitting. Raised once per fit, naming every series
+dropped.}
 }
 
 All of them also inherit from \code{mfbdfm_warning}. To muffle one:

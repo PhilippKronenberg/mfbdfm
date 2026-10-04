@@ -134,6 +134,56 @@ when its stochastic volatility is switched off. The two models pin the
 scale in different places, so switching the same option off means
 something different in each.)
 }
+\section{Degenerate input series}{
+
+Every series is standardized by its own standard deviation before it enters
+the model, so a series that is constant, or that has no non-missing
+observations at all, cannot be used: standardizing it divides by zero or by
+\code{NA}. Such a series also carries no information about the factor, so it is
+\strong{dropped before fitting}, with a warning naming every series dropped
+(condition class \code{mfbdfm_warning_dropped_series} -- see \code{\link[=dfm_control]{dfm_control()}} on
+muffling it). A series with a single non-missing observation counts as
+constant.
+
+\code{target} is the exception. The factor is anchored to it in \code{\link[=ind_dfm]{ind_dfm()}} and it
+selects the surfaced nowcast in \code{\link[=fcast_dfm]{fcast_dfm()}}, so a degenerate target is an
+error rather than a drop. A zero-length series, or one whose storage mode is
+not numeric (a character or complex \code{ts} is still a valid \code{ts}), is likewise
+an error, naming the series.
+
+More series than time periods is \emph{not} degenerate -- summarising many series
+with few factors is what the model is for -- and both entry points fit such
+a panel.
+}
+
+\section{Reproducibility across seeds}{
+
+A fit is exactly reproducible given a seed, but two \emph{different} seeds give
+two different chains, and on a finite chain they do not land in the same
+place. How far apart they land was measured rather than assumed: five seeds
+at \code{length_sample = 300}, \code{burn_in = 100}, on \code{data_ch_dataset_test}
+windowed from 2019 (three flows, two stocks), pairwise correlations across
+all ten pairs of seeds.
+
+\tabular{lll}{
+\strong{component} \tab \strong{worst pair} \tab \strong{best pair} \cr
+\code{nowcast}     \tab 0.987         \tab 1.000         \cr
+\code{factor}      \tab 0.950         \tab 0.988         \cr
+\code{pars$lambda} \tab 0.994         \tab 1.000
+}
+
+So the quarterly nowcast is reproducible to about three digits across seeds
+and the weekly factor to about two; raise \code{length_sample} if a tighter
+agreement is wanted. The same measurement for \code{\link[=fcast_dfm]{fcast_dfm()}} is in
+\code{?fcast_dfm}, and its factors agree much less closely, for a reason
+specific to that model.
+
+Perturbing the inputs by noise of \code{.Machine$double.eps} scale, with the seed
+held fixed, moved the nowcast by 1.5e-16 at most -- the perturbation
+propagates, it is not amplified. Both measurements are asserted against in
+the extended test suite (\code{MFBDFM_EXTENDED_TESTS=true}).
+}
+
 \examples{
 \donttest{
 # the shipped example dataset already carries the GDP target and its

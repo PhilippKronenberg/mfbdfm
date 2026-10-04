@@ -176,6 +176,58 @@ is surfaced at the top level of the return value for convenience; results
 for every series remain available in \code{ncst} and \code{data_hf}.
 }
 
+\section{Reproducibility across seeds}{
+
+Measured the same way as for \code{\link[=ind_dfm]{ind_dfm()}} (see \code{?ind_dfm}): five seeds at
+\code{length_sample = 300}, \code{burn_in = 100}, \code{q = 2}, on \code{data_ch_dataset_test}
+windowed from 2019, pairwise over all ten pairs of seeds. Factors are
+identified only up to rotation and sign, so each factor is matched to
+whichever factor of the other fit it correlates with most strongly in
+absolute value, and the loadings are permuted onto a common order with them.
+
+\tabular{lll}{
+\strong{component} \tab \strong{worst pair} \tab \strong{best pair} \cr
+\code{nowcast}     \tab 0.998         \tab 1.000         \cr
+\code{factor}      \tab 0.573         \tab 0.939         \cr
+\code{pars$lambda} \tab 0.634         \tab 0.996
+}
+
+The nowcast is as reproducible as \code{\link[=ind_dfm]{ind_dfm()}}'s, and the factors and
+loadings are far less so. That is a property of the model, not a defect:
+the chain samples an unidentified system and the rotation is resolved
+afterwards, and the post-hoc rotation does not reach uniqueness across runs.
+The nowcast is invariant to the rotation, which is why it is unaffected. Do
+not read a factor from a single run as the factor; the nowcast is the
+quantity to compare across runs.
+
+Perturbing the inputs by noise of \code{.Machine$double.eps} scale, with the seed
+held fixed, moved the nowcast by 1.5e-16 at most and left both factors
+matched at correlation 1. Both measurements are asserted against in the
+extended test suite (\code{MFBDFM_EXTENDED_TESTS=true}).
+}
+
+\section{Degenerate input series}{
+
+Every series is standardized by its own standard deviation before it enters
+the model, so a series that is constant, or that has no non-missing
+observations at all, cannot be used: standardizing it divides by zero or by
+\code{NA}. Such a series also carries no information about the factor, so it is
+\strong{dropped before fitting}, with a warning naming every series dropped
+(condition class \code{mfbdfm_warning_dropped_series} -- see \code{\link[=dfm_control]{dfm_control()}} on
+muffling it). A series with a single non-missing observation counts as
+constant.
+
+\code{target} is the exception. The factor is anchored to it in \code{\link[=ind_dfm]{ind_dfm()}} and it
+selects the surfaced nowcast in \code{\link[=fcast_dfm]{fcast_dfm()}}, so a degenerate target is an
+error rather than a drop. A zero-length series, or one whose storage mode is
+not numeric (a character or complex \code{ts} is still a valid \code{ts}), is likewise
+an error, naming the series.
+
+More series than time periods is \emph{not} degenerate -- summarising many series
+with few factors is what the model is for -- and both entry points fit such
+a panel.
+}
+
 \examples{
 \donttest{
 data(mfbdfm_example_data)
