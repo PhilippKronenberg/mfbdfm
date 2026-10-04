@@ -1,4 +1,26 @@
-# mfbdfm 0.1.0.9000
+# mfbdfm 0.2.0
+
+Tools for reading a fitted model: tables with posterior uncertainty
+(`mfbdfm_table_*()`), per-series contributions to the factor and nowcast
+(`mfbdfm_contributions()`), a nowcast accessor (`mfbdfm_nowcast()`), six
+ggplot views of a fit, per-series R-squared in `summary()`, `logLik()`/`AIC()`/
+`BIC()`, and Bai-Ng factor-count selection (`select_factors()`). Also a
+small self-contained example dataset with the GDP target
+(`mfbdfm_example_data`), quiet fits and classed warnings for scripted sweeps,
+and a precomputed applied vignette alongside a new methodology vignette.
+
+The samplers are unchanged, so factors, nowcasts and parameters match 0.1.0.
+One correction **does** change results: the cumulated activity index now
+compounds `(1 + gr)` rather than `exp(gr)`, moving `$index` and the level
+tables built on it by up to ~0.1 index points (#92, below).
+
+Two changes can break existing code, both described in full below:
+
+* `plot()` on a fit returns a ggplot object instead of drawing in base
+  graphics and returning its input invisibly, so inside a loop or function
+  it must be `print()`ed.
+* `summary()` prints the measurement-error **variance** with its interval,
+  where it used to print the square root of its posterior mean.
 
 * The applied vignette is now **precomputed** (the rOpenSci `.Rmd.orig`
   pattern): `vignettes/mfbdfm.Rmd.orig` is the source to edit, `Rscript

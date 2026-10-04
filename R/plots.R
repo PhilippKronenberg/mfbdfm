@@ -359,7 +359,7 @@ plot_common_component <- function(x, view){
     stop("`plot(type = \"", view, "\")` needs the factor on the model's ",
          "standardized scale, which this fit does not store. Refit with the ",
          "current version of mfbdfm (an ind_dfm() fit gained `$factor_std` in ",
-         "0.1.0.9000).", call. = FALSE)
+         "0.2.0).", call. = FALSE)
   }
   cc
 

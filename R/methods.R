@@ -125,7 +125,7 @@ fit_dims <- function(object){
 #' panels for a real dataset; use `series` to pick a few.
 #'
 #' `plot()` returned its input invisibly and drew in base graphics before
-#' version 0.1.0.9000. It now *returns* the plot, which still draws it when
+#' version 0.2.0. It now *returns* the plot, which still draws it when
 #' called at the console because the object auto-prints.
 #'
 #' @section What `logLik()` means here:
