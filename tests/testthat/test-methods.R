@@ -239,6 +239,93 @@ test_that("print, summary and plot work and return invisibly", {
   }
 })
 
+test_that("logLik, AIC and BIC run on both classes", {
+  fl <- fits()
+
+  for (nm in names(fl)) {
+    fit <- fl[[nm]]
+    ll <- logLik(fit)
+
+    expect_s3_class(ll, "logLik")
+    expect_length(as.numeric(ll), 1L)
+    expect_true(is.finite(as.numeric(ll)))
+
+    # missing observations are encoded as 0 and must be excluded
+    expect_equal(attr(ll, "nobs"), sum(fit$data != 0))
+    expect_lt(attr(ll, "nobs"), length(fit$data))
+
+    expect_true(is.finite(attr(ll, "df")))
+    expect_gt(attr(ll, "df"), 0)
+
+    expect_equal(AIC(fit), -2 * as.numeric(ll) + 2 * attr(ll, "df"))
+    expect_equal(BIC(fit),
+                 -2 * as.numeric(ll) + log(attr(ll, "nobs")) * attr(ll, "df"))
+  }
+})
+
+test_that("logLik counts the free parameters of each model", {
+  fl <- fits()
+
+  n <- nrow(fl$ind_dfm$inventory)
+  # lambda (n - 1, the target's loading being fixed at 1) + phi (p = 1) +
+  # sigma (n) + rho (n) + the volatility process (1)
+  expect_equal(attr(logLik(fl$ind_dfm), "df"), as.integer((n - 1) + 1 + n + n + 1))
+
+  q <- fl$fcast_dfm$pars$q
+  p <- fl$fcast_dfm$pars$p
+  # lambda is unrestricted here and identified post hoc, so an orthogonal
+  # q x q rotation's q*(q-1)/2 angles come off the count
+  expect_equal(attr(logLik(fl$fcast_dfm), "df"),
+               as.integer(n * q - q * (q - 1) / 2 + p * q^2 + n + n + 1))
+})
+
+test_that("logLik drops the rho block when serial correlation is off", {
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  set.seed(1)
+  fit <- suppressMessages(ind_dfm(flows = flows, stocks = stocks, target = target,
+                                  length_sample = 6, burn_in = 3,
+                                  serial_correlation = FALSE))
+  n <- nrow(fit$inventory)
+  expect_equal(attr(logLik(fit), "df"), as.integer((n - 1) + 1 + n + 1))
+})
+
+test_that("the log-likelihood is higher for the data than for a scrambled copy", {
+  # The value has to be more than merely finite: the fitted data must score
+  # better than the same values reshuffled in time. The observed POSITIONS are
+  # left alone and only the values within each series are permuted, so both
+  # calls are densities of the same coordinates - nobs and df are unchanged.
+  fl <- fits()
+
+  scramble <- function(fit, seed) {
+    set.seed(seed)
+    m <- fit$data
+    for (j in seq_len(ncol(m))) {
+      ix <- which(m[, j] != 0)
+      m[ix, j] <- m[sample(ix), j]
+    }
+    fit$data <- m
+    fit
+  }
+
+  for (nm in names(fl)) {
+    fit <- fl[[nm]]
+    ll <- as.numeric(logLik(fit))
+
+    scrambled <- vapply(1:3, function(i) as.numeric(logLik(scramble(fit, i))),
+                        numeric(1))
+    expect_true(all(is.finite(scrambled)))
+    expect_true(all(ll > scrambled))
+
+    # the scrambling changes the value only, not the accounting
+    expect_equal(attr(logLik(scramble(fit, 1)), "nobs"), attr(logLik(fit), "nobs"))
+  }
+})
+
 test_that("plot restores the caller's graphics state", {
   fit <- fits()$fcast_dfm
   grDevices::pdf(NULL)
