@@ -237,7 +237,8 @@ for the `print`, `summary`, `plot`, `coef`, `fitted`, `residuals` and
 Other model fitting functions:
 [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md),
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
-[`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)
+[`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md),
+[`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
 
 ## Examples
 

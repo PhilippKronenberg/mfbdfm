@@ -68,7 +68,10 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'fcast_dfm'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'fcast_dfm'</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot</a></span><span class="op">(</span><span class="va">x</span>, npcs <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"barplot"</span>, <span class="st">"lines"</span><span class="op">)</span>, main <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -97,15 +100,38 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
 <dd><p>Ignored, present for compatibility with the
 <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> generic.</p></dd>
 
+
+<dt id="arg-npcs">npcs<a class="anchor" aria-label="anchor" href="#arg-npcs"></a></dt>
+<dd><p>Integer, how many factors <code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot()</a></code> shows, or <code>NULL</code> for all
+of them.</p></dd>
+
+
+<dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
+<dd><p><code>"barplot"</code> or <code>"lines"</code>, as for <code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">stats::screeplot()</a></code>.</p></dd>
+
+
+<dt id="arg-main">main<a class="anchor" aria-label="anchor" href="#arg-main"></a></dt>
+<dd><p>Plot title, or <code>NULL</code> for the default.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>As <a href="ind_dfm_methods.html">ind_dfm_methods</a>, except that <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> returns a matrix.</p>
+    <p>As <a href="ind_dfm_methods.html">ind_dfm_methods</a>, except that <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> returns a matrix and
+<code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot()</a></code> invisibly returns the sorted variance shares.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> returns an <code>n x q</code> loading matrix here rather than a vector, and
 <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> returns one mean/lower/upper triple per factor.</p>
+<p><code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot()</a></code> shows the share of the standardized panel's variance explained
+by each factor, computed from the posterior mean loadings and factors: the
+factor's own variance times the sum of squared loadings on it, over the total
+variance of the observed entries of the prepared data. <strong>The rotated factors
+are not ordered by variance the way principal components are</strong> – the
+post-hoc rotation has no such convention – so the bars are sorted for the
+plot and labelled <code>f1</code>, <code>f2</code>, ... by their position in the fit, not by their
+position in the plot. It is a description of a fitted model, not a selection
+criterion; for choosing <code>q</code> before fitting, use <code><a href="select_factors.html">select_factors()</a></code>.</p>
 <p>As for <code><a href="ind_dfm.html">ind_dfm()</a></code> fits, the stored nowcasts are reached with
 <code><a href="mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code>.</p>
 <p><code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> uses the same definition as it does for <code><a href="ind_dfm.html">ind_dfm()</a></code> – see
@@ -178,6 +204,8 @@ nowcasts</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> SWISSMI                  -0.030761363 -0.011022397</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> SWCONPRCE                 0.149391280  0.084153123</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> SWPROPRCE                 0.029629679  0.065903122</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>     <span class="co"># share of panel variance per rotated factor</span></span></span>
+<span class="r-plt img"><img src="fcast_dfm_methods-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       time      factor1 factor1_lower factor1_upper       factor2 factor2_lower</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 2020.542 -0.252691442     -2.194676      1.689293 -0.1424790566     -2.159364</span>

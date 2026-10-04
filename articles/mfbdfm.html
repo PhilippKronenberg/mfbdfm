@@ -251,13 +251,83 @@ is then passed as the first argument:</p>
 before; this is an additional entry point, not a replacement.</p>
 </div>
 <div class="section level2">
+<h2 id="choosing-the-number-of-factors">Choosing the number of factors<a class="anchor" aria-label="anchor" href="#choosing-the-number-of-factors"></a>
+</h2>
+<p><code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> has exactly one factor by construction.
+<code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> asks for <code>q</code>, and the model gives no
+guidance on it. <code><a href="../reference/select_factors.html">select_factors()</a></code> computes the Bai &amp; Ng
+(2002) information criteria IC1, IC2 and IC3, plus the
+principal-component eigenvalues behind them:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sel</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/select_factors.html">select_factors</a></span><span class="op">(</span>flows <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span>,</span>
+<span>                      stocks <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span>,</span>
+<span>                      max_q <span class="op">=</span> <span class="fl">8</span>, na_action <span class="op">=</span> <span class="st">"interpolate"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: IC1/IC2/IC3 are minimised at `max_q` (8), so the minimum may lie</span></span>
+<span><span class="co">#&gt; beyond the range evaluated. Raise `max_q`; if the minimum stays on the</span></span>
+<span><span class="co">#&gt; boundary, the panel is too narrow for these criteria to settle - see</span></span>
+<span><span class="co">#&gt; `?select_factors`.</span></span>
+<span><span class="va">sel</span></span>
+<span><span class="co">#&gt; Bai-Ng factor-count selection</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Panel: 27 series at frequency 48, 1742 periods</span></span>
+<span><span class="co">#&gt;        19 lower-frequency series excluded: ch.fso.rtt.ind.r.noga0801.sa, ch.seco.gdp.real.gdp.ssa, ch.ozd.e.wa.index.re.d11, ch.ozd.i.wa.index.re.d11, ...</span></span>
+<span><span class="co">#&gt;        missing values: interpolate</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  q       IC1       IC2       IC3 var % cum %</span></span>
+<span><span class="co">#&gt;  1 -0.1380   -0.1375   -0.1393    23.0  23.0</span></span>
+<span><span class="co">#&gt;  2 -0.2397   -0.2386   -0.2424    15.5  38.5</span></span>
+<span><span class="co">#&gt;  3 -0.2863   -0.2845   -0.2902     9.6  48.1</span></span>
+<span><span class="co">#&gt;  4 -0.2988   -0.2965   -0.3040     6.6  54.7</span></span>
+<span><span class="co">#&gt;  5 -0.2976   -0.2947   -0.3041     5.2  59.9</span></span>
+<span><span class="co">#&gt;  6 -0.3063   -0.3028   -0.3142     5.0  64.9</span></span>
+<span><span class="co">#&gt;  7 -0.3167   -0.3127   -0.3259     4.4  69.3</span></span>
+<span><span class="co">#&gt;  8 -0.3332 * -0.3286 * -0.3437 *   4.0  73.3</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Chosen q:  IC1 = 8,  IC2 = 8,  IC3 = 8</span></span>
+<span><span class="co">#&gt; IC1/IC2/IC3 are minimised at max_q = 8, so the minimum may lie beyond</span></span>
+<span><span class="co">#&gt; the range evaluated. Raise `max_q`.</span></span>
+<span><span class="co">#&gt; These are frequentist, principal-component criteria. They inform fcast_dfm()'s</span></span>
+<span><span class="co">#&gt; `q`; they do not determine it.</span></span></code></pre></div>
+<p>Two things in that printout matter more than the numbers.</p>
+<p>The first is <strong>which data the criteria saw</strong>. They are
+defined for a balanced panel of a single frequency, so the
+mixed-frequency input has to be reduced to one: only the
+highest-frequency block is kept, and the quarterly and monthly series —
+including GDP — are dropped. The model is then fitted on data the
+criteria never looked at.</p>
+<p>The second is that here <strong>all three criteria are minimised at
+<code>max_q</code></strong>, which is why the call warns. That is not a
+recommendation to use eight factors; it means the minimum lies outside
+the range evaluated, or nowhere. Raising <code>max_q</code> does not fix
+it on this dataset: the penalties are calibrated for a large
+cross-section, and with 27 weekly series the fall in
+<code>log V(k)</code> outruns them. When that happens, read the variance
+shares instead:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">sel</span><span class="op">$</span><span class="va">cum_var_explained</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">]</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.230 0.385 0.481 0.547 0.599 0.649</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot</a></span><span class="op">(</span><span class="va">sel</span><span class="op">)</span></span></code></pre></div>
+<p><img src="mfbdfm_files/figure-html/scree-1.png" class="r-plt" alt="" width="576"></p>
+<p>The first component explains about a quarter of the panel’s variance
+and the curve flattens after the third or fourth — which is the sort of
+judgement dfms’ vignette reaches for its own data, and the sort of
+judgement that has to be made here too.</p>
+<p>So: the criteria <strong>inform</strong> <code>q</code>, they do not
+determine it. They are frequentist and principal-component based, while
+<code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> is Bayesian with post-hoc rotation. Fit two or
+three values of <code>q</code> and compare; <code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot()</a></code> on
+the resulting fit shows how much of the panel each <em>rotated</em>
+factor ended up explaining, which is the corresponding description after
+the fact.</p>
+</div>
+<div class="section level2">
 <h2 id="real-time-gdp-vintages">Real-time GDP vintages<a class="anchor" aria-label="anchor" href="#real-time-gdp-vintages"></a>
 </h2>
 <p>The full <code>data_ch_dataset</code> deliberately ships
 <em>without</em> a GDP target series: real analyses inject GDP at
 runtime from the real-time vintage database, which ships with the
 package and needs no configuration:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vintages</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_real_time_gdp_vintages.html">get_real_time_gdp_vintages</a></span><span class="op">(</span><span class="st">"quarterly"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">vintages</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 144 105</span></span></code></pre></div>
@@ -265,7 +335,7 @@ package and needs no configuration:</p>
 have been observable at a given date, substituting the appropriate GDP
 vintage for the target series — the building block for the paper’s
 real-time out-of-sample evaluation:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dat_rt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cut_data_real_time.html">cut_data_real_time</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span>, current_date <span class="op">=</span> <span class="fl">2024.5</span>,</span>
 <span>                             GDP_gr_vintages <span class="op">=</span> <span class="va">vintages</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/time.html" class="external-link">time</a></span><span class="op">(</span><span class="va">dat_rt</span><span class="op">$</span><span class="va">flows</span><span class="op">[[</span><span class="va">target</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
@@ -280,7 +350,7 @@ real-time out-of-sample evaluation:</p>
 <p>The functions used in the accompanying analysis pipeline are exported
 but need either the full (non-shipped) indicator set or previously saved
 model fits, so they aren’t run here:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Estimate the full WAI and optionally save the fit:</span></span>
 <span><span class="va">fit_full</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_wai_adj.html">run_wai_adj</a></span><span class="op">(</span></span>
 <span>  flows <span class="op">=</span> <span class="va">dat</span><span class="op">$</span><span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">dat</span><span class="op">$</span><span class="va">stocks</span>, target <span class="op">=</span> <span class="va">target</span>,</span>

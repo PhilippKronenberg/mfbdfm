@@ -33,6 +33,9 @@ summary(object, ...)
 
 # S3 method for class 'ind_dfm'
 print(x, n_show = 8, ...)
+
+# S3 method for class 'ind_dfm'
+screeplot(x, ...)
 ```
 
 ## Arguments
@@ -162,6 +165,19 @@ input invisibly.
   `nobs` attributes so that [`AIC()`](https://rdrr.io/r/stats/AIC.html)
   and [`BIC()`](https://rdrr.io/r/stats/AIC.html) work. Read the
   definition below before using it.
+
+- [`screeplot()`](https://rdrr.io/r/stats/screeplot.html):
+
+  An **error**, deliberately. This model has exactly one factor by
+  construction, so a scree plot would be a single bar conveying nothing
+  while implying a choice the model does not offer. The message points
+  to
+  [`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
+  and
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
+  See
+  [fcast_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+  for the version that does plot something.
 
 There is deliberately no
 [`predict()`](https://rdrr.io/r/stats/predict.html) method: the model

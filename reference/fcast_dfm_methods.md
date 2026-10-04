@@ -33,6 +33,9 @@ plot(x, ...)
 
 # S3 method for class 'fcast_dfm'
 summary(object, ...)
+
+# S3 method for class 'fcast_dfm'
+screeplot(x, npcs = NULL, type = c("barplot", "lines"), main = NULL, ...)
 ```
 
 ## Arguments
@@ -67,12 +70,28 @@ summary(object, ...)
   [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
   generic.
 
+- npcs:
+
+  Integer, how many factors
+  [`screeplot()`](https://rdrr.io/r/stats/screeplot.html) shows, or
+  `NULL` for all of them.
+
+- type:
+
+  `"barplot"` or `"lines"`, as for
+  [`stats::screeplot()`](https://rdrr.io/r/stats/screeplot.html).
+
+- main:
+
+  Plot title, or `NULL` for the default.
+
 ## Value
 
 As
 [ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md),
 except that [`coef()`](https://rdrr.io/r/stats/coef.html) returns a
-matrix.
+matrix and [`screeplot()`](https://rdrr.io/r/stats/screeplot.html)
+invisibly returns the sorted variance shares.
 
 ## Details
 
@@ -80,6 +99,18 @@ matrix.
 matrix here rather than a vector, and
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) returns
 one mean/lower/upper triple per factor.
+
+[`screeplot()`](https://rdrr.io/r/stats/screeplot.html) shows the share
+of the standardized panel's variance explained by each factor, computed
+from the posterior mean loadings and factors: the factor's own variance
+times the sum of squared loadings on it, over the total variance of the
+observed entries of the prepared data. **The rotated factors are not
+ordered by variance the way principal components are** – the post-hoc
+rotation has no such convention – so the bars are sorted for the plot
+and labelled `f1`, `f2`, ... by their position in the fit, not by their
+position in the plot. It is a description of a fitted model, not a
+selection criterion; for choosing `q` before fitting, use
+[`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md).
 
 As for
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
@@ -165,6 +196,8 @@ coef(fit)          # a q-column matrix here, a vector for ind_dfm()
 #> SWISSMI                  -0.030761363 -0.011022397
 #> SWCONPRCE                 0.149391280  0.084153123
 #> SWPROPRCE                 0.029629679  0.065903122
+screeplot(fit)     # share of panel variance per rotated factor
+
 head(as.data.frame(fit))
 #>       time      factor1 factor1_lower factor1_upper       factor2 factor2_lower
 #> 1 2020.542 -0.252691442     -2.194676      1.689293 -0.1424790566     -2.159364

@@ -370,6 +370,12 @@ the helpers that prepare their input data.
   : Estimate a single-factor, target-anchored dynamic factor model
 - [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
   : Estimate a multi-factor mixed-frequency dynamic factor model
+- [`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
+  : Choose the number of factors with the Bai-Ng information criteria
+- [`print(`*`<select_factors>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors_methods.md)
+  [`plot(`*`<select_factors>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors_methods.md)
+  [`screeplot(`*`<select_factors>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors_methods.md)
+  : Methods for factor-count selection
 - [`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
   : Extract the nowcasts from a model fit
 - [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
@@ -410,6 +416,7 @@ contributions.
   [`plot(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`summary(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`print(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+  [`screeplot(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   : Methods for single-factor model fits
 - [`print(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`coef(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
@@ -419,6 +426,7 @@ contributions.
   [`as.data.frame(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`plot(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   [`summary(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+  [`screeplot(`*`<fcast_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
   : Methods for multi-factor model fits
 - [`print(`*`<summary.mfbdfm_fit>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.summary.mfbdfm_fit.md)
   : Print a fit summary

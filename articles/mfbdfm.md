@@ -211,6 +211,87 @@ fit2 <- ind_dfm(d, length_sample = 200, burn_in = 50)
 `flows`/`stocks` continue to work exactly as before; this is an
 additional entry point, not a replacement.
 
+## Choosing the number of factors
+
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+has exactly one factor by construction.
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+asks for `q`, and the model gives no guidance on it.
+[`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
+computes the Bai & Ng (2002) information criteria IC1, IC2 and IC3, plus
+the principal-component eigenvalues behind them:
+
+``` r
+
+sel <- select_factors(flows = data_ch_dataset_test$flows,
+                      stocks = data_ch_dataset_test$stocks,
+                      max_q = 8, na_action = "interpolate")
+#> Warning: IC1/IC2/IC3 are minimised at `max_q` (8), so the minimum may lie
+#> beyond the range evaluated. Raise `max_q`; if the minimum stays on the
+#> boundary, the panel is too narrow for these criteria to settle - see
+#> `?select_factors`.
+sel
+#> Bai-Ng factor-count selection
+#> 
+#> Panel: 27 series at frequency 48, 1742 periods
+#>        19 lower-frequency series excluded: ch.fso.rtt.ind.r.noga0801.sa, ch.seco.gdp.real.gdp.ssa, ch.ozd.e.wa.index.re.d11, ch.ozd.i.wa.index.re.d11, ...
+#>        missing values: interpolate
+#> 
+#>  q       IC1       IC2       IC3 var % cum %
+#>  1 -0.1380   -0.1375   -0.1393    23.0  23.0
+#>  2 -0.2397   -0.2386   -0.2424    15.5  38.5
+#>  3 -0.2863   -0.2845   -0.2902     9.6  48.1
+#>  4 -0.2988   -0.2965   -0.3040     6.6  54.7
+#>  5 -0.2976   -0.2947   -0.3041     5.2  59.9
+#>  6 -0.3063   -0.3028   -0.3142     5.0  64.9
+#>  7 -0.3167   -0.3127   -0.3259     4.4  69.3
+#>  8 -0.3332 * -0.3286 * -0.3437 *   4.0  73.3
+#> 
+#> Chosen q:  IC1 = 8,  IC2 = 8,  IC3 = 8
+#> IC1/IC2/IC3 are minimised at max_q = 8, so the minimum may lie beyond
+#> the range evaluated. Raise `max_q`.
+#> These are frequentist, principal-component criteria. They inform fcast_dfm()'s
+#> `q`; they do not determine it.
+```
+
+Two things in that printout matter more than the numbers.
+
+The first is **which data the criteria saw**. They are defined for a
+balanced panel of a single frequency, so the mixed-frequency input has
+to be reduced to one: only the highest-frequency block is kept, and the
+quarterly and monthly series — including GDP — are dropped. The model is
+then fitted on data the criteria never looked at.
+
+The second is that here **all three criteria are minimised at `max_q`**,
+which is why the call warns. That is not a recommendation to use eight
+factors; it means the minimum lies outside the range evaluated, or
+nowhere. Raising `max_q` does not fix it on this dataset: the penalties
+are calibrated for a large cross-section, and with 27 weekly series the
+fall in `log V(k)` outruns them. When that happens, read the variance
+shares instead:
+
+``` r
+
+round(sel$cum_var_explained[1:6], 3)
+#> [1] 0.230 0.385 0.481 0.547 0.599 0.649
+screeplot(sel)
+```
+
+![](mfbdfm_files/figure-html/scree-1.png)
+
+The first component explains about a quarter of the panel’s variance and
+the curve flattens after the third or fourth — which is the sort of
+judgement dfms’ vignette reaches for its own data, and the sort of
+judgement that has to be made here too.
+
+So: the criteria **inform** `q`, they do not determine it. They are
+frequentist and principal-component based, while
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+is Bayesian with post-hoc rotation. Fit two or three values of `q` and
+compare; [`screeplot()`](https://rdrr.io/r/stats/screeplot.html) on the
+resulting fit shows how much of the panel each *rotated* factor ended up
+explaining, which is the corresponding description after the fact.
+
 ## Real-time GDP vintages
 
 The full `data_ch_dataset` deliberately ships *without* a GDP target

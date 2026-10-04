@@ -65,7 +65,10 @@ the same set – see <a href="fcast_dfm_methods.html">fcast_dfm_methods</a>.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'ind_dfm'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, n_show <span class="op">=</span> <span class="fl">8</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, n_show <span class="op">=</span> <span class="fl">8</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'ind_dfm'</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -166,6 +169,13 @@ so downstream code need not reach into the list structure.</p></dd>
 <dd><p>A plug-in Gaussian log-likelihood of the observed data,
 with <code>df</code> and <code>nobs</code> attributes so that <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> and <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> work. Read
 the definition below before using it.</p></dd>
+
+<dt><code><a href="https://rdrr.io/r/stats/screeplot.html" class="external-link">screeplot()</a></code></dt>
+<dd><p>An <strong>error</strong>, deliberately. This model has exactly one
+factor by construction, so a scree plot would be a single bar conveying
+nothing while implying a choice the model does not offer. The message
+points to <code><a href="select_factors.html">select_factors()</a></code> and <code><a href="fcast_dfm.html">fcast_dfm()</a></code>. See
+<a href="fcast_dfm_methods.html">fcast_dfm_methods</a> for the version that does plot something.</p></dd>
 
 
 </dl><p>There is deliberately no <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> method: the model does not forecast in

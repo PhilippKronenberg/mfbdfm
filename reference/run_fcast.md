@@ -172,7 +172,8 @@ for the model itself.
 Other model fitting functions:
 [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md),
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
-[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+[`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
 
 ## Examples
 
