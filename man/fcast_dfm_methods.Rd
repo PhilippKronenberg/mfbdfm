@@ -16,9 +16,9 @@
 
 \method{coef}{fcast_dfm}(object, ...)
 
-\method{fitted}{fcast_dfm}(object, ...)
+\method{fitted}{fcast_dfm}(object, scale = c("standardized", "original"), ...)
 
-\method{residuals}{fcast_dfm}(object, ...)
+\method{residuals}{fcast_dfm}(object, scale = c("standardized", "original"), ...)
 
 \method{logLik}{fcast_dfm}(object, ...)
 
@@ -34,6 +34,10 @@
 \item{...}{Ignored, present for compatibility with the generics.}
 
 \item{object, x}{A fit from \code{\link[=fcast_dfm]{fcast_dfm()}}.}
+
+\item{scale}{Character, the scale \code{fitted()} and \code{residuals()} report on:
+\code{"standardized"} (the default) or \code{"original"}. As for \code{\link[=ind_dfm]{ind_dfm()}}; see
+\link{ind_dfm_methods}.}
 
 \item{row.names, optional}{Ignored, present for compatibility with the
 \code{\link[=as.data.frame]{as.data.frame()}} generic.}

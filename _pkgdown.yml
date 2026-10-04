@@ -34,6 +34,17 @@ reference:
   - fcast_dfm_methods
   - print.summary.mfbdfm_fit
 
+- title: Tables from a fitted model
+  desc: >
+    Table-ready summaries of a fit -- loadings, parameters and the nowcast,
+    each with posterior uncertainty -- as tidy data frames or rendered to
+    LaTeX, HTML or Markdown.
+  contents:
+  - mfbdfm_table_loadings
+  - mfbdfm_table_parameters
+  - mfbdfm_table_nowcast
+  - mfbdfm_kable
+
 - title: Backcasting & real-time vintages
   desc: >
     Fitting the AR benchmark and the WAI at a given evaluation date, and
