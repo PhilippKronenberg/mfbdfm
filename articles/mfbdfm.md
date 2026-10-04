@@ -116,19 +116,34 @@ plot(fit$factor, ylab = "WAI (annualized %, weekly)", xlab = NULL)
 
 ![](mfbdfm_files/figure-html/plot-factor-1.png)
 
+[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
+is the accessor for those nowcasts, returning them with a credible band
+rather than as a bare `ts`. It works the same way for a
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+fit, and `last = TRUE` gives just the current period — the usual
+real-time query:
+
 ``` r
 
-fit$nowcast
-#>              Qtr1         Qtr2         Qtr3         Qtr4
-#> 2018  0.010358258  0.007347781 -0.001407579  0.005268532
-#> 2019  0.002011808  0.006503894  0.003023009  0.001999370
-#> 2020 -0.010753651 -0.065794476  0.059015689  0.009101004
-#> 2021  0.005967472  0.025366943  0.019780739  0.010104565
-#> 2022  0.002357652  0.006806208  0.004997186  0.002075334
-#> 2023  0.006192212 -0.003620587  0.004556616  0.003672437
-#> 2024 -0.001181404  0.007846092  0.002901754  0.005175476
-#> 2025  0.007858613  0.001230707 -0.004400680  0.001506296
+tail(mfbdfm_nowcast(fit))
+#>       time      nowcast           sd        lower        upper
+#> 27 2024.50  0.002901754 5.017349e-07  0.002900771  0.002902738
+#> 28 2024.75  0.005175476 5.484667e-07  0.005174401  0.005176551
+#> 29 2025.00  0.007858613 5.397740e-07  0.007857555  0.007859671
+#> 30 2025.25  0.001230707 5.222492e-07  0.001229683  0.001231730
+#> 31 2025.50 -0.004400680 5.601227e-07 -0.004401778 -0.004399583
+#> 32 2025.75  0.001506296 5.107896e-07  0.001505295  0.001507297
+mfbdfm_nowcast(fit, last = TRUE)
+#>      time     nowcast           sd       lower       upper
+#> 1 2025.75 0.001506296 5.107896e-07 0.001505295 0.001507297
 ```
+
+There is deliberately no
+[`predict()`](https://rdrr.io/r/stats/predict.html) method. The nowcasts
+are computed while the model is fitted, so there is no separate
+prediction step to run on new data, and a
+[`predict()`](https://rdrr.io/r/stats/predict.html) returning stored
+values would advertise a capability the model does not have.
 
 `fit$index` gives the cumulated activity level (rebased to 100 at the
 start of the estimation window), and `fit$pars` holds the posterior

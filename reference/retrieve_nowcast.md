@@ -31,6 +31,18 @@ The nowcast value.
 
 ## See also
 
+[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md),
+which is the accessor to reach for with an
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+or
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+fit in hand: it dispatches on the fit's class rather than taking a
+`model` string, and returns the whole nowcast path with its credible
+band. This function exists for the
+[`run_ar()`](https://philippkronenberg.github.io/mfbdfm/reference/run_ar.md)/[`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
+backcast workflow, which also needs the AR benchmark, and returns only
+the latest value.
+
 Other backcasting functions:
 [`retrieve_nowcast_var()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast_var.md)
 

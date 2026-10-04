@@ -64,7 +64,13 @@ is taken). Matched with <code><a href="https://rdrr.io/r/base/match.arg.html" cl
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p>Other backcasting functions:
+    <div class="dont-index"><p><code><a href="mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code>, which is the accessor to reach for with an
+<code><a href="ind_dfm.html">ind_dfm()</a></code> or <code><a href="fcast_dfm.html">fcast_dfm()</a></code> fit in hand: it dispatches on the fit's
+class rather than taking a <code>model</code> string, and returns the whole nowcast
+path with its credible band. This function exists for the
+<code><a href="run_ar.html">run_ar()</a></code>/<code><a href="run_wai_adj.html">run_wai_adj()</a></code> backcast workflow, which also needs the AR
+benchmark, and returns only the latest value.</p>
+<p>Other backcasting functions:
 <code><a href="retrieve_nowcast_var.html">retrieve_nowcast_var()</a></code></p></div>
     </div>
 

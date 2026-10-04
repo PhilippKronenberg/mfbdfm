@@ -125,17 +125,21 @@ There is deliberately no
 does not forecast in the usual sense – nowcasts are computed during
 fitting and stored – so a
 [`predict()`](https://rdrr.io/r/stats/predict.html) returning stored
-values would advertise a capability that does not exist.
+values would advertise a capability that does not exist. Use
+[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
+to get at those stored nowcasts; it is the accessor the missing
+[`predict()`](https://rdrr.io/r/stats/predict.html) would otherwise be
+mistaken for.
 
 ## What [`logLik()`](https://rdrr.io/r/stats/logLik.html) means here
 
 Neither model computes a likelihood while sampling – the factors are
 drawn jointly from a stacked, precision-based conditional, and there is
 no Kalman filter anywhere in the package. So the value has to be
-*defined*, and the definition adopted is:the Gaussian log density of the
-observed entries of the prepared data,evaluated at the posterior mean
-parameters and the posterior meanvolatility path, with the factors and
-the unobserved data entriesmarginalised out.
+*defined*, and the definition adopted is: *the Gaussian log density of
+the **observed** entries of the prepared data, evaluated at the
+posterior mean parameters and the posterior mean volatility path, with
+the factors and the unobserved data entries marginalised out.*
 
 It is computed exactly (not by simulation) from the stacked Gaussian
 form the samplers already use, so nothing is approximated in the
@@ -177,7 +181,9 @@ observed values, which for a mixed-frequency model is far fewer than
 ## See also
 
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
-[fcast_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+[fcast_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md),
+[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
+for the nowcasts
 
 ## Examples
 
@@ -214,8 +220,9 @@ fit
 #>     2025.500     -0.00440
 #>     2025.750      0.00151
 #> 
-#> Full results: $factor, $nowcast, $index, $pars; summary(), plot(),
-#> as.data.frame(), coef(), fitted(), residuals(), logLik()
+#> Full results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),
+#> summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),
+#> logLik()
 coef(fit)
 #> ch.seco.gdp.real.gdp.ssa                  SWISSMI                SWCONPRCE 
 #>               1.00000000               0.05379545               0.61872745 
@@ -233,5 +240,8 @@ logLik(fit)
 #> 'log Lik.' -532.891 (df=13)
 AIC(fit)              # approximate here - see "What logLik() means"
 #> [1] 1091.782
+mfbdfm_nowcast(fit, last = TRUE)
+#>      time     nowcast           sd       lower       upper
+#> 1 2025.75 0.001506226 2.025925e-07 0.001505829 0.001506623
 # }
 ```

@@ -207,7 +207,9 @@ Applied Econometrics*, 40(3), 270-290.
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
 for the multi-factor model,
 [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
-to vary the priors, and
+to vary the priors,
+[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
+to extract the nowcasts from the fit, and
 [ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
 for the `print`, `summary`, `plot`, `coef`, `fitted`, `residuals` and
 `as.data.frame` methods.

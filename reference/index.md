@@ -11,6 +11,8 @@ the helpers that prepare their input data.
   : Estimate a single-factor, target-anchored dynamic factor model
 - [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
   : Estimate a multi-factor mixed-frequency dynamic factor model
+- [`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
+  : Extract the nowcasts from a model fit
 - [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
   : Specify the prior distributions for a dynamic factor model
 - [`print(`*`<dfm_priors>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_priors.md)

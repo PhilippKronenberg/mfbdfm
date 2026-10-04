@@ -270,7 +270,11 @@ Kronenberg, P. (2026). A high-frequency GDP indicator for Switzerland.
 ## See also
 
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
-for the single-factor, target-anchored model.
+for the single-factor, target-anchored model,
+[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
+to extract the nowcasts from the fit, and
+[fcast_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md)
+for the methods the fit supports.
 
 Other model fitting functions:
 [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md),
@@ -324,6 +328,7 @@ fit
 #>     2025.500    -0.0044    -0.0044    -0.0044    -0.0044
 #>     2025.750     0.0015     0.0015     0.0015     0.0015
 #> 
-#> Full results: $factor, $ncst (all series), $data_hf, $target_series
+#> Full results: $factor, $ncst (all series), $data_hf, $target_series;
+#> mfbdfm_nowcast() for the target's nowcasts
 # }
 ```

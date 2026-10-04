@@ -100,6 +100,8 @@ does and for why there is no <code><a href="https://rdrr.io/r/stats/predict.html
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> returns an <code>n x q</code> loading matrix here rather than a vector, and
 <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> returns one mean/lower/upper triple per factor.</p>
+<p>As for <code><a href="ind_dfm.html">ind_dfm()</a></code> fits, the stored nowcasts are reached with
+<code><a href="mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code>.</p>
 <p><code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> uses the same definition as it does for <code><a href="ind_dfm.html">ind_dfm()</a></code> – see
 "What <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> means here" in <a href="ind_dfm_methods.html">ind_dfm_methods</a>, including why <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> and
 <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> are only approximate. The <code>df</code> count differs: the loadings are
@@ -111,7 +113,8 @@ identification, where <code><a href="ind_dfm.html">ind_dfm()</a></code> still es
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="fcast_dfm.html">fcast_dfm()</a></code>, <a href="ind_dfm_methods.html">ind_dfm_methods</a></p></div>
+    <div class="dont-index"><p><code><a href="fcast_dfm.html">fcast_dfm()</a></code>, <a href="ind_dfm_methods.html">ind_dfm_methods</a>, <code><a href="mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code> for the
+nowcasts</p></div>
     </div>
 
     <div class="section level2">
@@ -159,7 +162,8 @@ identification, where <code><a href="ind_dfm.html">ind_dfm()</a></code> still es
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2025.500    -0.0044    -0.0044    -0.0044    -0.0044</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2025.750     0.0015     0.0015     0.0015     0.0015</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $ncst (all series), $data_hf, $target_series</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $ncst (all series), $data_hf, $target_series;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_nowcast() for the target's nowcasts</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>          <span class="co"># a q-column matrix here, a vector for ind_dfm()</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                               factor1      factor2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ch.seco.gdp.real.gdp.ssa -0.006836276 -0.003745831</span>
@@ -185,6 +189,9 @@ identification, where <code><a href="ind_dfm.html">ind_dfm()</a></code> still es
 <span class="r-out co"><span class="r-pr">#&gt;</span> 'log Lik.' -539.5679 (df=20)</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>           <span class="co"># approximate here - see ?ind_dfm_methods</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1198.612</span>
+<span class="r-in"><span><span class="fu"><a href="mfbdfm_nowcast.html">mfbdfm_nowcast</a></span><span class="op">(</span><span class="va">fit</span>, last <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      time     nowcast           sd       lower       upper</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 2025.75 0.001506308 2.021811e-07 0.001505912 0.001506705</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

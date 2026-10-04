@@ -2,6 +2,27 @@
 
 ## mfbdfm 0.1.0.9000
 
+- New
+  [`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md),
+  an exported generic with methods for both fit classes, returns the
+  stored nowcasts of the target series as a data frame of `time`,
+  `nowcast`, `sd` and `level` credible bounds; `last = TRUE` returns
+  only the most recent period. Previously the nowcasts were reachable
+  only as `fit$nowcast`/`fit$nowcast_var` or through
+  [`retrieve_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast.md),
+  which takes a `model` string, returns a single value and is really a
+  helper for the
+  [`run_ar()`](https://philippkronenberg.github.io/mfbdfm/reference/run_ar.md)/[`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
+  backcast workflow. Those two are unchanged and keep serving the AR
+  benchmark. There is still **no**
+  [`predict()`](https://rdrr.io/r/stats/predict.html) method, for the
+  reason recorded in
+  [`?ind_dfm_methods`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md):
+  the nowcasts are computed while the model is fitted, so a
+  [`predict()`](https://rdrr.io/r/stats/predict.html) returning stored
+  values would advertise a capability the model does not have
+  ([\#104](https://github.com/PhilippKronenberg/mfbdfm/issues/104)).
+
 - [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
   gains `verbose`, which turns the samplers quiet. Both models honour
   it, and it silences the

@@ -141,7 +141,8 @@ the definition below before using it.</p></dd>
 </dl><p>There is deliberately no <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> method: the model does not forecast in
 the usual sense – nowcasts are computed during fitting and stored – so a
 <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> returning stored values would advertise a capability that does
-not exist.</p>
+not exist. Use <code><a href="mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code> to get at those stored nowcasts; it is
+the accessor the missing <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> would otherwise be mistaken for.</p>
     </div>
     <div class="section level2">
     <h2 id="what-loglik-means-here">What <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> means here<a class="anchor" aria-label="anchor" href="#what-loglik-means-here"></a></h2>
@@ -151,7 +152,10 @@ not exist.</p>
 <p>Neither model computes a likelihood while sampling – the factors are drawn
 jointly from a stacked, precision-based conditional, and there is no Kalman
 filter anywhere in the package. So the value has to be <em>defined</em>, and the
-definition adopted is:the Gaussian log density of the observed entries of the prepared data,evaluated at the posterior mean parameters and the posterior meanvolatility path, with the factors and the unobserved data entriesmarginalised out.</p>
+definition adopted is: <em>the Gaussian log density of the <strong>observed</strong> entries
+of the prepared data, evaluated at the posterior mean parameters and the
+posterior mean volatility path, with the factors and the unobserved data
+entries marginalised out.</em></p>
 <p>It is computed exactly (not by simulation) from the stacked Gaussian form
 the samplers already use, so nothing is approximated in the <em>arithmetic</em>.
 What is approximate is the statistics, in three specific ways:</p>
@@ -180,7 +184,8 @@ values, which for a mixed-frequency model is far fewer than <code>nrow * ncol</c
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="ind_dfm.html">ind_dfm()</a></code>, <a href="fcast_dfm_methods.html">fcast_dfm_methods</a></p></div>
+    <div class="dont-index"><p><code><a href="ind_dfm.html">ind_dfm()</a></code>, <a href="fcast_dfm_methods.html">fcast_dfm_methods</a>, <code><a href="mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code> for the
+nowcasts</p></div>
     </div>
 
     <div class="section level2">
@@ -217,8 +222,9 @@ values, which for a mixed-frequency model is far fewer than <code>nrow * ncol</c
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2025.500     -0.00440</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2025.750      0.00151</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $nowcast, $index, $pars; summary(), plot(),</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> as.data.frame(), coef(), fitted(), residuals(), logLik()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> logLik()</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ch.seco.gdp.real.gdp.ssa                  SWISSMI                SWCONPRCE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               1.00000000               0.05379545               0.61872745 </span>
@@ -236,6 +242,9 @@ values, which for a mixed-frequency model is far fewer than <code>nrow * ncol</c
 <span class="r-out co"><span class="r-pr">#&gt;</span> 'log Lik.' -532.891 (df=13)</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>              <span class="co"># approximate here - see "What logLik() means"</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1091.782</span>
+<span class="r-in"><span><span class="fu"><a href="mfbdfm_nowcast.html">mfbdfm_nowcast</a></span><span class="op">(</span><span class="va">fit</span>, last <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      time     nowcast           sd       lower       upper</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 2025.75 0.001506226 2.025925e-07 0.001505829 0.001506623</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

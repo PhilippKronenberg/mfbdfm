@@ -71,6 +71,11 @@ matrix here rather than a vector, and
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) returns
 one mean/lower/upper triple per factor.
 
+As for
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+fits, the stored nowcasts are reached with
+[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md).
+
 [`logLik()`](https://rdrr.io/r/stats/logLik.html) uses the same
 definition as it does for
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
@@ -90,7 +95,9 @@ still estimates a constant).
 ## See also
 
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
-[ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
+[ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md),
+[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
+for the nowcasts
 
 ## Examples
 
@@ -138,7 +145,8 @@ fit
 #>     2025.500    -0.0044    -0.0044    -0.0044    -0.0044
 #>     2025.750     0.0015     0.0015     0.0015     0.0015
 #> 
-#> Full results: $factor, $ncst (all series), $data_hf, $target_series
+#> Full results: $factor, $ncst (all series), $data_hf, $target_series;
+#> mfbdfm_nowcast() for the target's nowcasts
 coef(fit)          # a q-column matrix here, a vector for ind_dfm()
 #>                               factor1      factor2
 #> ch.seco.gdp.real.gdp.ssa -0.006836276 -0.003745831
@@ -164,5 +172,8 @@ logLik(fit)
 #> 'log Lik.' -539.5679 (df=20)
 BIC(fit)           # approximate here - see ?ind_dfm_methods
 #> [1] 1198.612
+mfbdfm_nowcast(fit, last = TRUE)
+#>      time     nowcast           sd       lower       upper
+#> 1 2025.75 0.001506308 2.021811e-07 0.001505912 0.001506705
 # }
 ```

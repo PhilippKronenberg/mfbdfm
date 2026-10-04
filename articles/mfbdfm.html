@@ -173,17 +173,28 @@ frequency:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">factor</span>, ylab <span class="op">=</span> <span class="st">"WAI (annualized %, weekly)"</span>, xlab <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
 <p><img src="mfbdfm_files/figure-html/plot-factor-1.png" class="r-plt" alt="" width="576"></p>
+<p><code><a href="../reference/mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code> is the accessor for those nowcasts,
+returning them with a credible band rather than as a bare
+<code>ts</code>. It works the same way for a <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code>
+fit, and <code>last = TRUE</code> gives just the current period — the
+usual real-time query:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span><span class="op">$</span><span class="va">nowcast</span></span>
-<span><span class="co">#&gt;              Qtr1         Qtr2         Qtr3         Qtr4</span></span>
-<span><span class="co">#&gt; 2018  0.010358258  0.007347781 -0.001407579  0.005268532</span></span>
-<span><span class="co">#&gt; 2019  0.002011808  0.006503894  0.003023009  0.001999370</span></span>
-<span><span class="co">#&gt; 2020 -0.010753651 -0.065794476  0.059015689  0.009101004</span></span>
-<span><span class="co">#&gt; 2021  0.005967472  0.025366943  0.019780739  0.010104565</span></span>
-<span><span class="co">#&gt; 2022  0.002357652  0.006806208  0.004997186  0.002075334</span></span>
-<span><span class="co">#&gt; 2023  0.006192212 -0.003620587  0.004556616  0.003672437</span></span>
-<span><span class="co">#&gt; 2024 -0.001181404  0.007846092  0.002901754  0.005175476</span></span>
-<span><span class="co">#&gt; 2025  0.007858613  0.001230707 -0.004400680  0.001506296</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="../reference/mfbdfm_nowcast.html">mfbdfm_nowcast</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       time      nowcast           sd        lower        upper</span></span>
+<span><span class="co">#&gt; 27 2024.50  0.002901754 5.017349e-07  0.002900771  0.002902738</span></span>
+<span><span class="co">#&gt; 28 2024.75  0.005175476 5.484667e-07  0.005174401  0.005176551</span></span>
+<span><span class="co">#&gt; 29 2025.00  0.007858613 5.397740e-07  0.007857555  0.007859671</span></span>
+<span><span class="co">#&gt; 30 2025.25  0.001230707 5.222492e-07  0.001229683  0.001231730</span></span>
+<span><span class="co">#&gt; 31 2025.50 -0.004400680 5.601227e-07 -0.004401778 -0.004399583</span></span>
+<span><span class="co">#&gt; 32 2025.75  0.001506296 5.107896e-07  0.001505295  0.001507297</span></span>
+<span><span class="fu"><a href="../reference/mfbdfm_nowcast.html">mfbdfm_nowcast</a></span><span class="op">(</span><span class="va">fit</span>, last <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt;      time     nowcast           sd       lower       upper</span></span>
+<span><span class="co">#&gt; 1 2025.75 0.001506296 5.107896e-07 0.001505295 0.001507297</span></span></code></pre></div>
+<p>There is deliberately no <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> method. The nowcasts
+are computed while the model is fitted, so there is no separate
+prediction step to run on new data, and a <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>
+returning stored values would advertise a capability the model does not
+have.</p>
 <p><code>fit$index</code> gives the cumulated activity level (rebased to
 100 at the start of the estimation window), and <code>fit$pars</code>
 holds the posterior means of the model parameters, including the factor
