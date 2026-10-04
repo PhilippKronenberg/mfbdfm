@@ -210,9 +210,20 @@ back up to the target's own (here quarterly) frequency:
 plot(fit$factor, ylab = "WAI (annualized %, weekly)", xlab = NULL)
 ```
 
+`mfbdfm_nowcast()` is the accessor for those nowcasts, returning them
+with a credible band rather than as a bare `ts`. It works the same way
+for a `fcast_dfm()` fit, and `last = TRUE` gives just the current period
+— the usual real-time query:
+
 ```{r nowcast}
-fit$nowcast
+tail(mfbdfm_nowcast(fit))
+mfbdfm_nowcast(fit, last = TRUE)
 ```
+
+There is deliberately no `predict()` method. The nowcasts are computed
+while the model is fitted, so there is no separate prediction step to
+run on new data, and a `predict()` returning stored values would
+advertise a capability the model does not have.
 
 `fit$index` gives the cumulated activity level (rebased to 100 at the
 start of the estimation window), and `fit$pars` holds the posterior
@@ -257,6 +268,53 @@ fit2 <- ind_dfm(d, length_sample = 200, burn_in = 50)
 
 `flows`/`stocks` continue to work exactly as before; this is an
 additional entry point, not a replacement.
+
+## Choosing the number of factors
+
+`ind_dfm()` has exactly one factor by construction. `fcast_dfm()` asks
+for `q`, and the model gives no guidance on it. `select_factors()`
+computes the Bai & Ng (2002) information criteria IC1, IC2 and IC3, plus
+the principal-component eigenvalues behind them:
+
+```{r select-factors}
+sel <- select_factors(flows = data_ch_dataset_test$flows,
+                      stocks = data_ch_dataset_test$stocks,
+                      max_q = 8, na_action = "interpolate")
+sel
+```
+
+Two things in that printout matter more than the numbers.
+
+The first is **which data the criteria saw**. They are defined for a
+balanced panel of a single frequency, so the mixed-frequency input has to
+be reduced to one: only the highest-frequency block is kept, and the
+quarterly and monthly series — including GDP — are dropped. The model is
+then fitted on data the criteria never looked at.
+
+The second is that here **all three criteria are minimised at `max_q`**,
+which is why the call warns. That is not a recommendation to use eight
+factors; it means the minimum lies outside the range evaluated, or
+nowhere. Raising `max_q` does not fix it on this dataset: the penalties
+are calibrated for a large cross-section, and with 27 weekly series the
+fall in `log V(k)` outruns them. When that happens, read the variance
+shares instead:
+
+```{r scree, fig.width = 6, fig.height = 4}
+round(sel$cum_var_explained[1:6], 3)
+screeplot(sel)
+```
+
+The first component explains about a quarter of the panel's variance and
+the curve flattens after the third or fourth — which is the sort of
+judgement dfms' vignette reaches for its own data, and the sort of
+judgement that has to be made here too.
+
+So: the criteria **inform** `q`, they do not determine it. They are
+frequentist and principal-component based, while `fcast_dfm()` is
+Bayesian with post-hoc rotation. Fit two or three values of `q` and
+compare; `screeplot()` on the resulting fit shows how much of the panel
+each *rotated* factor ended up explaining, which is the corresponding
+description after the fact.
 
 ## Real-time GDP vintages
 

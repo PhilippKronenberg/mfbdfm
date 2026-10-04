@@ -49,6 +49,35 @@ yet frozen**: exported function and argument names may still change without
 a deprecation cycle before 1.0.0. For reproducible work, pin a fixed
 version (a release or a commit) rather than the moving `main` (see below).
 
+## Scope and alternatives
+
+Deliberately **out of scope**:
+
+- **`predict()` / h-step forecasting** — nowcasts are computed during fitting and
+  stored on the fit object, so a `predict()` returning them would advertise a
+  capability the model does not have (see `?ind_dfm_methods`).
+- **General state-space modelling** — the state equation is a factor VAR and the
+  measurement side is fixed by the mixed-frequency aggregation scheme.
+- **Maximum-likelihood / EM estimation** — the package is Bayesian throughout,
+  estimated by Gibbs sampling.
+- **CRAN distribution** — installation is from GitHub; a CRAN release is tracked
+  in issue #21.
+
+**Alternatives**, and how they differ:
+
+| Package | How it differs |
+| --- | --- |
+| [`dfms`](https://docs.ropensci.org/dfms/) (R, CRAN) | EM and two-step estimation rather than Bayesian; monthly–quarterly mixed frequency; Bańbura–Modugno news decomposition (both packages offer Bai–Ng factor-count criteria, here `select_factors()`) |
+| [`nowcastDFM`](https://github.com/dhopp1/nowcastDFM) (R, GitHub) | EM estimation with per-release news contributions; archived from CRAN on 2022-05-25 |
+| [`nowcasting`](https://github.com/nmecsys/nowcasting) (R, GitHub) | EM and two-step estimation plus pseudo-real-time vintage construction; archived from CRAN on 2022-05-25 |
+| [`MARSS`](https://cran.r-project.org/package=MARSS), [`KFAS`](https://cran.r-project.org/package=KFAS) (R, CRAN) | General state-space frameworks by maximum likelihood; much freer model specification, no nowcasting- or mixed-frequency-specific tooling |
+| [`DynamicFactorMQ`](https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.dynamic_factor_mq.DynamicFactorMQ.html) (Python, statsmodels) | Monthly–quarterly dynamic factor model estimated by EM / maximum likelihood |
+
+Specific to `mfbdfm`: Bayesian mixed-frequency estimation at weekly frequency
+with stochastic volatility, target-anchored identification so the factor reads
+directly as the target's growth rate (Kronenberg 2026), and the multi-factor,
+rotation-identified model of Eckert et al. (2025) alongside it.
+
 ## Installation
 
 ``` r

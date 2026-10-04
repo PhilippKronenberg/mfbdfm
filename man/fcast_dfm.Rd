@@ -71,12 +71,18 @@ rotation to work; see \code{\link[=dfm_priors]{dfm_priors()}}.}
 rule and the stability bounds that were previously hard-coded. Omit it (the
 default) and the published behaviour is reproduced exactly;
 \code{dfm_control("fcast_dfm", strict = TRUE)} switches the rotation to the
-algorithm as specified in the online appendix.}
+algorithm as specified in the online appendix, and
+\code{dfm_control("fcast_dfm", verbose = FALSE)} silences the progress messages
+and the progress bar.}
 }
 \value{
 An object of class \code{"fcast_dfm"}: a list with components
 \describe{
-\item{factor}{\code{ts} matrix of the \code{q} posterior mean factors.}
+\item{factor}{\code{ts} matrix of the \code{q} posterior mean factors, on the
+model's own standardized scale and covering the \code{2*(k - 1)} latent
+periods the distributed-lag aggregation reaches back into as well as
+the sample. (\code{ind_dfm()} annualizes and de-standardizes its \code{factor};
+the counterpart of this component there is \code{factor_std}.)}
 \item{factor_var}{\code{ts} matrix of the corresponding variances.}
 \item{target}{Character, the series named by \code{target}.}
 \item{nowcast, nowcast_var}{\code{ts}, posterior mean and variance of the
@@ -84,6 +90,12 @@ nowcast for \code{target}, extracted from \code{ncst}.}
 \item{pars}{List of posterior means (\code{lambda}, \code{phi}, \code{sigma}, \code{rho},
 \code{rho_var}, \code{h}) and the model dimensions (\code{n}, \code{q}, \code{p}, \code{s}, \code{t},
 \code{k}).}
+\item{pars_dist}{List of posterior spreads -- \code{sd} and the 2.5\%/97.5\%
+quantiles -- for \code{lambda}, \code{phi}, \code{sigma}, \code{rho} and \code{h}, read out of
+the rotated draws at fit time. The posterior \emph{mean} stays in \code{pars},
+so the two cannot disagree. There is deliberately no \code{omega} entry:
+\code{omega} is drawn here but not retained. Used by
+\code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}.}
 \item{ncst}{List with \code{mean} and \code{var}, each a named list of nowcasts
 for every input series at its own frequency.}
 \item{data}{\code{ts} matrix of the prepared (standardized) data, in which
@@ -190,11 +202,14 @@ Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.
 \doi{10.1186/s41937-026-00157-w}
 }
 \seealso{
-\code{\link[=ind_dfm]{ind_dfm()}} for the single-factor, target-anchored model.
+\code{\link[=ind_dfm]{ind_dfm()}} for the single-factor, target-anchored model,
+\code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to extract the nowcasts from the fit, and
+\link{fcast_dfm_methods} for the methods the fit supports.
 
 Other model fitting functions: 
 \code{\link{dfm_memory}()},
 \code{\link{ind_dfm}()},
-\code{\link{run_fcast}()}
+\code{\link{run_fcast}()},
+\code{\link{select_factors}()}
 }
 \concept{model fitting functions}

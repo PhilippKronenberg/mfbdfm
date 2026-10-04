@@ -5,17 +5,21 @@
 \alias{coef.ind_dfm}
 \alias{fitted.ind_dfm}
 \alias{residuals.ind_dfm}
+\alias{logLik.ind_dfm}
 \alias{as.data.frame.ind_dfm}
 \alias{plot.ind_dfm}
 \alias{summary.ind_dfm}
 \alias{print.ind_dfm}
+\alias{screeplot.ind_dfm}
 \title{Methods for single-factor model fits}
 \usage{
 \method{coef}{ind_dfm}(object, ...)
 
-\method{fitted}{ind_dfm}(object, ...)
+\method{fitted}{ind_dfm}(object, scale = c("standardized", "original"), ...)
 
-\method{residuals}{ind_dfm}(object, ...)
+\method{residuals}{ind_dfm}(object, scale = c("standardized", "original"), ...)
+
+\method{logLik}{ind_dfm}(object, ...)
 
 \method{as.data.frame}{ind_dfm}(x, row.names = NULL, optional = FALSE, ...)
 
@@ -24,11 +28,18 @@
 \method{summary}{ind_dfm}(object, ...)
 
 \method{print}{ind_dfm}(x, n_show = 8, ...)
+
+\method{screeplot}{ind_dfm}(x, ...)
 }
 \arguments{
 \item{object, x}{A fit from \code{\link[=ind_dfm]{ind_dfm()}}.}
 
 \item{...}{Ignored, present for compatibility with the generics.}
+
+\item{scale}{Character, the scale \code{fitted()} and \code{residuals()} report on:
+\code{"standardized"} (the default, the scale the model works in) or
+\code{"original"} (each series back in its own units). See
+\code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} for the same argument on the loadings.}
 
 \item{row.names, optional}{Ignored, present for compatibility with the
 \code{\link[=as.data.frame]{as.data.frame()}} generic.}
@@ -39,8 +50,10 @@
 \code{coef()} a named numeric vector; \code{fitted()} and \code{residuals()} \code{ts}
 matrices with one column per series; \code{as.data.frame()} a data frame with
 \code{time} and the factor with bands; \code{summary()} an object of class
-\code{"summary.mfbdfm_fit"}; \code{print()} and \code{plot()} return their input
-invisibly.
+\code{"summary.mfbdfm_fit"}, whose \verb{$r_squared} element is a data frame with
+columns \code{series}, \code{freq}, \code{n_obs} and \code{r_squared}, sorted by fit;
+\code{logLik()} an object of class \code{"logLik"} with \code{df} and \code{nobs} attributes;
+\code{print()} and \code{plot()} return their input invisibly.
 }
 \description{
 The generics supported by an \code{\link[=ind_dfm]{ind_dfm()}} fit. \code{\link[=fcast_dfm]{fcast_dfm()}} fits support
@@ -49,29 +62,103 @@ the same set -- see \link{fcast_dfm_methods}.
 \details{
 \describe{
 \item{\code{print()}}{Model dimensions and the most recent target nowcasts.}
-\item{\code{summary()}}{Dimensions, posterior mean parameters and residual fit;
-returns an object with its own \code{print()} method.}
+\item{\code{summary()}}{Dimensions, posterior mean parameters, residual fit and
+a per-series R-squared; returns an object with its own \code{print()} method.
+It carries the \code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}
+tables in \code{loadings_table} and \code{parameters_table}, and prints from them,
+so a printed summary and a tabulated one report the same numbers.
+The R-squared is \code{1 - Var(residual)/Var(observed)} over the periods where
+that series was observed, with the fitted value taken to be the \strong{common
+component} -- loadings times factors, temporally aggregated -- so it
+measures what the factor explains and not the idiosyncratic AR part. It
+is therefore not \code{1 - Var(residuals(fit))/Var(observed)}: \code{fitted()}
+returns the augmented dataset, whose observed entries are pinned to the
+observed values by the sampler. For \code{\link[=ind_dfm]{ind_dfm()}} the target's R-squared is
+~1 by construction, since its loading is fixed to 1 and its measurement
+error shrunk towards zero to identify the factor. Read the \strong{ranking}
+across the other series rather than the level: the common component is
+built from posterior \emph{mean} parameters, which attenuates it, and in
+\code{ind_dfm()} the factor's scale is pinned to the target, so a
+high-frequency series' common component is necessarily a small fraction
+of its variance.}
 \item{\code{plot()}}{The factor with a 95\% band.}
 \item{\code{coef()}}{The posterior mean factor loadings, named by series. The
 other parameter blocks (\code{phi}, \code{sigma}, \code{rho}, \code{h}) remain in
-\code{object$pars}.}
+\code{object$pars}, and their posterior spread in \code{object$pars_dist}; for a
+table with uncertainty see \code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and
+\code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}.}
 \item{\code{fitted()}}{The augmented dataset: observed values where a series
-was observed, the model's latent estimate where it was not, on the
-standardized scale the model works in.}
+was observed, the model's latent estimate where it was not. On the
+standardized scale the model works in by default; \code{scale = "original"}
+puts every column back in its own units.}
 \item{\code{residuals()}}{Observed minus fitted. \strong{Unobserved periods are
 \code{NA}, not zero} -- the prepared data encodes a missing observation as
 \code{0}, so differencing directly would report a spurious residual wherever
 a series was not observed, which in a mixed-frequency model is most of
-the matrix for the low-frequency series.}
+the matrix for the low-frequency series. \code{scale = "original"} rescales by
+each series' standard deviation only, the series mean cancelling in a
+difference.}
 \item{\code{as.data.frame()}}{The factor with 95\% bands, one row per period,
 so downstream code need not reach into the list structure.}
+\item{\code{logLik()}}{A plug-in Gaussian log-likelihood of the observed data,
+with \code{df} and \code{nobs} attributes so that \code{\link[=AIC]{AIC()}} and \code{\link[=BIC]{BIC()}} work. Read
+the definition below before using it.}
+\item{\code{screeplot()}}{An \strong{error}, deliberately. This model has exactly one
+factor by construction, so a scree plot would be a single bar conveying
+nothing while implying a choice the model does not offer. The message
+points to \code{\link[=select_factors]{select_factors()}} and \code{\link[=fcast_dfm]{fcast_dfm()}}. See
+\link{fcast_dfm_methods} for the version that does plot something.}
 }
 
 There is deliberately no \code{predict()} method: the model does not forecast in
 the usual sense -- nowcasts are computed during fitting and stored -- so a
 \code{predict()} returning stored values would advertise a capability that does
-not exist.
+not exist. Use \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to get at those stored nowcasts; it is
+the accessor the missing \code{predict()} would otherwise be mistaken for.
 }
+\section{What \code{logLik()} means here}{
+
+
+Neither model computes a likelihood while sampling -- the factors are drawn
+jointly from a stacked, precision-based conditional, and there is no Kalman
+filter anywhere in the package. So the value has to be \emph{defined}, and the
+definition adopted is: \emph{the Gaussian log density of the \strong{observed} entries
+of the prepared data, evaluated at the posterior mean parameters and the
+posterior mean volatility path, with the factors and the unobserved data
+entries marginalised out.}
+
+It is computed exactly (not by simulation) from the stacked Gaussian form
+the samplers already use, so nothing is approximated in the \emph{arithmetic}.
+What is approximate is the statistics, in three specific ways:
+
+\itemize{
+\item It is a \strong{plug-in} likelihood at a single parameter value, not the
+marginal likelihood of the data under the posterior, and not an average
+of the likelihood over draws. Posterior uncertainty in the parameters is
+ignored.
+\item It is \strong{conditional on the posterior mean volatility path}, which is
+itself a latent state, rather than integrated over it.
+\item \code{df} counts the parameters of the measurement and state equations
+only -- loadings (net of the identifying restriction), autoregressive
+coefficients, measurement error variances, measurement error
+autocorrelations, and the volatility process. The latent states are not
+counted, and neither is the shrinkage imposed by the priors.
+}
+
+Consequently \strong{\code{AIC()} and \code{BIC()} are approximate for this model class, and
+should be read as rough comparisons rather than as model selection
+criteria.} Both models are hierarchical and Bayesian, and \code{\link[=ind_dfm]{ind_dfm()}}'s
+identification is carried by informative priors (see \code{\link[=dfm_priors]{dfm_priors()}}), so the
+effective number of parameters is not the raw count that \code{df} reports. For a
+criterion that respects the posterior, prefer DIC or WAIC computed from the
+retained draws.
+
+Missing observations are encoded as \code{0} in the prepared data and are
+\strong{excluded} -- they enter as latent quantities to be marginalised out, not
+as observed zeros. \code{nobs} is therefore the number of genuinely observed
+values, which for a mixed-frequency model is far fewer than \code{nrow * ncol}.
+}
+
 \examples{
 \donttest{
 data(data_ch_dataset_test)
@@ -84,9 +171,13 @@ fit <- ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
 fit
 coef(fit)
 head(as.data.frame(fit))
+logLik(fit)
+AIC(fit)              # approximate here - see "What logLik() means"
+mfbdfm_nowcast(fit, last = TRUE)
 }
 
 }
 \seealso{
-\code{\link[=ind_dfm]{ind_dfm()}}, \link{fcast_dfm_methods}
+\code{\link[=ind_dfm]{ind_dfm()}}, \link{fcast_dfm_methods}, \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} for the
+nowcasts
 }
