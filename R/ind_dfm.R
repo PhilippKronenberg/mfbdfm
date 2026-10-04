@@ -73,12 +73,24 @@
 #'   \describe{
 #'     \item{factor}{`ts`, posterior mean of the annualized activity factor.}
 #'     \item{factor_var}{`ts`, posterior variance of the factor.}
+#'     \item{factor_std}{`ts`, posterior mean of the factor on the model's own
+#'       standardized scale -- the quantity the observation equation multiplies
+#'       by the loadings -- covering the `2*(k - 1)` latent periods the
+#'       distributed-lag aggregation reaches back into as well as the sample.
+#'       `factor` is the same path de-standardized and annualized, and that
+#'       transform is convex, so it cannot be inverted back to this.}
 #'     \item{index}{`ts`, posterior mean of the cumulated activity index.}
 #'     \item{nowcast}{`ts`, posterior mean nowcast of the target series.}
 #'     \item{nowcast_var}{`ts`, posterior variance of the nowcast.}
 #'     \item{target}{Character, the target series name.}
 #'     \item{pars}{List of posterior parameter means (`h`, `lambda`, `phi`,
 #'       `sigma`, `omega`, `rho`, `rho_var`).}
+#'     \item{pars_dist}{List of posterior spreads -- `sd` and the 2.5%/97.5%
+#'       quantiles -- for `lambda`, `phi`, `sigma`, `rho`, `h` and the
+#'       volatility parameter, summarised from the retained draws at fit time.
+#'       The posterior *mean* stays in `pars`, so the two cannot disagree. Used
+#'       by [mfbdfm_table_loadings()] and [mfbdfm_table_parameters()]; see
+#'       there for which blocks are present and why.}
 #'     \item{data}{`ts` matrix of the prepared (standardized) data, in which
 #'       `0` encodes a missing observation.}
 #'     \item{data_raw}{The input series, as supplied.}
@@ -89,8 +101,9 @@
 #'   }
 #'
 #' @seealso [fcast_dfm()] for the multi-factor model, [dfm_priors()] to vary
-#'   the priors, and [ind_dfm_methods] for the `print`, `summary`, `plot`,
-#'   `coef`, `fitted`, `residuals` and `as.data.frame` methods.
+#'   the priors, [mfbdfm_nowcast()] to extract the nowcasts from the fit, and
+#'   [ind_dfm_methods] for the `print`, `summary`, `plot`, `coef`, `fitted`,
+#'   `residuals` and `as.data.frame` methods.
 #'
 #' @examples
 #' \donttest{
@@ -311,12 +324,25 @@ ind_dfm <- function(flows = NULL,
   i_mean <- Reduce("+", ilist)/length(ilist) * 100
 
 
+  # posterior mean of the factor on the model's own standardized scale, kept on
+  # the full t+s grid so the s latent states the distributed-lag aggregation
+  # reaches back into are present. This is the factor the observation equation
+  # uses, and it cannot be recovered from `f_mean` above: ((1+f)^freq - 1) is
+  # convex, so inverting the mean of the annualized series does not return the
+  # mean of f (at weekly frequency the gap is O(freq * var(f)) across draws,
+  # which is the same order as f itself). `fcast_dfm()` returns exactly this
+  # quantity as its `$factor`; #99 needs it from both models.
+  f_std <- ts(as.numeric(Reduce("+", par_save$f)/length(par_save$f)),
+              start = time(Ymat)[1] - s/frequency(Ymat),
+              frequency = frequency(Ymat))
+
 
 
   # OUTPUT ------------------------------------------------------------------
 
   out <- list("factor" = f_mean,
               "factor_var" = f_var,
+              "factor_std" = f_std,
               "index" = i_mean,
               "nowcast" = ncst_mean,
               "nowcast_var" = ncst_var,
@@ -344,6 +370,15 @@ ind_dfm <- function(flows = NULL,
                             "omega" = omega_out,
                             "rho" = rho_out,
                             "rho_var" = rho_var),
+              # posterior spread of each parameter block, summarised from the
+              # same retained draws the means above come from. A few numbers
+              # per parameter rather than every draw, which is what lets
+              # mfbdfm_table_*() report uncertainty without the fit carrying
+              # the whole chain. Consumes no RNG and changes nothing above it;
+              # see R/tables.R (#113).
+              "pars_dist" = pars_dist_ind(par_save,
+                                          stochastic_volatility = stochastic_volatility,
+                                          s = s, t = t),
               # `data` is the prepared matrix and `data_raw` the series as
               # supplied. Both fit classes use these names for these meanings
               # (#50); `data_raw` is new here, added so the two agree.

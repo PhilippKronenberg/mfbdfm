@@ -29,6 +29,87 @@
   the missingness mask, which `select_factors()` needs and no model fit does
   (#100).
 
+* **Table-ready summaries of a fit, with posterior uncertainty.** Three new
+  exports return plain tidy data frames for both fit classes:
+  `mfbdfm_table_loadings()` (series, type, frequency, factor, posterior mean,
+  sd and 95% interval), `mfbdfm_table_parameters()` (every parameter block —
+  `phi`, `sigma`, `rho`, and the volatility parameter) and
+  `mfbdfm_table_nowcast()` (time, observed, nowcast, sd, interval). Each takes
+  `format = c("data.frame", "latex", "html", "markdown")`, rendered through the
+  also-exported `mfbdfm_kable()`; the data frame is the primary output and is
+  left **unrounded**, `digits` affecting the rendered formats only. Reporting
+  uncertainty needed something the fits did not store — they kept posterior
+  *means* only — so both entry points now summarise the parameter blocks at fit
+  time into a new `$pars_dist` component holding the posterior `sd` and the
+  2.5%/97.5% quantiles. That is a few numbers per parameter rather than the
+  whole chain, consumes no RNG, and changes no existing computation:
+  `baseline_run()` is `identical()` before and after. The posterior *mean* is
+  deliberately **not** duplicated into `$pars_dist`, so a table cannot disagree
+  with `coef()` in the last bit (#113).
+
+  Two columns mark what is not an estimate. `fixed` flags an imposed value —
+  `ind_dfm()`'s loading on `target`, pinned at one by the identifying
+  restriction, and `fcast_dfm()`'s factor innovation variance with
+  `stochastic_volatility = FALSE`, fixed at one because it carries the
+  identification there. `structural` flags a value that *was* drawn but under a
+  prior that is the model's identification rather than a tuning knob — the
+  target's own `sigma` and `rho` in `ind_dfm()`, the same two `dfm_priors()`
+  calls structural. Two blocks are **absent rather than filled in**: `omega` for
+  a `fcast_dfm()` fit, because it is drawn there but never packed into the
+  retained draw vector, and `omega` with `stochastic_volatility = FALSE`, where
+  the sampler never draws it and reporting its untouched start value would be a
+  silent wrong answer — `factor_var` is reported instead.
+
+* `fitted()` and `residuals()` gain `scale = c("standardized", "original")` on
+  both fit classes. The default and the NA-masking of unobserved periods are
+  unchanged; `"original"` puts each column back in its own units, inverting
+  `prepare_data()`'s `(x - mean)/sd`. Residuals rescale by the standard
+  deviation only, the series mean cancelling in a difference (#113).
+
+* `summary()` now carries `loadings_table` and `parameters_table` and its
+  `print()` method prints from them, so a printed summary and a tabulated one
+  cannot report different numbers. The existing `$loadings`/`$phi`/`$sigma`/
+  `$rho` fields are kept. One visible change: the printed measurement-error
+  block is the **variance** `sigma` with its interval, where it used to be the
+  square root of the mean — printing `sqrt()` of a tabulated value is exactly
+  the disagreement this was meant to remove (#113).
+
+* `summary()` on either fit class now reports a **per-series R-squared**, so the
+  question "which of my series does the factor actually explain?" has an answer
+  in the fit object (`$r_squared`: `series`, `freq`, `n_obs`, `r_squared`, sorted
+  best-first). It is `1 - Var(residual)/Var(observed)` over the periods where
+  each series was observed, with the fitted value taken to be the **common
+  component** - loadings times factors, temporally aggregated - so it measures
+  what the factor explains rather than the idiosyncratic AR part. Deliberately
+  not computed from `residuals()`: `fitted()` is the augmented dataset, whose
+  observed entries the sampler pins to the observed values with a 1e-9
+  measurement prior, so every R-squared derived from it would be ~1. Read the
+  ranking across series rather than the level - the common component is built
+  from posterior *mean* parameters, and in `ind_dfm()` the factor's scale is
+  pinned to the target, which caps how much of a high-frequency series it can
+  account for. `print()` flags the target's own ~1 as identification rather than
+  a finding (#99).
+
+* `ind_dfm()` gains a `$factor_std` component: the posterior mean factor on the
+  model's own standardized scale, over the `2*(k - 1)` latent periods the
+  distributed-lag aggregation reaches back into as well as the sample. This is
+  the quantity the observation equation multiplies by the loadings, and it is not
+  recoverable from `$factor`, which is de-standardized and annualized through a
+  convex transform. `fcast_dfm()` already returns exactly this as its `$factor`
+  (#99).
+
+* New `mfbdfm_nowcast()`, an exported generic with methods for both fit
+  classes, returns the stored nowcasts of the target series as a data frame of
+  `time`, `nowcast`, `sd` and `level` credible bounds; `last = TRUE` returns
+  only the most recent period. Previously the nowcasts were reachable only as
+  `fit$nowcast`/`fit$nowcast_var` or through `retrieve_nowcast()`, which takes
+  a `model` string, returns a single value and is really a helper for the
+  `run_ar()`/`run_wai_adj()` backcast workflow. Those two are unchanged and
+  keep serving the AR benchmark. There is still **no** `predict()` method, for
+  the reason recorded in `?ind_dfm_methods`: the nowcasts are computed while
+  the model is fitted, so a `predict()` returning stored values would
+  advertise a capability the model does not have (#104).
+
 * `dfm_control()` gains `verbose`, which turns the samplers quiet. Both models
   honour it, and it silences the `utils::txtProgressBar` as well as the
   progress `message()`s — the bar writes with `cat()`, so `suppressMessages()`

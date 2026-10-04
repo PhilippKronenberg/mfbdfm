@@ -17,9 +17,9 @@
 
 \method{coef}{fcast_dfm}(object, ...)
 
-\method{fitted}{fcast_dfm}(object, ...)
+\method{fitted}{fcast_dfm}(object, scale = c("standardized", "original"), ...)
 
-\method{residuals}{fcast_dfm}(object, ...)
+\method{residuals}{fcast_dfm}(object, scale = c("standardized", "original"), ...)
 
 \method{logLik}{fcast_dfm}(object, ...)
 
@@ -37,6 +37,10 @@
 \item{...}{Ignored, present for compatibility with the generics.}
 
 \item{object, x}{A fit from \code{\link[=fcast_dfm]{fcast_dfm()}}.}
+
+\item{scale}{Character, the scale \code{fitted()} and \code{residuals()} report on:
+\code{"standardized"} (the default) or \code{"original"}. As for \code{\link[=ind_dfm]{ind_dfm()}}; see
+\link{ind_dfm_methods}.}
 
 \item{row.names, optional}{Ignored, present for compatibility with the
 \code{\link[=as.data.frame]{as.data.frame()}} generic.}
@@ -71,6 +75,9 @@ plot and labelled \code{f1}, \code{f2}, ... by their position in the fit, not by
 position in the plot. It is a description of a fitted model, not a selection
 criterion; for choosing \code{q} before fitting, use \code{\link[=select_factors]{select_factors()}}.
 
+As for \code{\link[=ind_dfm]{ind_dfm()}} fits, the stored nowcasts are reached with
+\code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}}.
+
 \code{logLik()} uses the same definition as it does for \code{\link[=ind_dfm]{ind_dfm()}} -- see
 "What \code{logLik()} means here" in \link{ind_dfm_methods}, including why \code{AIC()} and
 \code{BIC()} are only approximate. The \code{df} count differs: the loadings are
@@ -95,9 +102,11 @@ screeplot(fit)     # share of panel variance per rotated factor
 head(as.data.frame(fit))
 logLik(fit)
 BIC(fit)           # approximate here - see ?ind_dfm_methods
+mfbdfm_nowcast(fit, last = TRUE)
 }
 
 }
 \seealso{
-\code{\link[=fcast_dfm]{fcast_dfm()}}, \link{ind_dfm_methods}
+\code{\link[=fcast_dfm]{fcast_dfm()}}, \link{ind_dfm_methods}, \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} for the
+nowcasts
 }

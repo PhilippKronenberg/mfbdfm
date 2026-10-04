@@ -25,6 +25,10 @@ fit <- list(nowcast_var = stats::ts(c(0.02, 0.04), start = 2024, frequency = 4))
 retrieve_nowcast_var(fit, model = "wai")
 }
 \seealso{
+\code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}}, which reports the posterior standard deviation
+and credible bounds alongside the nowcast for an \code{\link[=ind_dfm]{ind_dfm()}} or
+\code{\link[=fcast_dfm]{fcast_dfm()}} fit. See \code{\link[=retrieve_nowcast]{retrieve_nowcast()}} for why both exist.
+
 Other backcasting functions: 
 \code{\link{retrieve_nowcast}()}
 }

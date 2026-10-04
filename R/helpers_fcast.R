@@ -258,7 +258,8 @@ get_hfts_fcast <- function(Ymat, f_draws, th_mean, inventory, n, q, p, s, t, k){
 #' @noRd
 #' @importFrom stats ts time frequency var
 run_evaluation_fcast <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, inventory,
-                           flows, stocks, target){
+                           flows, stocks, target,
+                           stochastic_volatility = TRUE){
 
   # gather factor draws
   f_draws <- lapply(rlist, function(rx){
@@ -333,6 +334,13 @@ run_evaluation_fcast <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, i
                              "s" = s,
                              "t" = t,
                              "k" = k),
+              # posterior spread of the parameter blocks, read out of the same
+              # rotated draws the means come from. Only the parameter region and
+              # the volatility path, never the n*t augmented-data block - see
+              # R/tables.R (#113).
+              "pars_dist" = pars_dist_fcast(rlist, n = n, q = q, p = p, s = s,
+                                            t = t,
+                                            stochastic_volatility = stochastic_volatility),
               "ncst" = ncst,
               # `data` is the prepared matrix in BOTH fit classes and
               # `data_raw` the series as supplied (#50). This used to be the
