@@ -2,6 +2,42 @@
 
 ## mfbdfm 0.1.0.9000
 
+- New shipped dataset `mfbdfm_example_data`: eight series — the
+  quarterly GDP target plus seven indicators covering all three modelled
+  frequencies (4, 12,
+
+  48. and both aggregation types — windowed to 2015 and shipped as a
+      ready
+      [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+      object, 17 KB as `.rda`. It exists because neither previous
+      dataset made a self-contained example easy: `data_ch_dataset`
+      carries no GDP target at all, and `data_ch_dataset_test` needed a
+      three-line `lapply(..., window, start = )` prelude plus an
+      explicit `target =` before anything could be fitted. Now
+      `ind_dfm(mfbdfm_example_data)` is the whole call — the target
+      comes off the object. The examples for
+      [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+      [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
+      both method topics,
+      [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md),
+      [`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md),
+      [`extract_wai_data()`](https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.md)
+      and
+      [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md),
+      plus the vignette’s and README’s fitting demos, are switched to
+      it; the real-time and frequency-utility examples stay on
+      `data_ch_dataset_test`, which is what they are actually about. The
+      GDP target is **pinned to the 2026.167 vintage** so the dataset
+      does not shift when a newer vintage is appended to
+      `inst/extdata/realtime_gdp.csv`; `data-raw/example_data.R`
+      rebuilds it. Fit on the same 2015– window, the eight series give a
+      factor of essentially the same scale as all 46 (sd 8.0 against
+      8.6) and a comparable activity index (99.7–122.9 against
+      98.8–121.1), so it is a small dataset rather than a toy one. Not
+      for real-time evaluation — one baked-in vintage is the wrong thing
+      there
+      ([\#105](https://github.com/PhilippKronenberg/mfbdfm/issues/105)).
+
 - **[`plot()`](https://rdrr.io/r/graphics/plot.default.html) on a fit
   now returns a ggplot object rather than its input, and takes a `type`
   argument selecting one of six views.** This is a user-visible change

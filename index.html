@@ -132,29 +132,23 @@
 <h2 id="getting-started">Getting started<a class="anchor" aria-label="anchor" href="#getting-started"></a>
 </h2>
 <p>For a fuller walkthrough of the model (data augmentation, stochastic volatility, the identification restriction) with a runnable example, see <code><a href="articles/mfbdfm.html">vignette("mfbdfm")</a></code> — also browsable on the <a href="https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.html">package website</a>.</p>
-<p>The curated indicator datasets ship with the package. A small (fast, demonstration-sized) nowcast:</p>
+<p>The indicator datasets ship with the package, including <code>mfbdfm_example_data</code> — eight series with the quarterly GDP target already in them and already classified, so a small (fast, demonstration-sized) nowcast is two lines:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/PhilippKronenberg/mfbdfm" class="external-link">mfbdfm</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span>
-<span><span class="va">target</span> <span class="op">&lt;-</span> <span class="st">"ch.seco.gdp.real.gdp.ssa"</span>   <span class="co"># quarterly real Swiss GDP</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">mfbdfm_example_data</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># small subset and short chain so this runs in seconds;</span></span>
+<span><span class="co"># short chain so this runs in seconds;</span></span>
 <span><span class="co"># real runs use the full dataset and length_sample = 10000</span></span>
-<span><span class="va">flows</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">]</span>,</span>
-<span>                 <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2018</span><span class="op">)</span></span>
-<span><span class="va">stocks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span>,</span>
-<span>                 <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2018</span><span class="op">)</span></span>
-<span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ind_dfm.html">ind_dfm</a></span><span class="op">(</span>flows <span class="op">=</span> <span class="va">flows</span>, stocks <span class="op">=</span> <span class="va">stocks</span>, target <span class="op">=</span> <span class="va">target</span>,</span>
-<span>             length_sample <span class="op">=</span> <span class="fl">500</span>, burn_in <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ind_dfm.html">ind_dfm</a></span><span class="op">(</span><span class="va">mfbdfm_example_data</span>, length_sample <span class="op">=</span> <span class="fl">500</span>, burn_in <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">fit</span><span class="op">$</span><span class="va">factor</span>    <span class="co"># weekly activity factor (annualized growth)</span></span>
 <span><span class="va">fit</span><span class="op">$</span><span class="va">nowcast</span>   <span class="co"># quarterly GDP nowcast</span></span></code></pre></div>
-<p>Real-time GDP vintages work out of the box:</p>
+<p>No <code>target =</code> argument: the dataset carries it. Real-time GDP vintages work out of the box too:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">vintages</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_real_time_gdp_vintages.html">get_real_time_gdp_vintages</a></span><span class="op">(</span><span class="st">"quarterly"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span>
+<span><span class="va">vintages</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_real_time_gdp_vintages.html">get_real_time_gdp_vintages</a></span><span class="op">(</span><span class="st">"quarterly"</span><span class="op">)</span></span>
 <span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/cut_data_real_time.html">cut_data_real_time</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span>, current_date <span class="op">=</span> <span class="fl">2024.5</span>,</span>
 <span>                          GDP_gr_vintages <span class="op">=</span> <span class="va">vintages</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -261,6 +255,10 @@
 </tr></thead>
 <tbody>
 <tr>
+<td><code>mfbdfm_example_data</code></td>
+<td>Small self-contained example: 8 series <strong>including the GDP target</strong>, as a ready <code><a href="reference/mfbdfm_data.html">mfbdfm_data()</a></code> object</td>
+</tr>
+<tr>
 <td><code>data_ch_dataset</code></td>
 <td>Harmonized Swiss indicator dataset (flows/stocks lists of <code>ts</code>)</td>
 </tr>
@@ -276,7 +274,7 @@
 </tr>
 </tbody>
 </table>
-<p>The full <code>data_ch_dataset</code> deliberately ships <em>without</em> the GDP target series — the workflow injects it at runtime from the real-time vintages.</p>
+<p>The full <code>data_ch_dataset</code> deliberately ships <em>without</em> the GDP target series — the workflow injects it at runtime from the real-time vintages. <code>mfbdfm_example_data</code> exists so that examples and quick experiments do not have to: it is built by <code>data-raw/example_data.R</code> from seven <code>data_ch_dataset</code> series plus GDP from the newest shipped vintage (2026.167), windowed to 2015 and pinned to that vintage. Use it for demonstrations, not for real-time evaluation.</p>
 <div class="section level3">
 <h3 id="data-dictionary">Data dictionary<a class="anchor" aria-label="anchor" href="#data-dictionary"></a>
 </h3>

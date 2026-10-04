@@ -36,16 +36,19 @@ the geometric-mean approximation of Mariano and Murasawa (2003).
 
 ## Getting started
 
-The package ships the curated indicator datasets
+The package ships
+[mfbdfm_example_data](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_data.md),
+a small self-contained dataset including the GDP target, so a nowcast is
+two lines out of the box - see the example in
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+for the minimal version, or
+[`vignette("mfbdfm")`](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.md)
+for a worked walkthrough. The full curated datasets
 [data_ch_dataset](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md)
 and
-[data_ch_dataset_test](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset_test.md),
-plus the real-time GDP vintage database (in `inst/extdata/`), so a small
-nowcast can be estimated out of the box - see
-[`vignette("mfbdfm")`](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.md)
-for a worked walkthrough, or the example in
-[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
-for the minimal version.
+[data_ch_dataset_test](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset_test.md)
+and the real-time GDP vintage database (in `inst/extdata/`) are there
+for the real application.
 
 ## References
 

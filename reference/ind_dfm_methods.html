@@ -315,29 +315,23 @@ nowcasts</p></div>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">target</span> <span class="op">&lt;-</span> <span class="st">"ch.seco.gdp.real.gdp.ssa"</span></span></span>
-<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="ind_dfm.html">ind_dfm</a></span><span class="op">(</span>flows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">]</span>,</span></span>
-<span class="r-in"><span>                              <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>               stocks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span>,</span></span>
-<span class="r-in"><span>                               <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/window.html" class="external-link">window</a></span>, start <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>               target <span class="op">=</span> <span class="va">target</span>, length_sample <span class="op">=</span> <span class="fl">20</span>, burn_in <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">mfbdfm_example_data</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="ind_dfm.html">ind_dfm</a></span><span class="op">(</span><span class="va">mfbdfm_example_data</span>, length_sample <span class="op">=</span> <span class="fl">20</span>, burn_in <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> preallocating..</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> simulating posterior distribution..</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> processing output..</span>
 <span class="r-in"><span><span class="va">fit</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Single-factor mixed-frequency dynamic factor model (Kronenberg 2026)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Call: ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],     stats::window, start = 2021), stocks = lapply(data_ch_dataset_test$stocks[1:2], </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Call: ind_dfm(flows = mfbdfm_example_data, length_sample = 20, burn_in = 5)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   series (n) : 4</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   periods (t): 250</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   series (n) : 8</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   periods (t): 541</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   target     : ch.seco.gdp.real.gdp.ssa</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Most recent nowcasts for ch.seco.gdp.real.gdp.ssa:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         time      nowcast</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     2024.000     -0.00118</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2024.250      0.00785</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2024.500      0.00290</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2024.750      0.00518</span>
@@ -345,6 +339,7 @@ nowcasts</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2025.250      0.00123</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2025.500     -0.00440</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2025.750      0.00151</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     2026.000      0.00182</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),</span>
@@ -352,25 +347,29 @@ nowcasts</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_table_nowcast()</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ch.seco.gdp.real.gdp.ssa                  SWISSMI                SWCONPRCE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               1.00000000               0.05379545               0.61872745 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                SWPROPRCE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               0.94094691 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ch.fso.rtt.ind.r.noga0801.sa     ch.ozd.e.wa.index.re.d11 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    0.1152140                    0.6717300 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                      SWISSMI                   traffic_PW </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   -0.1045631                    0.5322540 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              electricity_out     ch.seco.gdp.real.gdp.ssa </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    0.1623314                    1.0000000 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    SWPMIPROQ                 Arbeitsmarkt </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    0.8613749                    0.1227184 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       time    factor factor_lower factor_upper</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 2021.000 0.4344031   -2.6906568     3.559463</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 2021.021 0.9593749   -1.9345476     3.853297</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 2021.042 1.4212840   -0.9120996     3.754668</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 2021.062 2.0404843   -1.1264859     5.207455</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 2021.083 2.1820033   -0.7314820     5.095489</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 2021.104 3.7034597    0.2151573     7.191762</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       time     factor factor_lower factor_upper</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 2015.000 -2.1234387    -5.296458     1.049580</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 2015.021 -2.5350488    -8.704527     3.634429</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 2015.042 -2.2571539    -8.024603     3.510295</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 2015.062 -1.8548251    -7.001492     3.291842</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 2015.083 -0.2675197    -7.405483     6.870443</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 2015.104  0.8339920    -4.034132     5.702116</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 'log Lik.' -532.891 (df=13)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 'log Lik.' -3127.606 (df=25)</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>              <span class="co"># approximate here - see "What logLik() means"</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1091.782</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 6305.213</span>
 <span class="r-in"><span><span class="fu"><a href="mfbdfm_nowcast.html">mfbdfm_nowcast</a></span><span class="op">(</span><span class="va">fit</span>, last <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      time     nowcast           sd       lower       upper</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 2025.75 0.001506226 2.025925e-07 0.001505829 0.001506623</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   time     nowcast          sd       lower       upper</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 2026 0.001822563 0.003008001 -0.00407301 0.007718136</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>                                  <span class="co"># the factor, with a 95% band</span></span></span>
 <span class="r-plt img"><img src="ind_dfm_methods-1.png" alt="" width="700" height="433"></span>
@@ -378,7 +377,7 @@ nowcasts</p></div>
 <span class="r-plt img"><img src="ind_dfm_methods-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"loadings"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="ind_dfm_methods-3.png" alt="" width="700" height="433"></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"residuals"</span>, series <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"residuals"</span>, series <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">target</span>, <span class="st">"SWISSMI"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="ind_dfm_methods-4.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># a ggplot, so it can be modified before printing</span></span></span>

@@ -180,35 +180,36 @@ Other model fitting functions:
 ``` r
 # \donttest{
 # Short chain on the shipped data; a real evaluation uses the defaults.
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"
-flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                stats::window, start = 2021)
-stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-                 stats::window, start = 2021)
+data(mfbdfm_example_data)
+d <- mfbdfm_example_data
 set.seed(1)
-fit <- run_fcast(flows = flows, stocks = stocks, target = target,
+fit <- run_fcast(flows = d$flows, stocks = d$stocks, target = d$target,
                  date = 2023, dataset_used = "example",
                  q = 2, length_sample = 20, burn_in = 5)
 #> preallocating..
 #> simulating posterior distribution..
 #>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%
 #> running rotation of each draw..
-#> Rotation iteration 1: convergence 5.47e-05
-#> Rotation iteration 2: convergence 3.39e-06
-#> Rotation iteration 3: convergence 4.66e-07
-#> Rotation iteration 4: convergence 1.5e-06
-#> Rotation iteration 5: convergence 2.54e-07
-#> Warning: Rotation did not converge after 5 iterations (last change 2.54e-07, criterion "mean", tolerance 1e-09). Factor draws may not be rotated onto a common reference; consider raising `rotation_max_iter` in dfm_control().
+#> Rotation iteration 1: convergence 1.82e-05
+#> Rotation iteration 2: convergence 7.69e-07
+#> Rotation iteration 3: convergence 1.1e-07
+#> Rotation iteration 4: convergence 3.21e-08
+#> Rotation iteration 5: convergence 5.81e-11
 #> running identification..
 #> processing output..
 fit$nowcast
-#>              Qtr1         Qtr2         Qtr3         Qtr4
-#> 2021  0.005967557  0.025366966  0.019780820  0.010104478
-#> 2022  0.002357692  0.006806119  0.004997249  0.002075261
-#> 2023  0.006192138 -0.003620645  0.004556591  0.003672488
-#> 2024 -0.001181443  0.007846066  0.002901737  0.005175346
-#> 2025  0.007858543  0.001230692 -0.004400705  0.001506235
-#> 2026 -0.001819610                                       
+#>               Qtr1          Qtr2          Qtr3          Qtr4
+#> 2015 -0.0005457777  0.0016734689  0.0070060435  0.0073792248
+#> 2016  0.0034291100  0.0027133241  0.0023325914  0.0004950102
+#> 2017  0.0026201842  0.0080290734  0.0079216424  0.0100129498
+#> 2018  0.0103582565  0.0073476527 -0.0014077117  0.0052685929
+#> 2019  0.0020117534  0.0065038703  0.0030228106  0.0019994823
+#> 2020 -0.0107536280 -0.0657943919  0.0590154565  0.0091011455
+#> 2021  0.0059674596  0.0253671027  0.0197808844  0.0101045641
+#> 2022  0.0023575771  0.0068062518  0.0049973213  0.0020753150
+#> 2023  0.0061922311 -0.0036208059  0.0045565963  0.0036725607
+#> 2024 -0.0011814128  0.0078458378  0.0029016349  0.0051752458
+#> 2025  0.0078586584  0.0012305450 -0.0044007044  0.0015063365
+#> 2026  0.0033609305                                          
 # }
 ```

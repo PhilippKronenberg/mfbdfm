@@ -242,23 +242,23 @@ the annualised <code>$factor</code>, which leaves the pre-sample periods <code>N
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Mean absolute contribution to the factor (standardized scale):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ch.seco.gdp.real.gdp.ssa                      0.05020</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   SWPROPRCE                                     0.00153</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   SWCONPRCE                                     0.00132</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   SWISSMI                                       0.00035</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ch.seco.gdp.real.gdp.ssa                      0.05430</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   SWPROPRCE                                     0.00108</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   SWCONPRCE                                     0.00080</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   SWISSMI                                       0.00062</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Mean |residual| (parameter uncertainty, not explained by any series): 0.0306</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Mean |residual| (parameter uncertainty, not explained by any series): 0.032</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $contributions, $totals, $nowcast, $nowcast_totals;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> as.data.frame(), plot()</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">ct</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       time                   series  factor  contribution</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 2020.542 ch.seco.gdp.real.gdp.ssa factor1 -0.0002832491</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 2020.562 ch.seco.gdp.real.gdp.ssa factor1 -0.0005881490</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 2020.583 ch.seco.gdp.real.gdp.ssa factor1 -0.0009380051</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 2020.604 ch.seco.gdp.real.gdp.ssa factor1 -0.0013595594</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 2020.625 ch.seco.gdp.real.gdp.ssa factor1 -0.0018850342</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 2020.646 ch.seco.gdp.real.gdp.ssa factor1 -0.0025545952</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 2020.542 ch.seco.gdp.real.gdp.ssa factor1 -0.0005584833</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 2020.562 ch.seco.gdp.real.gdp.ssa factor1 -0.0011443835</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 2020.583 ch.seco.gdp.real.gdp.ssa factor1 -0.0017864633</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 2020.604 ch.seco.gdp.real.gdp.ssa factor1 -0.0025162433</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 2020.625 ch.seco.gdp.real.gdp.ssa factor1 -0.0033695497</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 2020.646 ch.seco.gdp.real.gdp.ssa factor1 -0.0043882726</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the contributions add up to the smoothed factor, by construction</span></span></span>
 <span class="r-in"><span><span class="va">agg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">ct</span><span class="op">)</span><span class="op">$</span><span class="va">contribution</span>, <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">ct</span><span class="op">)</span><span class="op">$</span><span class="va">time</span>, <span class="va">sum</span><span class="op">)</span></span></span>
@@ -280,10 +280,10 @@ the annualised <code>$factor</code>, which leaves the pre-sample periods <code>N
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Mean absolute contribution to the factor (standardized scale):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   real                                          0.05022</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   financial                                     0.00236</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   real                                          0.05428</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   financial                                     0.00156</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Mean |residual| (parameter uncertainty, not explained by any series): 0.0306</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Mean |residual| (parameter uncertainty, not explained by any series): 0.032</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $contributions, $totals, $nowcast, $nowcast_totals;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> as.data.frame(), plot()</span>

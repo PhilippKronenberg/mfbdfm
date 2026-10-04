@@ -212,6 +212,8 @@ In-sample and out-of-sample forecast evaluation tables and plots.
 
 ## Data
 
+- [`mfbdfm_example_data`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_data.md)
+  : Small self-contained example dataset, GDP target included
 - [`data_ch_dataset`](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md)
   : Harmonized Swiss indicator dataset for the WAI model
 - [`data_ch_dataset_test`](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset_test.md)

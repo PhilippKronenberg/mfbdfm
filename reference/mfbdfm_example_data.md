@@ -1,271 +1,143 @@
-# Estimate a single-factor, target-anchored dynamic factor model
+# Small self-contained example dataset, GDP target included
 
-Estimates the Bayesian mixed-frequency dynamic factor model behind the
-Swiss Weekly Activity Index (WAI) by Markov chain Monte Carlo (Gibbs)
-sampling. Flow and stock indicator series of different frequencies are
-combined into a single weekly activity factor that is coherent with the
-low-frequency target series (typically quarterly real GDP), from which
-weekly GDP nowcasts are derived.
+A ready
+[`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+object holding eight series: the quarterly GDP target and seven
+indicators, enough for
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+or
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+to be fitted meaningfully in a few seconds on a short chain. Unlike
+[data_ch_dataset](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md)
+it **carries the target**, and unlike both shipped datasets it is an
+`mfbdfm_data` object rather than a bare `flows`/`stocks` list – so the
+whole of a runnable example is
 
 ## Usage
 
 ``` r
-ind_dfm(
-  flows = NULL,
-  stocks = NULL,
-  target,
-  p = 1,
-  length_sample = 10000,
-  burn_in = 1000,
-  thinning = 1,
-  plots = FALSE,
-  extend_to = NULL,
-  stochastic_volatility = TRUE,
-  serial_correlation = TRUE,
-  priors = dfm_priors("ind_dfm"),
-  control = NULL
-)
+mfbdfm_example_data
 ```
 
-## Arguments
+## Format
+
+An
+[`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+object – a list with four components:
 
 - flows:
 
-  Either an
-  [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
-  object carrying every series with its flow/stock classification – in
-  which case `stocks` is left empty – or a named list of `ts` objects
-  treated as flow variables. Must contain `target`.
+  Named list of 6 `ts` objects: GDP (frequency 4), two monthly (12) and
+  three weekly (48) series.
 
 - stocks:
 
-  Named list of `ts` objects treated as stock variables, or `NULL`.
-  Ignored when `flows` is an
-  [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
-  object.
+  Named list of 2 `ts` objects, one monthly and one weekly.
+
+- meta:
+
+  Data frame, one row per series, with `series`, `type`, `frequency`,
+  `n_obs` and the carried-through `label`, `source`, `category`, `unit`
+  and `transformation`.
 
 - target:
 
-  Character, name of the low-frequency target series in `flows` (e.g.
-  `"ch.seco.gdp.real.gdp.ssa"`).
+  `"ch.seco.gdp.real.gdp.ssa"`, used as the default `target` by both
+  model entry points.
 
-- p:
+## Source
 
-  Integer, number of factor lags in the factor state equation.
-
-- length_sample:
-
-  Integer, number of posterior draws to keep.
-
-- burn_in:
-
-  Integer, number of initial draws to discard.
-
-- thinning:
-
-  Integer, keep every `thinning`-th draw after burn-in.
-
-- plots:
-
-  Logical, if `TRUE` draw base-graphics diagnostic plots of the data and
-  of factor/volatility convergence during sampling.
-
-- extend_to:
-
-  Numeric (decimal time) or `NULL`. If beyond the sample end, the
-  dataset is extended with zeros so forecasts can be produced.
-
-- stochastic_volatility:
-
-  Logical. If `TRUE` (default) the factor innovation variance follows a
-  stochastic volatility process. If `FALSE` it is a single constant
-  variance, **still estimated** rather than fixed – see `@details`.
-
-- serial_correlation:
-
-  Logical. If `TRUE` (default) the measurement errors are allowed to be
-  serially correlated and their autocorrelations are drawn. If `FALSE`
-  they are held at (effectively) zero.
-
-- priors:
-
-  Prior specification from
-  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md).
-  The default reproduces the published priors exactly. Note that two of
-  them – the target's measurement-error variance and serial correlation
-  – carry the identification rather than being tuning knobs; see
-  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md).
-
-- control:
-
-  Optional numerical and algorithmic settings from
-  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md),
-  or a named list of them. Bundles the stability bounds and numerical
-  guards that were previously hard-coded – the stationarity screen on
-  the measurement-error autocorrelations, the caps on `phi` and `sigma`,
-  and the numerical jitter. Omit it (the default) and the published
-  behaviour is reproduced exactly.
-  `dfm_control("ind_dfm", verbose = FALSE)` silences the progress
-  messages and the progress bar.
-
-## Value
-
-An object of class `"ind_dfm"`: a list with components
-
-- factor:
-
-  `ts`, posterior mean of the annualized activity factor.
-
-- factor_var:
-
-  `ts`, posterior variance of the factor.
-
-- factor_std:
-
-  `ts`, posterior mean of the factor on the model's own standardized
-  scale – the quantity the observation equation multiplies by the
-  loadings – covering the `2*(k - 1)` latent periods the distributed-lag
-  aggregation reaches back into as well as the sample. `factor` is the
-  same path de-standardized and annualized, and that transform is
-  convex, so it cannot be inverted back to this.
-
-- index:
-
-  `ts`, posterior mean of the cumulated activity index.
-
-- nowcast:
-
-  `ts`, posterior mean nowcast of the target series.
-
-- nowcast_var:
-
-  `ts`, posterior variance of the nowcast.
-
-- target:
-
-  Character, the target series name.
-
-- pars:
-
-  List of posterior parameter means (`h`, `lambda`, `phi`, `sigma`,
-  `omega`, `rho`, `rho_var`).
-
-- pars_dist:
-
-  List of posterior spreads – `sd` and the 2.5%/97.5% quantiles – for
-  `lambda`, `phi`, `sigma`, `rho`, `h` and the volatility parameter,
-  summarised from the retained draws at fit time. The posterior *mean*
-  stays in `pars`, so the two cannot disagree. Used by
-  [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
-  and
-  [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md);
-  see there for which blocks are present and why.
-
-- data:
-
-  `ts` matrix of the prepared (standardized) data, in which `0` encodes
-  a missing observation.
-
-- data_raw:
-
-  The input series, as supplied.
-
-- data_augmented:
-
-  `ts` matrix of the augmented dataset.
-
-- inventory:
-
-  Data frame describing the series (see
-  [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md)).
-
-- call:
-
-  The matched call.
+Built by `data-raw/example_data.R` from
+[data_ch_dataset](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md)
+(series) and the real-time GDP vintage database shipped at
+`system.file("extdata", "realtime_gdp.csv", package = "mfbdfm")`
+(target). Original sources are per-series in `$meta$source`; see the
+data dictionary in `README.md`.
 
 ## Details
 
-The factor is identified by fixing its loading on `target` to one and
-shrinking the target's measurement-error variance and autocorrelation
-toward zero (informative priors), so the extracted factor closely tracks
-the observed growth rate of `target` rather than being merely correlated
-with it. This resolves the usual scale/sign indeterminacy of dynamic
-factor models and yields a directly interpretable high-frequency proxy
-for the target series (see Kronenberg 2026, Sect. 2.4). All other series
-are standardized and enter with uninformative priors. Missing and
-lower-frequency observations are estimated as latent states via data
-augmentation; the factor state equation includes stochastic volatility,
-and measurement errors are quasi-differenced to remove serial
-correlation (see `@references`).
+    data(mfbdfm_example_data)
+    fit <- ind_dfm(mfbdfm_example_data, length_sample = 50, burn_in = 10)
 
-Because the factor's scale is pinned by the loading restriction, the
-factor innovation variance is a free parameter that the data must
-determine. Setting `stochastic_volatility = FALSE` therefore does
-**not** fix that variance: it replaces the time-varying volatility path
-with a single constant variance which is still estimated, drawn from its
-conjugate inverse-gamma posterior each iteration. (This differs from
-[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
-whose loadings are unrestricted and whose innovation variance
-consequently carries the identification and *is* fixed at one when its
-stochastic volatility is switched off. The two models pin the scale in
-different places, so switching the same option off means something
-different in each.)
+with no `target =` argument and no windowing prelude. It exists for
+exactly that: examples, the vignette and quick experiments. For the real
+application use
+[data_ch_dataset](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md)
+with a GDP vintage injected at runtime (see
+[`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md)).
 
-## References
+The seven indicators are taken **as they already appear** in
+[data_ch_dataset](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md),
+i.e. already transformed per `data-raw/data_meta.csv` (`transformation`
+in `$meta` records which), and windowed to `start = 2015`. They were
+chosen to cover all three frequencies the model handles and both
+aggregation types, and to have an unbroken history over the window – so
+the only missingness in the dataset is the ragged edge at the end, which
+is kept deliberately, that being the thing the model exists to handle.
 
-Kronenberg, P. (2026). A high-frequency GDP indicator for Switzerland.
-*Swiss Journal of Economics and Statistics*, 162, 10.
-[doi:10.1186/s41937-026-00157-w](https://doi.org/10.1186/s41937-026-00157-w)
+|  |  |  |  |
+|----|----|----|----|
+| series | freq | type | what it is |
+| `ch.seco.gdp.real.gdp.ssa` | 4 | flow | **target** – GDP, q/q log difference (SECO) |
+| `ch.fso.rtt.ind.r.noga0801.sa` | 12 | flow | retail sales, total (FSO) |
+| `ch.ozd.e.wa.index.re.d11` | 12 | flow | goods exports, total, real (FOCBS) |
+| `SWPMIPROQ` | 12 | stock | PMI manufacturing, output (procure.ch & UBS) |
+| `SWISSMI` | 48 | flow | Swiss Market Index (SIX Group) |
+| `traffic_PW` | 48 | flow | passenger-car counts on motorways (ASTRA) |
+| `electricity_out` | 48 | flow | electricity consumed by end users (Swissgrid) |
+| `Arbeitsmarkt` | 48 | stock | Google search index, labour market (KOF) |
 
-Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025). Tracking
-economic activity with alternative high-frequency data. *Journal of
-Applied Econometrics*, 40(3), 270-290.
-[doi:10.1002/jae.3104](https://doi.org/10.1002/jae.3104)
+The target is the **2026.167 vintage** (published 2026-02-27, the newest
+in the shipped real-time database), transformed with
+`get_real_time_gdp_vintages("quarterly")`. It is pinned to that vintage
+so the dataset does not change when a newer one is appended to
+`inst/extdata/realtime_gdp.csv`; to move it on, change `GDP_VINTAGE` in
+`data-raw/example_data.R` and rerun it.
 
 ## See also
 
-[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
-for the multi-factor model,
-[`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
-to vary the priors,
-[`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
-to extract the nowcasts from the fit, and
-[ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
-for the `print`, `summary`, `plot`, `coef`, `fitted`, `residuals` and
-`as.data.frame` methods.
-
-Other model fitting functions:
-[`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md),
-[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
-[`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md),
-[`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
+[`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md),
+[data_ch_dataset](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md),
+[`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md)
 
 ## Examples
 
 ``` r
-# \donttest{
-# the shipped example dataset already carries the GDP target and its
-# flow/stock classification, so no `target =` is needed here
 data(mfbdfm_example_data)
+mfbdfm_example_data
+#> <mfbdfm_data>  8 series  (6 flow, 2 stock)
+#> target: ch.seco.gdp.real.gdp.ssa
+#> 
+#>   by frequency:
+#>         4   1 flow   0 stock
+#>        12   2 flow   1 stock
+#>        48   3 flow   1 stock   <- highest; flow/stock has no effect here
+#> 
+#>   series (first 10):
+#>     ch.fso.rtt.ind.r.noga0801.sa flow   freq   12  n   133
+#>     ch.ozd.e.wa.index.re.d11     flow   freq   12  n   131
+#>     SWPMIPROQ                    stock  freq   12  n   134
+#>     SWISSMI                      flow   freq   48  n   538
+#>     traffic_PW                   flow   freq   48  n   532
+#>     electricity_out              flow   freq   48  n   529
+#>     Arbeitsmarkt                 stock  freq   48  n   541
+#>     ch.seco.gdp.real.gdp.ssa     flow   freq    4  n    44
+#> 
+#> Pass to ind_dfm() or fcast_dfm() as the first argument.
+mfbdfm_example_data$target
+#> [1] "ch.seco.gdp.real.gdp.ssa"
+
+# \donttest{
 set.seed(1)
 fit <- ind_dfm(mfbdfm_example_data, length_sample = 50, burn_in = 10)
 #> preallocating..
 #> simulating posterior distribution..
 #>   |                                                                              |                                                                      |   0%  |                                                                              |=                                                                     |   2%  |                                                                              |==                                                                    |   3%  |                                                                              |====                                                                  |   5%  |                                                                              |=====                                                                 |   7%  |                                                                              |======                                                                |   8%  |                                                                              |=======                                                               |  10%  |                                                                              |========                                                              |  12%  |                                                                              |=========                                                             |  13%  |                                                                              |==========                                                            |  15%  |                                                                              |============                                                          |  17%  |                                                                              |=============                                                         |  18%  |                                                                              |==============                                                        |  20%  |                                                                              |===============                                                       |  22%  |                                                                              |================                                                      |  23%  |                                                                              |==================                                                    |  25%  |                                                                              |===================                                                   |  27%  |                                                                              |====================                                                  |  28%  |                                                                              |=====================                                                 |  30%  |                                                                              |======================                                                |  32%  |                                                                              |=======================                                               |  33%  |                                                                              |========================                                              |  35%  |                                                                              |==========================                                            |  37%  |                                                                              |===========================                                           |  38%  |                                                                              |============================                                          |  40%  |                                                                              |=============================                                         |  42%  |                                                                              |==============================                                        |  43%  |                                                                              |================================                                      |  45%  |                                                                              |=================================                                     |  47%  |                                                                              |==================================                                    |  48%  |                                                                              |===================================                                   |  50%  |                                                                              |====================================                                  |  52%  |                                                                              |=====================================                                 |  53%  |                                                                              |======================================                                |  55%  |                                                                              |========================================                              |  57%  |                                                                              |=========================================                             |  58%  |                                                                              |==========================================                            |  60%  |                                                                              |===========================================                           |  62%  |                                                                              |============================================                          |  63%  |                                                                              |==============================================                        |  65%  |                                                                              |===============================================                       |  67%  |                                                                              |================================================                      |  68%  |                                                                              |=================================================                     |  70%  |                                                                              |==================================================                    |  72%  |                                                                              |===================================================                   |  73%  |                                                                              |====================================================                  |  75%  |                                                                              |======================================================                |  77%  |                                                                              |=======================================================               |  78%  |                                                                              |========================================================              |  80%  |                                                                              |=========================================================             |  82%  |                                                                              |==========================================================            |  83%  |                                                                              |============================================================          |  85%  |                                                                              |=============================================================         |  87%  |                                                                              |==============================================================        |  88%  |                                                                              |===============================================================       |  90%  |                                                                              |================================================================      |  92%  |                                                                              |=================================================================     |  93%  |                                                                              |==================================================================    |  95%  |                                                                              |====================================================================  |  97%  |                                                                              |===================================================================== |  98%  |                                                                              |======================================================================| 100%
 #> processing output..
-fit$nowcast
-#>               Qtr1          Qtr2          Qtr3          Qtr4
-#> 2015 -0.0005457821  0.0016735161  0.0070059377  0.0073791601
-#> 2016  0.0034291850  0.0027131206  0.0023326337  0.0004948659
-#> 2017  0.0026201328  0.0080289835  0.0079216768  0.0100127632
-#> 2018  0.0103582772  0.0073478143 -0.0014074899  0.0052685685
-#> 2019  0.0020117112  0.0065039405  0.0030231110  0.0019994312
-#> 2020 -0.0107536782 -0.0657944736  0.0590156258  0.0091010431
-#> 2021  0.0059674967  0.0253669460  0.0197806613  0.0101044823
-#> 2022  0.0023577208  0.0068062698  0.0049971521  0.0020753634
-#> 2023  0.0061921887 -0.0036206665  0.0045565814  0.0036724468
-#> 2024 -0.0011813762  0.0078460374  0.0029016447  0.0051753960
-#> 2025  0.0078586654  0.0012306668 -0.0044007476  0.0015063229
-#> 2026  0.0142494596                                          
+utils::tail(fit$nowcast)
+#>              Qtr1         Qtr2         Qtr3         Qtr4
+#> 2024                                         0.005175396
+#> 2025  0.007858665  0.001230667 -0.004400748  0.001506323
+#> 2026  0.014249460                                       
 # }
 ```

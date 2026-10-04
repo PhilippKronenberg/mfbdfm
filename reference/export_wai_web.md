@@ -144,16 +144,12 @@ which produces the underlying tables.
 # \donttest{
 # run_wai_adj() is what makes a fit file, so the example produces the file it
 # then exports, on a short chain.
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"
-flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                stats::window, start = 2021)
-stocks <- lapply(data_ch_dataset_test$stocks[1:2],
-                 stats::window, start = 2021)
+data(mfbdfm_example_data)
+d <- mfbdfm_example_data
 out <- tempfile(); dir.create(out)
 
 set.seed(1)
-run_wai_adj(flows = flows, stocks = stocks, target = target,
+run_wai_adj(flows = d$flows, stocks = d$stocks, target = d$target,
             date = 2023, dataset_used = "example",
             length_sample = 20, burn_in = 5, output_dir = out)
 #> preallocating..
@@ -163,15 +159,14 @@ run_wai_adj(flows = flows, stocks = stocks, target = target,
 
 web <- export_wai_web(file.path(out, "example", "fit_2023.Rda"),
                       dir = file.path(out, "web"))
-#> Warning: Fit does not cover the 2019Q4 base window; rebasing the level index to its first observation instead. Level values are not comparable with those from a fit that does cover it.
 head(web$data)
 #>         date wai_qoq wai_qoq_lo wai_qoq_hi wai_yoy wai_index wai_qoq_q
-#> 1 2021-01-07  0.0946    -4.9856     5.1748      NA  100.0000        NA
-#> 2 2021-01-14 -0.0386    -4.0295     3.9522      NA   99.9992        NA
-#> 3 2021-01-21  0.6658    -3.8003     5.1319      NA  100.0130        NA
-#> 4 2021-01-28  1.8277    -1.7246     5.3801      NA  100.0508        NA
-#> 5 2021-02-07  2.5564    -1.0743     6.1871      NA  100.1034        NA
-#> 6 2021-02-14  3.4625     0.3633     6.5617      NA  100.1744        NA
+#> 1 2015-01-07 -1.8812   -11.9006     8.1383      NA   91.8881        NA
+#> 2 2015-01-14 -1.4239   -12.1271     9.2793      NA   91.8606        NA
+#> 3 2015-01-21 -0.6819   -12.7323    11.3684      NA   91.8475        NA
+#> 4 2015-01-28 -0.1178    -8.3556     8.1201      NA   91.8453        NA
+#> 5 2015-02-07  1.2889    -7.1862     9.7641      NA   91.8698        NA
+#> 6 2015-02-14  3.1951    -6.3866    12.7768      NA   91.9300        NA
 #>   wai_yoy_q
 #> 1        NA
 #> 2        NA
@@ -180,7 +175,7 @@ head(web$data)
 #> 5        NA
 #> 6        NA
 web$meta$n_obs
-#> [1] 97
+#> [1] 385
 unlink(out, recursive = TRUE)
 # }
 ```

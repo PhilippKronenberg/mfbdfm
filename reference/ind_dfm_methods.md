@@ -347,29 +347,23 @@ for the nowcasts
 
 ``` r
 # \donttest{
-data(data_ch_dataset_test)
-target <- "ch.seco.gdp.real.gdp.ssa"
-fit <- ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
-                              stats::window, start = 2021),
-               stocks = lapply(data_ch_dataset_test$stocks[1:2],
-                               stats::window, start = 2021),
-               target = target, length_sample = 20, burn_in = 5)
+data(mfbdfm_example_data)
+fit <- ind_dfm(mfbdfm_example_data, length_sample = 20, burn_in = 5)
 #> preallocating..
 #> simulating posterior distribution..
 #>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%
 #> processing output..
 fit
 #> Single-factor mixed-frequency dynamic factor model (Kronenberg 2026)
-#> Call: ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],     stats::window, start = 2021), stocks = lapply(data_ch_dataset_test$stocks[1:2], 
+#> Call: ind_dfm(flows = mfbdfm_example_data, length_sample = 20, burn_in = 5)
 #> 
-#>   series (n) : 4
-#>   periods (t): 250
+#>   series (n) : 8
+#>   periods (t): 541
 #>   target     : ch.seco.gdp.real.gdp.ssa
 #> 
 #>   Most recent nowcasts for ch.seco.gdp.real.gdp.ssa:
 #> 
 #>         time      nowcast
-#>     2024.000     -0.00118
 #>     2024.250      0.00785
 #>     2024.500      0.00290
 #>     2024.750      0.00518
@@ -377,6 +371,7 @@ fit
 #>     2025.250      0.00123
 #>     2025.500     -0.00440
 #>     2025.750      0.00151
+#>     2026.000      0.00182
 #> 
 #> Full results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),
 #> summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),
@@ -384,25 +379,29 @@ fit
 #> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),
 #> mfbdfm_table_nowcast()
 coef(fit)
-#> ch.seco.gdp.real.gdp.ssa                  SWISSMI                SWCONPRCE 
-#>               1.00000000               0.05379545               0.61872745 
-#>                SWPROPRCE 
-#>               0.94094691 
+#> ch.fso.rtt.ind.r.noga0801.sa     ch.ozd.e.wa.index.re.d11 
+#>                    0.1152140                    0.6717300 
+#>                      SWISSMI                   traffic_PW 
+#>                   -0.1045631                    0.5322540 
+#>              electricity_out     ch.seco.gdp.real.gdp.ssa 
+#>                    0.1623314                    1.0000000 
+#>                    SWPMIPROQ                 Arbeitsmarkt 
+#>                    0.8613749                    0.1227184 
 head(as.data.frame(fit))
-#>       time    factor factor_lower factor_upper
-#> 1 2021.000 0.4344031   -2.6906568     3.559463
-#> 2 2021.021 0.9593749   -1.9345476     3.853297
-#> 3 2021.042 1.4212840   -0.9120996     3.754668
-#> 4 2021.062 2.0404843   -1.1264859     5.207455
-#> 5 2021.083 2.1820033   -0.7314820     5.095489
-#> 6 2021.104 3.7034597    0.2151573     7.191762
+#>       time     factor factor_lower factor_upper
+#> 1 2015.000 -2.1234387    -5.296458     1.049580
+#> 2 2015.021 -2.5350488    -8.704527     3.634429
+#> 3 2015.042 -2.2571539    -8.024603     3.510295
+#> 4 2015.062 -1.8548251    -7.001492     3.291842
+#> 5 2015.083 -0.2675197    -7.405483     6.870443
+#> 6 2015.104  0.8339920    -4.034132     5.702116
 logLik(fit)
-#> 'log Lik.' -532.891 (df=13)
+#> 'log Lik.' -3127.606 (df=25)
 AIC(fit)              # approximate here - see "What logLik() means"
-#> [1] 1091.782
+#> [1] 6305.213
 mfbdfm_nowcast(fit, last = TRUE)
-#>      time     nowcast           sd       lower       upper
-#> 1 2025.75 0.001506226 2.025925e-07 0.001505829 0.001506623
+#>   time     nowcast          sd       lower       upper
+#> 1 2026 0.001822563 0.003008001 -0.00407301 0.007718136
 
 plot(fit)                                  # the factor, with a 95% band
 
@@ -410,7 +409,7 @@ plot(fit, type = "nowcast", level = 0.68)
 
 plot(fit, type = "loadings")
 
-plot(fit, type = "residuals", series = c(target, "SWISSMI"))
+plot(fit, type = "residuals", series = c(fit$target, "SWISSMI"))
 
 
 # a ggplot, so it can be modified before printing
