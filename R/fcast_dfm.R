@@ -160,7 +160,9 @@
 #' Switzerland. *Swiss Journal of Economics and Statistics*, 162, 10.
 #' \doi{10.1186/s41937-026-00157-w}
 #'
-#' @seealso [ind_dfm()] for the single-factor, target-anchored model.
+#' @seealso [ind_dfm()] for the single-factor, target-anchored model,
+#'   [mfbdfm_nowcast()] to extract the nowcasts from the fit, and
+#'   [fcast_dfm_methods] for the methods the fit supports.
 #'
 #' @family model fitting functions
 #' @import Matrix
@@ -336,7 +338,8 @@ print.fcast_dfm <- function(x, n_show = 8, ...){
         " periods have no observed value (nowcast/backcast).\n", sep = "")
   }
 
-  cat("\nFull results: $factor, $ncst (all series), $data_hf, $target_series\n")
+  cat("\nFull results: $factor, $ncst (all series), $data_hf, $target_series;\n")
+  cat("mfbdfm_nowcast() for the target's nowcasts\n")
 
   invisible(x)
 

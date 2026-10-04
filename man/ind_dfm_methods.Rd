@@ -92,7 +92,8 @@ the definition below before using it.}
 There is deliberately no \code{predict()} method: the model does not forecast in
 the usual sense -- nowcasts are computed during fitting and stored -- so a
 \code{predict()} returning stored values would advertise a capability that does
-not exist.
+not exist. Use \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to get at those stored nowcasts; it is
+the accessor the missing \code{predict()} would otherwise be mistaken for.
 }
 \section{What \code{logLik()} means here}{
 
@@ -100,7 +101,10 @@ not exist.
 Neither model computes a likelihood while sampling -- the factors are drawn
 jointly from a stacked, precision-based conditional, and there is no Kalman
 filter anywhere in the package. So the value has to be \emph{defined}, and the
-definition adopted is:the Gaussian log density of the observed entries of the prepared data,evaluated at the posterior mean parameters and the posterior meanvolatility path, with the factors and the unobserved data entriesmarginalised out.
+definition adopted is: \emph{the Gaussian log density of the \strong{observed} entries
+of the prepared data, evaluated at the posterior mean parameters and the
+posterior mean volatility path, with the factors and the unobserved data
+entries marginalised out.}
 
 It is computed exactly (not by simulation) from the stacked Gaussian form
 the samplers already use, so nothing is approximated in the \emph{arithmetic}.
@@ -148,9 +152,11 @@ coef(fit)
 head(as.data.frame(fit))
 logLik(fit)
 AIC(fit)              # approximate here - see "What logLik() means"
+mfbdfm_nowcast(fit, last = TRUE)
 }
 
 }
 \seealso{
-\code{\link[=ind_dfm]{ind_dfm()}}, \link{fcast_dfm_methods}
+\code{\link[=ind_dfm]{ind_dfm()}}, \link{fcast_dfm_methods}, \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} for the
+nowcasts
 }

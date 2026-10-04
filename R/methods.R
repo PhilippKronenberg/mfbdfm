@@ -67,19 +67,18 @@ fit_dims <- function(object){
 #' There is deliberately no `predict()` method: the model does not forecast in
 #' the usual sense -- nowcasts are computed during fitting and stored -- so a
 #' `predict()` returning stored values would advertise a capability that does
-#' not exist.
+#' not exist. Use [mfbdfm_nowcast()] to get at those stored nowcasts; it is
+#' the accessor the missing `predict()` would otherwise be mistaken for.
 #'
 #' @section What `logLik()` means here:
 #'
 #' Neither model computes a likelihood while sampling -- the factors are drawn
 #' jointly from a stacked, precision-based conditional, and there is no Kalman
 #' filter anywhere in the package. So the value has to be *defined*, and the
-#' definition adopted is:
-#'
-#' > the Gaussian log density of the **observed** entries of the prepared data,
-#' > evaluated at the posterior mean parameters and the posterior mean
-#' > volatility path, with the factors and the unobserved data entries
-#' > marginalised out.
+#' definition adopted is: *the Gaussian log density of the **observed** entries
+#' of the prepared data, evaluated at the posterior mean parameters and the
+#' posterior mean volatility path, with the factors and the unobserved data
+#' entries marginalised out.*
 #'
 #' It is computed exactly (not by simulation) from the stacked Gaussian form
 #' the samplers already use, so nothing is approximated in the *arithmetic*.
@@ -140,9 +139,11 @@ fit_dims <- function(object){
 #' head(as.data.frame(fit))
 #' logLik(fit)
 #' AIC(fit)              # approximate here - see "What logLik() means"
+#' mfbdfm_nowcast(fit, last = TRUE)
 #' }
 #'
-#' @seealso [ind_dfm()], [fcast_dfm_methods]
+#' @seealso [ind_dfm()], [fcast_dfm_methods], [mfbdfm_nowcast()] for the
+#'   nowcasts
 #' @name ind_dfm_methods
 NULL
 
@@ -155,6 +156,9 @@ NULL
 #'
 #' `coef()` returns an `n x q` loading matrix here rather than a vector, and
 #' `as.data.frame()` returns one mean/lower/upper triple per factor.
+#'
+#' As for [ind_dfm()] fits, the stored nowcasts are reached with
+#' [mfbdfm_nowcast()].
 #'
 #' `logLik()` uses the same definition as it does for [ind_dfm()] -- see
 #' "What `logLik()` means here" in [ind_dfm_methods], including why `AIC()` and
@@ -187,9 +191,11 @@ NULL
 #' head(as.data.frame(fit))
 #' logLik(fit)
 #' BIC(fit)           # approximate here - see ?ind_dfm_methods
+#' mfbdfm_nowcast(fit, last = TRUE)
 #' }
 #'
-#' @seealso [fcast_dfm()], [ind_dfm_methods]
+#' @seealso [fcast_dfm()], [ind_dfm_methods], [mfbdfm_nowcast()] for the
+#'   nowcasts
 #' @name fcast_dfm_methods
 NULL
 
@@ -584,6 +590,116 @@ fit_as_data_frame <- function(x){
 }
 
 
+# ------------------------------------------------------ mfbdfm_nowcast ----
+
+#' Extract the nowcasts from a model fit
+#'
+#' The accessor for the nowcasts of the target series, for fits from either
+#' [ind_dfm()] or [fcast_dfm()]. The nowcasts are computed while the model is
+#' fitted and stored in the fit object; this returns them as a data frame,
+#' with the posterior standard deviation and a credible band where the fit
+#' records the nowcast variance.
+#'
+#' This is deliberately **not** a `predict()` method. These models do not
+#' forecast in the usual sense -- there is no separate prediction step to run
+#' on new data -- so a `predict()` returning stored values would advertise a
+#' capability that does not exist. The name is prefixed rather than a bare
+#' `nowcast()` to avoid masking the same verb in other packages.
+#'
+#' @param object A fit from [ind_dfm()] or [fcast_dfm()].
+#' @param last Logical. If `TRUE`, only the most recent period is returned
+#'   (one row) -- the usual real-time query. Defaults to `FALSE`, the whole
+#'   path.
+#' @param level Numeric in `(0, 1)`, the width of the credible interval
+#'   reported in `lower`/`upper`. Defaults to `0.95`.
+#' @param ... Ignored, present for compatibility with the generic.
+#'
+#' @return A data frame with one row per period of the target series'
+#'   frequency and columns
+#'   \describe{
+#'     \item{time}{Numeric (decimal) time of the period.}
+#'     \item{nowcast}{Posterior mean nowcast, the values in `object$nowcast`.}
+#'     \item{sd}{Posterior standard deviation, `sqrt(object$nowcast_var)`.}
+#'     \item{lower, upper}{The `level` credible bounds, normal-approximated
+#'       from `nowcast` and `sd`.}
+#'   }
+#'   The last three columns are present only when the fit stores
+#'   `nowcast_var`, which both model entry points currently do.
+#'
+#' @examples
+#' \donttest{
+#' data(data_ch_dataset_test)
+#' target <- "ch.seco.gdp.real.gdp.ssa"
+#' flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+#'                 stats::window, start = 2021)
+#' stocks <- lapply(data_ch_dataset_test$stocks[1:2],
+#'                  stats::window, start = 2021)
+#' set.seed(1)
+#' fit <- ind_dfm(flows = flows, stocks = stocks, target = target,
+#'                length_sample = 20, burn_in = 5)
+#'
+#' head(mfbdfm_nowcast(fit))
+#' mfbdfm_nowcast(fit, last = TRUE)          # just the current quarter
+#' mfbdfm_nowcast(fit, last = TRUE, level = 0.68)
+#' }
+#'
+#' @seealso [ind_dfm()], [fcast_dfm()], [ind_dfm_methods] and
+#'   [fcast_dfm_methods] for the other accessors, and [retrieve_nowcast()]
+#'   for the backcast-workflow helper it replaces for ordinary fits.
+#' @export
+mfbdfm_nowcast <- function(object, last = FALSE, level = 0.95, ...){
+  UseMethod("mfbdfm_nowcast")
+}
+
+#' @rdname mfbdfm_nowcast
+#' @method mfbdfm_nowcast ind_dfm
+#' @export
+mfbdfm_nowcast.ind_dfm <- function(object, last = FALSE, level = 0.95, ...){
+  fit_nowcast(object, last = last, level = level)
+}
+
+#' @rdname mfbdfm_nowcast
+#' @method mfbdfm_nowcast fcast_dfm
+#' @export
+mfbdfm_nowcast.fcast_dfm <- function(object, last = FALSE, level = 0.95, ...){
+  fit_nowcast(object, last = last, level = level)
+}
+
+#' @noRd
+#' @importFrom stats time qnorm
+fit_nowcast <- function(object, last = FALSE, level = 0.95){
+
+  if(!(is.logical(last) && length(last) == 1L && !is.na(last)))
+    stop("`last` must be a single TRUE or FALSE.", call. = FALSE)
+  if(!(is.numeric(level) && length(level) == 1L && !is.na(level) &&
+       level > 0 && level < 1))
+    stop("`level` must be a single number strictly between 0 and 1.",
+         call. = FALSE)
+
+  nc <- object$nowcast
+  if(is.null(nc))
+    stop("this fit has no `$nowcast` component to extract.", call. = FALSE)
+
+  out <- data.frame(time = as.numeric(time(nc)),
+                    nowcast = as.numeric(nc))
+
+  vr <- object$nowcast_var
+  if(!is.null(vr)){
+    s <- sqrt(as.numeric(vr))
+    z <- qnorm(1 - (1 - level) / 2)
+    out$sd <- s
+    out$lower <- out$nowcast - z * s
+    out$upper <- out$nowcast + z * s
+  }
+
+  if(last) out <- out[nrow(out), , drop = FALSE]
+  rownames(out) <- NULL
+
+  out
+
+}
+
+
 # ---------------------------------------------------------------- plot ----
 
 #' @rdname ind_dfm_methods
@@ -780,8 +896,9 @@ print.ind_dfm <- function(x, n_show = 8, ...){
                 formatC(nc$nowcast[i], format = "f", digits = 5, width = 12)))
   }
 
-  cat("\nFull results: $factor, $nowcast, $index, $pars; summary(), plot(),\n")
-  cat("as.data.frame(), coef(), fitted(), residuals(), logLik()\n")
+  cat("\nFull results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),\n")
+  cat("summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),\n")
+  cat("logLik()\n")
 
   invisible(x)
 

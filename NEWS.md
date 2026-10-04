@@ -24,6 +24,18 @@
   convex transform. `fcast_dfm()` already returns exactly this as its `$factor`
   (#99).
 
+* New `mfbdfm_nowcast()`, an exported generic with methods for both fit
+  classes, returns the stored nowcasts of the target series as a data frame of
+  `time`, `nowcast`, `sd` and `level` credible bounds; `last = TRUE` returns
+  only the most recent period. Previously the nowcasts were reachable only as
+  `fit$nowcast`/`fit$nowcast_var` or through `retrieve_nowcast()`, which takes
+  a `model` string, returns a single value and is really a helper for the
+  `run_ar()`/`run_wai_adj()` backcast workflow. Those two are unchanged and
+  keep serving the AR benchmark. There is still **no** `predict()` method, for
+  the reason recorded in `?ind_dfm_methods`: the nowcasts are computed while
+  the model is fitted, so a `predict()` returning stored values would
+  advertise a capability the model does not have (#104).
+
 * `dfm_control()` gains `verbose`, which turns the samplers quiet. Both models
   honour it, and it silences the `utils::txtProgressBar` as well as the
   progress `message()`s — the bar writes with `cat()`, so `suppressMessages()`

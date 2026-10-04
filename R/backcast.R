@@ -341,6 +341,12 @@ run_fcast <- function(flows, stocks, target, date, dataset_used,
 #' @examples
 #' fit <- list(nowcast = stats::ts(c(0.3, 0.5), start = 2024, frequency = 4))
 #' retrieve_nowcast(fit, model = "wai")
+#' @seealso [mfbdfm_nowcast()], which is the accessor to reach for with an
+#'   [ind_dfm()] or [fcast_dfm()] fit in hand: it dispatches on the fit's
+#'   class rather than taking a `model` string, and returns the whole nowcast
+#'   path with its credible band. This function exists for the
+#'   [run_ar()]/[run_wai_adj()] backcast workflow, which also needs the AR
+#'   benchmark, and returns only the latest value.
 #' @family backcasting functions
 #' @export
 retrieve_nowcast <- function(fit, model = c("ar", "wai")){
@@ -364,6 +370,9 @@ retrieve_nowcast <- function(fit, model = c("ar", "wai")){
 #' @examples
 #' fit <- list(nowcast_var = stats::ts(c(0.02, 0.04), start = 2024, frequency = 4))
 #' retrieve_nowcast_var(fit, model = "wai")
+#' @seealso [mfbdfm_nowcast()], which reports the posterior standard deviation
+#'   and credible bounds alongside the nowcast for an [ind_dfm()] or
+#'   [fcast_dfm()] fit. See [retrieve_nowcast()] for why both exist.
 #' @family backcasting functions
 #' @export
 retrieve_nowcast_var <- function(fit, model = c("ar", "wai")){
