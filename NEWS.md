@@ -1,5 +1,26 @@
 # mfbdfm 0.1.0.9000
 
+* `dfm_control()` gains `verbose`, which turns the samplers quiet. Both models
+  honour it, and it silences the `utils::txtProgressBar` as well as the
+  progress `message()`s — the bar writes with `cat()`, so `suppressMessages()`
+  never reached it and a scripted or parallel sweep had no way to run quietly
+  at all (#118).
+
+* The warnings a fit can raise repeatedly over a sweep now carry condition
+  classes, so one kind can be muffled without hiding the rest:
+  `mfbdfm_warning_rho_fallback`, `mfbdfm_warning_rotation_cap` and
+  `mfbdfm_warning_fit_failed`, all inheriting from `mfbdfm_warning`.
+  `?dfm_control` documents the `withCallingHandlers()` idiom. The rho
+  stationarity-screen fallback did not warn at all before this — it had a
+  commented-out `print()` where the substitution happens — so it is a **new**
+  warning, raised once per fit with a count rather than once per series per
+  MCMC draw (#118).
+
+* `run_fcast()` gains `on_error`. The default `"stop"` is unchanged; with
+  `"warn"`, a vintage whose fit fails becomes a warning naming the vintage and
+  returns `NULL`, so an expanding-window loop does not discard the vintages it
+  has already estimated (#118).
+
 * Both fit classes gain a `logLik()` method, so `AIC()` and `BIC()` work on
   them. Neither sampler computes a likelihood and there is no Kalman filter in
   the package, so the quantity had to be *defined*: it is the Gaussian log
