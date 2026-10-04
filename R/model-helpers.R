@@ -74,9 +74,14 @@ create_inventory <- function(flows, stocks){
 #' @param inventory Data frame from [create_inventory()].
 #' @param target Character, name of the target series (currently unused
 #'   here; kept for interface stability).
+#' @param fill Value written into the unobserved cells of the aligned matrix.
+#'   The default `0` is what the samplers expect and encodes "missing". Pass
+#'   `NA` to keep the missingness mask instead, which is what
+#'   [select_factors()] needs and no model fit does.
 #'
 #' @return A multivariate `ts` at the highest input frequency with one
-#'   column per series; missing values are encoded as `0`.
+#'   column per series; missing values are encoded as `fill` (`0` by
+#'   default).
 #'
 #' @examples
 #' data(data_ch_dataset_test)
@@ -93,7 +98,7 @@ create_inventory <- function(flows, stocks){
 #' @importFrom zoo na.trim
 #' @importFrom stats ts time frequency
 #' @export
-prepare_data <- function(flows, stocks, inventory, target){
+prepare_data <- function(flows, stocks, inventory, target, fill = 0){
 
   data <- c(flows, stocks)
 
@@ -133,7 +138,7 @@ prepare_data <- function(flows, stocks, inventory, target){
   dfts <- ts(dfs, start = 1900, frequency = max(sapply(data, function(x) frequency(x))))
   dfts <- na.trim(dfts, is.na = "all")
 
-  dfts[which(is.na(dfts))] <- 0
+  dfts[which(is.na(dfts))] <- fill
 
   return(dfts)
 

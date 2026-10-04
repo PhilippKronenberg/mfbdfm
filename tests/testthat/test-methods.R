@@ -380,3 +380,22 @@ test_that("plot restores the caller's graphics state", {
   invisible(plot(fit))
   expect_identical(graphics::par("mfrow"), before)
 })
+
+test_that("screeplot() describes a fcast_dfm fit and refuses an ind_dfm one", {
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+
+  fl <- fits()
+
+  shares <- screeplot(fl$fcast_dfm)
+  expect_length(shares, 2)
+  expect_true(all(shares > 0))
+  expect_true(all(diff(shares) <= 0))          # sorted, as documented
+  expect_true(all(grepl("^f[12]$", names(shares))))
+  expect_length(screeplot(fl$fcast_dfm, npcs = 1), 1)
+  expect_silent(invisible(screeplot(fl$fcast_dfm, type = "lines")))
+  expect_error(screeplot(fl$fcast_dfm, npcs = 5), "`npcs`")
+
+  # one factor by construction, so this must be an error, not a single bar
+  expect_error(screeplot(fl$ind_dfm), "select_factors")
+})

@@ -168,6 +168,7 @@ the priors, \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to extract the nowca
 Other model fitting functions: 
 \code{\link{dfm_memory}()},
 \code{\link{fcast_dfm}()},
-\code{\link{run_fcast}()}
+\code{\link{run_fcast}()},
+\code{\link{select_factors}()}
 }
 \concept{model fitting functions}

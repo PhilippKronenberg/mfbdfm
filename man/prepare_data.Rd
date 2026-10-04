@@ -4,7 +4,7 @@
 \alias{prepare_data}
 \title{Standardize and align mixed-frequency series into one matrix}
 \usage{
-prepare_data(flows, stocks, inventory, target)
+prepare_data(flows, stocks, inventory, target, fill = 0)
 }
 \arguments{
 \item{flows}{Named list of \code{ts} objects treated as flow variables.}
@@ -15,10 +15,16 @@ prepare_data(flows, stocks, inventory, target)
 
 \item{target}{Character, name of the target series (currently unused
 here; kept for interface stability).}
+
+\item{fill}{Value written into the unobserved cells of the aligned matrix.
+The default \code{0} is what the samplers expect and encodes "missing". Pass
+\code{NA} to keep the missingness mask instead, which is what
+\code{\link[=select_factors]{select_factors()}} needs and no model fit does.}
 }
 \value{
 A multivariate \code{ts} at the highest input frequency with one
-column per series; missing values are encoded as \code{0}.
+column per series; missing values are encoded as \code{fill} (\code{0} by
+default).
 }
 \description{
 Standardizes each series using the moments from the inventory, aligns
