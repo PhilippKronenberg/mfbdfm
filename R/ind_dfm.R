@@ -85,6 +85,12 @@
 #'     \item{target}{Character, the target series name.}
 #'     \item{pars}{List of posterior parameter means (`h`, `lambda`, `phi`,
 #'       `sigma`, `omega`, `rho`, `rho_var`).}
+#'     \item{pars_dist}{List of posterior spreads -- `sd` and the 2.5%/97.5%
+#'       quantiles -- for `lambda`, `phi`, `sigma`, `rho`, `h` and the
+#'       volatility parameter, summarised from the retained draws at fit time.
+#'       The posterior *mean* stays in `pars`, so the two cannot disagree. Used
+#'       by [mfbdfm_table_loadings()] and [mfbdfm_table_parameters()]; see
+#'       there for which blocks are present and why.}
 #'     \item{data}{`ts` matrix of the prepared (standardized) data, in which
 #'       `0` encodes a missing observation.}
 #'     \item{data_raw}{The input series, as supplied.}
@@ -364,6 +370,15 @@ ind_dfm <- function(flows = NULL,
                             "omega" = omega_out,
                             "rho" = rho_out,
                             "rho_var" = rho_var),
+              # posterior spread of each parameter block, summarised from the
+              # same retained draws the means above come from. A few numbers
+              # per parameter rather than every draw, which is what lets
+              # mfbdfm_table_*() report uncertainty without the fit carrying
+              # the whole chain. Consumes no RNG and changes nothing above it;
+              # see R/tables.R (#113).
+              "pars_dist" = pars_dist_ind(par_save,
+                                          stochastic_volatility = stochastic_volatility,
+                                          s = s, t = t),
               # `data` is the prepared matrix and `data_raw` the series as
               # supplied. Both fit classes use these names for these meanings
               # (#50); `data_raw` is new here, added so the two agree.

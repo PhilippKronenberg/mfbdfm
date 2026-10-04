@@ -85,6 +85,12 @@ transform is convex, so it cannot be inverted back to this.}
 \item{target}{Character, the target series name.}
 \item{pars}{List of posterior parameter means (\code{h}, \code{lambda}, \code{phi},
 \code{sigma}, \code{omega}, \code{rho}, \code{rho_var}).}
+\item{pars_dist}{List of posterior spreads -- \code{sd} and the 2.5\%/97.5\%
+quantiles -- for \code{lambda}, \code{phi}, \code{sigma}, \code{rho}, \code{h} and the
+volatility parameter, summarised from the retained draws at fit time.
+The posterior \emph{mean} stays in \code{pars}, so the two cannot disagree. Used
+by \code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}; see
+there for which blocks are present and why.}
 \item{data}{\code{ts} matrix of the prepared (standardized) data, in which
 \code{0} encodes a missing observation.}
 \item{data_raw}{The input series, as supplied.}

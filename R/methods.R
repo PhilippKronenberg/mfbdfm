@@ -31,6 +31,9 @@ fit_dims <- function(object){
 #'   \item{`print()`}{Model dimensions and the most recent target nowcasts.}
 #'   \item{`summary()`}{Dimensions, posterior mean parameters, residual fit and
 #'     a per-series R-squared; returns an object with its own `print()` method.
+#'     It carries the [mfbdfm_table_loadings()] and [mfbdfm_table_parameters()]
+#'     tables in `loadings_table` and `parameters_table`, and prints from them,
+#'     so a printed summary and a tabulated one report the same numbers.
 #'     The R-squared is `1 - Var(residual)/Var(observed)` over the periods where
 #'     that series was observed, with the fitted value taken to be the **common
 #'     component** -- loadings times factors, temporally aggregated -- so it
@@ -48,15 +51,20 @@ fit_dims <- function(object){
 #'   \item{`plot()`}{The factor with a 95% band.}
 #'   \item{`coef()`}{The posterior mean factor loadings, named by series. The
 #'     other parameter blocks (`phi`, `sigma`, `rho`, `h`) remain in
-#'     `object$pars`.}
+#'     `object$pars`, and their posterior spread in `object$pars_dist`; for a
+#'     table with uncertainty see [mfbdfm_table_loadings()] and
+#'     [mfbdfm_table_parameters()].}
 #'   \item{`fitted()`}{The augmented dataset: observed values where a series
-#'     was observed, the model's latent estimate where it was not, on the
-#'     standardized scale the model works in.}
+#'     was observed, the model's latent estimate where it was not. On the
+#'     standardized scale the model works in by default; `scale = "original"`
+#'     puts every column back in its own units.}
 #'   \item{`residuals()`}{Observed minus fitted. **Unobserved periods are
 #'     `NA`, not zero** -- the prepared data encodes a missing observation as
 #'     `0`, so differencing directly would report a spurious residual wherever
 #'     a series was not observed, which in a mixed-frequency model is most of
-#'     the matrix for the low-frequency series.}
+#'     the matrix for the low-frequency series. `scale = "original"` rescales by
+#'     each series' standard deviation only, the series mean cancelling in a
+#'     difference.}
 #'   \item{`as.data.frame()`}{The factor with 95% bands, one row per period,
 #'     so downstream code need not reach into the list structure.}
 #'   \item{`logLik()`}{A plug-in Gaussian log-likelihood of the observed data,
@@ -113,6 +121,10 @@ fit_dims <- function(object){
 #'
 #' @param object,x A fit from [ind_dfm()].
 #' @param n_show Integer, how many of the most recent periods `print()` shows.
+#' @param scale Character, the scale `fitted()` and `residuals()` report on:
+#'   `"standardized"` (the default, the scale the model works in) or
+#'   `"original"` (each series back in its own units). See
+#'   [mfbdfm_table_loadings()] for the same argument on the loadings.
 #' @param row.names,optional Ignored, present for compatibility with the
 #'   [as.data.frame()] generic.
 #' @param ... Ignored, present for compatibility with the generics.
@@ -171,6 +183,9 @@ NULL
 #'
 #' @param object,x A fit from [fcast_dfm()].
 #' @param n_show Integer, how many of the most recent periods `print()` shows.
+#' @param scale Character, the scale `fitted()` and `residuals()` report on:
+#'   `"standardized"` (the default) or `"original"`. As for [ind_dfm()]; see
+#'   [ind_dfm_methods].
 #' @param row.names,optional Ignored, present for compatibility with the
 #'   [as.data.frame()] generic.
 #' @param ... Ignored, present for compatibility with the generics.
@@ -227,12 +242,29 @@ coef.fcast_dfm <- function(object, ...){
 #' @rdname ind_dfm_methods
 #' @method fitted ind_dfm
 #' @export
-fitted.ind_dfm <- function(object, ...) object$data_augmented
+fitted.ind_dfm <- function(object, scale = c("standardized", "original"), ...){
+  fit_fitted(object, scale)
+}
 
 #' @rdname fcast_dfm_methods
 #' @method fitted fcast_dfm
 #' @export
-fitted.fcast_dfm <- function(object, ...) object$data_augmented
+fitted.fcast_dfm <- function(object, scale = c("standardized", "original"), ...){
+  fit_fitted(object, scale)
+}
+
+#' @noRd
+fit_fitted <- function(object, scale){
+
+  out <- object$data_augmented
+  if(match_scale(scale) == "standardized") return(out)
+
+  # prepare_data() standardizes as (x - mean)/sd, so the inverse puts both the
+  # location and the scale back
+  sc <- fit_scaling(object)
+  rescale_fit_matrix(out, sd = sc$sd, mean = sc$mean)
+
+}
 
 
 # ----------------------------------------------------------- residuals ----
@@ -240,15 +272,19 @@ fitted.fcast_dfm <- function(object, ...) object$data_augmented
 #' @rdname ind_dfm_methods
 #' @method residuals ind_dfm
 #' @export
-residuals.ind_dfm <- function(object, ...) fit_residuals(object)
+residuals.ind_dfm <- function(object, scale = c("standardized", "original"), ...){
+  fit_residuals(object, scale)
+}
 
 #' @rdname fcast_dfm_methods
 #' @method residuals fcast_dfm
 #' @export
-residuals.fcast_dfm <- function(object, ...) fit_residuals(object)
+residuals.fcast_dfm <- function(object, scale = c("standardized", "original"), ...){
+  fit_residuals(object, scale)
+}
 
 #' @noRd
-fit_residuals <- function(object){
+fit_residuals <- function(object, scale = "standardized"){
 
   obs <- object$data
   fit <- object$data_augmented
@@ -257,7 +293,27 @@ fit_residuals <- function(object){
   # 0 encodes "not observed" in the prepared data; a residual there is
   # meaningless rather than zero
   res[obs == 0] <- NA_real_
-  res
+
+  if(match_scale(scale) == "standardized") return(res)
+
+  # a residual is a difference, so the series mean cancels: only the scale
+  # factor converts it
+  rescale_fit_matrix(res, sd = fit_scaling(object)$sd, mean = 0)
+
+}
+
+#' Put a standardized data matrix back on each series' own scale
+#'
+#' Columns of `$data`/`$data_augmented` are in `inventory$key` order (see
+#' [prepare_data()]), so the per-series moments line up column for column.
+#' `mean = 0` converts a difference, where the location cancels.
+#'
+#' @noRd
+rescale_fit_matrix <- function(x, sd, mean){
+
+  out <- x
+  out[] <- sweep(sweep(as.matrix(x), 2, sd, "*"), 2, mean, "+")
+  out
 
 }
 
@@ -702,6 +758,12 @@ fit_summary <- function(object, model){
                  phi = object$pars$phi,
                  sigma = object$pars$sigma,
                  rho = object$pars$rho,
+                 # the printed numbers come from these, so a printed summary and
+                 # a tabulated one cannot disagree (#113). The bare
+                 # $loadings/$phi/$sigma/$rho fields above are kept for
+                 # compatibility with code that already reads them.
+                 loadings_table = mfbdfm_table_loadings(object),
+                 parameters_table = mfbdfm_table_parameters(object),
                  nowcast = object$nowcast,
                  n_observed = sum(!is.na(res)),
                  rmse = sqrt(mean(res^2, na.rm = TRUE)),
@@ -709,6 +771,31 @@ fit_summary <- function(object, model){
             class = "summary.mfbdfm_fit")
 
 }
+
+#' Select and round the columns of a table for printing
+#'
+#' `drop_single_factor` removes the `factor` column when there is only one
+#' factor to name, which is the `ind_dfm()` case: the column is carried in the
+#' table for parity with `fcast_dfm()` but says nothing when constant.
+#'
+#' @noRd
+summary_table_block <- function(tab, cols, drop_single_factor = FALSE){
+
+  if(is.null(tab)) return(NULL)
+
+  if(drop_single_factor && length(unique(tab$factor)) < 2){
+    cols <- setdiff(cols, "factor")
+  }
+
+  out <- tab[, intersect(cols, names(tab)), drop = FALSE]
+  num <- vapply(out, is.numeric, logical(1))
+  out[num] <- lapply(out[num], round, digits = 4)
+
+  rownames(out) <- NULL
+  out
+
+}
+
 
 #' Print a fit summary
 #'
@@ -744,11 +831,17 @@ print.summary.mfbdfm_fit <- function(x, ...){
   cat("  periods (t): ", x$dims$t, "\n", sep = "")
   cat("  target     : ", x$target, "\n", sep = "")
 
-  cat("\nFactor loadings (posterior mean):\n")
-  print(round(x$loadings, 4))
+  # printed from the same tables mfbdfm_table_*() returns, so the two views of
+  # a fit report the same numbers (#113)
+  cat("\nFactor loadings (posterior mean, 95% interval):\n")
+  print(summary_table_block(x$loadings_table,
+                            c("series", "factor", "mean", "sd", "lower", "upper"),
+                            drop_single_factor = TRUE))
 
-  cat("\nMeasurement error sd (posterior mean):\n")
-  print(round(sqrt(as.numeric(x$sigma)), 4))
+  cat("\nMeasurement error variance (posterior mean, 95% interval):\n")
+  print(summary_table_block(x$parameters_table[x$parameters_table$block == "sigma", ],
+                            c("series", "mean", "sd", "lower", "upper")))
+  cat("  (the measurement error sd is the square root of `mean`)\n")
 
   cat("\nFit to observed data:\n")
   cat("  observed values: ", x$n_observed, "\n", sep = "")
@@ -831,6 +924,8 @@ print.ind_dfm <- function(x, n_show = 8, ...){
   cat("\nFull results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),\n")
   cat("summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),\n")
   cat("logLik()\n")
+  cat("Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),\n")
+  cat("mfbdfm_table_nowcast()\n")
 
   invisible(x)
 
