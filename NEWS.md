@@ -1,5 +1,20 @@
 # mfbdfm 0.1.0.9000
 
+* The applied vignette is now **precomputed** (the rOpenSci `.Rmd.orig`
+  pattern): `vignettes/mfbdfm.Rmd.orig` is the source to edit, `Rscript
+  vignettes/precompile.R` knits it into the committed `vignettes/mfbdfm.Rmd`
+  with output and figures baked in, and neither `R CMD check` nor pkgdown
+  re-runs the fits. (`vignette("methodology")` fits nothing and stays an
+  ordinary vignette.) The `run_wai_adj()`/`run_ar()` pipeline that was
+  `eval = FALSE` now shows real fitted output, and the chains are 2000 draws
+  after 500 burn-in rather than the 200/50 chosen to keep a live build fast.
+  The `dm_test_modified()`
+  line that referenced objects it never created is gone: a Diebold-Mariano
+  test needs a vector of *real-time* errors, and the in-sample WAI nowcast
+  error is ~1e-16 by construction of the anchoring, so the vignette shows that
+  identity instead and says why the published comparison has to be real-time
+  (#98).
+
 * The vignette is split in two by audience. `vignette("mfbdfm")` is now purely
   applied - data in, fit, inspect, nowcast - and states no model equations; the
   measurement and state equations, the mixed-frequency aggregation weights, the

@@ -25,3 +25,5 @@
 ^data/benchmarks$
 ^outputs$
 ^cran-comments\.md$
+^vignettes/.*\.orig$
+^vignettes/precompile\.R$
