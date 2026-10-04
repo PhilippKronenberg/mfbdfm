@@ -22,6 +22,32 @@
   one. Not for real-time evaluation — one baked-in vintage is the wrong thing
   there (#105).
 
+* **`plot()` on a fit now returns a ggplot object rather than its input, and
+  takes a `type` argument selecting one of six views.** This is a user-visible
+  change to the return value: `plot(fit)` still draws at the console, because
+  the returned object auto-prints, but code that relied on the old
+  `invisible(x)` return will see a `ggplot` instead, and code that expected base
+  graphics (adding to the plot with `lines()`, say) has to add a ggplot layer
+  instead. In exchange every view can be modified before printing, and `plot()`
+  no longer touches the caller's `par()` at all. The views are `"factor"` (the
+  default, the previous behaviour), `"nowcast"` (the target's nowcast overlaid
+  with its observed values), `"loadings"`, `"residuals"`, `"volatility"` (the
+  posterior mean `exp(h)`) and `"fit"` (observed against the common
+  component). `"residuals"` and `"fit"` are built on the **common component**
+  -- loadings times factors, temporally aggregated, as in the `summary()`
+  R-squared -- not on `fitted()`: the augmented data `fitted()` returns is
+  pinned to the observations, so residuals against it are `1e-5` noise and an
+  observed-versus-fitted plot of it would be the data drawn twice. They take a
+  `series` argument, and `"factor"`/`"nowcast"` a `level` one; an unknown
+  `type` is an error naming the valid ones. Both fit classes get the identical
+  set, per the parity rule. `autoplot()` is registered as an alias on both.
+  The `"loadings"` view draws the 95% posterior interval from
+  `mfbdfm_table_loadings()`. `type = "volatility"` on a fit
+  with `stochastic_volatility = FALSE` reports the constant in a message and
+  returns `NULL` invisibly rather than drawing a flat line. One shared palette,
+  theme and credible-band layer (`R/plots.R`) back every view, and are what
+  later plot methods should build on (#112).
+
 * New `select_factors()`, which computes the Bai & Ng (2002) information
   criteria IC1/IC2/IC3 and answers the question `fcast_dfm()`'s `q` argument
   poses and the model itself gives no guidance on. It takes the same data
