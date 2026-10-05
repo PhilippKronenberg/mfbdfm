@@ -219,3 +219,92 @@ test_that("the rho stationarity fallback warns once per fit, with a class", {
     run(),
     mfbdfm_warning_rho_fallback = function(w) invokeRestart("muffleWarning")))
 })
+
+
+# Forecast error against the forecast horizon (rOpenSci TS3.0-TS3.3). Both
+# blocks read one set of six real-time fits from synth_horizon_errors(), which
+# generates its data from this model's own measurement equation - see
+# helper-synthetic.R.
+
+test_that("nowcast errors widen with the forecast horizon (TS3.0, TS3.2)", {
+
+  err <- synth_horizon_errors()
+
+  expect_setequal(unique(err$h), -2:2)
+  expect_identical(err$lag_number, -err$h)
+  # the no-information benchmark is where an uninformative forecast sits
+  expect_gt(horizon_rmse(err, 0:2, "benchmark_error"), 0.8)
+
+  rmse <- vapply(0:2, function(h) horizon_rmse(err, h), numeric(1))
+
+  # (a) a forecast is worse than the completed-but-unpublished quarter, and
+  # (b) the longest horizon is worse than the shortest. Stated as two
+  # inequalities with room in them rather than as strict monotonicity of the
+  # whole profile: MCMC output is not bit-identical across platforms (see
+  # CLAUDE.md), and h = 1 against h = 2 is the pair that can swap. Checked at
+  # DGP seeds 3, 5, 7, 11 and 42 before being written down - the two
+  # inequalities below hold at all five, strict monotonicity at four.
+  expect_gt(horizon_rmse(err, 1:2), rmse[1])
+  expect_gt(rmse[3], rmse[1])
+
+  # and the model is doing better than no information at the short horizon,
+  # which is what makes the widening a statement about the forecast rather
+  # than about an uninformative constant
+  expect_lt(rmse[1], horizon_rmse(err, 0, "benchmark_error"))
+})
+
+test_that("backcast errors do not widen with distance (TS3.1)", {
+
+  err <- synth_horizon_errors()
+
+  # The counter-case to TS3.0. Distance from the target quarter is not what
+  # drives the error - missing data is - so once the quarter has passed and its
+  # value has been published, moving the cut-off further away adds data and the
+  # error collapses to the noise built into the fixture (target_noise = 0.02)
+  # rather than growing.
+  back <- vapply(c(-1, -2), function(h) horizon_rmse(err, h), numeric(1))
+
+  expect_true(all(back < 0.1))
+  expect_lt(back[2], 5 * back[1])                 # flat in distance, not rising
+  expect_lt(max(back), 0.2 * horizon_rmse(err, 0))
+
+  # per target quarter, not just on average. Stated as a bound rather than as
+  # a strict improvement quarter by quarter: the pre-publication error is
+  # occasionally tiny by luck (0.002 at one quarter here, below the 0.02 noise
+  # floor), so "always better afterwards" is not a property of the model.
+  both <- intersect(err$quarter[err$h == 0], err$quarter[err$h == -1])
+  expect_gt(length(both), 2)
+  paired <- function(h) err$error[err$h == h & err$quarter %in% both]
+  expect_true(all(abs(paired(-1)) < 0.1))
+  expect_lt(sqrt(mean(paired(-1)^2)), sqrt(mean(paired(0)^2)))
+})
+
+test_that("the error-table machinery tabulates errors by horizon", {
+
+  err <- synth_horizon_errors()
+
+  # Same errors through create_error_summary_tables(), the builder the published
+  # evaluation uses, to show the widening is visible in the package's own
+  # tables and not only in a bespoke calculation. `lag_number = -h` is that
+  # builder's convention: its "-2" column is the two-quarters-ahead forecast.
+  long <- rbind(
+    data.frame(observation_date = zoo::as.Date(zoo::as.yearqtr(err$quarter)),
+               error = err$error, model = "WAI", method = "mean",
+               lag_number = err$lag_number, frequency = "QoQ"),
+    data.frame(observation_date = zoo::as.Date(zoo::as.yearqtr(err$quarter)),
+               error = err$benchmark_error, model = "MEAN", method = "mean",
+               lag_number = err$lag_number, frequency = "QoQ"))
+  long <- long[long$lag_number <= 0, , drop = FALSE]
+
+  tabs <- create_error_summary_tables(long, model_order = c("WAI", "MEAN"),
+                                      date_col = "observation_date",
+                                      lag_range = -2:0)
+
+  expect_named(tabs, c("rel_rmse", "rel_mae", "abs_rmse", "abs_mae", "summary"))
+
+  wai <- tabs$summary[tabs$summary$model == "WAI", ]
+  wai <- wai[order(-wai$lag_number), ]           # horizon 0, 1, 2
+  expect_equal(wai$lag_number, c(0, -1, -2))
+  expect_gt(wai$RMSE[3], wai$RMSE[1])
+  expect_gt(sqrt(mean(wai$RMSE[2:3]^2)), wai$RMSE[1])
+})

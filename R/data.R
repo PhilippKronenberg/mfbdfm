@@ -103,7 +103,8 @@
 #'     (12) and three weekly (48) series.}
 #'   \item{stocks}{Named list of 2 `ts` objects, one monthly and one weekly.}
 #'   \item{meta}{Data frame, one row per series, with `series`, `type`,
-#'     `frequency`, `n_obs` and the carried-through `label`, `source`,
+#'     `frequency`, `n_obs`, the level screen's `ac1` and `df_t` (see
+#'     [mfbdfm_data()]) and the carried-through `label`, `source`,
 #'     `category`, `unit` and `transformation`.}
 #'   \item{target}{`"ch.seco.gdp.real.gdp.ssa"`, used as the default `target`
 #'     by both model entry points.}

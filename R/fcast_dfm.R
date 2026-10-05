@@ -148,7 +148,21 @@
 #' set.seed(1)
 #' fit <- fcast_dfm(mfbdfm_example_data, q = 2, length_sample = 20, burn_in = 5)
 #' fit
+#'
+#' # an error margin from the posterior variance of the nowcast, and the
+#' # nowcasts precise enough to use (see "Forecast horizon and error margins")
+#' half_width <- 1.96 * sqrt(fit$nowcast_var)
+#' utils::tail(cbind(nowcast = fit$nowcast, half_width = half_width), 4)
+#' fit$nowcast[half_width < 0.5]
 #' }
+#'
+# NOTE (not part of the documentation): the two sections below are inherited
+# rather than restated, so the parity rule cannot be broken by editing one copy
+# - they describe assumptions and horizon behaviour that both models share. The
+# differences between the two (which step keeps the state equation stationary,
+# where the scale is pinned) are named inside the shared text.
+#' @inheritSection ind_dfm Assumptions
+#' @inheritSection ind_dfm Forecast horizon and error margins
 #'
 #' @references
 #' Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
