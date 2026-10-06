@@ -91,9 +91,9 @@ mfbdfm_table_parameters(fit)
 \code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}}, \code{\link[=mfbdfm_table_nowcast]{mfbdfm_table_nowcast()}},
 \code{\link[=dfm_priors]{dfm_priors()}} for which priors are structural
 
-Other model tables: 
-\code{\link{mfbdfm_kable}()},
-\code{\link{mfbdfm_table_loadings}()},
-\code{\link{mfbdfm_table_nowcast}()}
+Other model tables:
+\code{\link[=mfbdfm_kable]{mfbdfm_kable()}},
+\code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}},
+\code{\link[=mfbdfm_table_nowcast]{mfbdfm_table_nowcast()}}
 }
 \concept{model tables}

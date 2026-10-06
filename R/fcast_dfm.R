@@ -115,7 +115,8 @@
 #'       quantiles -- for `lambda`, `phi`, `sigma`, `rho` and `h`, read out of
 #'       the rotated draws at fit time. The posterior *mean* stays in `pars`,
 #'       so the two cannot disagree. There is deliberately no `omega` entry:
-#'       `omega` is drawn here but not retained. Used by
+#'       `omega` is drawn here but not packed into the rotated draws these
+#'       summaries are read from (its draws are in `draws`). Used by
 #'       [mfbdfm_table_loadings()] and [mfbdfm_table_parameters()].}
 #'     \item{ncst}{List with `mean` and `var`, each a named list of nowcasts
 #'       for every input series at its own frequency.}
@@ -134,6 +135,10 @@
 #'       `lower`, `upper` at the target's own frequency) and
 #'       `high_frequency` (the same columns for the high-frequency growth
 #'       estimate). See [fcast_dfm_methods].}
+#'     \item{draws}{The retained posterior draws, **after rotation and
+#'       identification** (see [mfbdfm_draws]), or `NULL` with
+#'       `keep_draws = FALSE` in [dfm_control()]. Present by default; this is
+#'       what [mfbdfm_diagnostics()] reads.}
 #'     \item{call}{The matched call.}
 #'   }
 #'
@@ -278,6 +283,10 @@ fcast_dfm <- function(flows = NULL,
   if(verbose) message("running identification..")
   rlist <- run_identification_fcast(theta_out, D_save, n = n, q = q, p = p, s = s, t = t)
 
+  # omega is not packed into theta, so it rides along as an attribute; read it
+  # off before theta_out is dropped below (#110)
+  omega_draws <- attr(theta_out, "omega")
+
   # Nothing below reads theta_out or D_save - run_evaluation_fcast() works from
   # rlist. Left in the frame they stay reachable through the whole evaluation
   # phase, which is where peak memory occurs, and theta_out alone is
@@ -293,7 +302,12 @@ fcast_dfm <- function(flows = NULL,
   if(verbose) message("processing output..")
   out <- run_evaluation_fcast(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t,
                         inventory, flows, stocks, target,
-                        stochastic_volatility = stochastic_volatility)
+                        stochastic_volatility = stochastic_volatility,
+                        omega_draws = omega_draws,
+                        control = control,
+                        length_sample = length_sample,
+                        burn_in = burn_in,
+                        thinning = thinning)
 
   out$call <- match.call()
   class(out) <- "fcast_dfm"
@@ -343,6 +357,8 @@ print.fcast_dfm <- function(x, n_show = 8, ...){
   cat("mfbdfm_nowcast() for the target's nowcasts\n")
   cat("Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),\n")
   cat("mfbdfm_table_nowcast()\n")
+  if(!is.null(x$draws))
+    cat("Draws: $draws, mfbdfm_diagnostics()\n")
 
   invisible(x)
 

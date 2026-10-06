@@ -162,5 +162,9 @@ Kronenberg, P. (2026). A weekly activity index for Switzerland.
 }
 \seealso{
 \code{\link[=ind_dfm]{ind_dfm()}}, \code{\link[=fcast_dfm]{fcast_dfm()}}, \link{ind_dfm_methods}
+
+Other model functions:
+\code{\link[=mfbdfm_diagnostics]{mfbdfm_diagnostics()}},
+\code{\link{mfbdfm_draws}}
 }
 \concept{model functions}

@@ -97,6 +97,9 @@ there for which blocks are present and why.}
 \item{data_augmented}{\code{ts} matrix of the augmented dataset.}
 \item{inventory}{Data frame describing the series (see
 \code{\link[=create_inventory]{create_inventory()}}).}
+\item{draws}{The retained posterior draws (see \link{mfbdfm_draws}), or
+\code{NULL} with \code{keep_draws = FALSE} in \code{\link[=dfm_control]{dfm_control()}}. Present by
+default; this is what \code{\link[=mfbdfm_diagnostics]{mfbdfm_diagnostics()}} reads.}
 \item{call}{The matched call.}
 }
 }
@@ -157,14 +160,15 @@ Tracking economic activity with alternative high-frequency data.
 }
 \seealso{
 \code{\link[=fcast_dfm]{fcast_dfm()}} for the multi-factor model, \code{\link[=dfm_priors]{dfm_priors()}} to vary
-the priors, \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to extract the nowcasts from the fit, and
-\link{ind_dfm_methods} for the \code{print}, \code{summary}, \code{plot}, \code{coef}, \code{fitted},
-\code{residuals} and \code{as.data.frame} methods.
+the priors, \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to extract the nowcasts from the fit,
+\code{\link[=mfbdfm_diagnostics]{mfbdfm_diagnostics()}} for convergence diagnostics over the retained
+draws, and \link{ind_dfm_methods} for the \code{print}, \code{summary}, \code{plot}, \code{coef},
+\code{fitted}, \code{residuals} and \code{as.data.frame} methods.
 
-Other model fitting functions: 
-\code{\link{dfm_memory}()},
-\code{\link{fcast_dfm}()},
-\code{\link{run_fcast}()},
-\code{\link{select_factors}()}
+Other model fitting functions:
+\code{\link[=dfm_memory]{dfm_memory()}},
+\code{\link[=fcast_dfm]{fcast_dfm()}},
+\code{\link[=run_fcast]{run_fcast()}},
+\code{\link[=select_factors]{select_factors()}}
 }
 \concept{model fitting functions}

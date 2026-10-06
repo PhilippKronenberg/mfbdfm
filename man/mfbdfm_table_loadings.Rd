@@ -89,9 +89,9 @@ mfbdfm_table_loadings(fit, format = "markdown")
 \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}, \code{\link[=mfbdfm_table_nowcast]{mfbdfm_table_nowcast()}},
 \link{ind_dfm_methods}
 
-Other model tables: 
-\code{\link{mfbdfm_kable}()},
-\code{\link{mfbdfm_table_nowcast}()},
-\code{\link{mfbdfm_table_parameters}()}
+Other model tables:
+\code{\link[=mfbdfm_kable]{mfbdfm_kable()}},
+\code{\link[=mfbdfm_table_nowcast]{mfbdfm_table_nowcast()}},
+\code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}
 }
 \concept{model tables}

@@ -1002,6 +1002,8 @@ print.ind_dfm <- function(x, n_show = 8, ...){
   cat("logLik()\n")
   cat("Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),\n")
   cat("mfbdfm_table_nowcast()\n")
+  if(!is.null(x$draws))
+    cat("Draws: $draws, mfbdfm_diagnostics()\n")
 
   invisible(x)
 
