@@ -62,9 +62,9 @@ utils::tail(mfbdfm_table_nowcast(fit))
 \seealso{
 \code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}}, \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}
 
-Other model tables: 
-\code{\link{mfbdfm_kable}()},
-\code{\link{mfbdfm_table_loadings}()},
-\code{\link{mfbdfm_table_parameters}()}
+Other model tables:
+\code{\link[=mfbdfm_kable]{mfbdfm_kable()}},
+\code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}},
+\code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}
 }
 \concept{model tables}

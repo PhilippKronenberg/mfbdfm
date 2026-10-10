@@ -39,6 +39,18 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                    "Xmat" = vector(mode = "list", length = length_sample),
                    "ncast" = vector(mode = "list", length = length_sample))
 
+  # burn-in parameter draws, kept only on request (#110). Parameters only: the
+  # nowcast is a derived quantity the loop computes for retained draws, and
+  # computing it for the burn-in too would change the cost of every fit for a
+  # plotting convenience.
+  keep_burn <- isTRUE(control$keep_draws) && isTRUE(control$keep_burn_in) &&
+    burn_in > 0
+  if(keep_burn){
+    burn_save <- lapply(c("lambda", "phi", "h", "sigma", "omega", "rho"),
+                        function(nm) vector(mode = "list", length = burn_in))
+    names(burn_save) <- c("lambda", "phi", "h", "sigma", "omega", "rho")
+  }
+
   # preallocations
   Llist <- get_distributed_lags(inventory)
 
@@ -204,6 +216,17 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
       }
     }
 
+    if(keep_burn && jx <= burn_in){
+
+      burn_save$lambda[[jx]] <- lambda
+      burn_save$phi[[jx]] <- phi
+      burn_save$h[[jx]] <- h
+      burn_save$sigma[[jx]] <- diag(sigma)
+      burn_save$omega[[jx]] <- omega
+      burn_save$rho[[jx]] <- diag(rho)
+
+    }
+
     # 4 start sampling upon convergence
     if(jx > burn_in & jx %% thinning == 0){
 
@@ -232,6 +255,12 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
 
   if(!is.null(pb)) close(pb)
   warn_rho_fallback(rho_tally, control)
+
+  # a new, separately named element: everything downstream reads par_save by
+  # name (ind_dfm()'s averages, pars_dist_ind()), so adding one cannot disturb
+  # them
+  if(keep_burn) par_save$burn <- burn_save
+
   return(par_save)
 
 }

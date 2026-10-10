@@ -27,12 +27,12 @@ BugReports: https://github.com/PhilippKronenberg/mfbdfm/issues
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
 VignetteBuilder: knitr
 Depends:
     R (>= 4.1)
 Imports:
     broom,
+    coda,
     doParallel,
     dplyr (>= 1.0.0),
     foreach,
@@ -56,7 +56,6 @@ Imports:
     utils,
     zoo
 Suggests:
-    coda,
     forecast,
     ggsci,
     ISOweek,
@@ -72,3 +71,4 @@ Suggests:
     tseries,
     xtable
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0

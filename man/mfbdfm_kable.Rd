@@ -38,9 +38,9 @@ mfbdfm_kable(data.frame(series = c("a", "b"), mean = c(1.234567, 2)),
 \code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}}, \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}},
 \code{\link[=mfbdfm_table_nowcast]{mfbdfm_table_nowcast()}}
 
-Other model tables: 
-\code{\link{mfbdfm_table_loadings}()},
-\code{\link{mfbdfm_table_nowcast}()},
-\code{\link{mfbdfm_table_parameters}()}
+Other model tables:
+\code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}},
+\code{\link[=mfbdfm_table_nowcast]{mfbdfm_table_nowcast()}},
+\code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}
 }
 \concept{model tables}

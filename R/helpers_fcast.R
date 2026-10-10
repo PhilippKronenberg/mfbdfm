@@ -131,9 +131,16 @@ get_factors_fcast <- function(Ymat, f_draws, inventory, n, q, p, s, t){
 #' replaces an aggregation with a running accumulator, which is what would have
 #' cost bit-identity (`mean()` on doubles is two-pass in R).
 #'
+#' @param target Optional series name. When given, that series' per-draw
+#'   nowcast matrix is returned alongside the moments, so `fit$draws` can carry
+#'   the nowcast draws without this work being done twice (#110). It is read
+#'   out of the matrix that is built here regardless, so nothing is recomputed
+#'   and no result changes.
+#'
 #' @noRd
 #' @importFrom stats ts time var
-get_nowcast_fcast <- function(Xmat, Ymat, rlist, inventory, n, q, p, s, t){
+get_nowcast_fcast <- function(Xmat, Ymat, rlist, inventory, n, q, p, s, t,
+                              target = NULL){
 
   # per-series row selectors and moments, computed once rather than per draw
   keys <- inventory$key
@@ -192,7 +199,14 @@ get_nowcast_fcast <- function(Xmat, Ymat, rlist, inventory, n, q, p, s, t){
   }); names(out_var) <- names(Xmat_draws)
 
 
-  list("mean" = out_mean, "var" = out_var)
+  out <- list("mean" = out_mean, "var" = out_var)
+
+  if(!is.null(target)){
+    out$target_draws <- Xmat_draws[[target]]
+    out$target_time <- stats::time(out_mean[[target]])
+  }
+
+  out
 
 }
 
@@ -259,7 +273,11 @@ get_hfts_fcast <- function(Ymat, f_draws, th_mean, inventory, n, q, p, s, t, k){
 #' @importFrom stats ts time frequency var
 run_evaluation_fcast <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, inventory,
                            flows, stocks, target,
-                           stochastic_volatility = TRUE){
+                           stochastic_volatility = TRUE,
+                           omega_draws = NULL,
+                           control = dfm_control("fcast_dfm"),
+                           length_sample = length(rlist),
+                           burn_in = 0, thinning = 1){
 
   # gather factor draws
   f_draws <- lapply(rlist, function(rx){
@@ -301,7 +319,8 @@ run_evaluation_fcast <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, i
                          Ymat = Ymat,
                          rlist = rlist,
                          inventory = inventory,
-                         n = n, q = q, p = p, s = s, t = t)
+                         n = n, q = q, p = p, s = s, t = t,
+                         target = if(isTRUE(control$keep_draws)) target else NULL)
 
   # get mean and variance of high frequency data
   hfts <- get_hfts_fcast(Ymat = Ymat, f_draws = f_draws, th_mean = th_mean, inventory = inventory,
@@ -313,6 +332,33 @@ run_evaluation_fcast <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, i
     theta2list_fcast(rx, n, p, q, t)$rho
 
   })),1, var)
+
+  # retained draws (#110), built from the ROTATED draws in rlist: an unrotated
+  # draw is determined only up to a q x q rotation, so a trace plot of one
+  # would show the rotation wandering rather than the chain mixing. Assembled
+  # after every posterior mean above has been taken, so nothing is re-simulated.
+  draws <- NULL
+  if(isTRUE(control$keep_draws)){
+    draws <- build_draws_fcast(rlist = rlist,
+                               omega_draws = omega_draws,
+                               f_draws = f_draws,
+                               nowcast_draws = ncst$target_draws,
+                               nowcast_time = ncst$target_time,
+                               factor_time = stats::time(fcts$mean),
+                               inventory = inventory,
+                               target = target,
+                               n = n, q = q, p = p, s = s, t = t,
+                               stochastic_volatility = stochastic_volatility,
+                               control = control,
+                               length_sample = length_sample,
+                               burn_in = burn_in,
+                               thinning = thinning)
+  }
+
+  # the per-draw nowcast matrix was a vehicle for $draws, not part of $ncst,
+  # whose elements are iterated over by name elsewhere
+  ncst$target_draws <- NULL
+  ncst$target_time <- NULL
 
   # gather output
   out <- list("factor" = fcts$mean,
@@ -352,7 +398,8 @@ run_evaluation_fcast <- function(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t, i
               "data_augmented" = ts(th_mean$Xmat,
                                     start = time(Ymat)[1],
                                     frequency = frequency(Ymat)),
-              "inventory" = inventory)
+              "inventory" = inventory,
+              "draws" = draws)
 
   colnames(out$data_augmented) <- colnames(Ymat)
 
