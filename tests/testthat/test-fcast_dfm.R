@@ -294,7 +294,7 @@ fcast_seed_data <- function() {
 
 test_that("fcast_dfm agrees across seeds to the documented tolerance (G5.9b)", {
 
-  skip_if_not(identical(Sys.getenv("MFBDFM_EXTENDED_TESTS"), "true"))
+  skip_if_not_extended()
 
   d <- fcast_seed_data()
   fits <- fcast_seed_fits(flows = d$flows, stocks = d$stocks, target = d$target)
@@ -328,7 +328,7 @@ test_that("fcast_dfm agrees across seeds to the documented tolerance (G5.9b)", {
 
 test_that("fcast_dfm is insensitive to double.eps-scale input noise (G5.9a)", {
 
-  skip_if_not(identical(Sys.getenv("MFBDFM_EXTENDED_TESTS"), "true"))
+  skip_if_not_extended()
 
   d <- fcast_seed_data()
   plain <- fcast_seed_fits(1, d$flows, d$stocks, d$target)[[1]]
