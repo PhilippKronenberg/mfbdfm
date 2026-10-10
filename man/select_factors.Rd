@@ -25,7 +25,11 @@ as flow variables, or
 default). Accepted so that the same data specification works here and in
 \code{\link[=fcast_dfm]{fcast_dfm()}}, and validated if supplied, but it does \strong{not} enter the
 criteria -- no series is treated specially by a principal-component
-decomposition.}
+decomposition. Being validated includes the degenerate-series screen: a
+supplied \code{target} that is constant or all-missing errors, exactly as it
+would in \code{\link[=fcast_dfm]{fcast_dfm()}}, rather than being dropped. With \code{target = NULL}
+nothing is treated as a target and no series is protected from the
+screen.}
 
 \item{max_q}{Integer, the largest factor count to evaluate. Must be smaller
 than both the number of series and the number of periods in the panel
@@ -90,6 +94,14 @@ observed value outward at the ends (\code{na_action = "interpolate"}).
 retained periods, and the criteria are computed from the singular values
 of the result.
 }
+
+A constant or all-missing series cannot be standardized at step 1 and is
+\strong{dropped before the criteria are computed}, with a warning naming every
+series dropped (condition class \code{mfbdfm_warning_dropped_series}, as in
+\code{\link[=ind_dfm]{ind_dfm()}} and \code{\link[=fcast_dfm]{fcast_dfm()}} -- see \code{\link[=dfm_control]{dfm_control()}} on muffling it). It
+carries no information about the factors, so dropping it loses nothing; the
+"at least two series at the highest frequency" requirement is then checked
+on the survivors.
 
 With \eqn{V(k)} the mean squared residual of the \eqn{k}-factor principal
 component approximation of the \eqn{T \times N} panel, the criteria are
