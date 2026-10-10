@@ -110,11 +110,17 @@ interactively in R/RStudio.
 - [`devtools::load_all()`](https://devtools.r-lib.org/reference/load_all.html)
   — load the package for interactive development.
 - [`devtools::test()`](https://devtools.r-lib.org/reference/test.html) —
-  run the full testthat suite (677 assertions, ~42 s). If it takes
-  minutes again, suspect a test that fits a model at a default chain
-  length rather than a short one: a single
+  run the full testthat suite (1376 assertions, ~3 min; measured
+  2026-10-04 on an `x86_64-pc-linux-gnu` CI runner — the “677
+  assertions, ~42 s” recorded here before was from an earlier, much
+  smaller suite and had gone stale by a factor of four). The cost is now
+  spread across many short-chain fits rather than concentrated in one;
+  if a single change makes it jump, suspect a test that fits a model at
+  a default chain length rather than a short one, as a single
   [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
   call on its 5000-draw default was once 143 s of a 179 s suite.
+  Anything that would add minutes belongs in the extended suite instead
+  — see `tests/README.md`.
 - `testthat::test_file("tests/testthat/test-<name>.R")` — run a single
   test file.
 - [`devtools::check()`](https://devtools.r-lib.org/reference/check.html)
@@ -512,6 +518,17 @@ constraint.
 
 ## Testing conventions
 
+- **`tests/README.md` is the documentation for the test suites** (#122)
+  — how to enable the extended suite (`MFBDFM_EXTENDED_TESTS=true`),
+  what each extended block costs, the measured values its tolerances
+  come from, and why none of it runs in CI. Keep it in sync when you add
+  or retime an extended test; it is what a reader is pointed at instead
+  of this file.
+- The three `test-extended-*.R` files are grouped by what they verify,
+  not by source file — each wraps a `dev/` script or a standard that
+  cuts across several. They skip unless the flag is set, and skip (never
+  fail) when `dev/` is absent or the baseline snapshot came from another
+  platform.
 - testthat edition 3. **One test file per `R/` source file**
   (`tests/testthat/test-<name>.R` mirroring `R/<name>.R`), except
   `samplers.R`, `samplers_fcast.R`, `globals.R`, `mfbdfm-package.R`

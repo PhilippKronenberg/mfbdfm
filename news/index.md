@@ -174,6 +174,38 @@ Two changes can break existing code, both described in full below:
   measurement-error **variance** with its interval, where it used to
   print the square root of its posterior mean.
 
+- There is now an **extended test suite**, skipped unless
+  `MFBDFM_EXTENDED_TESTS=true` is set, and a `tests/README.md`
+  documenting both suites: how to enable the extended one, what each
+  block costs, which artefacts need reading by hand, and why none of it
+  runs in CI. It hosts the tests that could not fit in the 45-second
+  default suite: simulation recovery of the factor space across several
+  seeds with a misspecified-`q` negative control, recovery against
+  sample length, prior recovery when the prior dominates the data, time
+  scaling in series count and sample length, and the `dev/baseline.R`
+  behaviour-preservation snapshot. The recovery blocks wrap
+  `dev/mc_recovery.R` and `dev/baseline.R` rather than restating their
+  data-generating process, and skip with a reason when `dev/` is out of
+  reach (it is in `.Rbuildignore`) or when the baseline snapshot was
+  written on another platform. Each block’s tolerance is derived from a
+  measurement that is recorded next to it, including two that came out
+  differently from what was expected: recovery improves with the sample
+  length as a trend and not monotonically, and
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)’s
+  `phi` cannot be compared with the simulated value at all, because it
+  is reported in the unrotated space
+  ([\#122](https://github.com/PhilippKronenberg/mfbdfm/issues/122)).
+
+- The default suite gained the scale checks that the extended suite did
+  not need to own: fitted values and nowcasts come back on each input
+  series’ own scale, measured at each series’ own observation frequency,
+  and the prepared data is invariant to an affine change of units in any
+  input, with the units living entirely in the inventory that
+  de-standardises the output again. This is the bug class behind
+  [\#92](https://github.com/PhilippKronenberg/mfbdfm/issues/92) and the
+  un-standardisation slip in the vendored benchmark
+  ([\#122](https://github.com/PhilippKronenberg/mfbdfm/issues/122)).
+
 - The applied vignette is now **precomputed** (the rOpenSci `.Rmd.orig`
   pattern): `vignettes/mfbdfm.Rmd.orig` is the source to edit,
   `Rscript vignettes/precompile.R` knits it into the committed
