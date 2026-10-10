@@ -59,6 +59,36 @@
 #' is surfaced at the top level of the return value for convenience; results
 #' for every series remain available in `ncst` and `data_hf`.
 #'
+#' @inheritSection ind_dfm Degenerate input series
+#'
+#' @section Reproducibility across seeds:
+#' Measured the same way as for [ind_dfm()] (see `?ind_dfm`): five seeds at
+#' `length_sample = 300`, `burn_in = 100`, `q = 2`, on `data_ch_dataset_test`
+#' windowed from 2019, pairwise over all ten pairs of seeds. Factors are
+#' identified only up to rotation and sign, so each factor is matched to
+#' whichever factor of the other fit it correlates with most strongly in
+#' absolute value, and the loadings are permuted onto a common order with them.
+#'
+#' \tabular{lll}{
+#'   **component** \tab **worst pair** \tab **best pair** \cr
+#'   `nowcast`     \tab 0.998         \tab 1.000         \cr
+#'   `factor`      \tab 0.573         \tab 0.939         \cr
+#'   `pars$lambda` \tab 0.634         \tab 0.996
+#' }
+#'
+#' The nowcast is as reproducible as [ind_dfm()]'s, and the factors and
+#' loadings are far less so. That is a property of the model, not a defect:
+#' the chain samples an unidentified system and the rotation is resolved
+#' afterwards, and the post-hoc rotation does not reach uniqueness across runs.
+#' The nowcast is invariant to the rotation, which is why it is unaffected. Do
+#' not read a factor from a single run as the factor; the nowcast is the
+#' quantity to compare across runs.
+#'
+#' Perturbing the inputs by noise of `.Machine$double.eps` scale, with the seed
+#' held fixed, moved the nowcast by 1.5e-16 at most and left both factors
+#' matched at correlation 1. Both measurements are asserted against in the
+#' extended test suite (`MFBDFM_EXTENDED_TESTS=true`).
+#'
 #' @param flows Either an [mfbdfm_data()] object carrying all series and
 #'   their flow/stock classification, or a named list of `ts` objects treated
 #'   as flow variables, or
@@ -203,6 +233,10 @@ fcast_dfm <- function(flows = NULL,
   validate_model_inputs(flows = flows, stocks = stocks, target = target,
                         p = p, length_sample = length_sample, burn_in = burn_in,
                         thinning = thinning, q = q, call = "fcast_dfm")
+
+  # a constant or all-missing series cannot be standardized (G5.8c)
+  .d <- screen_degenerate_series(flows, stocks, target, q = q)
+  flows <- .d$flows; stocks <- .d$stocks
 
   # create an inventory of the time series involved
   inventory <- create_inventory(flows = flows, stocks = stocks)

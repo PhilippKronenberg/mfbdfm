@@ -509,3 +509,26 @@ test_that("print.mfbdfm_data() reports the classification and flags the highest 
   expect_match(out, "m_stock\\s+stock\\s+freq\\s+12")
   expect_invisible(print(d))
 })
+
+
+test_that("a list column in a long or wide data frame is refused by name (G2.12)", {
+
+  skip("Enabled by #125")
+
+  # G2.12: a list column is a legitimate data frame column and never a
+  # legitimate series, so it has to be named and refused rather than reaching
+  # make_ts(), where the failure is about neither the column nor the argument.
+  long <- make_long()
+  long$value <- I(as.list(long$value))
+  expect_error(mfbdfm_data(long, make_long_meta()), "value")
+
+  wide <- data.frame(date = seq(as.Date("2020-01-01"), by = "month",
+                                length.out = 36),
+                     a = as.numeric(1:36))
+  wide$b <- I(as.list(as.numeric(36:1)))
+  expect_error(
+    mfbdfm_data(wide, data.frame(series = c("a", "b"),
+                                 type = c("flow", "flow"),
+                                 stringsAsFactors = FALSE)),
+    "b")
+})
