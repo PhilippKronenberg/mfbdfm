@@ -244,6 +244,81 @@ scale in different places, so switching the same option off means
 something different in each.)</p>
     </div>
     <div class="section level2">
+    <h2 id="assumptions">Assumptions<a class="anchor" aria-label="anchor" href="#assumptions"></a></h2>
+    <p>This is a linear state-space model with time-invariant coefficients, so the
+input series are assumed <strong>stationary</strong> – in practice, that they arrive
+already transformed, as growth rates or differences rather than levels.
+Spelled out, per input series:</p>
+<ul><li><p>a constant mean and a constant autocovariance function (weak, or
+second-order, stationarity). <code><a href="prepare_data.html">prepare_data()</a></code> subtracts a full-sample
+mean and divides by a full-sample standard deviation, which centres and
+scales but does <strong>not</strong> detrend or difference: a trending or unit-root
+series handed over stays one.</p></li>
+<li><p>constant measurement coefficients: one loading and one idiosyncratic
+variance for the whole sample, with the measurement error an AR(1) whose
+coefficient is likewise constant (<code>serial_correlation</code>).</p></li>
+<li><p>no seasonality, which is not modelled at all – a seasonal input
+pushes its seasonality into the common factor, so inputs are assumed
+seasonally adjusted (the shipped series are).</p></li>
+<li><p>no structural breaks in the loadings or variances. Stochastic
+volatility absorbs changes in the <em>factor's</em> innovation variance, which
+is what carries the 2020 swing, but nothing else is allowed to move.</p></li>
+</ul><p>Of the model's own quantities only that factor innovation variance may vary
+over time, and the factor's state equation is held inside the stationary
+region: here <code><a href="dfm_control.html">dfm_control()</a></code>'s <code>phi_sum_max</code> (default 0.9) rejects a draw
+whose autoregressive coefficients sum beyond it and keeps the previous one,
+while <code><a href="fcast_dfm.html">fcast_dfm()</a></code> rejects an unstable VAR draw in its Metropolis-Hastings
+step. Those are constraints on the sampler, not tests of the data: they keep
+the state equation stationary whatever the input looks like.</p>
+<p>Nothing here checks the input for stationarity, deliberately – the package
+cannot know what transformation you intended, and refusing a persistent
+series would be wrong as often as right. It reports instead:
+<code><a href="mfbdfm_data.html">mfbdfm_data()</a></code> computes a lag-1 autocorrelation and a Dickey-Fuller
+t-ratio per series, and its <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> names any flow that looks like a
+level. See the "Levels or growth rates?" section of <code><a href="mfbdfm_data.html">mfbdfm_data()</a></code> for what
+that screen can and cannot tell you.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="forecast-horizon-and-error-margins">Forecast horizon and error margins<a class="anchor" aria-label="anchor" href="#forecast-horizon-and-error-margins"></a></h2>
+    <p>Nowcast errors widen with the forecast horizon, for two reasons that are
+worth separating:</p>
+<ul><li><p><strong>Within the target period</strong>, each further high-frequency
+observation enters the distributed-lag aggregation (see
+<code><a href="create_inventory.html">create_inventory()</a></code>), so a larger share of the period is observed
+rather than projected.</p></li>
+<li><p><strong>Beyond the end of the data</strong>, the factor is projected by its own
+state equation: the conditional mean decays toward the unconditional one
+at roughly <code>phi^h</code> while the forecast variance accumulates innovation
+variance, so both the error and <code>nowcast_var</code> grow with the horizon <code>h</code>.</p></li>
+</ul><p>Measured on synthetic data drawn from this model's own measurement equation,
+over six real-time cut-offs and against the noise-free target (the fixture
+in <code>tests/testthat/helper-synthetic.R</code>): RMSE 0.78 for a target period that
+is complete but not yet published, 1.14 one period ahead and 1.35 two ahead,
+against a target standard deviation of 1 and 1.65 for a no-information
+benchmark. (Figures from one run on one platform; MCMC output is not
+bit-identical across platforms, so the pattern is what carries, not the
+third digit.)</p>
+<p><strong>Backcasting runs the other way, and that is not a contradiction.</strong> What
+drives the error is missing data, not distance from the target period. Once
+the period has passed, waiting longer only adds data – so at those same
+cut-offs the RMSE for a period whose target value has since been published
+is 0.013 one period back and 0.016 two back – the 0.02 measurement noise
+built into the fixture, rather than anything that grows with distance. That is the anchoring at work: with <code>target</code>
+observed, the model reproduces it almost exactly (see <code><a href="dm_test_modified.html">dm_test_modified()</a></code>
+for why that makes in-sample comparisons uninformative). Both cases are
+tested in <code>tests/testthat/test-ind_dfm.R</code>.</p>
+<p><code>nowcast_var</code> is the posterior variance of the nowcast across the retained
+draws, so an error margin is immediate – and trimming by it is a filter on
+the series:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="va">half_width</span> <span class="op">&lt;-</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">nowcast_var</span><span class="op">)</span>   <span class="co"># ~95% credible interval</span></span>
+<span><span class="va">usable</span> <span class="op">&lt;-</span> <span class="va">fit</span><span class="op">$</span><span class="va">nowcast</span><span class="op">[</span><span class="va">half_width</span> <span class="op">&lt;</span> <span class="fl">0.5</span><span class="op">]</span>      <span class="co"># drop the too-uncertain ones</span></span></code></pre><p></p></div>
+<p>Read it for what it is: a posterior variance conditional on the model, which
+widens with the horizon for the same reason the errors do, but which is
+pinned near zero wherever <code>target</code> is observed. It is informative about the
+unobserved periods – the nowcasts and forecasts – and not a substitute for
+an out-of-sample error measured over vintages (see <code><a href="cut_data_real_time.html">cut_data_real_time()</a></code>).</p>
+    </div>
+    <div class="section level2">
     <h2 id="degenerate-input-series">Degenerate input series<a class="anchor" aria-label="anchor" href="#degenerate-input-series"></a></h2>
 
 
@@ -334,6 +409,26 @@ draws, and <a href="ind_dfm_methods.html">ind_dfm_methods</a> for the <code>prin
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2024 -0.0011813762  0.0078460374  0.0029016447  0.0051753960</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2025  0.0078586654  0.0012306668 -0.0044007476  0.0015063229</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2026  0.0142494596                                          </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># an error margin from the posterior variance, and the nowcasts that are</span></span></span>
+<span class="r-in"><span><span class="co"># precise enough to use (see "Forecast horizon and error margins")</span></span></span>
+<span class="r-in"><span><span class="va">half_width</span> <span class="op">&lt;-</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">nowcast_var</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>nowcast <span class="op">=</span> <span class="va">fit</span><span class="op">$</span><span class="va">nowcast</span>, half_width <span class="op">=</span> <span class="va">half_width</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              nowcast   half_width</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2025 Q2  0.001230667 1.066755e-06</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2025 Q3 -0.004400748 7.403860e-07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2025 Q4  0.001506323 9.389682e-07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2026 Q1  0.014249460 3.676070e-03</span>
+<span class="r-in"><span><span class="va">fit</span><span class="op">$</span><span class="va">nowcast</span><span class="op">[</span><span class="va">half_width</span> <span class="op">&lt;</span> <span class="fl">0.5</span><span class="op">]</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] -0.0005457821  0.0016735161  0.0070059377  0.0073791601  0.0034291850</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [6]  0.0027131206  0.0023326337  0.0004948659  0.0026201328  0.0080289835</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [11]  0.0079216768  0.0100127632  0.0103582772  0.0073478143 -0.0014074899</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [16]  0.0052685685  0.0020117112  0.0065039405  0.0030231110  0.0019994312</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [21] -0.0107536782 -0.0657944736  0.0590156258  0.0091010431  0.0059674967</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [26]  0.0253669460  0.0197806613  0.0101044823  0.0023577208  0.0068062698</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [31]  0.0049971521  0.0020753634  0.0061921887 -0.0036206665  0.0045565814</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [36]  0.0036724468 -0.0011813762  0.0078460374  0.0029016447  0.0051753960</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [41]  0.0078586654  0.0012306668 -0.0044007476  0.0015063229  0.0142494596</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

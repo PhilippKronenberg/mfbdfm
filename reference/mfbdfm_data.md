@@ -44,7 +44,8 @@ mfbdfm_data(data, meta, target = NULL, aggregate = c("mean", "sum"))
 An object of class `"mfbdfm_data"`: a list with `flows`, `stocks` (named
 lists of `ts`, ready to pass to a model), `meta` (the resolved
 per-series table, with the frequency and observation count actually
-used, plus `frequency_in` where a series was converted) and `target`.
+used, the level screen's `ac1` and `df_t`, plus `frequency_in` where a
+series was converted) and `target`.
 
 ## Why this exists
 
@@ -211,6 +212,64 @@ the constant being the days per period, which
 [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)'s
 standardization removes.
 
+## Levels or growth rates?
+
+The models assume stationary inputs (see the "Assumptions" section of
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)),
+and
+[`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+standardizes but does **not** difference: a series handed over in levels
+stays in levels, and the fit completes without complaint. So `meta`
+carries two statistics per series – `ac1`, the lag-1 autocorrelation of
+the observed values, and `df_t`, a Dickey-Fuller t-ratio – and
+[`print()`](https://rdrr.io/r/base/print.html) names any **flow** whose
+`df_t` fails to reach `-2.86` as a possible level, suggesting a growth
+rate or a difference.
+
+It is an advisory, not a test. Nothing is changed, no warning is raised,
+and the entry points do not refuse the data – the package cannot know
+what you intended, and a persistent flow is not necessarily a mistake.
+
+Three choices in it were settled by measurement on the shipped data
+rather than by taste, and are worth knowing because they bound what the
+screen can do for you:
+
+- **Stocks are not screened.** A stock is documented above as a level
+  observed at a point or an average, so a persistent one is *correct*
+  input, and the shipped stocks confirm it: `ac1` reaches 0.995 for the
+  interest-rate level in
+  [data_ch_dataset](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset.md)
+  (`df_t` -1.57), 0.957 for a bond yield, 0.95 for VIX in
+  [data_ch_dataset_test](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset_test.md),
+  and 0.89-0.94 for the PMI diffusion indices. Any rule that caught an
+  undifferenced level would flag all of those.
+
+- **The statistic is `df_t`, not `ac1`, because no `ac1` cut-off
+  works.** The largest `ac1` among the 79 flows in the three shipped
+  datasets is 0.841 (`electricity_in` in
+  [data_ch_dataset_test](https://philippkronenberg.github.io/mfbdfm/reference/data_ch_dataset_test.md)),
+  while a 60-observation random walk sits at 0.86-0.89 and the GDP
+  *level* over 50 quarters at 0.92 – the two groups overlap, because
+  `ac1` is biased down by roughly `1/n` and so confounds persistence
+  with sample length. The Dickey-Fuller t-ratio does not: every one of
+  those 79 flows reaches -3.72 or lower, against -2.27 for the 60-step
+  random walk, -1.32 for a 500-step one and -0.89 for the GDP level.
+  `ac1` is reported anyway, since it is the obvious thing to want to
+  look at.
+
+- **The cut-off is the textbook one**, the asymptotic 5% critical value
+  for the constant-only case, `-2.86` (Fuller 1976; MacKinnon 1991), not
+  a value fitted to this data. It is used without lag augmentation and
+  without a trend term – see the notes on `unit_root_t()` in the source
+  for what that costs. Series with fewer than 24 observations, or no
+  variation, get `NA` for both statistics and are not screened.
+
+What this is not: a stationarity *test* per series (one unaugmented
+regression, no multiplicity correction, no joint statement about the
+panel), and not a check of the model's other assumptions. Treat a
+flagged series as a question to answer, and an unflagged panel as
+nothing more than the absence of this one signal.
+
 ## See also
 
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
@@ -258,9 +317,38 @@ d <- mfbdfm_data(
   data.frame(series = c("weekly", "monthly"), type = c("flow", "stock")))
 #> Aggregated to the 48-week grid the models use (by mean): ‘weekly’ (52 -> 48).
 d$meta
-#>    series  type frequency n_obs frequency_in
-#> 1 monthly stock        12    36           NA
-#> 2  weekly  flow        48   146           52
+#>    series  type frequency n_obs        ac1      df_t frequency_in
+#> 1 monthly stock        12    36 -0.1072168 -6.292181           NA
+#> 2  weekly  flow        48   146  0.2238059 -9.311767           52
+
+# a flow handed over in levels is named by print(), not silently accepted
+set.seed(1)
+d <- mfbdfm_data(
+  data.frame(series = rep(c("growth_rate", "a_level"), each = 60),
+             date = rep(seq(as.Date("2015-01-01"), by = "month",
+                            length.out = 60), 2),
+             value = c(rnorm(60), cumsum(rnorm(60)) + 100)),
+  data.frame(series = c("growth_rate", "a_level"), type = "flow"))
+d
+#> <mfbdfm_data>  2 series  (2 flow, 0 stock)
+#> 
+#>   by frequency:
+#>        12   2 flow   0 stock   <- highest; flow/stock has no effect here
+#> 
+#>   possible levels rather than growth rates (flow, Dickey-Fuller t > -2.86):
+#>     a_level                      DF t  -1.51  ac1 0.894
+#>     -> these models assume stationary inputs; consider a growth rate
+#>        or a difference. Stocks are not screened; see ?mfbdfm_data.
+#> 
+#>   series (first 10):
+#>     a_level                      flow   freq   12  n    60
+#>     growth_rate                  flow   freq   12  n    60
+#> 
+#> Pass to ind_dfm() or fcast_dfm() as the first argument.
+d$meta[, c("series", "ac1", "df_t")]
+#>        series        ac1      df_t
+#> 1     a_level 0.89409104 -1.509395
+#> 2 growth_rate 0.01042752 -7.514619
 
 # from the shipped dataset, which is already a list of `ts`
 data(data_ch_dataset_test)

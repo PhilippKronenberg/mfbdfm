@@ -37,8 +37,10 @@ object – a list with four components:
 - meta:
 
   Data frame, one row per series, with `series`, `type`, `frequency`,
-  `n_obs` and the carried-through `label`, `source`, `category`, `unit`
-  and `transformation`.
+  `n_obs`, the level screen's `ac1` and `df_t` (see
+  [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md))
+  and the carried-through `label`, `source`, `category`, `unit` and
+  `transformation`.
 
 - target:
 

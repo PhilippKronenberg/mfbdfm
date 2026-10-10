@@ -221,6 +221,106 @@ stochastic volatility is switched off. The two models pin the scale in
 different places, so switching the same option off means something
 different in each.)
 
+## Assumptions
+
+This is a linear state-space model with time-invariant coefficients, so
+the input series are assumed **stationary** – in practice, that they
+arrive already transformed, as growth rates or differences rather than
+levels. Spelled out, per input series:
+
+- a constant mean and a constant autocovariance function (weak, or
+  second-order, stationarity).
+  [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+  subtracts a full-sample mean and divides by a full-sample standard
+  deviation, which centres and scales but does **not** detrend or
+  difference: a trending or unit-root series handed over stays one.
+
+- constant measurement coefficients: one loading and one idiosyncratic
+  variance for the whole sample, with the measurement error an AR(1)
+  whose coefficient is likewise constant (`serial_correlation`).
+
+- no seasonality, which is not modelled at all – a seasonal input pushes
+  its seasonality into the common factor, so inputs are assumed
+  seasonally adjusted (the shipped series are).
+
+- no structural breaks in the loadings or variances. Stochastic
+  volatility absorbs changes in the *factor's* innovation variance,
+  which is what carries the 2020 swing, but nothing else is allowed to
+  move.
+
+Of the model's own quantities only that factor innovation variance may
+vary over time, and the factor's state equation is held inside the
+stationary region: here
+[`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)'s
+`phi_sum_max` (default 0.9) rejects a draw whose autoregressive
+coefficients sum beyond it and keeps the previous one, while
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+rejects an unstable VAR draw in its Metropolis-Hastings step. Those are
+constraints on the sampler, not tests of the data: they keep the state
+equation stationary whatever the input looks like.
+
+Nothing here checks the input for stationarity, deliberately – the
+package cannot know what transformation you intended, and refusing a
+persistent series would be wrong as often as right. It reports instead:
+[`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+computes a lag-1 autocorrelation and a Dickey-Fuller t-ratio per series,
+and its [`print()`](https://rdrr.io/r/base/print.html) names any flow
+that looks like a level. See the "Levels or growth rates?" section of
+[`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+for what that screen can and cannot tell you.
+
+## Forecast horizon and error margins
+
+Nowcast errors widen with the forecast horizon, for two reasons that are
+worth separating:
+
+- **Within the target period**, each further high-frequency observation
+  enters the distributed-lag aggregation (see
+  [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md)),
+  so a larger share of the period is observed rather than projected.
+
+- **Beyond the end of the data**, the factor is projected by its own
+  state equation: the conditional mean decays toward the unconditional
+  one at roughly `phi^h` while the forecast variance accumulates
+  innovation variance, so both the error and `nowcast_var` grow with the
+  horizon `h`.
+
+Measured on synthetic data drawn from this model's own measurement
+equation, over six real-time cut-offs and against the noise-free target
+(the fixture in `tests/testthat/helper-synthetic.R`): RMSE 0.78 for a
+target period that is complete but not yet published, 1.14 one period
+ahead and 1.35 two ahead, against a target standard deviation of 1 and
+1.65 for a no-information benchmark. (Figures from one run on one
+platform; MCMC output is not bit-identical across platforms, so the
+pattern is what carries, not the third digit.)
+
+**Backcasting runs the other way, and that is not a contradiction.**
+What drives the error is missing data, not distance from the target
+period. Once the period has passed, waiting longer only adds data – so
+at those same cut-offs the RMSE for a period whose target value has
+since been published is 0.013 one period back and 0.016 two back – the
+0.02 measurement noise built into the fixture, rather than anything that
+grows with distance. That is the anchoring at work: with `target`
+observed, the model reproduces it almost exactly (see
+[`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md)
+for why that makes in-sample comparisons uninformative). Both cases are
+tested in `tests/testthat/test-ind_dfm.R`.
+
+`nowcast_var` is the posterior variance of the nowcast across the
+retained draws, so an error margin is immediate – and trimming by it is
+a filter on the series:
+
+    half_width <- 1.96 * sqrt(fit$nowcast_var)   # ~95% credible interval
+    usable <- fit$nowcast[half_width < 0.5]      # drop the too-uncertain ones
+
+Read it for what it is: a posterior variance conditional on the model,
+which widens with the horizon for the same reason the errors do, but
+which is pinned near zero wherever `target` is observed. It is
+informative about the unobserved periods – the nowcasts and forecasts –
+and not a substitute for an out-of-sample error measured over vintages
+(see
+[`cut_data_real_time()`](https://philippkronenberg.github.io/mfbdfm/reference/cut_data_real_time.md)).
+
 ## Degenerate input series
 
 Every series is standardized by its own standard deviation before it
@@ -333,5 +433,25 @@ fit$nowcast
 #> 2024 -0.0011813762  0.0078460374  0.0029016447  0.0051753960
 #> 2025  0.0078586654  0.0012306668 -0.0044007476  0.0015063229
 #> 2026  0.0142494596                                          
+
+# an error margin from the posterior variance, and the nowcasts that are
+# precise enough to use (see "Forecast horizon and error margins")
+half_width <- 1.96 * sqrt(fit$nowcast_var)
+utils::tail(cbind(nowcast = fit$nowcast, half_width = half_width), 4)
+#>              nowcast   half_width
+#> 2025 Q2  0.001230667 1.066755e-06
+#> 2025 Q3 -0.004400748 7.403860e-07
+#> 2025 Q4  0.001506323 9.389682e-07
+#> 2026 Q1  0.014249460 3.676070e-03
+fit$nowcast[half_width < 0.5]
+#>  [1] -0.0005457821  0.0016735161  0.0070059377  0.0073791601  0.0034291850
+#>  [6]  0.0027131206  0.0023326337  0.0004948659  0.0026201328  0.0080289835
+#> [11]  0.0079216768  0.0100127632  0.0103582772  0.0073478143 -0.0014074899
+#> [16]  0.0052685685  0.0020117112  0.0065039405  0.0030231110  0.0019994312
+#> [21] -0.0107536782 -0.0657944736  0.0590156258  0.0091010431  0.0059674967
+#> [26]  0.0253669460  0.0197806613  0.0101044823  0.0023577208  0.0068062698
+#> [31]  0.0049971521  0.0020753634  0.0061921887 -0.0036206665  0.0045565814
+#> [36]  0.0036724468 -0.0011813762  0.0078460374  0.0029016447  0.0051753960
+#> [41]  0.0078586654  0.0012306668 -0.0044007476  0.0015063229  0.0142494596
 # }
 ```

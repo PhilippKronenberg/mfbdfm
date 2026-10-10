@@ -2,6 +2,74 @@
 
 ## mfbdfm 0.2.0.9000
 
+- The stationarity the models assume is now **stated and screened for**,
+  rather than only embodied in the code.
+  [`?ind_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  gains an “Assumptions” section – inherited verbatim by
+  [`?fcast_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
+  so the two cannot drift – setting out what is assumed of each input
+  series (constant mean and autocovariance, constant loading and
+  idiosyncratic variance, no seasonality, no breaks), what
+  [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+  does and does not do about it (standardizes; does not detrend or
+  difference), and that `phi_sum_max` and the Metropolis-Hastings
+  stationarity constraint bound the *sampler*, not the data
+  ([\#124](https://github.com/PhilippKronenberg/mfbdfm/issues/124),
+  TS2.3).
+
+- [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+  now reports two statistics per series in `$meta` – `ac1`, the lag-1
+  autocorrelation, and `df_t`, a Dickey-Fuller t-ratio – and
+  [`print()`](https://rdrr.io/r/base/print.html) names any **flow**
+  whose `df_t` fails to reach -2.86 as a possible level, suggesting a
+  growth rate or a difference. It advises and nothing more: the data is
+  unchanged, no warning is raised, and the entry points still accept
+  whatever they are given
+  ([\#124](https://github.com/PhilippKronenberg/mfbdfm/issues/124),
+  TS2.4b).
+
+  Two things in it were settled by measurement rather than by taste, and
+  are recorded in the “Levels or growth rates?” section of
+  [`?mfbdfm_data`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md):
+  **stocks are not screened**, since a stock is documented as a level or
+  an average and the shipped ones include an interest-rate level at
+  `ac1` 0.995; and the statistic is `df_t` rather than `ac1`, because
+  **no `ac1` cut-off works** – the largest `ac1` among the 79 shipped
+  flows is 0.841 while a 60-observation random walk sits at 0.86-0.89,
+  so the two groups overlap, whereas on `df_t` every shipped flow
+  reaches -3.72 or lower against -2.27 for that random walk. The issue
+  proposed `ac1`; the measurement it also asked for is what ruled it
+  out.
+
+- `mfbdfm_example_data` is rebuilt so its `$meta` carries the two new
+  columns (same series, same pinned GDP vintage, same values – only the
+  two columns are added).
+
+- Tests cover how the nowcast error behaves against the forecast
+  horizon, in both directions
+  ([\#124](https://github.com/PhilippKronenberg/mfbdfm/issues/124),
+  TS3.0-TS3.2). On synthetic data generated from
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)’s
+  own measurement equation, over six real-time cut-offs: RMSE 0.78 for a
+  quarter that is complete but unpublished, 1.14 one quarter ahead and
+  1.35 two ahead, against a target standard deviation of 1 – and 0.013,
+  the fixture’s own measurement noise, for a quarter whose value has
+  since been published, which does not grow as the cut-off recedes. The
+  same errors are passed through
+  [`create_error_summary_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_error_summary_tables.md),
+  where the widening shows up in its horizon columns.
+  [`?ind_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  explains what drives both directions.
+
+- [`?ind_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  and
+  [`?fcast_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  show how to turn `$nowcast_var` into an error margin and trim a
+  nowcast series by it
+  ([\#124](https://github.com/PhilippKronenberg/mfbdfm/issues/124),
+  TS3.3a). No new argument for it: the two lines in the example are the
+  whole operation.
+
 - Fits now **keep their posterior draws**, so convergence can be checked
   after the fact instead of only watched during sampling
   ([\#110](https://github.com/PhilippKronenberg/mfbdfm/issues/110)).
@@ -12,6 +80,7 @@
   the factor paths. Nothing about the sampling changed: no RNG is
   consumed by storing them, and a fit is bit-identical with `keep_draws`
   on and off.
+
   - [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
     gains `keep_draws` (default `TRUE` – the parameter and nowcast
     matrices are small), `keep_factor_draws` (default `FALSE` – the
@@ -34,6 +103,7 @@
     [`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods;
     see
     [`?mfbdfm_draws`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md).
+
 - New
   [`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md):
   effective sample size, the Geweke z-score and, on request, the
@@ -42,6 +112,7 @@
   highlights what failed. Single chain, so no R-hat, and the
   documentation says so rather than computing one from a single chain
   and leaving it quietly meaningless.
+
   - A zero-variance chain is a **normal** outcome in this package –
     `lambda[target]` is pinned by
     [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)’s
@@ -50,6 +121,7 @@
     exist when `stochastic_volatility = FALSE` – so those rows are
     reported as `constant` and excluded from the pass/fail count rather
     than counted as convergence failures.
+
 - New trace and posterior-density plots over the retained draws, in the
   package’s ggplot style: `plot(fit$draws)` or
   [`plot()`](https://rdrr.io/r/graphics/plot.default.html) on the
@@ -57,11 +129,13 @@
   Trace left, density right, as in coda’s `plot.mcmc`, with the running
   mean overlaid, the posterior mean and 95% interval marked, and the
   burn-in shaded when it was retained.
+
 - [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md)
   gains `keep_draws`/`keep_factor_draws`, which add the retained draws’
   footprint to the estimate. Their cost is arithmetic – one live copy of
   each matrix at its exact size – not a re-calibration: the eight
   calibration fits behind the model predate retained draws.
+
 - coda moves from Suggests to Imports, being load-bearing for an
   exported function now rather than a plotting nicety.
 

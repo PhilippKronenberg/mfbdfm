@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   methodology: methodology.html
   mfbdfm: mfbdfm.html
-last_built: 2026-10-10T16:35Z
+last_built: 2026-10-10T16:53Z
 urls:
   reference: https://philippkronenberg.github.io/mfbdfm/reference
   article: https://philippkronenberg.github.io/mfbdfm/articles
