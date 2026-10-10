@@ -28,7 +28,8 @@ section.}
 An object of class \code{"mfbdfm_data"}: a list with \code{flows}, \code{stocks}
 (named lists of \code{ts}, ready to pass to a model), \code{meta} (the resolved
 per-series table, with the frequency and observation count actually used,
-plus \code{frequency_in} where a series was converted) and \code{target}.
+the level screen's \code{ac1} and \code{df_t}, plus \code{frequency_in} where a series was
+converted) and \code{target}.
 }
 \description{
 Converts the data you have into the form the models need, and -- more
@@ -173,6 +174,56 @@ and \code{"sum"} is exactly proportional to the period total, the constant being
 the days per period, which \code{\link[=prepare_data]{prepare_data()}}'s standardization removes.
 }
 
+\section{Levels or growth rates?}{
+The models assume stationary inputs (see the "Assumptions" section of
+\code{\link[=ind_dfm]{ind_dfm()}}), and \code{\link[=prepare_data]{prepare_data()}} standardizes but does \strong{not} difference:
+a series handed over in levels stays in levels, and the fit completes without
+complaint. So \code{meta} carries two statistics per series -- \code{ac1}, the lag-1
+autocorrelation of the observed values, and \code{df_t}, a Dickey-Fuller t-ratio
+-- and \code{print()} names any \strong{flow} whose \code{df_t} fails to reach \code{-2.86} as a
+possible level, suggesting a growth rate or a difference.
+
+It is an advisory, not a test. Nothing is changed, no warning is raised, and
+the entry points do not refuse the data -- the package cannot know what you
+intended, and a persistent flow is not necessarily a mistake.
+
+Three choices in it were settled by measurement on the shipped data rather
+than by taste, and are worth knowing because they bound what the screen can
+do for you:
+
+\itemize{
+\item \strong{Stocks are not screened.} A stock is documented above as a level
+observed at a point or an average, so a persistent one is \emph{correct}
+input, and the shipped stocks confirm it: \code{ac1} reaches 0.995 for the
+interest-rate level in \link{data_ch_dataset} (\code{df_t} -1.57), 0.957 for a
+bond yield, 0.95 for VIX in \link{data_ch_dataset_test}, and 0.89-0.94 for
+the PMI diffusion indices. Any rule that caught an undifferenced level
+would flag all of those.
+\item \strong{The statistic is \code{df_t}, not \code{ac1}, because no \code{ac1} cut-off
+works.} The largest \code{ac1} among the 79 flows in the three shipped
+datasets is 0.841 (\code{electricity_in} in \link{data_ch_dataset_test}), while a
+60-observation random walk sits at 0.86-0.89 and the GDP \emph{level} over 50
+quarters at 0.92 -- the two groups overlap, because \code{ac1} is biased down
+by roughly \code{1/n} and so confounds persistence with sample length. The
+Dickey-Fuller t-ratio does not: every one of those 79 flows reaches
+-3.72 or lower, against -2.27 for the 60-step random walk, -1.32 for a
+500-step one and -0.89 for the GDP level. \code{ac1} is reported anyway, since
+it is the obvious thing to want to look at.
+\item \strong{The cut-off is the textbook one}, the asymptotic 5\% critical value
+for the constant-only case, \code{-2.86} (Fuller 1976; MacKinnon 1991), not a
+value fitted to this data. It is used without lag augmentation and
+without a trend term -- see the notes on \code{unit_root_t()} in the source
+for what that costs. Series with fewer than 24 observations, or no
+variation, get \code{NA} for both statistics and are not screened.
+}
+
+What this is not: a stationarity \emph{test} per series (one unaugmented
+regression, no multiplicity correction, no joint statement about the panel),
+and not a check of the model's other assumptions. Treat a flagged series as
+a question to answer, and an unflagged panel as nothing more than the absence
+of this one signal.
+}
+
 \examples{
 # from a long data frame
 long <- data.frame(
@@ -195,6 +246,17 @@ d <- mfbdfm_data(
                    value = rnorm(36))),
   data.frame(series = c("weekly", "monthly"), type = c("flow", "stock")))
 d$meta
+
+# a flow handed over in levels is named by print(), not silently accepted
+set.seed(1)
+d <- mfbdfm_data(
+  data.frame(series = rep(c("growth_rate", "a_level"), each = 60),
+             date = rep(seq(as.Date("2015-01-01"), by = "month",
+                            length.out = 60), 2),
+             value = c(rnorm(60), cumsum(rnorm(60)) + 100)),
+  data.frame(series = c("growth_rate", "a_level"), type = "flow"))
+d
+d$meta[, c("series", "ac1", "df_t")]
 
 # from the shipped dataset, which is already a list of `ts`
 data(data_ch_dataset_test)

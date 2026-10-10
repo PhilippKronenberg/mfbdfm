@@ -143,6 +143,56 @@
 #' and `"sum"` is exactly proportional to the period total, the constant being
 #' the days per period, which [prepare_data()]'s standardization removes.
 #'
+#' # Levels or growth rates?
+#'
+#' The models assume stationary inputs (see the "Assumptions" section of
+#' [ind_dfm()]), and [prepare_data()] standardizes but does **not** difference:
+#' a series handed over in levels stays in levels, and the fit completes without
+#' complaint. So `meta` carries two statistics per series -- `ac1`, the lag-1
+#' autocorrelation of the observed values, and `df_t`, a Dickey-Fuller t-ratio
+#' -- and `print()` names any **flow** whose `df_t` fails to reach `-2.86` as a
+#' possible level, suggesting a growth rate or a difference.
+#'
+#' It is an advisory, not a test. Nothing is changed, no warning is raised, and
+#' the entry points do not refuse the data -- the package cannot know what you
+#' intended, and a persistent flow is not necessarily a mistake.
+#'
+#' Three choices in it were settled by measurement on the shipped data rather
+#' than by taste, and are worth knowing because they bound what the screen can
+#' do for you:
+#'
+#' \itemize{
+#'   \item **Stocks are not screened.** A stock is documented above as a level
+#'     observed at a point or an average, so a persistent one is *correct*
+#'     input, and the shipped stocks confirm it: `ac1` reaches 0.995 for the
+#'     interest-rate level in [data_ch_dataset] (`df_t` -1.57), 0.957 for a
+#'     bond yield, 0.95 for VIX in [data_ch_dataset_test], and 0.89-0.94 for
+#'     the PMI diffusion indices. Any rule that caught an undifferenced level
+#'     would flag all of those.
+#'   \item **The statistic is `df_t`, not `ac1`, because no `ac1` cut-off
+#'     works.** The largest `ac1` among the 79 flows in the three shipped
+#'     datasets is 0.841 (`electricity_in` in [data_ch_dataset_test]), while a
+#'     60-observation random walk sits at 0.86-0.89 and the GDP *level* over 50
+#'     quarters at 0.92 -- the two groups overlap, because `ac1` is biased down
+#'     by roughly `1/n` and so confounds persistence with sample length. The
+#'     Dickey-Fuller t-ratio does not: every one of those 79 flows reaches
+#'     -3.72 or lower, against -2.27 for the 60-step random walk, -1.32 for a
+#'     500-step one and -0.89 for the GDP level. `ac1` is reported anyway, since
+#'     it is the obvious thing to want to look at.
+#'   \item **The cut-off is the textbook one**, the asymptotic 5% critical value
+#'     for the constant-only case, `-2.86` (Fuller 1976; MacKinnon 1991), not a
+#'     value fitted to this data. It is used without lag augmentation and
+#'     without a trend term -- see the notes on `unit_root_t()` in the source
+#'     for what that costs. Series with fewer than 24 observations, or no
+#'     variation, get `NA` for both statistics and are not screened.
+#' }
+#'
+#' What this is not: a stationarity *test* per series (one unaugmented
+#' regression, no multiplicity correction, no joint statement about the panel),
+#' and not a check of the model's other assumptions. Treat a flagged series as
+#' a question to answer, and an unflagged panel as nothing more than the absence
+#' of this one signal.
+#'
 #' @param data The input series, in any of the forms above.
 #' @param meta A data frame with one row per series and at least the columns
 #'   `series` and `type` (`"flow"` or `"stock"`). May carry further columns
@@ -160,7 +210,8 @@
 #' @return An object of class `"mfbdfm_data"`: a list with `flows`, `stocks`
 #'   (named lists of `ts`, ready to pass to a model), `meta` (the resolved
 #'   per-series table, with the frequency and observation count actually used,
-#'   plus `frequency_in` where a series was converted) and `target`.
+#'   the level screen's `ac1` and `df_t`, plus `frequency_in` where a series was
+#'   converted) and `target`.
 #'
 #' @examples
 #' # from a long data frame
@@ -184,6 +235,20 @@
 #'                    value = rnorm(36))),
 #'   data.frame(series = c("weekly", "monthly"), type = c("flow", "stock")))
 #' d$meta
+#'
+# NOTE (not part of the example): this is the TS2.4b advisory, shown rather
+# than described - the point is that print() names the series and the data is
+# left exactly as supplied.
+#' # a flow handed over in levels is named by print(), not silently accepted
+#' set.seed(1)
+#' d <- mfbdfm_data(
+#'   data.frame(series = rep(c("growth_rate", "a_level"), each = 60),
+#'              date = rep(seq(as.Date("2015-01-01"), by = "month",
+#'                             length.out = 60), 2),
+#'              value = c(rnorm(60), cumsum(rnorm(60)) + 100)),
+#'   data.frame(series = c("growth_rate", "a_level"), type = "flow"))
+#' d
+#' d$meta[, c("series", "ac1", "df_t")]
 #'
 #' # from the shipped dataset, which is already a list of `ts`
 #' data(data_ch_dataset_test)
@@ -561,6 +626,96 @@ start_from_date <- function(d, freq){
 }
 
 
+#' Lag-1 autocorrelation of a series' observed values
+#'
+#' Computed on the values as supplied -- not on the prepared matrix, whose
+#' zeros encode *missing* and would pull any autocorrelation toward the mean.
+#' `NA` rather than a number when there is too little to go on: below
+#' `LEVEL_SCREEN_MIN_OBS` observations the statistic is biased down by roughly
+#' `1/n`, and a constant series has no autocorrelation at all.
+#'
+#' Reported because it is the obvious thing to look at, but **not** what the
+#' screen flags on -- see [mfbdfm_data()]'s "Levels or growth rates?" section
+#' for the measurement that ruled it out.
+#'
+#' @noRd
+lag1_autocorrelation <- function(x){
+
+  v <- as.numeric(x)
+  v <- v[is.finite(v)]
+
+  if(length(v) < LEVEL_SCREEN_MIN_OBS) return(NA_real_)
+  if(stats::sd(v) == 0) return(NA_real_)
+
+  unname(stats::acf(v, lag.max = 1, plot = FALSE, demean = TRUE)$acf[2])
+
+}
+
+
+#' Dickey-Fuller t-ratio for a unit root, with a constant and no augmentation
+#'
+#' The statistic the level screen flags on: the t-ratio on `y[t-1]` in
+#' `diff(y) ~ 1 + y[t-1]`, by OLS. Written out here rather than taken from a
+#' package, which keeps it a dependency-free regression on two columns.
+#'
+#' No lag augmentation, deliberately: adding the Schwert lag order
+#' (`floor(4*(n/100)^0.25)`) moves the least stationary-looking shipped flow
+#' from -3.72 to -2.96, which all but closes the gap to the cut-off, while
+#' leaving the level cases where they were. No trend term either, so a series
+#' with a deterministic trend is flagged as well -- which is the advice one
+#' would want for it anyway, since it is not stationary either.
+#'
+#' @noRd
+unit_root_t <- function(x){
+
+  v <- as.numeric(x)
+  v <- v[is.finite(v)]
+  n <- length(v)
+
+  if(n < LEVEL_SCREEN_MIN_OBS) return(NA_real_)
+  if(stats::sd(v) == 0) return(NA_real_)
+
+  X <- cbind(1, v[-n])
+  fit <- stats::lm.fit(X, diff(v))
+  dfree <- (n - 1L) - ncol(X)
+  if(dfree < 1L) return(NA_real_)
+
+  s2 <- sum(fit$residuals^2)/dfree
+  xtxi <- tryCatch(solve(crossprod(X)), error = function(e) NULL)
+  if(is.null(xtxi) || !is.finite(s2) || s2 <= 0) return(NA_real_)
+
+  unname(fit$coefficients[2]/sqrt(s2 * xtxi[2, 2]))
+
+}
+
+
+# Flags a flow whose Dickey-Fuller t-ratio does not reach this value as a
+# possible level: the asymptotic 5% critical value for the constant-only case
+# (Fuller 1976; MacKinnon 1991). See the "Levels or growth rates?" section of
+# mfbdfm_data() for the measurement on the shipped data.
+LEVEL_SCREEN_DF_T <- -2.86
+
+# Below this many observations neither statistic is worth screening on.
+LEVEL_SCREEN_MIN_OBS <- 24L
+
+
+#' Which rows of a resolved `meta` look like levels rather than growth rates
+#'
+#' Stocks are exempt by design -- they are documented as levels or averages,
+#' and the shipped ones include an interest-rate level. Shared by
+#' `print.mfbdfm_data()` and the tests so the two cannot disagree on what is
+#' flagged.
+#'
+#' @noRd
+level_screen_flags <- function(meta){
+
+  if(!"df_t" %in% names(meta)) return(rep(FALSE, nrow(meta)))
+
+  !is.na(meta$df_t) & meta$type == "flow" & meta$df_t > LEVEL_SCREEN_DF_T
+
+}
+
+
 #' Check the shape of `meta` (before the data is looked at)
 #'
 #' @noRd
@@ -644,6 +799,11 @@ resolve_meta <- function(meta, series, frequency_in = integer()){
                     type = meta$type[match(names(series), meta$series)],
                     frequency = as.integer(freqs),
                     n_obs = vapply(series, length, integer(1)),
+                    # the level screen's statistics, reported for every series
+                    # whether or not it is flagged - see the "Levels or growth
+                    # rates?" section of mfbdfm_data()
+                    ac1 = vapply(series, lag1_autocorrelation, numeric(1)),
+                    df_t = vapply(series, unit_root_t, numeric(1)),
                     stringsAsFactors = FALSE, row.names = NULL)
 
   # `type` only changes the aggregation weights below the highest frequency; at
@@ -669,7 +829,9 @@ resolve_meta <- function(meta, series, frequency_in = integer()){
     out$frequency_in <- unname(frequency_in[out$series])
   }
 
-  carry <- setdiff(names(meta), c("series", "type", "frequency", "frequency_in"))
+  carry <- setdiff(names(meta),
+                   c("series", "type", "frequency", "frequency_in",
+                     "ac1", "df_t"))
   for(cl in carry) out[[cl]] <- meta[[cl]][match(out$series, meta$series)]
 
   out
@@ -721,6 +883,21 @@ print.mfbdfm_data <- function(x, ...){
       cat(sprintf("    %-28s %d -> 48\n", substr(m$series[i], 1, 28),
                   m$frequency_in[i]))
     }
+  }
+
+  # advisory only: nothing is changed and no warning is raised, because the
+  # package cannot know whether a persistent flow is a mistake (TS2.4b)
+  lvl <- level_screen_flags(m)
+  if(any(lvl)){
+    cat("\n  possible levels rather than growth rates",
+        " (flow, Dickey-Fuller t > ", LEVEL_SCREEN_DF_T, "):\n", sep = "")
+    for(i in which(lvl)){
+      cat(sprintf("    %-28s DF t %6.2f  ac1 %5.3f\n",
+                  substr(m$series[i], 1, 28), m$df_t[i], m$ac1[i]))
+    }
+    cat("    -> these models assume stationary inputs; consider a growth rate\n",
+        "       or a difference. Stocks are not screened; see ?mfbdfm_data.\n",
+        sep = "")
   }
 
   cat("\n  series (first 10):\n")

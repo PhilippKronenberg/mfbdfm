@@ -137,6 +137,95 @@ when its stochastic volatility is switched off. The two models pin the
 scale in different places, so switching the same option off means
 something different in each.)
 }
+\section{Assumptions}{
+This is a linear state-space model with time-invariant coefficients, so the
+input series are assumed \strong{stationary} -- in practice, that they arrive
+already transformed, as growth rates or differences rather than levels.
+Spelled out, per input series:
+
+\itemize{
+\item a constant mean and a constant autocovariance function (weak, or
+second-order, stationarity). \code{\link[=prepare_data]{prepare_data()}} subtracts a full-sample
+mean and divides by a full-sample standard deviation, which centres and
+scales but does \strong{not} detrend or difference: a trending or unit-root
+series handed over stays one.
+\item constant measurement coefficients: one loading and one idiosyncratic
+variance for the whole sample, with the measurement error an AR(1) whose
+coefficient is likewise constant (\code{serial_correlation}).
+\item no seasonality, which is not modelled at all -- a seasonal input
+pushes its seasonality into the common factor, so inputs are assumed
+seasonally adjusted (the shipped series are).
+\item no structural breaks in the loadings or variances. Stochastic
+volatility absorbs changes in the \emph{factor's} innovation variance, which
+is what carries the 2020 swing, but nothing else is allowed to move.
+}
+
+Of the model's own quantities only that factor innovation variance may vary
+over time, and the factor's state equation is held inside the stationary
+region: here \code{\link[=dfm_control]{dfm_control()}}'s \code{phi_sum_max} (default 0.9) rejects a draw
+whose autoregressive coefficients sum beyond it and keeps the previous one,
+while \code{\link[=fcast_dfm]{fcast_dfm()}} rejects an unstable VAR draw in its Metropolis-Hastings
+step. Those are constraints on the sampler, not tests of the data: they keep
+the state equation stationary whatever the input looks like.
+
+Nothing here checks the input for stationarity, deliberately -- the package
+cannot know what transformation you intended, and refusing a persistent
+series would be wrong as often as right. It reports instead:
+\code{\link[=mfbdfm_data]{mfbdfm_data()}} computes a lag-1 autocorrelation and a Dickey-Fuller
+t-ratio per series, and its \code{print()} names any flow that looks like a
+level. See the "Levels or growth rates?" section of \code{\link[=mfbdfm_data]{mfbdfm_data()}} for what
+that screen can and cannot tell you.
+}
+
+\section{Forecast horizon and error margins}{
+Nowcast errors widen with the forecast horizon, for two reasons that are
+worth separating:
+
+\itemize{
+\item \strong{Within the target period}, each further high-frequency
+observation enters the distributed-lag aggregation (see
+\code{\link[=create_inventory]{create_inventory()}}), so a larger share of the period is observed
+rather than projected.
+\item \strong{Beyond the end of the data}, the factor is projected by its own
+state equation: the conditional mean decays toward the unconditional one
+at roughly \code{phi^h} while the forecast variance accumulates innovation
+variance, so both the error and \code{nowcast_var} grow with the horizon \code{h}.
+}
+
+Measured on synthetic data drawn from this model's own measurement equation,
+over six real-time cut-offs and against the noise-free target (the fixture
+in \code{tests/testthat/helper-synthetic.R}): RMSE 0.78 for a target period that
+is complete but not yet published, 1.14 one period ahead and 1.35 two ahead,
+against a target standard deviation of 1 and 1.65 for a no-information
+benchmark. (Figures from one run on one platform; MCMC output is not
+bit-identical across platforms, so the pattern is what carries, not the
+third digit.)
+
+\strong{Backcasting runs the other way, and that is not a contradiction.} What
+drives the error is missing data, not distance from the target period. Once
+the period has passed, waiting longer only adds data -- so at those same
+cut-offs the RMSE for a period whose target value has since been published
+is 0.013 one period back and 0.016 two back -- the 0.02 measurement noise
+built into the fixture, rather than anything that grows with distance. That is the anchoring at work: with \code{target}
+observed, the model reproduces it almost exactly (see \code{\link[=dm_test_modified]{dm_test_modified()}}
+for why that makes in-sample comparisons uninformative). Both cases are
+tested in \code{tests/testthat/test-ind_dfm.R}.
+
+\code{nowcast_var} is the posterior variance of the nowcast across the retained
+draws, so an error margin is immediate -- and trimming by it is a filter on
+the series:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{half_width <- 1.96 * sqrt(fit$nowcast_var)   # ~95\% credible interval
+usable <- fit$nowcast[half_width < 0.5]      # drop the too-uncertain ones
+}\if{html}{\out{</div>}}
+
+Read it for what it is: a posterior variance conditional on the model, which
+widens with the horizon for the same reason the errors do, but which is
+pinned near zero wherever \code{target} is observed. It is informative about the
+unobserved periods -- the nowcasts and forecasts -- and not a substitute for
+an out-of-sample error measured over vintages (see \code{\link[=cut_data_real_time]{cut_data_real_time()}}).
+}
+
 \section{Degenerate input series}{
 
 Every series is standardized by its own standard deviation before it enters
@@ -195,6 +284,12 @@ data(mfbdfm_example_data)
 set.seed(1)
 fit <- ind_dfm(mfbdfm_example_data, length_sample = 50, burn_in = 10)
 fit$nowcast
+
+# an error margin from the posterior variance, and the nowcasts that are
+# precise enough to use (see "Forecast horizon and error margins")
+half_width <- 1.96 * sqrt(fit$nowcast_var)
+utils::tail(cbind(nowcast = fit$nowcast, half_width = half_width), 4)
+fit$nowcast[half_width < 0.5]
 }
 
 }
