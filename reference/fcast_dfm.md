@@ -284,6 +284,64 @@ nowcast is surfaced at the top level of the return value for
 convenience; results for every series remain available in `ncst` and
 `data_hf`.
 
+## Reproducibility across seeds
+
+Measured the same way as for
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+(see
+[`?ind_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)):
+five seeds at `length_sample = 300`, `burn_in = 100`, `q = 2`, on
+`data_ch_dataset_test` windowed from 2019, pairwise over all ten pairs
+of seeds. Factors are identified only up to rotation and sign, so each
+factor is matched to whichever factor of the other fit it correlates
+with most strongly in absolute value, and the loadings are permuted onto
+a common order with them.
+
+|               |                |               |
+|---------------|----------------|---------------|
+| **component** | **worst pair** | **best pair** |
+| `nowcast`     | 0.998          | 1.000         |
+| `factor`      | 0.573          | 0.939         |
+| `pars$lambda` | 0.634          | 0.996         |
+
+The nowcast is as reproducible as
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)'s,
+and the factors and loadings are far less so. That is a property of the
+model, not a defect: the chain samples an unidentified system and the
+rotation is resolved afterwards, and the post-hoc rotation does not
+reach uniqueness across runs. The nowcast is invariant to the rotation,
+which is why it is unaffected. Do not read a factor from a single run as
+the factor; the nowcast is the quantity to compare across runs.
+
+Perturbing the inputs by noise of `.Machine$double.eps` scale, with the
+seed held fixed, moved the nowcast by 1.5e-16 at most and left both
+factors matched at correlation 1. Both measurements are asserted against
+in the extended test suite (`MFBDFM_EXTENDED_TESTS=true`).
+
+## Degenerate input series
+
+Every series is standardized by its own standard deviation before it
+enters the model, so a series that is constant, or that has no
+non-missing observations at all, cannot be used: standardizing it
+divides by zero or by `NA`. Such a series also carries no information
+about the factor, so it is **dropped before fitting**, with a warning
+naming every series dropped (condition class
+`mfbdfm_warning_dropped_series` – see
+[`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+on muffling it). A series with a single non-missing observation counts
+as constant.
+
+`target` is the exception. The factor is anchored to it in
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+and it selects the surfaced nowcast in `fcast_dfm()`, so a degenerate
+target is an error rather than a drop. A zero-length series, or one
+whose storage mode is not numeric (a character or complex `ts` is still
+a valid `ts`), is likewise an error, naming the series.
+
+More series than time periods is *not* degenerate – summarising many
+series with few factors is what the model is for – and both entry points
+fit such a panel.
+
 ## References
 
 Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025). Tracking

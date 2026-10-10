@@ -244,6 +244,47 @@ scale in different places, so switching the same option off means
 something different in each.)</p>
     </div>
     <div class="section level2">
+    <h2 id="degenerate-input-series">Degenerate input series<a class="anchor" aria-label="anchor" href="#degenerate-input-series"></a></h2>
+
+
+<p>Every series is standardized by its own standard deviation before it enters
+the model, so a series that is constant, or that has no non-missing
+observations at all, cannot be used: standardizing it divides by zero or by
+<code>NA</code>. Such a series also carries no information about the factor, so it is
+<strong>dropped before fitting</strong>, with a warning naming every series dropped
+(condition class <code>mfbdfm_warning_dropped_series</code> – see <code><a href="dfm_control.html">dfm_control()</a></code> on
+muffling it). A series with a single non-missing observation counts as
+constant.</p>
+<p><code>target</code> is the exception. The factor is anchored to it in <code>ind_dfm()</code> and it
+selects the surfaced nowcast in <code><a href="fcast_dfm.html">fcast_dfm()</a></code>, so a degenerate target is an
+error rather than a drop. A zero-length series, or one whose storage mode is
+not numeric (a character or complex <code>ts</code> is still a valid <code>ts</code>), is likewise
+an error, naming the series.</p>
+<p>More series than time periods is <em>not</em> degenerate – summarising many series
+with few factors is what the model is for – and both entry points fit such
+a panel.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="reproducibility-across-seeds">Reproducibility across seeds<a class="anchor" aria-label="anchor" href="#reproducibility-across-seeds"></a></h2>
+
+
+<p>A fit is exactly reproducible given a seed, but two <em>different</em> seeds give
+two different chains, and on a finite chain they do not land in the same
+place. How far apart they land was measured rather than assumed: five seeds
+at <code>length_sample = 300</code>, <code>burn_in = 100</code>, on <code>data_ch_dataset_test</code>
+windowed from 2019 (three flows, two stocks), pairwise correlations across
+all ten pairs of seeds.</p>
+<table class="table table"><tr><td><strong>component</strong></td><td><strong>worst pair</strong></td><td><strong>best pair</strong></td></tr><tr><td><code>nowcast</code></td><td>0.987</td><td>1.000</td></tr><tr><td><code>factor</code></td><td>0.950</td><td>0.988</td></tr><tr><td><code>pars$lambda</code></td><td>0.994</td><td>1.000</td></tr></table><p>So the quarterly nowcast is reproducible to about three digits across seeds
+and the weekly factor to about two; raise <code>length_sample</code> if a tighter
+agreement is wanted. The same measurement for <code><a href="fcast_dfm.html">fcast_dfm()</a></code> is in
+<code><a href="fcast_dfm.html">?fcast_dfm</a></code>, and its factors agree much less closely, for a reason
+specific to that model.</p>
+<p>Perturbing the inputs by noise of <code>.Machine$double.eps</code> scale, with the seed
+held fixed, moved the nowcast by 1.5e-16 at most – the perturbation
+propagates, it is not amplified. Both measurements are asserted against in
+the extended test suite (<code>MFBDFM_EXTENDED_TESTS=true</code>).</p>
+    </div>
+    <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Kronenberg, P. (2026). A high-frequency GDP indicator for
 Switzerland. <em>Swiss Journal of Economics and Statistics</em>, 162, 10.

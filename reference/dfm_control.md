@@ -180,6 +180,12 @@ rest:
   [`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)`(on_error = "warn")`
   turned the error into a warning.
 
+- `mfbdfm_warning_dropped_series`:
+
+  at least one input series was constant or entirely missing, so it
+  could not be standardized, and was dropped before fitting. Raised once
+  per fit, naming every series dropped.
+
 - `mfbdfm_warning_collinear`:
 
   two or more input series are near-perfectly correlated on their

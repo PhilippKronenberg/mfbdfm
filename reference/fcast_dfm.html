@@ -293,6 +293,49 @@ is surfaced at the top level of the return value for convenience; results
 for every series remain available in <code>ncst</code> and <code>data_hf</code>.</p>
     </div>
     <div class="section level2">
+    <h2 id="reproducibility-across-seeds">Reproducibility across seeds<a class="anchor" aria-label="anchor" href="#reproducibility-across-seeds"></a></h2>
+
+
+<p>Measured the same way as for <code><a href="ind_dfm.html">ind_dfm()</a></code> (see <code><a href="ind_dfm.html">?ind_dfm</a></code>): five seeds at
+<code>length_sample = 300</code>, <code>burn_in = 100</code>, <code>q = 2</code>, on <code>data_ch_dataset_test</code>
+windowed from 2019, pairwise over all ten pairs of seeds. Factors are
+identified only up to rotation and sign, so each factor is matched to
+whichever factor of the other fit it correlates with most strongly in
+absolute value, and the loadings are permuted onto a common order with them.</p>
+<table class="table table"><tr><td><strong>component</strong></td><td><strong>worst pair</strong></td><td><strong>best pair</strong></td></tr><tr><td><code>nowcast</code></td><td>0.998</td><td>1.000</td></tr><tr><td><code>factor</code></td><td>0.573</td><td>0.939</td></tr><tr><td><code>pars$lambda</code></td><td>0.634</td><td>0.996</td></tr></table><p>The nowcast is as reproducible as <code><a href="ind_dfm.html">ind_dfm()</a></code>'s, and the factors and
+loadings are far less so. That is a property of the model, not a defect:
+the chain samples an unidentified system and the rotation is resolved
+afterwards, and the post-hoc rotation does not reach uniqueness across runs.
+The nowcast is invariant to the rotation, which is why it is unaffected. Do
+not read a factor from a single run as the factor; the nowcast is the
+quantity to compare across runs.</p>
+<p>Perturbing the inputs by noise of <code>.Machine$double.eps</code> scale, with the seed
+held fixed, moved the nowcast by 1.5e-16 at most and left both factors
+matched at correlation 1. Both measurements are asserted against in the
+extended test suite (<code>MFBDFM_EXTENDED_TESTS=true</code>).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="degenerate-input-series">Degenerate input series<a class="anchor" aria-label="anchor" href="#degenerate-input-series"></a></h2>
+
+
+<p>Every series is standardized by its own standard deviation before it enters
+the model, so a series that is constant, or that has no non-missing
+observations at all, cannot be used: standardizing it divides by zero or by
+<code>NA</code>. Such a series also carries no information about the factor, so it is
+<strong>dropped before fitting</strong>, with a warning naming every series dropped
+(condition class <code>mfbdfm_warning_dropped_series</code> – see <code><a href="dfm_control.html">dfm_control()</a></code> on
+muffling it). A series with a single non-missing observation counts as
+constant.</p>
+<p><code>target</code> is the exception. The factor is anchored to it in <code><a href="ind_dfm.html">ind_dfm()</a></code> and it
+selects the surfaced nowcast in <code>fcast_dfm()</code>, so a degenerate target is an
+error rather than a drop. A zero-length series, or one whose storage mode is
+not numeric (a character or complex <code>ts</code> is still a valid <code>ts</code>), is likewise
+an error, naming the series.</p>
+<p>More series than time periods is <em>not</em> degenerate – summarising many series
+with few factors is what the model is for – and both entry points fit such
+a panel.</p>
+    </div>
+    <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Eckert, F., Kronenberg, P., Mikosch, H., &amp; Neuwirth, S. (2025).
 Tracking economic activity with alternative high-frequency data.

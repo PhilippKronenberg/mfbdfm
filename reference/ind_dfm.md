@@ -221,6 +221,60 @@ stochastic volatility is switched off. The two models pin the scale in
 different places, so switching the same option off means something
 different in each.)
 
+## Degenerate input series
+
+Every series is standardized by its own standard deviation before it
+enters the model, so a series that is constant, or that has no
+non-missing observations at all, cannot be used: standardizing it
+divides by zero or by `NA`. Such a series also carries no information
+about the factor, so it is **dropped before fitting**, with a warning
+naming every series dropped (condition class
+`mfbdfm_warning_dropped_series` – see
+[`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+on muffling it). A series with a single non-missing observation counts
+as constant.
+
+`target` is the exception. The factor is anchored to it in `ind_dfm()`
+and it selects the surfaced nowcast in
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
+so a degenerate target is an error rather than a drop. A zero-length
+series, or one whose storage mode is not numeric (a character or complex
+`ts` is still a valid `ts`), is likewise an error, naming the series.
+
+More series than time periods is *not* degenerate – summarising many
+series with few factors is what the model is for – and both entry points
+fit such a panel.
+
+## Reproducibility across seeds
+
+A fit is exactly reproducible given a seed, but two *different* seeds
+give two different chains, and on a finite chain they do not land in the
+same place. How far apart they land was measured rather than assumed:
+five seeds at `length_sample = 300`, `burn_in = 100`, on
+`data_ch_dataset_test` windowed from 2019 (three flows, two stocks),
+pairwise correlations across all ten pairs of seeds.
+
+|               |                |               |
+|---------------|----------------|---------------|
+| **component** | **worst pair** | **best pair** |
+| `nowcast`     | 0.987          | 1.000         |
+| `factor`      | 0.950          | 0.988         |
+| `pars$lambda` | 0.994          | 1.000         |
+
+So the quarterly nowcast is reproducible to about three digits across
+seeds and the weekly factor to about two; raise `length_sample` if a
+tighter agreement is wanted. The same measurement for
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+is in
+[`?fcast_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
+and its factors agree much less closely, for a reason specific to that
+model.
+
+Perturbing the inputs by noise of `.Machine$double.eps` scale, with the
+seed held fixed, moved the nowcast by 1.5e-16 at most – the perturbation
+propagates, it is not amplified. Both measurements are asserted against
+in the extended test suite (`MFBDFM_EXTENDED_TESTS=true`).
+
 ## References
 
 Kronenberg, P. (2026). A high-frequency GDP indicator for Switzerland.

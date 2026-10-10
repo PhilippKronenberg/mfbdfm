@@ -203,7 +203,7 @@ dim(fit$draws$parameters)
 # the stored means are the means of the retained draws
 max(abs(colMeans(fit$draws$parameters[, 1:8]) -
           as.numeric(fit$pars$lambda)[1:8]))
-#> [1] 3.330669e-16
+#> [1] 1.110223e-16
 
 head(as.data.frame(fit$draws, which = "phi"))
 #>   parameter iteration     value    phase

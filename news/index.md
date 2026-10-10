@@ -119,6 +119,38 @@ Two changes can break existing code, both described in full below:
   the published comparison has to be real-time
   ([\#98](https://github.com/PhilippKronenberg/mfbdfm/issues/98)).
 
+- Degenerate-but-well-formed input series are handled at both model
+  entry points instead of failing deep inside the sampler
+  ([\#121](https://github.com/PhilippKronenberg/mfbdfm/issues/121)).
+  Every series is standardized by its own standard deviation before it
+  enters the model, so a **constant** series (including one with a
+  single non-missing observation) and an **all-missing** series divide
+  by zero or by `NA`; both are now dropped before fitting, with one
+  warning naming every series dropped and carrying the condition class
+  `mfbdfm_warning_dropped_series` (muffleable like the rest of the
+  family – see
+  [`?dfm_control`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)).
+  A degenerate `target` cannot be dropped, since the factor is anchored
+  to it, so that errors instead; `q` is re-checked against the series
+  that survive the screen. A **zero-length** series and one whose
+  storage mode is not numeric (a character or complex `ts` is still a
+  valid `ts`) are errors naming the series, rather than the misleading
+  “not a `ts` object” that
+  [`stats::is.ts()`](https://rdrr.io/r/stats/ts.html)’s own length test
+  produced. The screen lives in `R/validate.R`, so
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  and
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  behave identically. More series than time periods is explicitly *not*
+  degenerate and both entry points fit such a panel; there are now tests
+  for that, and for the headline return components of both fit classes
+  being free of `NA`/`NaN`/`Inf`. The measured seed-to-seed and
+  double-eps-noise agreement of both models is written into
+  [`?ind_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)/[`?fcast_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  and asserted against in the extended test suite
+  (`MFBDFM_EXTENDED_TESTS=true`), as a quantified tolerance rather than
+  a claim of no difference.
+
 - The vignette is split in two by audience.
   [`vignette("mfbdfm")`](https://philippkronenberg.github.io/mfbdfm/articles/mfbdfm.md)
   is now purely applied - data in, fit, inspect, nowcast - and states no
