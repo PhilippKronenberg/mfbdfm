@@ -71,12 +71,36 @@ Deliberately **out of scope**:
 | [`nowcastDFM`](https://github.com/dhopp1/nowcastDFM) (R, GitHub) | EM estimation with per-release news contributions; archived from CRAN on 2022-05-25 |
 | [`nowcasting`](https://github.com/nmecsys/nowcasting) (R, GitHub) | EM and two-step estimation plus pseudo-real-time vintage construction; archived from CRAN on 2022-05-25 |
 | [`MARSS`](https://cran.r-project.org/package=MARSS), [`KFAS`](https://cran.r-project.org/package=KFAS) (R, CRAN) | General state-space frameworks by maximum likelihood; much freer model specification, no nowcasting- or mixed-frequency-specific tooling |
+| [`bayesdfa`](https://cran.r-project.org/package=bayesdfa) (R, CRAN) | Bayesian dynamic factor analysis in Stan (HMC rather than a purpose-built Gibbs sampler); single-frequency, no mixed-frequency aggregation; Student-*t* trends and hidden-Markov regime analysis instead of stochastic volatility |
+| [`bvarsv`](https://cran.r-project.org/package=bvarsv) (R, CRAN) | Bayesian VAR with stochastic volatility and time-varying parameters (Primiceri 2005) — the stochastic-volatility machinery is close kin, but there are no latent factors and no mixed frequency; it models the observed series directly |
 | [`DynamicFactorMQ`](https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.dynamic_factor_mq.DynamicFactorMQ.html) (Python, statsmodels) | Monthly–quarterly dynamic factor model estimated by EM / maximum likelihood |
 
 Specific to `mfbdfm`: Bayesian mixed-frequency estimation at weekly frequency
 with stochastic volatility, target-anchored identification so the factor reads
 directly as the target's growth rate (Kronenberg 2026), and the multi-factor,
 rotation-identified model of Eckert et al. (2025) alongside it.
+
+### Why there is no performance comparison
+
+**No other R package estimates either of the two models in this package** — the
+target-anchored Bayesian mixed-frequency single-factor model of Kronenberg
+(2026), or the multi-factor model with stochastic volatility and post-hoc
+rotation identification of Eckert et al. (2025). The alternatives above are the
+nearest relatives, and every one of them differs in at least one of the three
+features that define these models: Bayesian estimation, weekly–quarterly mixed
+frequency, and the identification scheme. There is therefore no implementation
+to benchmark against that would be estimating the same thing, and a head-to-head
+accuracy table against a package fitting a different model would compare model
+specifications rather than implementations.
+
+Accuracy claims are instead made against **econometric** benchmarks, in the
+papers and in the research code under `analysis/`: an AR(1) nowcast benchmark
+(`run_ar()`), and the EM-based Bańbura–Modugno dynamic factor model of Eckert
+et al. (2025), run from `analysis/fcast/bmdfm_benchmark.R`. That script is
+**research code, not a package-level comparison** — it is not part of the built
+package, it depends on vendored benchmark code and on private data, and its
+BMDFM log scores are `NA` by design because the reference implementation
+substituted a placeholder variance.
 
 ## Installation
 
