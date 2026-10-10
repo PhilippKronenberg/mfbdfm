@@ -82,7 +82,7 @@ Run from the package root using `Rscript -e '<command>'` or interactively in R/R
 
 - `devtools::document()` — regenerate `NAMESPACE`/`man/*.Rd` after changing roxygen docs or `@export` tags.
 - `devtools::load_all()` — load the package for interactive development.
-- `devtools::test()` — run the full testthat suite (677 assertions, ~42 s). If it takes minutes again, suspect a test that fits a model at a default chain length rather than a short one: a single `run_wai_adj()` call on its 5000-draw default was once 143 s of a 179 s suite.
+- `devtools::test()` — run the full testthat suite (1376 assertions, ~3 min; measured 2026-10-04 on an `x86_64-pc-linux-gnu` CI runner — the "677 assertions, ~42 s" recorded here before was from an earlier, much smaller suite and had gone stale by a factor of four). The cost is now spread across many short-chain fits rather than concentrated in one; if a single change makes it jump, suspect a test that fits a model at a default chain length rather than a short one, as a single `run_wai_adj()` call on its 5000-draw default was once 143 s of a 179 s suite. Anything that would add minutes belongs in the extended suite instead — see `tests/README.md`.
 - `testthat::test_file("tests/testthat/test-<name>.R")` — run a single test file.
 - `devtools::check()` — run `R CMD check` locally (equivalent to CI).
 - `pkgdown::build_site()` — preview the documentation website locally (writes to gitignored `docs/`).
@@ -207,6 +207,15 @@ Claude usage quota has been tight. Until the user says otherwise, follow the act
 
 ## Testing conventions
 
+- **`tests/README.md` is the documentation for the test suites** (#122) — how to
+  enable the extended suite (`MFBDFM_EXTENDED_TESTS=true`), what each extended
+  block costs, the measured values its tolerances come from, and why none of it
+  runs in CI. Keep it in sync when you add or retime an extended test; it is
+  what a reader is pointed at instead of this file.
+- The three `test-extended-*.R` files are grouped by what they verify, not by
+  source file — each wraps a `dev/` script or a standard that cuts across
+  several. They skip unless the flag is set, and skip (never fail) when `dev/`
+  is absent or the baseline snapshot came from another platform.
 - testthat edition 3. **One test file per `R/` source file** (`tests/testthat/test-<name>.R` mirroring `R/<name>.R`), except `samplers.R`, `samplers_fcast.R`, `globals.R`, `mfbdfm-package.R` which have no exported/testable content and intentionally have no dedicated file (state this explicitly if asked, don't silently skip).
 - Shared synthetic fixtures live in `tests/testthat/helper-synthetic.R` (`make_synth_dat()`, `make_synth_vintages()`, `make_synth_inputs()`), auto-sourced by testthat for every file — this is how the 1:1 file split avoids duplicating setup code. Small one-off fixtures (a handful of lines, single-use) are kept inline in their `test_that()` block instead of being centralized, per the book's "tolerate repetition, favor obvious self-contained tests" guidance.
 - Tests use only synthetic fixtures or the package's own shipped data — **never** the private, gitignored `analysis/Rda/` result caches or `fits/` directory, so the suite runs identically for anyone who clones the repo.

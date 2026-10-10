@@ -106,3 +106,37 @@ test_that("prepare_data(fill = NA) keeps the missingness mask", {
   expect_equal(which(is.na(na)), which(zero == 0))
   expect_equal(na[!is.na(na)], zero[zero != 0])
 })
+
+test_that("the prepared data does not depend on the units of the inputs (BS7.4a)", {
+  # BS7.4a asks what any assumption about input scales implies. The assumption
+  # here is that there is none: every series is standardized by its own mean
+  # and sd, so an affine change of units in ANY input leaves the estimation
+  # problem identical, and the target's own two moments are the entire route by
+  # which the nowcast gets back onto the input scale.
+  dat <- make_synth_dat()
+  inv <- create_inventory(flows = dat$flows, stocks = dat$stocks)
+  Ymat <- prepare_data(flows = dat$flows, stocks = dat$stocks,
+                       inventory = inv, target = "gdp")
+
+  for (key in c("m1", "gdp")) {              # a predictor, and the target
+    rescaled <- dat
+    where <- if (key %in% names(dat$flows)) "flows" else "stocks"
+    rescaled[[where]][[key]] <- dat[[where]][[key]] * 1000 + 50
+
+    inv2 <- create_inventory(flows = rescaled$flows, stocks = rescaled$stocks)
+    Y2 <- prepare_data(flows = rescaled$flows, stocks = rescaled$stocks,
+                       inventory = inv2, target = "gdp")
+
+    # same problem, to floating point: a*x + b standardizes to (x - mean)/sd
+    expect_equal(as.matrix(Y2), as.matrix(Ymat), tolerance = 1e-10)
+    expect_identical(stats::tsp(Y2), stats::tsp(Ymat))
+
+    # the units live entirely in the inventory, which is what de-standardizes
+    # the output again
+    expect_equal(inv2$sd[inv2$key == key], inv$sd[inv$key == key] * 1000)
+    expect_equal(inv2$mean[inv2$key == key], inv$mean[inv$key == key] * 1000 + 50)
+    # and no other series is touched
+    others <- setdiff(inv$key, key)
+    expect_equal(inv2$sd[match(others, inv2$key)], inv$sd[match(others, inv$key)])
+  }
+})

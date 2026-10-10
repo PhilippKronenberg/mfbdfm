@@ -134,6 +134,48 @@ test_that("mfbdfm_nowcast returns the stored nowcasts for both classes", {
   }
 })
 
+test_that("fitted values and nowcasts come back on the input scale (BS7.4)", {
+  fl <- fits()
+
+  # This bug class has shipped twice: #92 (the level index compounding exp(gr)),
+  # and the un-standardisation slip recorded in CLAUDE.md, where nowcasts came
+  # out in standard deviations - RMSE 3.52 against 0.021 - because nothing
+  # downstream checks units. The check is cheap, so it is in the default suite.
+  #
+  # Compare at each series' OWN observation frequency, not on the prepared
+  # weekly grid: the augmented high-frequency states a quarterly flow
+  # aggregates from are 1/k of its scale by construction, so a column-wise
+  # comparison would be testing the aggregation, not the units.
+  for (nm in names(fl)) {
+    fit <- fl[[nm]]
+    f1 <- as.matrix(fitted(fit, scale = "original"))
+    obs <- as.matrix(fit$data)
+
+    for (j in seq_len(ncol(obs))) {
+      key <- fit$inventory$key[j]
+      raw <- as.numeric(fit$data_raw[[key]])
+      # 0 encodes "not observed" in the prepared data
+      got <- f1[obs[, j] != 0, j]
+
+      expect_equal(length(got), length(raw))
+      # not exact - the sampler draws the latent states the observation is an
+      # aggregate of - but within 1e-3 of the series' own sd. Measured at these
+      # chain lengths: 2e-5 of sd, for every series of both fits.
+      expect_lt(max(abs(got - raw)), 1e-3 * stats::sd(raw))
+    }
+
+    # the nowcast is the target series' own scale, at the target's frequency
+    nc <- mfbdfm_nowcast(fit)$nowcast
+    raw <- as.numeric(fit$data_raw[[fit$target]])
+    expect_equal(length(nc), length(raw))
+    expect_lt(max(abs(nc - raw)), 1e-3 * stats::sd(raw))
+
+    # and a residual is a difference on that scale, so it is small against it
+    r1 <- residuals(fit, scale = "original")[, which(fit$inventory$key == fit$target)]
+    expect_lt(stats::sd(r1, na.rm = TRUE), stats::sd(raw))
+  }
+})
+
 test_that("mfbdfm_nowcast rejects bad last/level values by name", {
   fit <- fits()$ind_dfm
 
