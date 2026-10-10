@@ -95,6 +95,54 @@ used. The others cap or reject a draw for numerical stability:
 `omega_max` in
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
 
+## Retaining draws
+
+Both samplers hold every retained draw in memory for the whole fit
+anyway; until \#110 they were averaged and discarded when the sampler
+returned, so a fit carried posterior means and no chain. These settings
+decide what survives into the fit object, not what is computed – nothing
+here consumes RNG, and the numbers a fit reports are identical with them
+on or off.
+
+- `keep_draws`:
+
+  Default `TRUE`. Stores the parameter and nowcast draws in `fit$draws`
+  (see
+  [mfbdfm_draws](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md)),
+  which is what
+  [`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
+  and the trace plots read. Small: one row per retained draw and one
+  column per scalar parameter, plus one column per nowcast period – a
+  few hundred kilobytes for a typical chain.
+
+- `keep_factor_draws`:
+
+  Default `FALSE`, because this is the one large component:
+  `length_sample x (t+s) x q` doubles, which at 1000 draws of a weekly
+  30-year sample is of the order of 10 MB per factor. On for the
+  posterior of any functional of the factor path.
+
+- `keep_burn_in`:
+
+  Default `FALSE`,
+  **[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  only**. Retains the burn-in *parameter* draws as well, so a trace plot
+  can show the chain settling rather than starting at the first kept
+  draw.
+
+`keep_burn_in` is absent from
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+deliberately, rather than accepted and ignored. That model identifies
+post hoc: a draw is comparable with other draws only after the rotation
+step has mapped it onto a reference computed from the *retained* draws,
+and a burn-in draw has no such reference. Rotating the burn-in too would
+either move that reference – and so change the results – or cost an
+extra optimisation per burn-in draw, while storing it unrotated would
+put a non-comparable series on a trace plot. Naming a setting the chosen
+model does not have is an error, as with `phi_sum_max` and `omega_max`;
+the parity rule is about the same *concept* in both models, and this
+concept does not exist there.
+
 ## Verbosity
 
 `verbose = FALSE` silences both the progress
@@ -157,7 +205,8 @@ Applied Econometrics*, 40(3), 270-290.
 
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
-[`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
+[`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md),
+[mfbdfm_draws](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md)
 
 Other model specification:
 [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
@@ -174,6 +223,8 @@ dfm_control("fcast_dfm")
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
 #>   verbose                  TRUE      
+#>   keep_draws               TRUE      
+#>   keep_factor_draws        FALSE     
 #>   omega_max                1         
 #>   rotation_criterion       "mean"    
 #>   rotation_tol             1e-09     
@@ -195,6 +246,8 @@ dfm_control("fcast_dfm", strict = TRUE)
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
 #>   verbose                  TRUE      
+#>   keep_draws               TRUE      
+#>   keep_factor_draws        FALSE     
 #>   omega_max                1         
 #>   rotation_criterion       "sum"       (default "mean")
 #>   rotation_tol             1e-09     
@@ -213,6 +266,8 @@ dfm_control("fcast_dfm", rotation_criterion = "sum", rotation_tol = 1e-10)
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
 #>   verbose                  TRUE      
+#>   keep_draws               TRUE      
+#>   keep_factor_draws        FALSE     
 #>   omega_max                1         
 #>   rotation_criterion       "sum"       (default "mean")
 #>   rotation_tol             1e-10       (default 1e-09)
@@ -229,8 +284,11 @@ dfm_control("ind_dfm", sigma_max = 10)
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
 #>   verbose                  TRUE      
+#>   keep_draws               TRUE      
+#>   keep_factor_draws        FALSE     
 #>   phi_sum_max              0.9       
 #>   sigma_max                10          (default 5)
+#>   keep_burn_in             FALSE     
 
 # silence the messages and the progress bar
 dfm_control("ind_dfm", verbose = FALSE)
@@ -242,6 +300,25 @@ dfm_control("ind_dfm", verbose = FALSE)
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
 #>   verbose                  FALSE       (default TRUE)
+#>   keep_draws               TRUE      
+#>   keep_factor_draws        FALSE     
 #>   phi_sum_max              0.9       
 #>   sigma_max                5         
+#>   keep_burn_in             FALSE     
+
+# keep the factor-path draws too, and the burn-in, for trace plots
+dfm_control("ind_dfm", keep_factor_draws = TRUE, keep_burn_in = TRUE)
+#> Control settings for ind_dfm()
+#> 
+#>   rho_max                  0.99      
+#>   rho_max_tries            10        
+#>   rho_fallback             0.98      
+#>   jitter                   1e-09     
+#>   sv_offset                0.001     
+#>   verbose                  TRUE      
+#>   keep_draws               TRUE      
+#>   keep_factor_draws        TRUE        (default FALSE)
+#>   phi_sum_max              0.9       
+#>   sigma_max                5         
+#>   keep_burn_in             TRUE        (default FALSE)
 ```

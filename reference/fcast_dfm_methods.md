@@ -224,6 +224,7 @@ fit
 #> mfbdfm_nowcast() for the target's nowcasts
 #> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),
 #> mfbdfm_table_nowcast()
+#> Draws: $draws, mfbdfm_diagnostics()
 coef(fit)          # a q-column matrix here, a vector for ind_dfm()
 #>                                    factor1      factor2
 #> ch.fso.rtt.ind.r.noga0801.sa -0.0120862752 -0.016881013

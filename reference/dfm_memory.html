@@ -11,7 +11,7 @@ that into the number of parallel workers a machine can actually carry."></head><
 
     <a class="navbar-brand me-2" href="../index.html">mfbdfm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,7 @@ that into the number of parallel workers a machine can actually carry."></head><
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Estimate the peak memory of a model fit, and size a parallel run from it</h1>
-      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/v0.2.0/R/memory.R" class="external-link"><code>R/memory.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/main/R/memory.R" class="external-link"><code>R/memory.R</code></a></small>
       <div class="d-none name"><code>dfm_memory.Rd</code></div>
     </div>
 
@@ -60,7 +60,9 @@ that into the number of parallel workers a machine can actually carry.</p>
 <span>  p <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  length_sample <span class="op">=</span> <span class="fl">1000</span>,</span>
 <span>  extend <span class="op">=</span> <span class="fl">0.5</span>,</span>
-<span>  frequency <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  frequency <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  keep_draws <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  keep_factor_draws <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">dfm_workers</span><span class="op">(</span><span class="va">...</span>, available_mb <span class="op">=</span> <span class="cn">NULL</span>, safety <span class="op">=</span> <span class="fl">0.7</span>, max_workers <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
@@ -112,6 +114,12 @@ Lengthens the sample the sampler sees and so the memory it needs.</p></dd>
 <dt id="arg-frequency">frequency<a class="anchor" aria-label="anchor" href="#arg-frequency"></a></dt>
 <dd><p>Integer, observations per year of the highest-frequency
 series, used with <code>extend</code>. Derived from the data when supplied.</p></dd>
+
+
+<dt id="arg-keep-draws-keep-factor-draws">keep_draws, keep_factor_draws<a class="anchor" aria-label="anchor" href="#arg-keep-draws-keep-factor-draws"></a></dt>
+<dd><p>Logical, the <code><a href="dfm_control.html">dfm_control()</a></code> settings
+the fit will be given. Add the retained draws' own footprint to the
+estimate; see "Retained draws" below.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -216,6 +224,18 @@ post-hoc rotation and no packed draw matrix, and has <strong>not</strong> been m
 here.</p>
     </div>
     <div class="section level2">
+    <h2 id="retained-draws">Retained draws<a class="anchor" aria-label="anchor" href="#retained-draws"></a></h2>
+    <p><code>keep_draws</code> and <code>keep_factor_draws</code> (<code><a href="dfm_control.html">dfm_control()</a></code>, #110) keep a copy of
+the draws on the fit object. Their cost is added as <strong>arithmetic, not a
+re-calibration</strong>: the eight calibration fits above were measured before
+retained draws existed, so the parameter, nowcast and factor matrices are
+added as one live copy each, at their exact size, rather than being folded
+into the fitted <code>MEM_DRAW_COPIES</code> multiplier. The parameter and nowcast
+matrices are small beside everything else – of the order of a megabyte –
+while the factor paths are <code>length_sample x q(t+s)</code> doubles and are the
+reason <code>keep_factor_draws</code> defaults to <code>FALSE</code>.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="fcast_dfm.html">fcast_dfm()</a></code></p>
 <p>Other model fitting functions:
@@ -229,25 +249,30 @@ here.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># from dimensions</span></span></span>
 <span class="r-in"><span><span class="fu">dfm_memory</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">53</span>, t <span class="op">=</span> <span class="fl">1535</span>, s <span class="op">=</span> <span class="fl">22</span>, q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1545.73</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1547.126</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the whole point: how many workers fit in 24 GB</span></span></span>
 <span class="r-in"><span><span class="fu">dfm_workers</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">53</span>, t <span class="op">=</span> <span class="fl">1535</span>, s <span class="op">=</span> <span class="fl">22</span>, q <span class="op">=</span> <span class="fl">4</span>, length_sample <span class="op">=</span> <span class="fl">500</span>,</span></span>
 <span class="r-in"><span>            available_mb <span class="op">=</span> <span class="fl">24</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 4</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"per_fit_mb")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1959.264</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1961.132</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"available_mb")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 24576</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"budget_mb")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 17203.2</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># keeping the factor-path draws is the one setting that moves the number</span></span></span>
+<span class="r-in"><span><span class="fu">dfm_memory</span><span class="op">(</span>n <span class="op">=</span> <span class="fl">53</span>, t <span class="op">=</span> <span class="fl">1535</span>, s <span class="op">=</span> <span class="fl">22</span>, q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">500</span>,</span></span>
+<span class="r-in"><span>           keep_factor_draws <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1559.774</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># from the data itself</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">data_ch_dataset_test</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">dfm_memory</span><span class="op">(</span>flows <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">flows</span>,</span></span>
 <span class="r-in"><span>           stocks <span class="op">=</span> <span class="va">data_ch_dataset_test</span><span class="op">$</span><span class="va">stocks</span>,</span></span>
 <span class="r-in"><span>           q <span class="op">=</span> <span class="fl">2</span>, length_sample <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 2280.26</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 2282.972</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

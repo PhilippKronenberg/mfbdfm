@@ -1,5 +1,70 @@
 # Changelog
 
+## mfbdfm 0.2.0.9000
+
+- Fits now **keep their posterior draws**, so convergence can be checked
+  after the fact instead of only watched during sampling
+  ([\#110](https://github.com/PhilippKronenberg/mfbdfm/issues/110)).
+  Both samplers already held every retained draw in memory for the whole
+  fit and then averaged and discarded it; the draws are now returned in
+  `fit$draws`, an `mfbdfm_draws` object with a matrix of parameter draws
+  (one column per scalar parameter), the nowcast draws, and optionally
+  the factor paths. Nothing about the sampling changed: no RNG is
+  consumed by storing them, and a fit is bit-identical with `keep_draws`
+  on and off.
+  - [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+    gains `keep_draws` (default `TRUE` – the parameter and nowcast
+    matrices are small), `keep_factor_draws` (default `FALSE` – the
+    factor paths are the one large component) and, for
+    [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+    only, `keep_burn_in`, which retains the burn-in parameter draws so a
+    trace plot can show the chain settling. `keep_burn_in` is
+    deliberately absent from
+    [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+    rather than accepted and ignored: that model identifies post hoc,
+    and a burn-in draw has no rotation reference to be comparable
+    against.
+  - For
+    [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+    the draws are stored **after** rotation and identification, so they
+    are comparable across iterations.
+  - [`print()`](https://rdrr.io/r/base/print.html),
+    [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html),
+    `as.mcmc()` (so the chain can be handed straight to coda) and
+    [`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods;
+    see
+    [`?mfbdfm_draws`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md).
+- New
+  [`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md):
+  effective sample size, the Geweke z-score and, on request, the
+  Heidelberger-Welch tests for every parameter of either fit class, as a
+  tidy data frame whose [`print()`](https://rdrr.io/r/base/print.html)
+  highlights what failed. Single chain, so no R-hat, and the
+  documentation says so rather than computing one from a single chain
+  and leaving it quietly meaningless.
+  - A zero-variance chain is a **normal** outcome in this package –
+    `lambda[target]` is pinned by
+    [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)’s
+    identification, `rho` is held at `1e-9` when
+    `serial_correlation = FALSE`, and the volatility parameters do not
+    exist when `stochastic_volatility = FALSE` – so those rows are
+    reported as `constant` and excluded from the pass/fail count rather
+    than counted as convergence failures.
+- New trace and posterior-density plots over the retained draws, in the
+  package’s ggplot style: `plot(fit$draws)` or
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) on the
+  diagnostics object, which defaults to showing whatever it flagged.
+  Trace left, density right, as in coda’s `plot.mcmc`, with the running
+  mean overlaid, the posterior mean and 95% interval marked, and the
+  burn-in shaded when it was retained.
+- [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md)
+  gains `keep_draws`/`keep_factor_draws`, which add the retained draws’
+  footprint to the estimate. Their cost is arithmetic – one live copy of
+  each matrix at its exact size – not a re-calibration: the eight
+  calibration fits behind the model predate retained draws.
+- coda moves from Suggests to Imports, being load-bearing for an
+  exported function now rather than a plotting nicety.
+
 ## mfbdfm 0.2.0
 
 Tools for reading a fitted model: tables with posterior uncertainty

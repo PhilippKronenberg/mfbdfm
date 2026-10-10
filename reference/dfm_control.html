@@ -15,7 +15,7 @@ exactly."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">mfbdfm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,7 +42,7 @@ exactly."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Numerical and algorithmic settings for the samplers</h1>
-      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/v0.2.0/R/control.R" class="external-link"><code>R/control.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/main/R/control.R" class="external-link"><code>R/control.R</code></a></small>
       <div class="d-none name"><code>dfm_control.Rd</code></div>
     </div>
 
@@ -128,6 +128,43 @@ others cap or reject a draw for numerical stability: <code>phi_sum_max</code> an
 <code>sigma_max</code> in <code><a href="ind_dfm.html">ind_dfm()</a></code>, <code>omega_max</code> in <code><a href="fcast_dfm.html">fcast_dfm()</a></code>.</p>
     </div>
     <div class="section level2">
+    <h2 id="retaining-draws">Retaining draws<a class="anchor" aria-label="anchor" href="#retaining-draws"></a></h2>
+    <p>Both samplers hold every retained draw in memory for the whole fit anyway;
+until #110 they were averaged and discarded when the sampler returned, so a
+fit carried posterior means and no chain. These settings decide what survives
+into the fit object, not what is computed – nothing here consumes RNG, and
+the numbers a fit reports are identical with them on or off.</p>
+<dl><dt><code>keep_draws</code></dt>
+<dd><p>Default <code>TRUE</code>. Stores the parameter and nowcast draws
+in <code>fit$draws</code> (see <a href="mfbdfm_draws.html">mfbdfm_draws</a>), which is what
+<code><a href="mfbdfm_diagnostics.html">mfbdfm_diagnostics()</a></code> and the trace plots read. Small: one row per
+retained draw and one column per scalar parameter, plus one column per
+nowcast period – a few hundred kilobytes for a typical chain.</p></dd>
+
+<dt><code>keep_factor_draws</code></dt>
+<dd><p>Default <code>FALSE</code>, because this is the one large
+component: <code>length_sample x (t+s) x q</code> doubles, which at 1000 draws of a
+weekly 30-year sample is of the order of 10 MB per factor. On for the
+posterior of any functional of the factor path.</p></dd>
+
+<dt><code>keep_burn_in</code></dt>
+<dd><p>Default <code>FALSE</code>, <strong><code><a href="ind_dfm.html">ind_dfm()</a></code> only</strong>. Retains the
+burn-in <em>parameter</em> draws as well, so a trace plot can show the chain
+settling rather than starting at the first kept draw.</p></dd>
+
+
+</dl><p><code>keep_burn_in</code> is absent from <code><a href="fcast_dfm.html">fcast_dfm()</a></code> deliberately, rather than
+accepted and ignored. That model identifies post hoc: a draw is comparable
+with other draws only after the rotation step has mapped it onto a
+reference computed from the <em>retained</em> draws, and a burn-in draw has no such
+reference. Rotating the burn-in too would either move that reference – and so
+change the results – or cost an extra optimisation per burn-in draw, while
+storing it unrotated would put a non-comparable series on a trace plot. Naming
+a setting the chosen model does not have is an error, as with <code>phi_sum_max</code>
+and <code>omega_max</code>; the parity rule is about the same <em>concept</em> in both models,
+and this concept does not exist there.</p>
+    </div>
+    <div class="section level2">
     <h2 id="verbosity">Verbosity<a class="anchor" aria-label="anchor" href="#verbosity"></a></h2>
     <p><code>verbose = FALSE</code> silences both the progress <code><a href="https://rdrr.io/r/base/message.html" class="external-link">message()</a></code>s and the
 <code><a href="https://rdrr.io/r/utils/txtProgressBar.html" class="external-link">utils::txtProgressBar</a></code>. The progress bar writes with <code><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat()</a></code>, so
@@ -173,7 +210,7 @@ Tracking economic activity with alternative high-frequency data.
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="ind_dfm.html">ind_dfm()</a></code>, <code><a href="fcast_dfm.html">fcast_dfm()</a></code>, <code><a href="dfm_priors.html">dfm_priors()</a></code></p>
+    <div class="dont-index"><p><code><a href="ind_dfm.html">ind_dfm()</a></code>, <code><a href="fcast_dfm.html">fcast_dfm()</a></code>, <code><a href="dfm_priors.html">dfm_priors()</a></code>, <a href="mfbdfm_draws.html">mfbdfm_draws</a></p>
 <p>Other model specification:
 <code><a href="dfm_priors.html">dfm_priors()</a></code></p></div>
     </div>
@@ -189,6 +226,8 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   omega_max                1         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_criterion       "mean"    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_tol             1e-09     </span>
@@ -210,6 +249,8 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   omega_max                1         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_criterion       "sum"       (default "mean")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_tol             1e-09     </span>
@@ -228,6 +269,8 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   omega_max                1         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_criterion       "sum"       (default "mean")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_tol             1e-10       (default 1e-09)</span>
@@ -244,8 +287,11 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                10          (default 5)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             FALSE     </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># silence the messages and the progress bar</span></span></span>
 <span class="r-in"><span><span class="fu">dfm_control</span><span class="op">(</span><span class="st">"ind_dfm"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
@@ -257,8 +303,27 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  FALSE       (default TRUE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                5         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             FALSE     </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># keep the factor-path draws too, and the burn-in, for trace plots</span></span></span>
+<span class="r-in"><span><span class="fu">dfm_control</span><span class="op">(</span><span class="st">"ind_dfm"</span>, keep_factor_draws <span class="op">=</span> <span class="cn">TRUE</span>, keep_burn_in <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Control settings for ind_dfm()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max                  0.99      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max_tries            10        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_fallback             0.98      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        TRUE        (default FALSE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                5         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             TRUE        (default FALSE)</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

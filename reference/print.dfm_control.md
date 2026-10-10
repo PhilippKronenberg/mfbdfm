@@ -37,6 +37,8 @@ dfm_control("fcast_dfm", strict = TRUE)
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
 #>   verbose                  TRUE      
+#>   keep_draws               TRUE      
+#>   keep_factor_draws        FALSE     
 #>   omega_max                1         
 #>   rotation_criterion       "sum"       (default "mean")
 #>   rotation_tol             1e-09     

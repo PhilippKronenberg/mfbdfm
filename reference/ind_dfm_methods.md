@@ -378,6 +378,7 @@ fit
 #> logLik()
 #> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),
 #> mfbdfm_table_nowcast()
+#> Draws: $draws, mfbdfm_diagnostics()
 coef(fit)
 #> ch.fso.rtt.ind.r.noga0801.sa     ch.ozd.e.wa.index.re.d11 
 #>                    0.1152140                    0.6717300 

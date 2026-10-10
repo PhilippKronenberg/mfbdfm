@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mfbdfm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,9 +34,26 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/v0.2.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0.9000" id="mfbdfm-0209000">mfbdfm 0.2.0.9000<a class="anchor" aria-label="anchor" href="#mfbdfm-0209000"></a></h2>
+<ul><li>Fits now <strong>keep their posterior draws</strong>, so convergence can be checked after the fact instead of only watched during sampling (<a href="https://github.com/PhilippKronenberg/mfbdfm/issues/110" class="external-link">#110</a>). Both samplers already held every retained draw in memory for the whole fit and then averaged and discarded it; the draws are now returned in <code>fit$draws</code>, an <code>mfbdfm_draws</code> object with a matrix of parameter draws (one column per scalar parameter), the nowcast draws, and optionally the factor paths. Nothing about the sampling changed: no RNG is consumed by storing them, and a fit is bit-identical with <code>keep_draws</code> on and off.
+<ul><li>
+<code><a href="../reference/dfm_control.html">dfm_control()</a></code> gains <code>keep_draws</code> (default <code>TRUE</code> – the parameter and nowcast matrices are small), <code>keep_factor_draws</code> (default <code>FALSE</code> – the factor paths are the one large component) and, for <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code> only, <code>keep_burn_in</code>, which retains the burn-in parameter draws so a trace plot can show the chain settling. <code>keep_burn_in</code> is deliberately absent from <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> rather than accepted and ignored: that model identifies post hoc, and a burn-in draw has no rotation reference to be comparable against.</li>
+<li>For <code><a href="../reference/fcast_dfm.html">fcast_dfm()</a></code> the draws are stored <strong>after</strong> rotation and identification, so they are comparable across iterations.</li>
+<li>
+<code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>, <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>, <code>as.mcmc()</code> (so the chain can be handed straight to coda) and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> methods; see <code><a href="../reference/mfbdfm_draws.html">?mfbdfm_draws</a></code>.</li>
+</ul></li>
+<li>New <code><a href="../reference/mfbdfm_diagnostics.html">mfbdfm_diagnostics()</a></code>: effective sample size, the Geweke z-score and, on request, the Heidelberger-Welch tests for every parameter of either fit class, as a tidy data frame whose <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> highlights what failed. Single chain, so no R-hat, and the documentation says so rather than computing one from a single chain and leaving it quietly meaningless.
+<ul><li>A zero-variance chain is a <strong>normal</strong> outcome in this package – <code>lambda[target]</code> is pinned by <code><a href="../reference/ind_dfm.html">ind_dfm()</a></code>’s identification, <code>rho</code> is held at <code>1e-9</code> when <code>serial_correlation = FALSE</code>, and the volatility parameters do not exist when <code>stochastic_volatility = FALSE</code> – so those rows are reported as <code>constant</code> and excluded from the pass/fail count rather than counted as convergence failures.</li>
+</ul></li>
+<li>New trace and posterior-density plots over the retained draws, in the package’s ggplot style: <code>plot(fit$draws)</code> or <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> on the diagnostics object, which defaults to showing whatever it flagged. Trace left, density right, as in coda’s <code>plot.mcmc</code>, with the running mean overlaid, the posterior mean and 95% interval marked, and the burn-in shaded when it was retained.</li>
+<li>
+<code><a href="../reference/dfm_memory.html">dfm_memory()</a></code> gains <code>keep_draws</code>/<code>keep_factor_draws</code>, which add the retained draws’ footprint to the estimate. Their cost is arithmetic – one live copy of each matrix at its exact size – not a re-calibration: the eight calibration fits behind the model predate retained draws.</li>
+<li>coda moves from Suggests to Imports, being load-bearing for an exported function now rather than a plotting nicety.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="mfbdfm-020">mfbdfm 0.2.0<a class="anchor" aria-label="anchor" href="#mfbdfm-020"></a></h2>
 <p>Tools for reading a fitted model: tables with posterior uncertainty (<code>mfbdfm_table_*()</code>), per-series contributions to the factor and nowcast (<code><a href="../reference/mfbdfm_contributions.html">mfbdfm_contributions()</a></code>), a nowcast accessor (<code><a href="../reference/mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code>), six ggplot views of a fit, per-series R-squared in <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code>/<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>/ <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code>, and Bai-Ng factor-count selection (<code><a href="../reference/select_factors.html">select_factors()</a></code>). Also a small self-contained example dataset with the GDP target (<code>mfbdfm_example_data</code>), quiet fits and classed warnings for scripted sweeps, and a precomputed applied vignette alongside a new methodology vignette.</p>

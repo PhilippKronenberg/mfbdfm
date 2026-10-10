@@ -15,7 +15,7 @@ nowcasts are derived for every input series."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">mfbdfm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,7 +42,7 @@ nowcasts are derived for every input series."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Estimate a multi-factor mixed-frequency dynamic factor model</h1>
-      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/v0.2.0/R/fcast_dfm.R" class="external-link"><code>R/fcast_dfm.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/main/R/fcast_dfm.R" class="external-link"><code>R/fcast_dfm.R</code></a></small>
       <div class="d-none name"><code>fcast_dfm.Rd</code></div>
     </div>
 
@@ -190,7 +190,8 @@ nowcast for <code>target</code>, extracted from <code>ncst</code>.</p></dd>
 quantiles – for <code>lambda</code>, <code>phi</code>, <code>sigma</code>, <code>rho</code> and <code>h</code>, read out of
 the rotated draws at fit time. The posterior <em>mean</em> stays in <code>pars</code>,
 so the two cannot disagree. There is deliberately no <code>omega</code> entry:
-<code>omega</code> is drawn here but not retained. Used by
+<code>omega</code> is drawn here but not packed into the rotated draws these
+summaries are read from (its draws are in <code>draws</code>). Used by
 <code><a href="mfbdfm_table_loadings.html">mfbdfm_table_loadings()</a></code> and <code><a href="mfbdfm_table_parameters.html">mfbdfm_table_parameters()</a></code>.</p></dd>
 
 <dt>ncst</dt>
@@ -225,6 +226,12 @@ inspection: <code>nowcast</code> (a data frame of <code>time</code>, <code>obser
 <code>lower</code>, <code>upper</code> at the target's own frequency) and
 <code>high_frequency</code> (the same columns for the high-frequency growth
 estimate). See <a href="fcast_dfm_methods.html">fcast_dfm_methods</a>.</p></dd>
+
+<dt>draws</dt>
+<dd><p>The retained posterior draws, <strong>after rotation and
+identification</strong> (see <a href="mfbdfm_draws.html">mfbdfm_draws</a>), or <code>NULL</code> with
+<code>keep_draws = FALSE</code> in <code><a href="dfm_control.html">dfm_control()</a></code>. Present by default; this is
+what <code><a href="mfbdfm_diagnostics.html">mfbdfm_diagnostics()</a></code> reads.</p></dd>
 
 <dt>call</dt>
 <dd><p>The matched call.</p></dd>
@@ -354,6 +361,7 @@ Switzerland. <em>Swiss Journal of Economics and Statistics</em>, 162, 10.
 <span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_nowcast() for the target's nowcasts</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_table_nowcast()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Draws: $draws, mfbdfm_diagnostics()</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

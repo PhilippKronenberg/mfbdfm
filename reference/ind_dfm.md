@@ -179,6 +179,16 @@ An object of class `"ind_dfm"`: a list with components
   Data frame describing the series (see
   [`create_inventory()`](https://philippkronenberg.github.io/mfbdfm/reference/create_inventory.md)).
 
+- draws:
+
+  The retained posterior draws (see
+  [mfbdfm_draws](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md)),
+  or `NULL` with `keep_draws = FALSE` in
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md).
+  Present by default; this is what
+  [`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
+  reads.
+
 - call:
 
   The matched call.
@@ -229,7 +239,9 @@ for the multi-factor model,
 [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
 to vary the priors,
 [`mfbdfm_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_nowcast.md)
-to extract the nowcasts from the fit, and
+to extract the nowcasts from the fit,
+[`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
+for convergence diagnostics over the retained draws, and
 [ind_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
 for the `print`, `summary`, `plot`, `coef`, `fitted`, `residuals` and
 `as.data.frame` methods.

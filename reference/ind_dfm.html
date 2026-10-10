@@ -17,7 +17,7 @@ weekly GDP nowcasts are derived."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">mfbdfm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,7 +44,7 @@ weekly GDP nowcasts are derived."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Estimate a single-factor, target-anchored dynamic factor model</h1>
-      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/v0.2.0/R/ind_dfm.R" class="external-link"><code>R/ind_dfm.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/PhilippKronenberg/mfbdfm/blob/main/R/ind_dfm.R" class="external-link"><code>R/ind_dfm.R</code></a></small>
       <div class="d-none name"><code>ind_dfm.Rd</code></div>
     </div>
 
@@ -207,6 +207,11 @@ there for which blocks are present and why.</p></dd>
 <dd><p>Data frame describing the series (see
 <code><a href="create_inventory.html">create_inventory()</a></code>).</p></dd>
 
+<dt>draws</dt>
+<dd><p>The retained posterior draws (see <a href="mfbdfm_draws.html">mfbdfm_draws</a>), or
+<code>NULL</code> with <code>keep_draws = FALSE</code> in <code><a href="dfm_control.html">dfm_control()</a></code>. Present by
+default; this is what <code><a href="mfbdfm_diagnostics.html">mfbdfm_diagnostics()</a></code> reads.</p></dd>
+
 <dt>call</dt>
 <dd><p>The matched call.</p></dd>
 
@@ -251,9 +256,10 @@ Tracking economic activity with alternative high-frequency data.
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="fcast_dfm.html">fcast_dfm()</a></code> for the multi-factor model, <code><a href="dfm_priors.html">dfm_priors()</a></code> to vary
-the priors, <code><a href="mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code> to extract the nowcasts from the fit, and
-<a href="ind_dfm_methods.html">ind_dfm_methods</a> for the <code>print</code>, <code>summary</code>, <code>plot</code>, <code>coef</code>, <code>fitted</code>,
-<code>residuals</code> and <code>as.data.frame</code> methods.</p>
+the priors, <code><a href="mfbdfm_nowcast.html">mfbdfm_nowcast()</a></code> to extract the nowcasts from the fit,
+<code><a href="mfbdfm_diagnostics.html">mfbdfm_diagnostics()</a></code> for convergence diagnostics over the retained
+draws, and <a href="ind_dfm_methods.html">ind_dfm_methods</a> for the <code>print</code>, <code>summary</code>, <code>plot</code>, <code>coef</code>,
+<code>fitted</code>, <code>residuals</code> and <code>as.data.frame</code> methods.</p>
 <p>Other model fitting functions:
 <code><a href="dfm_memory.html">dfm_memory()</a></code>,
 <code><a href="fcast_dfm.html">fcast_dfm()</a></code>,

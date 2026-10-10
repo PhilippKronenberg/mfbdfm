@@ -151,7 +151,8 @@ An object of class `"fcast_dfm"`: a list with components
   `lambda`, `phi`, `sigma`, `rho` and `h`, read out of the rotated draws
   at fit time. The posterior *mean* stays in `pars`, so the two cannot
   disagree. There is deliberately no `omega` entry: `omega` is drawn
-  here but not retained. Used by
+  here but not packed into the rotated draws these summaries are read
+  from (its draws are in `draws`). Used by
   [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md)
   and
   [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md).
@@ -195,6 +196,17 @@ An object of class `"fcast_dfm"`: a list with components
   target's own frequency) and `high_frequency` (the same columns for the
   high-frequency growth estimate). See
   [fcast_dfm_methods](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm_methods.md).
+
+- draws:
+
+  The retained posterior draws, **after rotation and identification**
+  (see
+  [mfbdfm_draws](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md)),
+  or `NULL` with `keep_draws = FALSE` in
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md).
+  Present by default; this is what
+  [`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
+  reads.
 
 - call:
 
@@ -346,5 +358,6 @@ fit
 #> mfbdfm_nowcast() for the target's nowcasts
 #> Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),
 #> mfbdfm_table_nowcast()
+#> Draws: $draws, mfbdfm_diagnostics()
 # }
 ```

@@ -142,3 +142,7 @@ Useful links:
 
 **Maintainer**: Philipp Kronenberg <philippkronenberg@gmx.ch>
 \[copyright holder\]
+
+Authors:
+
+- Philipp Kronenberg <philippkronenberg@gmx.ch> \[copyright holder\]

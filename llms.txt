@@ -483,6 +483,22 @@ contributions.
   [`plot(`*`<mfbdfm_contributions>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)
   : Contribution of each input series to the factor and to the nowcast
 
+## Posterior draws & convergence diagnostics
+
+The retained MCMC draws a fit carries, the single-chain convergence
+statistics computed from them, and the trace and posterior-density plots
+that go with both.
+
+- [`print(`*`<mfbdfm_draws>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md)
+  [`as.data.frame(`*`<mfbdfm_draws>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md)
+  [`as.mcmc(`*`<mfbdfm_draws>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md)
+  [`plot(`*`<mfbdfm_draws>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md)
+  : Retained posterior draws of a fitted model
+- [`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
+  [`print(`*`<mfbdfm_diagnostics>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
+  [`plot(`*`<mfbdfm_diagnostics>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
+  : MCMC convergence diagnostics for a fitted model
+
 ## Tables from a fitted model
 
 Table-ready summaries of a fit – loadings, parameters and the nowcast,
