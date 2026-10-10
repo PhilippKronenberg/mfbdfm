@@ -206,3 +206,62 @@ make_synth_factor_panel <- function(q = 2, n = 20, t = 200, freq = 12,
        stocks = series[(n %/% 2 + 1):n],
        factors = stats::ts(f, start = c(2000, 1), frequency = freq))
 }
+
+# A panel with more series than time points (G5.8d). For a factor model this is
+# the normal case rather than an absurd one - the whole point is to summarise
+# many series with few factors - so it has to fit, not error. Deliberately
+# short in time: a quarterly target plus monthly indicators, so the aligned
+# high-frequency grid has t_months rows against n_series + 1 columns.
+make_synth_wide_panel <- function(n_series = 30, t_months = 24, seed = 5) {
+  set.seed(seed)
+  flows <- list(gdp = stats::ts(rnorm(t_months %/% 3, 0.4, 0.5),
+                                start = c(2014, 1), frequency = 4))
+  for (i in seq_len(n_series)) {
+    flows[[paste0("m", i)]] <- stats::ts(rnorm(t_months), start = c(2014, 1),
+                                         frequency = 12)
+  }
+  list(flows = flows, target = "gdp")
+}
+
+# Every component of a fit that a user reads off the top level and would never
+# expect to carry NA/NaN/Inf (G5.3). `data_raw` is excluded on purpose: it is
+# the input as supplied, missings and all.
+expect_all_finite <- function(fit, components) {
+  for (nm in components) {
+    x <- fit[[nm]]
+    testthat::expect_false(is.null(x), label = paste0("fit$", nm, " exists"))
+    testthat::expect_true(all(is.finite(as.numeric(unlist(x)))),
+                          label = paste0("fit$", nm, " is entirely finite"))
+  }
+}
+
+# Pairwise correlations between every pair in a list of numeric vectors.
+pairwise_cor <- function(v) {
+  ij <- utils::combn(length(v), 2)
+  apply(ij, 2, function(k) stats::cor(v[[k[1]]], v[[k[2]]]))
+}
+
+# Match the columns of two factor matrices and return the matched absolute
+# correlations. Factors are identified only up to rotation and sign, so the
+# rule is the one analysis/fcast/6_factor_plot_fcast.R uses: pair each column
+# of `a` with whichever column of `b` it correlates with most strongly in
+# absolute value, greedily and without reuse.
+align_factors <- function(a, b) {
+  a <- as.matrix(a); b <- as.matrix(b)
+  C <- abs(stats::cor(a, b))
+  used <- integer(0)
+  vapply(seq_len(ncol(a)), function(i) {
+    j <- setdiff(order(C[i, ], decreasing = TRUE), used)[1]
+    used <<- c(used, j)
+    C[i, j]
+  }, numeric(1))
+}
+
+# Perturb every series by noise of .Machine$double.eps scale (G5.9a). Relative
+# rather than absolute, so the perturbation lands in the last couple of bits of
+# each observation whatever its magnitude.
+jitter_double_eps <- function(series) {
+  lapply(series, function(x)
+    x + stats::ts(.Machine$double.eps * abs(x) * 10,
+                  start = stats::start(x), frequency = stats::frequency(x)))
+}

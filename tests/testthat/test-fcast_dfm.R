@@ -173,3 +173,172 @@ test_that("the rotation cap warning is classed and muffleable (BS2.14)", {
     run(),
     mfbdfm_warning_rotation_cap = function(w) invokeRestart("muffleWarning")))
 })
+
+
+test_that("fcast_dfm drops a degenerate series and errors on a degenerate target (G5.8c)", {
+
+  # the parity half of the same test in test-ind_dfm.R: the screen lives in
+  # R/validate.R precisely so both entry points behave identically here
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  flows$flat <- stats::ts(rep(2, length(flows$SWISSMI)),
+                          start = stats::start(flows$SWISSMI),
+                          frequency = stats::frequency(flows$SWISSMI))
+  stocks$blank <- stats::ts(rep(NA_real_, length(stocks[[1]])),
+                            start = stats::start(stocks[[1]]),
+                            frequency = stats::frequency(stocks[[1]]))
+
+  run <- function(fl = flows, st = stocks, q = 2){
+    set.seed(5)
+    fcast_dfm(flows = fl, stocks = st, target = target, q = q,
+              length_sample = 8, burn_in = 4, plots = FALSE,
+              control = dfm_control("fcast_dfm", verbose = FALSE))
+  }
+
+  # the short chain also trips the rotation cap; muffle just that one, so the
+  # dropped-series warning is the only one left for expect_warning() to see
+  run_quiet <- function(...){
+    withCallingHandlers(
+      run(...),
+      mfbdfm_warning_rotation_cap = function(w) invokeRestart("muffleWarning"),
+      mfbdfm_warning_rho_fallback = function(w) invokeRestart("muffleWarning"))
+  }
+
+  w <- expect_warning(fit <- run_quiet(),
+                      class = "mfbdfm_warning_dropped_series")
+  expect_match(conditionMessage(w), "flat")
+  expect_match(conditionMessage(w), "blank")
+
+  expect_s3_class(fit, "fcast_dfm")
+  expect_false(any(c("flat", "blank") %in% fit$inventory$key))
+  expect_false(any(is.na(fit$inventory$sd)))
+
+  flat_target <- flows
+  flat_target[[target]] <- stats::ts(rep(1, length(flows[[target]])),
+                                     start = stats::start(flows[[target]]),
+                                     frequency = stats::frequency(flows[[target]]))
+  expect_error(suppressWarnings(run(flat_target)),
+               "nothing for the factor to track")
+
+  # q is re-checked against what survives the screen, not against the panel as
+  # supplied - dropping two of four series here leaves fewer than q factors
+  expect_error(suppressWarnings(run(flows[c(target, "flat")], stocks["blank"],
+                                    q = 2)),
+               "survived the degenerate-series screen")
+})
+
+
+test_that("fcast_dfm fits a panel with more series than observations (G5.8d)", {
+
+  wide <- make_synth_wide_panel()
+
+  set.seed(5)
+  fit <- suppressMessages(suppressWarnings(
+    fcast_dfm(flows = wide$flows, target = wide$target, q = 2,
+              length_sample = 8, burn_in = 4, plots = FALSE,
+              control = dfm_control("fcast_dfm", verbose = FALSE))))
+
+  expect_s3_class(fit, "fcast_dfm")
+  expect_gt(nrow(fit$inventory), nrow(fit$factor))
+  expect_true(all(is.finite(fit$nowcast)))
+  expect_true(all(is.finite(fit$factor)))
+})
+
+
+test_that("the headline components of a fcast_dfm fit carry no NA/NaN/Inf (G5.3)", {
+
+  fit <- run_small_fcast(42)
+
+  expect_all_finite(fit, c("factor", "factor_var", "nowcast", "nowcast_var"))
+  expect_all_finite(fit$ncst, c("mean", "var"))
+  expect_all_finite(fit$pars, c("lambda", "phi", "sigma", "rho", "h"))
+  expect_all_finite(fit$inventory, c("freq", "mean", "sd"))
+})
+
+
+# Reproducibility across seeds and under input noise (G5.9a, G5.9b). Same
+# construction as in test-ind_dfm.R, same measurement settings (seeds 1:5,
+# length_sample = 300, burn_in = 100, data_ch_dataset_test from 2019), and the
+# numbers below are the ones recorded in ?fcast_dfm.
+#
+# The factors and the loadings agree far less well here than in ind_dfm(), and
+# that is the documented behaviour rather than a defect: this model samples an
+# unidentified system and resolves the rotation afterwards, and the post-hoc
+# rotation is not unique across runs (#46). The nowcast, which is invariant to
+# the rotation, agrees as closely as ind_dfm()'s.
+fcast_seed_fits <- function(seeds = 1:5, flows, stocks, target, q = 2,
+                            length_sample = 300, burn_in = 100) {
+  lapply(seeds, function(s) {
+    set.seed(s)
+    suppressMessages(suppressWarnings(
+      fcast_dfm(flows = flows, stocks = stocks, target = target, q = q,
+                length_sample = length_sample, burn_in = burn_in,
+                control = dfm_control("fcast_dfm", verbose = FALSE))))
+  })
+}
+
+fcast_seed_data <- function() {
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  list(target = target,
+       flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI", "FINANSW")],
+                      stats::window, start = 2019),
+       stocks = lapply(data_ch_dataset_test$stocks[c("SWCONPRCE", "VIX")],
+                       stats::window, start = 2019))
+}
+
+
+test_that("fcast_dfm agrees across seeds to the documented tolerance (G5.9b)", {
+
+  skip_if_not(identical(Sys.getenv("MFBDFM_EXTENDED_TESTS"), "true"))
+
+  d <- fcast_seed_data()
+  fits <- fcast_seed_fits(flows = d$flows, stocks = d$stocks, target = d$target)
+
+  # measured: 0.9982 to 1.0000
+  expect_gte(min(pairwise_cor(lapply(fits, function(x) as.numeric(x$nowcast)))),
+             0.99)
+
+  ij <- utils::combn(length(fits), 2)
+
+  # measured: 0.5732 to 0.9388, after matching factors by absolute correlation
+  fa <- apply(ij, 2, function(k)
+    align_factors(fits[[k[1]]]$factor, fits[[k[2]]]$factor))
+  expect_gte(min(fa), 0.55)
+
+  # measured: 0.6344 to 0.9962. The loadings are permuted onto a common order
+  # by the factor correlations first, since a permuted rotation permutes the
+  # loading columns with it.
+  la <- apply(ij, 2, function(k) {
+    A <- fits[[k[1]]]$pars$lambda; B <- fits[[k[2]]]$pars$lambda
+    C <- abs(stats::cor(as.matrix(fits[[k[1]]]$factor),
+                        as.matrix(fits[[k[2]]]$factor)))
+    perm <- apply(C, 1, which.max)
+    if (anyDuplicated(perm)) perm <- seq_len(ncol(A))
+    vapply(seq_len(ncol(A)),
+           function(j) abs(stats::cor(A[, j], B[, perm[j]])), numeric(1))
+  })
+  expect_gte(min(la), 0.60)
+})
+
+
+test_that("fcast_dfm is insensitive to double.eps-scale input noise (G5.9a)", {
+
+  skip_if_not(identical(Sys.getenv("MFBDFM_EXTENDED_TESTS"), "true"))
+
+  d <- fcast_seed_data()
+  plain <- fcast_seed_fits(1, d$flows, d$stocks, d$target)[[1]]
+  noised <- fcast_seed_fits(1, jitter_double_eps(d$flows),
+                            jitter_double_eps(d$stocks), d$target)[[1]]
+
+  # measured: max absolute nowcast difference 1.53e-16, and both factors
+  # matched at correlation 1 to within printing
+  expect_lt(max(abs(plain$nowcast - noised$nowcast)), 1e-10)
+  expect_gt(stats::cor(as.numeric(plain$nowcast), as.numeric(noised$nowcast)),
+            1 - 1e-9)
+  expect_true(all(align_factors(plain$factor, noised$factor) > 1 - 1e-9))
+})

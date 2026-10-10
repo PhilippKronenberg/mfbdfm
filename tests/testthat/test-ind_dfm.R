@@ -308,3 +308,157 @@ test_that("the error-table machinery tabulates errors by horizon", {
   expect_gt(wai$RMSE[3], wai$RMSE[1])
   expect_gt(sqrt(mean(wai$RMSE[2:3]^2)), wai$RMSE[1])
 })
+
+
+test_that("ind_dfm drops a degenerate series and errors on a degenerate target (G5.8c)", {
+
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+
+  # a constant and an all-missing series, both well-formed and both impossible
+  # to standardize: create_inventory() would divide by 0 and by NA
+  flows$flat <- stats::ts(rep(2, length(flows$SWISSMI)),
+                          start = stats::start(flows$SWISSMI),
+                          frequency = stats::frequency(flows$SWISSMI))
+  stocks$blank <- stats::ts(rep(NA_real_, length(stocks[[1]])),
+                            start = stats::start(stocks[[1]]),
+                            frequency = stats::frequency(stocks[[1]]))
+
+  run <- function(fl = flows, st = stocks){
+    set.seed(5)
+    ind_dfm(flows = fl, stocks = st, target = target,
+            length_sample = 6, burn_in = 2, plots = FALSE,
+            control = dfm_control("ind_dfm", verbose = FALSE))
+  }
+
+  w <- expect_warning(fit <- run(), class = "mfbdfm_warning_dropped_series")
+  expect_match(conditionMessage(w), "flat")
+  expect_match(conditionMessage(w), "blank")
+
+  # the fit goes ahead on the surviving panel, and the dropped series are
+  # absent from the inventory rather than present with an NaN sd
+  expect_s3_class(fit, "ind_dfm")
+  expect_false(any(c("flat", "blank") %in% fit$inventory$key))
+  expect_false(any(is.na(fit$inventory$sd)))
+
+  # and the result is the one you get by dropping them yourself
+  set.seed(5)
+  ref <- suppressWarnings(run(flows[c(target, "SWISSMI")], stocks[1:2]))
+  expect_equal(fit$nowcast, ref$nowcast)
+
+  # the target is the exception: there is no model left without it
+  flat_target <- flows
+  flat_target[[target]] <- stats::ts(rep(1, length(flows[[target]])),
+                                     start = stats::start(flows[[target]]),
+                                     frequency = stats::frequency(flows[[target]]))
+  expect_error(suppressWarnings(run(flat_target)),
+               "nothing for the factor to track")
+})
+
+
+test_that("ind_dfm fits a panel with more series than observations (G5.8d)", {
+
+  # n > t is the normal case for a factor model, not an edge case to reject
+  wide <- make_synth_wide_panel()
+
+  set.seed(5)
+  fit <- suppressMessages(
+    ind_dfm(flows = wide$flows, target = wide$target,
+            length_sample = 12, burn_in = 4, plots = FALSE,
+            control = dfm_control("ind_dfm", verbose = FALSE)))
+
+  expect_s3_class(fit, "ind_dfm")
+  expect_gt(ncol(fit$data), nrow(fit$data))
+  expect_true(all(is.finite(fit$nowcast)))
+  expect_true(all(is.finite(fit$factor)))
+})
+
+
+test_that("the headline components of an ind_dfm fit carry no NA/NaN/Inf (G5.3)", {
+
+  fit <- run_small_ind_dfm(42)
+
+  expect_all_finite(fit, c("factor", "factor_var", "factor_std", "index",
+                           "nowcast", "nowcast_var", "data", "data_augmented"))
+  expect_all_finite(fit$pars, c("h", "lambda", "phi", "sigma", "omega", "rho",
+                                "rho_var"))
+  expect_all_finite(fit$inventory, c("freq", "mean", "sd"))
+})
+
+
+# Reproducibility across seeds and under input noise (G5.9a, G5.9b).
+#
+# These are quantified tolerances, not pass/fail claims of "no difference".
+# The thresholds below sit just under the worst value measured on five seeds
+# (1:5) at length_sample = 300, burn_in = 100, on data_ch_dataset_test
+# windowed from 2019 - the same numbers recorded in ?ind_dfm. An MCMC chain is
+# not bit-reproducible across BLAS implementations, so the measurement is
+# platform-dependent in the same way dev/baseline.R is; treat a miss as a
+# reason to re-measure and update both places, not as a silent failure.
+#
+# Behind the extended-test switch because five chains of 400 iterations is
+# ~90 s, which the default suite's budget does not have room for.
+ind_seed_fits <- function(seeds = 1:5, flows, stocks, target,
+                          length_sample = 300, burn_in = 100) {
+  lapply(seeds, function(s) {
+    set.seed(s)
+    suppressMessages(suppressWarnings(
+      ind_dfm(flows = flows, stocks = stocks, target = target,
+              length_sample = length_sample, burn_in = burn_in,
+              control = dfm_control("ind_dfm", verbose = FALSE))))
+  })
+}
+
+ind_seed_data <- function() {
+  data(data_ch_dataset_test, envir = environment())
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  list(target = target,
+       flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI", "FINANSW")],
+                      stats::window, start = 2019),
+       stocks = lapply(data_ch_dataset_test$stocks[c("SWCONPRCE", "VIX")],
+                       stats::window, start = 2019))
+}
+
+
+test_that("ind_dfm agrees across seeds to the documented tolerance (G5.9b)", {
+
+  skip_if_not(identical(Sys.getenv("MFBDFM_EXTENDED_TESTS"), "true"))
+
+  d <- ind_seed_data()
+  fits <- ind_seed_fits(flows = d$flows, stocks = d$stocks, target = d$target)
+
+  # measured: 0.9868 to 1.0000
+  expect_gte(min(pairwise_cor(lapply(fits, function(x) as.numeric(x$nowcast)))),
+             0.98)
+  # measured: 0.9502 to 0.9875. The weekly factor is the least pinned down of
+  # the three, which is why it gets the loosest bound.
+  expect_gte(min(pairwise_cor(lapply(fits, function(x) as.numeric(x$factor)))),
+             0.94)
+  # measured: 0.9936 to 0.9997. Includes the target's loading, which the
+  # identifying restriction fixes at 1 and which therefore agrees exactly.
+  expect_gte(min(pairwise_cor(lapply(fits, function(x) as.numeric(x$pars$lambda)))),
+             0.99)
+})
+
+
+test_that("ind_dfm is insensitive to double.eps-scale input noise (G5.9a)", {
+
+  skip_if_not(identical(Sys.getenv("MFBDFM_EXTENDED_TESTS"), "true"))
+
+  d <- ind_seed_data()
+  plain <- ind_seed_fits(1, d$flows, d$stocks, d$target)[[1]]
+  noised <- ind_seed_fits(1, jitter_double_eps(d$flows),
+                          jitter_double_eps(d$stocks), d$target)[[1]]
+
+  # measured: correlation 1 to within printing, max absolute nowcast
+  # difference 1.53e-16. Six orders of headroom on both, because the size of
+  # the propagated perturbation is itself platform-dependent.
+  expect_lt(max(abs(plain$nowcast - noised$nowcast)), 1e-10)
+  expect_gt(stats::cor(as.numeric(plain$factor), as.numeric(noised$factor)),
+            1 - 1e-9)
+  expect_gt(stats::cor(as.numeric(plain$nowcast), as.numeric(noised$nowcast)),
+            1 - 1e-9)
+})
