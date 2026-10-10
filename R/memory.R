@@ -100,6 +100,19 @@
 #' post-hoc rotation and no packed draw matrix, and has **not** been measured
 #' here.
 #'
+#' # Retained draws
+#'
+#' `keep_draws` and `keep_factor_draws` ([dfm_control()], #110) keep a copy of
+#' the draws on the fit object. Their cost is added as **arithmetic, not a
+#' re-calibration**: the eight calibration fits above were measured before
+#' retained draws existed, so the parameter, nowcast and factor matrices are
+#' added as one live copy each, at their exact size, rather than being folded
+#' into the fitted `MEM_DRAW_COPIES` multiplier. The parameter and nowcast
+#' matrices are small beside everything else -- of the order of a megabyte --
+#' while the factor paths are `length_sample x q(t+s)` doubles and are the
+#' reason `keep_factor_draws` defaults to `FALSE`.
+#'
+
 #' @param flows,stocks Named lists of `ts` objects, or an [mfbdfm_data()] object
 #'   as `flows`. Supply these to have the dimensions derived from the data. If
 #'   `NULL`, give `n`, `t` and `s` directly.
@@ -117,6 +130,9 @@
 #'   Lengthens the sample the sampler sees and so the memory it needs.
 #' @param frequency Integer, observations per year of the highest-frequency
 #'   series, used with `extend`. Derived from the data when supplied.
+#' @param keep_draws,keep_factor_draws Logical, the [dfm_control()] settings
+#'   the fit will be given. Add the retained draws' own footprint to the
+#'   estimate; see "Retained draws" below.
 #'
 #' @return `dfm_memory()`: estimated peak memory for one fit, in MB (numeric,
 #'   length 1). `dfm_workers()`: the number of workers (integer, length 1, at
@@ -129,6 +145,10 @@
 #' # the whole point: how many workers fit in 24 GB
 #' dfm_workers(n = 53, t = 1535, s = 22, q = 4, length_sample = 500,
 #'             available_mb = 24 * 1024)
+#'
+#' # keeping the factor-path draws is the one setting that moves the number
+#' dfm_memory(n = 53, t = 1535, s = 22, q = 2, length_sample = 500,
+#'            keep_factor_draws = TRUE)
 #'
 #' # from the data itself
 #' data(data_ch_dataset_test)
@@ -143,9 +163,17 @@
 dfm_memory <- function(flows = NULL, stocks = NULL,
                        n = NULL, t = NULL, s = NULL,
                        q = 2, p = 1, length_sample = 1000,
-                       extend = 0.5, frequency = NULL){
+                       extend = 0.5, frequency = NULL,
+                       keep_draws = TRUE, keep_factor_draws = FALSE){
 
   dims <- resolve_dims(flows, stocks, n, t, s, frequency)
+
+  for(nm in c("keep_draws", "keep_factor_draws")){
+    v <- get(nm)
+    if(!is.logical(v) || length(v) != 1 || is.na(v)){
+      stop("`", nm, "` must be TRUE or FALSE.", call. = FALSE)
+    }
+  }
 
   if(!is_count(q) || q < 1) stop("`q` must be a single positive whole number.", call. = FALSE)
   if(!is_count(p) || p < 1) stop("`p` must be a single positive whole number.", call. = FALSE)
@@ -162,9 +190,23 @@ dfm_memory <- function(flows = NULL, stocks = NULL,
   gmat_mb  <- q * (t_eff - 1) * n * (s + 2) * 12 / 1e6
   draws_mb <- length_sample * (n * q + p * q^2 + 2 * n + n * t_eff + (t_eff + s)) * 8 / 1e6
 
+  # retained draws, as one live copy each at their exact size rather than
+  # through the fitted multiplier - the calibration fits predate them (#110).
+  # k = s/2 + 1, so the target's nowcast has about t/k periods.
+  k <- s/2 + 1
+  retained_mb <- 0
+  if(keep_draws){
+    n_par <- n * q + p * q^2 + 2 * n + 3
+    retained_mb <- length_sample * (n_par + ceiling(t_eff / k)) * 8 / 1e6
+    if(keep_factor_draws){
+      retained_mb <- retained_mb + length_sample * q * (t_eff + s) * 8 / 1e6
+    }
+  }
+
   # scaled to an upper bound rather than a best fit; see ?dfm_memory
   unname(MEM_SAFETY_FACTOR *
-           (MEM_FIXED_MB + MEM_GMAT_COPIES * gmat_mb + MEM_DRAW_COPIES * draws_mb))
+           (MEM_FIXED_MB + MEM_GMAT_COPIES * gmat_mb + MEM_DRAW_COPIES * draws_mb) +
+           retained_mb)
 
 }
 

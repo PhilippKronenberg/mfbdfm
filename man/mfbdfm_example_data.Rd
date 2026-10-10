@@ -11,7 +11,8 @@ An \code{\link[=mfbdfm_data]{mfbdfm_data()}} object -- a list with four componen
 (12) and three weekly (48) series.}
 \item{stocks}{Named list of 2 \code{ts} objects, one monthly and one weekly.}
 \item{meta}{Data frame, one row per series, with \code{series}, \code{type},
-\code{frequency}, \code{n_obs} and the carried-through \code{label}, \code{source},
+\code{frequency}, \code{n_obs}, the level screen's \code{ac1} and \code{df_t} (see
+\code{\link[=mfbdfm_data]{mfbdfm_data()}}) and the carried-through \code{label}, \code{source},
 \code{category}, \code{unit} and \code{transformation}.}
 \item{target}{\code{"ch.seco.gdp.real.gdp.ssa"}, used as the default \code{target}
 by both model entry points.}

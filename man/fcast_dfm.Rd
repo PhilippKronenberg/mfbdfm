@@ -94,7 +94,8 @@ nowcast for \code{target}, extracted from \code{ncst}.}
 quantiles -- for \code{lambda}, \code{phi}, \code{sigma}, \code{rho} and \code{h}, read out of
 the rotated draws at fit time. The posterior \emph{mean} stays in \code{pars},
 so the two cannot disagree. There is deliberately no \code{omega} entry:
-\code{omega} is drawn here but not retained. Used by
+\code{omega} is drawn here but not packed into the rotated draws these
+summaries are read from (its draws are in \code{draws}). Used by
 \code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}.}
 \item{ncst}{List with \code{mean} and \code{var}, each a named list of nowcasts
 for every input series at its own frequency.}
@@ -113,6 +114,10 @@ inspection: \code{nowcast} (a data frame of \code{time}, \code{observed}, \code{
 \code{lower}, \code{upper} at the target's own frequency) and
 \code{high_frequency} (the same columns for the high-frequency growth
 estimate). See \link{fcast_dfm_methods}.}
+\item{draws}{The retained posterior draws, \strong{after rotation and
+identification} (see \link{mfbdfm_draws}), or \code{NULL} with
+\code{keep_draws = FALSE} in \code{\link[=dfm_control]{dfm_control()}}. Present by default; this is
+what \code{\link[=mfbdfm_diagnostics]{mfbdfm_diagnostics()}} reads.}
 \item{call}{The matched call.}
 }
 }
@@ -176,12 +181,159 @@ is surfaced at the top level of the return value for convenience; results
 for every series remain available in \code{ncst} and \code{data_hf}.
 }
 
+\section{Reproducibility across seeds}{
+
+Measured the same way as for \code{\link[=ind_dfm]{ind_dfm()}} (see \code{?ind_dfm}): five seeds at
+\code{length_sample = 300}, \code{burn_in = 100}, \code{q = 2}, on \code{data_ch_dataset_test}
+windowed from 2019, pairwise over all ten pairs of seeds. Factors are
+identified only up to rotation and sign, so each factor is matched to
+whichever factor of the other fit it correlates with most strongly in
+absolute value, and the loadings are permuted onto a common order with them.
+
+\tabular{lll}{
+\strong{component} \tab \strong{worst pair} \tab \strong{best pair} \cr
+\code{nowcast}     \tab 0.998         \tab 1.000         \cr
+\code{factor}      \tab 0.573         \tab 0.939         \cr
+\code{pars$lambda} \tab 0.634         \tab 0.996
+}
+
+The nowcast is as reproducible as \code{\link[=ind_dfm]{ind_dfm()}}'s, and the factors and
+loadings are far less so. That is a property of the model, not a defect:
+the chain samples an unidentified system and the rotation is resolved
+afterwards, and the post-hoc rotation does not reach uniqueness across runs.
+The nowcast is invariant to the rotation, which is why it is unaffected. Do
+not read a factor from a single run as the factor; the nowcast is the
+quantity to compare across runs.
+
+Perturbing the inputs by noise of \code{.Machine$double.eps} scale, with the seed
+held fixed, moved the nowcast by 1.5e-16 at most and left both factors
+matched at correlation 1. Both measurements are asserted against in the
+extended test suite (\code{MFBDFM_EXTENDED_TESTS=true}).
+}
+
+\section{Degenerate input series}{
+
+Every series is standardized by its own standard deviation before it enters
+the model, so a series that is constant, or that has no non-missing
+observations at all, cannot be used: standardizing it divides by zero or by
+\code{NA}. Such a series also carries no information about the factor, so it is
+\strong{dropped before fitting}, with a warning naming every series dropped
+(condition class \code{mfbdfm_warning_dropped_series} -- see \code{\link[=dfm_control]{dfm_control()}} on
+muffling it). A series with a single non-missing observation counts as
+constant.
+
+\code{target} is the exception. The factor is anchored to it in \code{\link[=ind_dfm]{ind_dfm()}} and it
+selects the surfaced nowcast in \code{\link[=fcast_dfm]{fcast_dfm()}}, so a degenerate target is an
+error rather than a drop. A zero-length series, or one whose storage mode is
+not numeric (a character or complex \code{ts} is still a valid \code{ts}), is likewise
+an error, naming the series.
+
+More series than time periods is \emph{not} degenerate -- summarising many series
+with few factors is what the model is for -- and both entry points fit such
+a panel.
+}
+
+\section{Assumptions}{
+This is a linear state-space model with time-invariant coefficients, so the
+input series are assumed \strong{stationary} -- in practice, that they arrive
+already transformed, as growth rates or differences rather than levels.
+Spelled out, per input series:
+
+\itemize{
+\item a constant mean and a constant autocovariance function (weak, or
+second-order, stationarity). \code{\link[=prepare_data]{prepare_data()}} subtracts a full-sample
+mean and divides by a full-sample standard deviation, which centres and
+scales but does \strong{not} detrend or difference: a trending or unit-root
+series handed over stays one.
+\item constant measurement coefficients: one loading and one idiosyncratic
+variance for the whole sample, with the measurement error an AR(1) whose
+coefficient is likewise constant (\code{serial_correlation}).
+\item no seasonality, which is not modelled at all -- a seasonal input
+pushes its seasonality into the common factor, so inputs are assumed
+seasonally adjusted (the shipped series are).
+\item no structural breaks in the loadings or variances. Stochastic
+volatility absorbs changes in the \emph{factor's} innovation variance, which
+is what carries the 2020 swing, but nothing else is allowed to move.
+}
+
+Of the model's own quantities only that factor innovation variance may vary
+over time, and the factor's state equation is held inside the stationary
+region: here \code{\link[=dfm_control]{dfm_control()}}'s \code{phi_sum_max} (default 0.9) rejects a draw
+whose autoregressive coefficients sum beyond it and keeps the previous one,
+while \code{\link[=fcast_dfm]{fcast_dfm()}} rejects an unstable VAR draw in its Metropolis-Hastings
+step. Those are constraints on the sampler, not tests of the data: they keep
+the state equation stationary whatever the input looks like.
+
+Nothing here checks the input for stationarity, deliberately -- the package
+cannot know what transformation you intended, and refusing a persistent
+series would be wrong as often as right. It reports instead:
+\code{\link[=mfbdfm_data]{mfbdfm_data()}} computes a lag-1 autocorrelation and a Dickey-Fuller
+t-ratio per series, and its \code{print()} names any flow that looks like a
+level. See the "Levels or growth rates?" section of \code{\link[=mfbdfm_data]{mfbdfm_data()}} for what
+that screen can and cannot tell you.
+}
+
+\section{Forecast horizon and error margins}{
+Nowcast errors widen with the forecast horizon, for two reasons that are
+worth separating:
+
+\itemize{
+\item \strong{Within the target period}, each further high-frequency
+observation enters the distributed-lag aggregation (see
+\code{\link[=create_inventory]{create_inventory()}}), so a larger share of the period is observed
+rather than projected.
+\item \strong{Beyond the end of the data}, the factor is projected by its own
+state equation: the conditional mean decays toward the unconditional one
+at roughly \code{phi^h} while the forecast variance accumulates innovation
+variance, so both the error and \code{nowcast_var} grow with the horizon \code{h}.
+}
+
+Measured on synthetic data drawn from this model's own measurement equation,
+over six real-time cut-offs and against the noise-free target (the fixture
+in \code{tests/testthat/helper-synthetic.R}): RMSE 0.78 for a target period that
+is complete but not yet published, 1.14 one period ahead and 1.35 two ahead,
+against a target standard deviation of 1 and 1.65 for a no-information
+benchmark. (Figures from one run on one platform; MCMC output is not
+bit-identical across platforms, so the pattern is what carries, not the
+third digit.)
+
+\strong{Backcasting runs the other way, and that is not a contradiction.} What
+drives the error is missing data, not distance from the target period. Once
+the period has passed, waiting longer only adds data -- so at those same
+cut-offs the RMSE for a period whose target value has since been published
+is 0.013 one period back and 0.016 two back -- the 0.02 measurement noise
+built into the fixture, rather than anything that grows with distance. That is the anchoring at work: with \code{target}
+observed, the model reproduces it almost exactly (see \code{\link[=dm_test_modified]{dm_test_modified()}}
+for why that makes in-sample comparisons uninformative). Both cases are
+tested in \code{tests/testthat/test-ind_dfm.R}.
+
+\code{nowcast_var} is the posterior variance of the nowcast across the retained
+draws, so an error margin is immediate -- and trimming by it is a filter on
+the series:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{half_width <- 1.96 * sqrt(fit$nowcast_var)   # ~95\% credible interval
+usable <- fit$nowcast[half_width < 0.5]      # drop the too-uncertain ones
+}\if{html}{\out{</div>}}
+
+Read it for what it is: a posterior variance conditional on the model, which
+widens with the horizon for the same reason the errors do, but which is
+pinned near zero wherever \code{target} is observed. It is informative about the
+unobserved periods -- the nowcasts and forecasts -- and not a substitute for
+an out-of-sample error measured over vintages (see \code{\link[=cut_data_real_time]{cut_data_real_time()}}).
+}
+
 \examples{
 \donttest{
 data(mfbdfm_example_data)
 set.seed(1)
 fit <- fcast_dfm(mfbdfm_example_data, q = 2, length_sample = 20, burn_in = 5)
 fit
+
+# an error margin from the posterior variance of the nowcast, and the
+# nowcasts precise enough to use (see "Forecast horizon and error margins")
+half_width <- 1.96 * sqrt(fit$nowcast_var)
+utils::tail(cbind(nowcast = fit$nowcast, half_width = half_width), 4)
+fit$nowcast[half_width < 0.5]
 }
 
 }
@@ -200,10 +352,10 @@ Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.
 \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to extract the nowcasts from the fit, and
 \link{fcast_dfm_methods} for the methods the fit supports.
 
-Other model fitting functions: 
-\code{\link{dfm_memory}()},
-\code{\link{ind_dfm}()},
-\code{\link{run_fcast}()},
-\code{\link{select_factors}()}
+Other model fitting functions:
+\code{\link[=dfm_memory]{dfm_memory()}},
+\code{\link[=ind_dfm]{ind_dfm()}},
+\code{\link[=run_fcast]{run_fcast()}},
+\code{\link[=select_factors]{select_factors()}}
 }
 \concept{model fitting functions}

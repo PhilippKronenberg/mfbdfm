@@ -436,6 +436,40 @@ test_that("target is checked at construction and defaulted into the models", {
 })
 
 
+test_that("print() reports near-collinear pairs, and says nothing when there are none", {
+
+  set.seed(13)
+  v <- stats::rnorm(60)
+  dates <- seq(as.Date("2014-01-01"), by = "month", length.out = 60)
+  long <- rbind(
+    data.frame(series = "level", date = dates, value = v),
+    data.frame(series = "index", date = dates, value = 100 * v + 5),
+    data.frame(series = "other", date = dates, value = stats::rnorm(60)))
+  meta <- data.frame(series = c("level", "index", "other"),
+                     type = c("flow", "flow", "stock"),
+                     stringsAsFactors = FALSE)
+
+  out <- paste(utils::capture.output(print(mfbdfm_data(long, meta))),
+               collapse = "\n")
+  expect_match(out, "near-collinear pairs")
+  # the series are held in name order, so the pair may be printed either way round
+  expect_match(out, "index ~ level|level ~ index")
+  expect_false(grepl("other ~|~ other", out))
+
+  # a clean panel keeps the clean output it had before the screen existed.
+  # Note make_long() is *not* usable here: it is built from linear ramps
+  # (1:36, 36:1, 1:144), which are exactly collinear and correctly flagged.
+  dat <- make_synth_dat()
+  clean_meta <- data.frame(
+    series = c(names(dat$flows), names(dat$stocks)),
+    type = rep(c("flow", "stock"), lengths(dat)),
+    stringsAsFactors = FALSE)
+  clean <- paste(utils::capture.output(
+    print(mfbdfm_data(c(dat$flows, dat$stocks), clean_meta))), collapse = "\n")
+  expect_false(grepl("near-collinear", clean, fixed = TRUE))
+})
+
+
 test_that("ind_dfm() gives an identical fit from mfbdfm_data() and from flows/stocks", {
 
   data(data_ch_dataset_test)
@@ -474,4 +508,119 @@ test_that("print.mfbdfm_data() reports the classification and flags the highest 
   expect_match(out, "48.*highest; flow/stock has no effect here")
   expect_match(out, "m_stock\\s+stock\\s+freq\\s+12")
   expect_invisible(print(d))
+})
+
+
+# The level screen (rOpenSci TS2.4b): advise, do not reject. The cut-off is
+# fixed by measurement on the shipped data, so the first test below is the
+# regression guard on it - if it starts flagging a correctly transformed series,
+# the cut-off is wrong, not the data.
+
+test_that("the level screen flags no series in any shipped dataset", {
+
+  data(data_ch_dataset, envir = environment())
+  data(data_ch_dataset_test, envir = environment())
+  data(mfbdfm_example_data, envir = environment())
+
+  as_data <- function(x){
+    series <- c(x$flows, x$stocks)
+    meta <- data.frame(series = names(series),
+                       type = rep(c("flow", "stock"), lengths(x[c("flows", "stocks")])),
+                       stringsAsFactors = FALSE)
+    suppressMessages(mfbdfm_data(series, meta))
+  }
+
+  for (nm in c("data_ch_dataset", "data_ch_dataset_test")) {
+    m <- as_data(get(nm))$meta
+    expect_false(any(mfbdfm:::level_screen_flags(m)),
+                 info = paste(nm, "flags",
+                              paste(m$series[mfbdfm:::level_screen_flags(m)], collapse = ", ")))
+    # and with room to spare on the side that matters
+    expect_lt(max(m$df_t[m$type == "flow"], na.rm = TRUE), -3)
+  }
+
+  # the shipped mfbdfm_data object carries the statistics, so its own print()
+  # screens too rather than silently skipping
+  expect_true(all(c("ac1", "df_t") %in% names(mfbdfm_example_data$meta)))
+  expect_false(any(mfbdfm:::level_screen_flags(mfbdfm_example_data$meta)))
+})
+
+test_that("a flow in levels is reported, and nothing else changes", {
+
+  set.seed(1)
+  mon <- seq(as.Date("2015-01-01"), by = "month", length.out = 60)
+  raw <- rbind(
+    data.frame(series = "gr",  date = mon, value = rnorm(60)),
+    data.frame(series = "lvl", date = mon, value = cumsum(rnorm(60)) + 100))
+  meta <- data.frame(series = c("gr", "lvl"), type = "flow",
+                     stringsAsFactors = FALSE)
+
+  # advisory only: no warning, no message, no change to the data
+  expect_silent(d <- mfbdfm_data(raw, meta))
+  expect_equal(as.numeric(d$flows$lvl), raw$value[raw$series == "lvl"])
+
+  flagged <- d$meta$series[mfbdfm:::level_screen_flags(d$meta)]
+  expect_identical(flagged, "lvl")
+  expect_gt(d$meta$df_t[d$meta$series == "lvl"], -2.86)
+  expect_lt(d$meta$df_t[d$meta$series == "gr"], -2.86)
+
+  out <- paste(utils::capture.output(print(d)), collapse = "\n")
+  expect_match(out, "possible levels rather than growth rates")
+  expect_match(out, "lvl\\s+DF t")
+  expect_match(out, "consider a growth rate")
+
+  # the same series as a stock is not screened: a stock is documented as a
+  # level or an average, and the shipped ones include an interest-rate level
+  meta_stock <- transform(meta, type = ifelse(series == "lvl", "stock", "flow"))
+  d2 <- mfbdfm_data(raw, meta_stock)
+  expect_false(any(mfbdfm:::level_screen_flags(d2$meta)))
+  out2 <- paste(utils::capture.output(print(d2)), collapse = "\n")
+  expect_no_match(out2, "possible levels")
+})
+
+test_that("the screen's statistics are NA when there is too little to go on", {
+
+  mon <- seq(as.Date("2020-01-01"), by = "month", length.out = 20)
+  short <- data.frame(series = "s", date = mon, value = cumsum(rnorm(20)))
+  d <- mfbdfm_data(short, data.frame(series = "s", type = "flow"))
+
+  # 20 observations is below the 24 the screen needs
+  expect_true(is.na(d$meta$ac1))
+  expect_true(is.na(d$meta$df_t))
+  expect_false(any(mfbdfm:::level_screen_flags(d$meta)))
+
+  # a constant series has no autocorrelation to measure and no residual
+  # variance to divide by
+  flat <- data.frame(series = "f",
+                     date = seq(as.Date("2015-01-01"), by = "month", length.out = 40),
+                     value = 3)
+  d2 <- mfbdfm_data(flat, data.frame(series = "f", type = "flow"))
+  expect_true(is.na(d2$meta$ac1))
+  expect_true(is.na(d2$meta$df_t))
+
+  # a meta column of the same name does not displace the computed one
+  d3 <- mfbdfm_data(short, data.frame(series = "s", type = "flow", df_t = 99))
+  expect_true(is.na(d3$meta$df_t))
+})
+
+test_that("a list column in a long or wide data frame is refused by name (G2.12)", {
+
+  skip("Enabled by #125")
+
+  # G2.12: a list column is a legitimate data frame column and never a
+  # legitimate series, so it has to be named and refused rather than reaching
+  # make_ts(), where the failure is about neither the column nor the argument.
+  long <- make_long()
+  long$value <- I(as.list(long$value))
+  expect_error(mfbdfm_data(long, make_long_meta()), "value")
+
+  wide <- data.frame(date = seq(as.Date("2020-01-01"), by = "month",
+                                length.out = 36),
+                     a = as.numeric(1:36))
+  wide$b <- I(as.list(as.numeric(36:1)))
+  expect_error(
+    mfbdfm_data(wide, data.frame(series = c("a", "b"),
+                                 type = c("flow", "flow"),
+                                 stringsAsFactors = FALSE)),
+    "b")
 })

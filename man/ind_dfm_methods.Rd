@@ -182,7 +182,7 @@ existed.
 panels for a real dataset; use \code{series} to pick a few.
 
 \code{plot()} returned its input invisibly and drew in base graphics before
-version 0.1.0.9000. It now \emph{returns} the plot, which still draws it when
+version 0.2.0. It now \emph{returns} the plot, which still draws it when
 called at the console because the object auto-prints.
 }
 

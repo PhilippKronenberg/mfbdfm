@@ -29,7 +29,7 @@ retrieve_nowcast_var(fit, model = "wai")
 and credible bounds alongside the nowcast for an \code{\link[=ind_dfm]{ind_dfm()}} or
 \code{\link[=fcast_dfm]{fcast_dfm()}} fit. See \code{\link[=retrieve_nowcast]{retrieve_nowcast()}} for why both exist.
 
-Other backcasting functions: 
-\code{\link{retrieve_nowcast}()}
+Other backcasting functions:
+\code{\link[=retrieve_nowcast]{retrieve_nowcast()}}
 }
 \concept{backcasting functions}

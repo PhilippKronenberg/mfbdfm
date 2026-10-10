@@ -51,6 +51,40 @@
 #' others cap or reject a draw for numerical stability: `phi_sum_max` and
 #' `sigma_max` in [ind_dfm()], `omega_max` in [fcast_dfm()].
 #'
+#' # Retaining draws
+#'
+#' Both samplers hold every retained draw in memory for the whole fit anyway;
+#' until #110 they were averaged and discarded when the sampler returned, so a
+#' fit carried posterior means and no chain. These settings decide what survives
+#' into the fit object, not what is computed -- nothing here consumes RNG, and
+#' the numbers a fit reports are identical with them on or off.
+#'
+#' \describe{
+#'   \item{`keep_draws`}{Default `TRUE`. Stores the parameter and nowcast draws
+#'     in `fit$draws` (see [mfbdfm_draws]), which is what
+#'     [mfbdfm_diagnostics()] and the trace plots read. Small: one row per
+#'     retained draw and one column per scalar parameter, plus one column per
+#'     nowcast period -- a few hundred kilobytes for a typical chain.}
+#'   \item{`keep_factor_draws`}{Default `FALSE`, because this is the one large
+#'     component: `length_sample x (t+s) x q` doubles, which at 1000 draws of a
+#'     weekly 30-year sample is of the order of 10 MB per factor. On for the
+#'     posterior of any functional of the factor path.}
+#'   \item{`keep_burn_in`}{Default `FALSE`, **[ind_dfm()] only**. Retains the
+#'     burn-in *parameter* draws as well, so a trace plot can show the chain
+#'     settling rather than starting at the first kept draw.}
+#' }
+#'
+#' `keep_burn_in` is absent from [fcast_dfm()] deliberately, rather than
+#' accepted and ignored. That model identifies post hoc: a draw is comparable
+#' with other draws only after the rotation step has mapped it onto a
+#' reference computed from the *retained* draws, and a burn-in draw has no such
+#' reference. Rotating the burn-in too would either move that reference -- and so
+#' change the results -- or cost an extra optimisation per burn-in draw, while
+#' storing it unrotated would put a non-comparable series on a trace plot. Naming
+#' a setting the chosen model does not have is an error, as with `phi_sum_max`
+#' and `omega_max`; the parity rule is about the same *concept* in both models,
+#' and this concept does not exist there.
+#'
 #' # Verbosity
 #'
 #' `verbose = FALSE` silences both the progress `message()`s and the
@@ -73,6 +107,15 @@
 #'     initialisation) stopped on its iteration cap rather than on convergence.}
 #'   \item{`mfbdfm_warning_fit_failed`}{a fit failed and
 #'     [run_fcast()]`(on_error = "warn")` turned the error into a warning.}
+#'   \item{`mfbdfm_warning_dropped_series`}{at least one input series was
+#'     constant or entirely missing, so it could not be standardized, and was
+#'     dropped before fitting. Raised once per fit, naming every series
+#'     dropped.}
+#'   \item{`mfbdfm_warning_collinear`}{two or more input series are
+#'     near-perfectly correlated on their overlapping observed span. Raised
+#'     once per fit, naming the pairs. Muffle it once you have decided the
+#'     duplication is intended -- see the "Near-collinear input series"
+#'     section of [mfbdfm_data()] for what it costs you if it is not.}
 #' }
 #'
 #' All of them also inherit from `mfbdfm_warning`. To muffle one:
@@ -113,6 +156,9 @@
 #' # silence the messages and the progress bar
 #' dfm_control("ind_dfm", verbose = FALSE)
 #'
+#' # keep the factor-path draws too, and the burn-in, for trace plots
+#' dfm_control("ind_dfm", keep_factor_draws = TRUE, keep_burn_in = TRUE)
+#'
 #' @references
 #' Assmann, C., Boysen-Hogrefe, J., & Pape, M. (2016). Bayesian analysis of
 #' static and dynamic factor models with an unknown number of factors, and
@@ -123,7 +169,7 @@
 #' *Journal of Applied Econometrics*, 40(3), 270-290.
 #' \doi{10.1002/jae.3104}
 #'
-#' @seealso [ind_dfm()], [fcast_dfm()], [dfm_priors()]
+#' @seealso [ind_dfm()], [fcast_dfm()], [dfm_priors()], [mfbdfm_draws]
 #' @family model specification
 #' @export
 dfm_control <- function(model = c("ind_dfm", "fcast_dfm"),
@@ -201,13 +247,19 @@ control_defaults <- function(model){
     sv_offset = 0.001,
     # progress messages and the txtProgressBar; TRUE reproduces the long-standing
     # behaviour, which had no way to turn either off (#118)
-    verbose = TRUE
+    verbose = TRUE,
+    # retained draws (#110). Both samplers hold every draw in memory anyway, so
+    # these decide what survives into the fit object, not what is computed.
+    keep_draws = TRUE,
+    keep_factor_draws = FALSE
   )
 
   if(model == "ind_dfm"){
     c(shared,
       list(phi_sum_max = 0.9,     # draw_phi rejects and keeps the previous draw
-           sigma_max = 5))        # draw_sigma cap
+           sigma_max = 5,         # draw_sigma cap
+           # ind_dfm only; see ?dfm_control for why fcast_dfm cannot have it
+           keep_burn_in = FALSE))
   } else {
     c(shared,
       list(omega_max = 1,         # draw_omega_fcast cap
@@ -259,6 +311,9 @@ validate_control <- function(ctrl){
   }
 
   flag("verbose")
+  flag("keep_draws")
+  flag("keep_factor_draws")
+  flag("keep_burn_in")
   pos_num("rho_max", upper = 1)
   pos_num("rho_fallback", upper = 1)
   pos_num("jitter")

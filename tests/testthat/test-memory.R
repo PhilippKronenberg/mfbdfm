@@ -49,6 +49,37 @@ test_that("dfm_memory is monotone and linear in the right arguments", {
 })
 
 
+test_that("dfm_memory accounts for the retained draws (#110)", {
+
+  base <- list(n = 53, t = 1535, s = 22, q = 2, length_sample = 500)
+  m <- function(...) do.call(dfm_memory, utils::modifyList(base, list(...)))
+
+  # keep_draws costs the parameter and nowcast matrices; keep_factor_draws
+  # costs the factor paths, which is the one that moves the number
+  expect_gt(m(keep_draws = TRUE), m(keep_draws = FALSE))
+  expect_gt(m(keep_factor_draws = TRUE), m(keep_draws = TRUE))
+
+  # one live copy each, at exactly their size - not a re-calibration of the
+  # fitted multipliers, since the calibration fits predate retained draws
+  t_eff <- 1535 + round(0.5 * 48)
+  n_par <- 53*2 + 1*2^2 + 2*53 + 3
+  k <- 22/2 + 1
+  expect_equal(m(keep_draws = TRUE) - m(keep_draws = FALSE),
+               500 * (n_par + ceiling(t_eff/k)) * 8 / 1e6,
+               tolerance = 1e-10)
+  expect_equal(m(keep_factor_draws = TRUE) - m(keep_draws = TRUE),
+               500 * 2 * (t_eff + 22) * 8 / 1e6,
+               tolerance = 1e-10)
+
+  # the defaults match dfm_control()'s
+  expect_equal(m(), m(keep_draws = TRUE, keep_factor_draws = FALSE))
+
+  expect_error(m(keep_draws = NA), "`keep_draws` must be TRUE or FALSE")
+  expect_error(m(keep_factor_draws = 1),
+               "`keep_factor_draws` must be TRUE or FALSE")
+})
+
+
 test_that("dfm_memory takes dimensions from the data when given it", {
 
   data(data_ch_dataset_test)

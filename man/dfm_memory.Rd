@@ -15,7 +15,9 @@ dfm_memory(
   p = 1,
   length_sample = 1000,
   extend = 0.5,
-  frequency = NULL
+  frequency = NULL,
+  keep_draws = TRUE,
+  keep_factor_draws = FALSE
 )
 
 dfm_workers(..., available_mb = NULL, safety = 0.7, max_workers = NULL)
@@ -46,6 +48,10 @@ Lengthens the sample the sampler sees and so the memory it needs.}
 
 \item{frequency}{Integer, observations per year of the highest-frequency
 series, used with \code{extend}. Derived from the data when supplied.}
+
+\item{keep_draws, keep_factor_draws}{Logical, the \code{\link[=dfm_control]{dfm_control()}} settings
+the fit will be given. Add the retained draws' own footprint to the
+estimate; see "Retained draws" below.}
 
 \item{...}{Passed to \code{dfm_memory()}.}
 
@@ -166,6 +172,18 @@ post-hoc rotation and no packed draw matrix, and has \strong{not} been measured
 here.
 }
 
+\section{Retained draws}{
+\code{keep_draws} and \code{keep_factor_draws} (\code{\link[=dfm_control]{dfm_control()}}, #110) keep a copy of
+the draws on the fit object. Their cost is added as \strong{arithmetic, not a
+re-calibration}: the eight calibration fits above were measured before
+retained draws existed, so the parameter, nowcast and factor matrices are
+added as one live copy each, at their exact size, rather than being folded
+into the fitted \code{MEM_DRAW_COPIES} multiplier. The parameter and nowcast
+matrices are small beside everything else -- of the order of a megabyte --
+while the factor paths are \verb{length_sample x q(t+s)} doubles and are the
+reason \code{keep_factor_draws} defaults to \code{FALSE}.
+}
+
 \examples{
 # from dimensions
 dfm_memory(n = 53, t = 1535, s = 22, q = 2, length_sample = 500)
@@ -173,6 +191,10 @@ dfm_memory(n = 53, t = 1535, s = 22, q = 2, length_sample = 500)
 # the whole point: how many workers fit in 24 GB
 dfm_workers(n = 53, t = 1535, s = 22, q = 4, length_sample = 500,
             available_mb = 24 * 1024)
+
+# keeping the factor-path draws is the one setting that moves the number
+dfm_memory(n = 53, t = 1535, s = 22, q = 2, length_sample = 500,
+           keep_factor_draws = TRUE)
 
 # from the data itself
 data(data_ch_dataset_test)
@@ -184,10 +206,10 @@ dfm_memory(flows = data_ch_dataset_test$flows,
 \seealso{
 \code{\link[=fcast_dfm]{fcast_dfm()}}
 
-Other model fitting functions: 
-\code{\link{fcast_dfm}()},
-\code{\link{ind_dfm}()},
-\code{\link{run_fcast}()},
-\code{\link{select_factors}()}
+Other model fitting functions:
+\code{\link[=fcast_dfm]{fcast_dfm()}},
+\code{\link[=ind_dfm]{ind_dfm()}},
+\code{\link[=run_fcast]{run_fcast()}},
+\code{\link[=select_factors]{select_factors()}}
 }
 \concept{model fitting functions}

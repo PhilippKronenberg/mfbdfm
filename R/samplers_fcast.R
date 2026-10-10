@@ -37,6 +37,12 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
   # preallocation of output matrices
   theta_out <- matrix(NA, length_sample, n*t+n*q+q^2*p+2*n+t+s)
 
+  # omega is NOT packed into theta (list2theta_fcast() has no slot for it), so
+  # the only way it can reach fit$draws is alongside. It sits outside the
+  # rotational indeterminacy - apply_rotation_fcast() touches the lambda and phi
+  # blocks only - so it is comparable across iterations exactly as drawn (#110).
+  omega_out <- rep(NA_real_, length_sample)
+
   # preallocations of constant parameters
   Llist <- get_distributed_lags(inventory)
 
@@ -140,10 +146,9 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
                           round(abs(eigen(companion_fcast(phi,p,q))$values[1]),4),")"),
             sub = paste0("SV process: omega ", round(omega,6)))
 
-      # trace plots are a diagnostic nicety; coda is only a Suggests
-      if(requireNamespace("coda", quietly = TRUE)){
-        plot(coda::mcmc(chain[c(1:jx), sample(100,3,replace = FALSE)]))
-      }
+      # live trace plots of three tracked entries; the after-the-fact version
+      # is plot(fit$draws) (#110)
+      plot(coda::mcmc(chain[c(1:jx), sample(100,3,replace = FALSE)]))
 
     }
 
@@ -151,12 +156,18 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
     if(jx > burn_in & jx %% thinning == 0){
 
       theta_out[(jx - burn_in)/thinning,] <- list2theta_fcast(lambda, phi, diag(sigma), diag(rho), Xmat, h)
+      omega_out[(jx - burn_in)/thinning] <- omega
 
     }
   }
 
   if(!is.null(pb)) close(pb)
   warn_rho_fallback(rho_tally, control)
+
+  # an attribute rather than a second return value: the rotation and
+  # identification steps take the packed matrix itself, and fcast_dfm() reads
+  # this off before dropping theta_out
+  attr(theta_out, "omega") <- omega_out
   return(theta_out)
 
 }

@@ -28,7 +28,8 @@ section.}
 An object of class \code{"mfbdfm_data"}: a list with \code{flows}, \code{stocks}
 (named lists of \code{ts}, ready to pass to a model), \code{meta} (the resolved
 per-series table, with the frequency and observation count actually used,
-plus \code{frequency_in} where a series was converted) and \code{target}.
+the level screen's \code{ac1} and \code{df_t}, plus \code{frequency_in} where a series was
+converted) and \code{target}.
 }
 \description{
 Converts the data you have into the form the models need, and -- more
@@ -131,6 +132,34 @@ passed straight through.
 
 A weekly observation's date is taken to label the \strong{end} of its week, which
 is this package's own convention (see \code{\link[=dec2week]{dec2week()}}).
+}
+
+\section{Near-collinear input series}{
+\code{print()} reports pairs of series that are near-perfectly correlated, and
+\code{\link[=ind_dfm]{ind_dfm()}} and \code{\link[=fcast_dfm]{fcast_dfm()}} warn about them with condition class
+\code{mfbdfm_warning_collinear} (see \code{\link[=dfm_control]{dfm_control()}} on muffling it).
+
+This is worth checking because in an indicator panel a duplicated series is
+not hypothetical: the same underlying quantity often enters twice, as a level
+and as an index, or as a total alongside its own components -- and nothing
+about assembling your own \code{flows}/\code{stocks} lists makes that visible.
+
+The statistic is the correlation of each pair \strong{on its overlapping observed
+span only}, flagged at \verb{|r| > 0.99}, with pairs overlapping in fewer than 24
+observations skipped. The overlap restriction matters: the matrix the models
+are fitted to encodes missing as \code{0}, so a correlation taken over it would
+measure the padding as much as the data. Correlation is unaffected by the
+standardization \code{\link[=prepare_data]{prepare_data()}} applies, so the figure reported is the one
+the standardized matrix would give.
+
+\strong{It is a warning and not an error, deliberately.} A factor model does not
+break on collinear inputs -- not even on exactly collinear ones. The
+likelihood stays proper and the sampler still converges; what happens is that
+the loading the two series share is split between them, so that signal is
+silently overweighted in the factor and no later diagnostic flags it. Which
+of the two to drop is a question about the data rather than about the
+numerics, so there is no separate code path for the collinear case: the
+warning names the pair and the choice stays yours.
 
 Note this is one of the things you get by going through \code{mfbdfm_data()}:
 passing \code{flows}/\code{stocks} straight to a model does no such conversion, and a
@@ -143,6 +172,56 @@ it, \code{"mean"} (the default) is exactly the overlap-weighted average of the
 weekly rates -- what these models want, being estimated on growth rates --
 and \code{"sum"} is exactly proportional to the period total, the constant being
 the days per period, which \code{\link[=prepare_data]{prepare_data()}}'s standardization removes.
+}
+
+\section{Levels or growth rates?}{
+The models assume stationary inputs (see the "Assumptions" section of
+\code{\link[=ind_dfm]{ind_dfm()}}), and \code{\link[=prepare_data]{prepare_data()}} standardizes but does \strong{not} difference:
+a series handed over in levels stays in levels, and the fit completes without
+complaint. So \code{meta} carries two statistics per series -- \code{ac1}, the lag-1
+autocorrelation of the observed values, and \code{df_t}, a Dickey-Fuller t-ratio
+-- and \code{print()} names any \strong{flow} whose \code{df_t} fails to reach \code{-2.86} as a
+possible level, suggesting a growth rate or a difference.
+
+It is an advisory, not a test. Nothing is changed, no warning is raised, and
+the entry points do not refuse the data -- the package cannot know what you
+intended, and a persistent flow is not necessarily a mistake.
+
+Three choices in it were settled by measurement on the shipped data rather
+than by taste, and are worth knowing because they bound what the screen can
+do for you:
+
+\itemize{
+\item \strong{Stocks are not screened.} A stock is documented above as a level
+observed at a point or an average, so a persistent one is \emph{correct}
+input, and the shipped stocks confirm it: \code{ac1} reaches 0.995 for the
+interest-rate level in \link{data_ch_dataset} (\code{df_t} -1.57), 0.957 for a
+bond yield, 0.95 for VIX in \link{data_ch_dataset_test}, and 0.89-0.94 for
+the PMI diffusion indices. Any rule that caught an undifferenced level
+would flag all of those.
+\item \strong{The statistic is \code{df_t}, not \code{ac1}, because no \code{ac1} cut-off
+works.} The largest \code{ac1} among the 79 flows in the three shipped
+datasets is 0.841 (\code{electricity_in} in \link{data_ch_dataset_test}), while a
+60-observation random walk sits at 0.86-0.89 and the GDP \emph{level} over 50
+quarters at 0.92 -- the two groups overlap, because \code{ac1} is biased down
+by roughly \code{1/n} and so confounds persistence with sample length. The
+Dickey-Fuller t-ratio does not: every one of those 79 flows reaches
+-3.72 or lower, against -2.27 for the 60-step random walk, -1.32 for a
+500-step one and -0.89 for the GDP level. \code{ac1} is reported anyway, since
+it is the obvious thing to want to look at.
+\item \strong{The cut-off is the textbook one}, the asymptotic 5\% critical value
+for the constant-only case, \code{-2.86} (Fuller 1976; MacKinnon 1991), not a
+value fitted to this data. It is used without lag augmentation and
+without a trend term -- see the notes on \code{unit_root_t()} in the source
+for what that costs. Series with fewer than 24 observations, or no
+variation, get \code{NA} for both statistics and are not screened.
+}
+
+What this is not: a stationarity \emph{test} per series (one unaugmented
+regression, no multiplicity correction, no joint statement about the panel),
+and not a check of the model's other assumptions. Treat a flagged series as
+a question to answer, and an unflagged panel as nothing more than the absence
+of this one signal.
 }
 
 \examples{
@@ -168,6 +247,17 @@ d <- mfbdfm_data(
   data.frame(series = c("weekly", "monthly"), type = c("flow", "stock")))
 d$meta
 
+# a flow handed over in levels is named by print(), not silently accepted
+set.seed(1)
+d <- mfbdfm_data(
+  data.frame(series = rep(c("growth_rate", "a_level"), each = 60),
+             date = rep(seq(as.Date("2015-01-01"), by = "month",
+                            length.out = 60), 2),
+             value = c(rnorm(60), cumsum(rnorm(60)) + 100)),
+  data.frame(series = c("growth_rate", "a_level"), type = "flow"))
+d
+d$meta[, c("series", "ac1", "df_t")]
+
 # from the shipped dataset, which is already a list of `ts`
 data(data_ch_dataset_test)
 series <- c(data_ch_dataset_test$flows, data_ch_dataset_test$stocks)
@@ -180,9 +270,9 @@ mfbdfm_data(series, meta, target = "ch.seco.gdp.real.gdp.ssa")
 \seealso{
 \code{\link[=ind_dfm]{ind_dfm()}}, \code{\link[=fcast_dfm]{fcast_dfm()}}, \code{\link[=create_inventory]{create_inventory()}}, \code{\link[=prepare_data]{prepare_data()}}
 
-Other data preparation functions: 
-\code{\link{create_inventory}()},
-\code{\link{mfbdfm_example_inputs}()},
-\code{\link{prepare_data}()}
+Other data preparation functions:
+\code{\link[=create_inventory]{create_inventory()}},
+\code{\link[=mfbdfm_example_inputs]{mfbdfm_example_inputs()}},
+\code{\link[=prepare_data]{prepare_data()}}
 }
 \concept{data preparation functions}

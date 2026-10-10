@@ -59,6 +59,36 @@
 #' is surfaced at the top level of the return value for convenience; results
 #' for every series remain available in `ncst` and `data_hf`.
 #'
+#' @inheritSection ind_dfm Degenerate input series
+#'
+#' @section Reproducibility across seeds:
+#' Measured the same way as for [ind_dfm()] (see `?ind_dfm`): five seeds at
+#' `length_sample = 300`, `burn_in = 100`, `q = 2`, on `data_ch_dataset_test`
+#' windowed from 2019, pairwise over all ten pairs of seeds. Factors are
+#' identified only up to rotation and sign, so each factor is matched to
+#' whichever factor of the other fit it correlates with most strongly in
+#' absolute value, and the loadings are permuted onto a common order with them.
+#'
+#' \tabular{lll}{
+#'   **component** \tab **worst pair** \tab **best pair** \cr
+#'   `nowcast`     \tab 0.998         \tab 1.000         \cr
+#'   `factor`      \tab 0.573         \tab 0.939         \cr
+#'   `pars$lambda` \tab 0.634         \tab 0.996
+#' }
+#'
+#' The nowcast is as reproducible as [ind_dfm()]'s, and the factors and
+#' loadings are far less so. That is a property of the model, not a defect:
+#' the chain samples an unidentified system and the rotation is resolved
+#' afterwards, and the post-hoc rotation does not reach uniqueness across runs.
+#' The nowcast is invariant to the rotation, which is why it is unaffected. Do
+#' not read a factor from a single run as the factor; the nowcast is the
+#' quantity to compare across runs.
+#'
+#' Perturbing the inputs by noise of `.Machine$double.eps` scale, with the seed
+#' held fixed, moved the nowcast by 1.5e-16 at most and left both factors
+#' matched at correlation 1. Both measurements are asserted against in the
+#' extended test suite (`MFBDFM_EXTENDED_TESTS=true`).
+#'
 #' @param flows Either an [mfbdfm_data()] object carrying all series and
 #'   their flow/stock classification, or a named list of `ts` objects treated
 #'   as flow variables, or
@@ -115,7 +145,8 @@
 #'       quantiles -- for `lambda`, `phi`, `sigma`, `rho` and `h`, read out of
 #'       the rotated draws at fit time. The posterior *mean* stays in `pars`,
 #'       so the two cannot disagree. There is deliberately no `omega` entry:
-#'       `omega` is drawn here but not retained. Used by
+#'       `omega` is drawn here but not packed into the rotated draws these
+#'       summaries are read from (its draws are in `draws`). Used by
 #'       [mfbdfm_table_loadings()] and [mfbdfm_table_parameters()].}
 #'     \item{ncst}{List with `mean` and `var`, each a named list of nowcasts
 #'       for every input series at its own frequency.}
@@ -134,6 +165,10 @@
 #'       `lower`, `upper` at the target's own frequency) and
 #'       `high_frequency` (the same columns for the high-frequency growth
 #'       estimate). See [fcast_dfm_methods].}
+#'     \item{draws}{The retained posterior draws, **after rotation and
+#'       identification** (see [mfbdfm_draws]), or `NULL` with
+#'       `keep_draws = FALSE` in [dfm_control()]. Present by default; this is
+#'       what [mfbdfm_diagnostics()] reads.}
 #'     \item{call}{The matched call.}
 #'   }
 #'
@@ -148,7 +183,21 @@
 #' set.seed(1)
 #' fit <- fcast_dfm(mfbdfm_example_data, q = 2, length_sample = 20, burn_in = 5)
 #' fit
+#'
+#' # an error margin from the posterior variance of the nowcast, and the
+#' # nowcasts precise enough to use (see "Forecast horizon and error margins")
+#' half_width <- 1.96 * sqrt(fit$nowcast_var)
+#' utils::tail(cbind(nowcast = fit$nowcast, half_width = half_width), 4)
+#' fit$nowcast[half_width < 0.5]
 #' }
+#'
+# NOTE (not part of the documentation): the two sections below are inherited
+# rather than restated, so the parity rule cannot be broken by editing one copy
+# - they describe assumptions and horizon behaviour that both models share. The
+# differences between the two (which step keeps the state equation stationary,
+# where the scale is pinned) are named inside the shared text.
+#' @inheritSection ind_dfm Assumptions
+#' @inheritSection ind_dfm Forecast horizon and error margins
 #'
 #' @references
 #' Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
@@ -198,6 +247,10 @@ fcast_dfm <- function(flows = NULL,
   validate_model_inputs(flows = flows, stocks = stocks, target = target,
                         p = p, length_sample = length_sample, burn_in = burn_in,
                         thinning = thinning, q = q, call = "fcast_dfm")
+
+  # a constant or all-missing series cannot be standardized (G5.8c)
+  .d <- screen_degenerate_series(flows, stocks, target, q = q)
+  flows <- .d$flows; stocks <- .d$stocks
 
   # create an inventory of the time series involved
   inventory <- create_inventory(flows = flows, stocks = stocks)
@@ -278,6 +331,10 @@ fcast_dfm <- function(flows = NULL,
   if(verbose) message("running identification..")
   rlist <- run_identification_fcast(theta_out, D_save, n = n, q = q, p = p, s = s, t = t)
 
+  # omega is not packed into theta, so it rides along as an attribute; read it
+  # off before theta_out is dropped below (#110)
+  omega_draws <- attr(theta_out, "omega")
+
   # Nothing below reads theta_out or D_save - run_evaluation_fcast() works from
   # rlist. Left in the frame they stay reachable through the whole evaluation
   # phase, which is where peak memory occurs, and theta_out alone is
@@ -293,7 +350,12 @@ fcast_dfm <- function(flows = NULL,
   if(verbose) message("processing output..")
   out <- run_evaluation_fcast(rlist, Ymat, Gmat_prealloc, k, n, q, p, s, t,
                         inventory, flows, stocks, target,
-                        stochastic_volatility = stochastic_volatility)
+                        stochastic_volatility = stochastic_volatility,
+                        omega_draws = omega_draws,
+                        control = control,
+                        length_sample = length_sample,
+                        burn_in = burn_in,
+                        thinning = thinning)
 
   out$call <- match.call()
   class(out) <- "fcast_dfm"
@@ -343,6 +405,8 @@ print.fcast_dfm <- function(x, n_show = 8, ...){
   cat("mfbdfm_nowcast() for the target's nowcasts\n")
   cat("Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),\n")
   cat("mfbdfm_table_nowcast()\n")
+  if(!is.null(x$draws))
+    cat("Draws: $draws, mfbdfm_diagnostics()\n")
 
   invisible(x)
 

@@ -33,6 +33,142 @@
 #' scale in different places, so switching the same option off means
 #' something different in each.)
 #'
+#' # Assumptions
+#'
+#' This is a linear state-space model with time-invariant coefficients, so the
+#' input series are assumed **stationary** -- in practice, that they arrive
+#' already transformed, as growth rates or differences rather than levels.
+#' Spelled out, per input series:
+#'
+#' \itemize{
+#'   \item a constant mean and a constant autocovariance function (weak, or
+#'     second-order, stationarity). [prepare_data()] subtracts a full-sample
+#'     mean and divides by a full-sample standard deviation, which centres and
+#'     scales but does **not** detrend or difference: a trending or unit-root
+#'     series handed over stays one.
+#'   \item constant measurement coefficients: one loading and one idiosyncratic
+#'     variance for the whole sample, with the measurement error an AR(1) whose
+#'     coefficient is likewise constant (`serial_correlation`).
+#'   \item no seasonality, which is not modelled at all -- a seasonal input
+#'     pushes its seasonality into the common factor, so inputs are assumed
+#'     seasonally adjusted (the shipped series are).
+#'   \item no structural breaks in the loadings or variances. Stochastic
+#'     volatility absorbs changes in the *factor's* innovation variance, which
+#'     is what carries the 2020 swing, but nothing else is allowed to move.
+#' }
+#'
+#' Of the model's own quantities only that factor innovation variance may vary
+#' over time, and the factor's state equation is held inside the stationary
+#' region: here [dfm_control()]'s `phi_sum_max` (default 0.9) rejects a draw
+#' whose autoregressive coefficients sum beyond it and keeps the previous one,
+#' while [fcast_dfm()] rejects an unstable VAR draw in its Metropolis-Hastings
+#' step. Those are constraints on the sampler, not tests of the data: they keep
+#' the state equation stationary whatever the input looks like.
+#'
+#' Nothing here checks the input for stationarity, deliberately -- the package
+#' cannot know what transformation you intended, and refusing a persistent
+#' series would be wrong as often as right. It reports instead:
+#' [mfbdfm_data()] computes a lag-1 autocorrelation and a Dickey-Fuller
+#' t-ratio per series, and its `print()` names any flow that looks like a
+#' level. See the "Levels or growth rates?" section of [mfbdfm_data()] for what
+#' that screen can and cannot tell you.
+#'
+#' # Forecast horizon and error margins
+#'
+#' Nowcast errors widen with the forecast horizon, for two reasons that are
+#' worth separating:
+#'
+#' \itemize{
+#'   \item **Within the target period**, each further high-frequency
+#'     observation enters the distributed-lag aggregation (see
+#'     [create_inventory()]), so a larger share of the period is observed
+#'     rather than projected.
+#'   \item **Beyond the end of the data**, the factor is projected by its own
+#'     state equation: the conditional mean decays toward the unconditional one
+#'     at roughly `phi^h` while the forecast variance accumulates innovation
+#'     variance, so both the error and `nowcast_var` grow with the horizon `h`.
+#' }
+#'
+#' Measured on synthetic data drawn from this model's own measurement equation,
+#' over six real-time cut-offs and against the noise-free target (the fixture
+#' in `tests/testthat/helper-synthetic.R`): RMSE 0.78 for a target period that
+#' is complete but not yet published, 1.14 one period ahead and 1.35 two ahead,
+#' against a target standard deviation of 1 and 1.65 for a no-information
+#' benchmark. (Figures from one run on one platform; MCMC output is not
+#' bit-identical across platforms, so the pattern is what carries, not the
+#' third digit.)
+#'
+#' **Backcasting runs the other way, and that is not a contradiction.** What
+#' drives the error is missing data, not distance from the target period. Once
+#' the period has passed, waiting longer only adds data -- so at those same
+#' cut-offs the RMSE for a period whose target value has since been published
+#' is 0.013 one period back and 0.016 two back -- the 0.02 measurement noise
+#' built into the fixture, rather than anything that grows with distance. That is the anchoring at work: with `target`
+#' observed, the model reproduces it almost exactly (see [dm_test_modified()]
+#' for why that makes in-sample comparisons uninformative). Both cases are
+#' tested in `tests/testthat/test-ind_dfm.R`.
+#'
+#' `nowcast_var` is the posterior variance of the nowcast across the retained
+#' draws, so an error margin is immediate -- and trimming by it is a filter on
+#' the series:
+#'
+#' ```r
+#' half_width <- 1.96 * sqrt(fit$nowcast_var)   # ~95% credible interval
+#' usable <- fit$nowcast[half_width < 0.5]      # drop the too-uncertain ones
+#' ```
+#'
+#' Read it for what it is: a posterior variance conditional on the model, which
+#' widens with the horizon for the same reason the errors do, but which is
+#' pinned near zero wherever `target` is observed. It is informative about the
+#' unobserved periods -- the nowcasts and forecasts -- and not a substitute for
+#' an out-of-sample error measured over vintages (see [cut_data_real_time()]).
+#'
+#' @section Degenerate input series:
+#' Every series is standardized by its own standard deviation before it enters
+#' the model, so a series that is constant, or that has no non-missing
+#' observations at all, cannot be used: standardizing it divides by zero or by
+#' `NA`. Such a series also carries no information about the factor, so it is
+#' **dropped before fitting**, with a warning naming every series dropped
+#' (condition class `mfbdfm_warning_dropped_series` -- see [dfm_control()] on
+#' muffling it). A series with a single non-missing observation counts as
+#' constant.
+#'
+#' `target` is the exception. The factor is anchored to it in [ind_dfm()] and it
+#' selects the surfaced nowcast in [fcast_dfm()], so a degenerate target is an
+#' error rather than a drop. A zero-length series, or one whose storage mode is
+#' not numeric (a character or complex `ts` is still a valid `ts`), is likewise
+#' an error, naming the series.
+#'
+#' More series than time periods is *not* degenerate -- summarising many series
+#' with few factors is what the model is for -- and both entry points fit such
+#' a panel.
+#'
+#' @section Reproducibility across seeds:
+#' A fit is exactly reproducible given a seed, but two *different* seeds give
+#' two different chains, and on a finite chain they do not land in the same
+#' place. How far apart they land was measured rather than assumed: five seeds
+#' at `length_sample = 300`, `burn_in = 100`, on `data_ch_dataset_test`
+#' windowed from 2019 (three flows, two stocks), pairwise correlations across
+#' all ten pairs of seeds.
+#'
+#' \tabular{lll}{
+#'   **component** \tab **worst pair** \tab **best pair** \cr
+#'   `nowcast`     \tab 0.987         \tab 1.000         \cr
+#'   `factor`      \tab 0.950         \tab 0.988         \cr
+#'   `pars$lambda` \tab 0.994         \tab 1.000
+#' }
+#'
+#' So the quarterly nowcast is reproducible to about three digits across seeds
+#' and the weekly factor to about two; raise `length_sample` if a tighter
+#' agreement is wanted. The same measurement for [fcast_dfm()] is in
+#' `?fcast_dfm`, and its factors agree much less closely, for a reason
+#' specific to that model.
+#'
+#' Perturbing the inputs by noise of `.Machine$double.eps` scale, with the seed
+#' held fixed, moved the nowcast by 1.5e-16 at most -- the perturbation
+#' propagates, it is not amplified. Both measurements are asserted against in
+#' the extended test suite (`MFBDFM_EXTENDED_TESTS=true`).
+#'
 #' @param flows Either an [mfbdfm_data()] object carrying every series with its
 #'   flow/stock classification -- in which case `stocks` is left empty -- or a
 #'   named list of `ts` objects treated as flow variables. Must contain
@@ -97,13 +233,17 @@
 #'     \item{data_augmented}{`ts` matrix of the augmented dataset.}
 #'     \item{inventory}{Data frame describing the series (see
 #'       [create_inventory()]).}
+#'     \item{draws}{The retained posterior draws (see [mfbdfm_draws]), or
+#'       `NULL` with `keep_draws = FALSE` in [dfm_control()]. Present by
+#'       default; this is what [mfbdfm_diagnostics()] reads.}
 #'     \item{call}{The matched call.}
 #'   }
 #'
 #' @seealso [fcast_dfm()] for the multi-factor model, [dfm_priors()] to vary
-#'   the priors, [mfbdfm_nowcast()] to extract the nowcasts from the fit, and
-#'   [ind_dfm_methods] for the `print`, `summary`, `plot`, `coef`, `fitted`,
-#'   `residuals` and `as.data.frame` methods.
+#'   the priors, [mfbdfm_nowcast()] to extract the nowcasts from the fit,
+#'   [mfbdfm_diagnostics()] for convergence diagnostics over the retained
+#'   draws, and [ind_dfm_methods] for the `print`, `summary`, `plot`, `coef`,
+#'   `fitted`, `residuals` and `as.data.frame` methods.
 #'
 #' @examples
 #' \donttest{
@@ -113,6 +253,12 @@
 #' set.seed(1)
 #' fit <- ind_dfm(mfbdfm_example_data, length_sample = 50, burn_in = 10)
 #' fit$nowcast
+#'
+#' # an error margin from the posterior variance, and the nowcasts that are
+#' # precise enough to use (see "Forecast horizon and error margins")
+#' half_width <- 1.96 * sqrt(fit$nowcast_var)
+#' utils::tail(cbind(nowcast = fit$nowcast, half_width = half_width), 4)
+#' fit$nowcast[half_width < 0.5]
 #' }
 #'
 #' @references
@@ -154,6 +300,11 @@ ind_dfm <- function(flows = NULL,
   validate_model_inputs(flows = flows, stocks = stocks, target = target,
                         p = p, length_sample = length_sample, burn_in = burn_in,
                         thinning = thinning, call = "ind_dfm")
+
+  # a constant or all-missing series cannot be standardized (G5.8c)
+  .d <- screen_degenerate_series(flows, stocks, target)
+  flows <- .d$flows; stocks <- .d$stocks
+
   check_priors(priors, "ind_dfm")
   control <- resolve_control(control, "ind_dfm")
 
@@ -382,6 +533,23 @@ ind_dfm <- function(flows = NULL,
               "data_raw" = c(flows, stocks),
               "data_augmented" = Xmat_full,
               "inventory" = inventory)
+
+  # retained draws (#110), assembled from the draws the sampler already
+  # produced and after every posterior mean above has been taken, so nothing is
+  # re-simulated and no RNG is consumed. `flist` rather than par_save$f, so
+  # colMeans(out$draws$factor) reproduces out$factor.
+  if(isTRUE(control$keep_draws)){
+    out$draws <- build_draws_ind(par_save = par_save,
+                                 flist = flist,
+                                 inventory = inventory,
+                                 target = target,
+                                 s = s, t = t,
+                                 stochastic_volatility = stochastic_volatility,
+                                 control = control,
+                                 length_sample = length_sample,
+                                 burn_in = burn_in,
+                                 thinning = thinning)
+  }
 
   out$call <- match.call()
   class(out) <- "ind_dfm"
