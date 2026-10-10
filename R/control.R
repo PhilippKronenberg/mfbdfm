@@ -110,7 +110,8 @@
 #'   \item{`mfbdfm_warning_dropped_series`}{at least one input series was
 #'     constant or entirely missing, so it could not be standardized, and was
 #'     dropped before fitting. Raised once per fit, naming every series
-#'     dropped.}
+#'     dropped -- and once per [select_factors()] call, which screens the same
+#'     way before computing the criteria.}
 #'   \item{`mfbdfm_warning_collinear`}{two or more input series are
 #'     near-perfectly correlated on their overlapping observed span. Raised
 #'     once per fit, naming the pairs. Muffle it once you have decided the
