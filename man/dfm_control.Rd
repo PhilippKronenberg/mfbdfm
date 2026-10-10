@@ -130,6 +130,11 @@ was substituted. Raised once per fit, with the number of substitutions.}
 initialisation) stopped on its iteration cap rather than on convergence.}
 \item{\code{mfbdfm_warning_fit_failed}}{a fit failed and
 \code{\link[=run_fcast]{run_fcast()}}\code{(on_error = "warn")} turned the error into a warning.}
+\item{\code{mfbdfm_warning_collinear}}{two or more input series are
+near-perfectly correlated on their overlapping observed span. Raised
+once per fit, naming the pairs. Muffle it once you have decided the
+duplication is intended -- see the "Near-collinear input series"
+section of \code{\link[=mfbdfm_data]{mfbdfm_data()}} for what it costs you if it is not.}
 }
 
 All of them also inherit from \code{mfbdfm_warning}. To muffle one:

@@ -307,6 +307,19 @@ Two changes can break existing code, both described in full below:
   the model is fitted, so a `predict()` returning stored values would
   advertise a capability the model does not have (#104).
 
+* Input series that are near-perfectly correlated are now flagged before the
+  fit instead of after. `ind_dfm()` and `fcast_dfm()` warn, with condition
+  class `mfbdfm_warning_collinear`, and `print()` on an `mfbdfm_data` object
+  lists the pairs. The statistic is the correlation of each pair on its
+  *overlapping observed span*, flagged at `|r| > 0.99` and skipped below 24
+  overlapping observations — a correlation over the prepared matrix would not
+  do, since the zeros there encode missing. It is deliberately a warning and
+  not an error: a factor model does not break on collinear inputs, it splits
+  the shared loading between the duplicates, so the signal is silently
+  overweighted and no later diagnostic catches it. Which series to drop is a
+  question about the data, so the warning names the pair and leaves the choice
+  to the caller (#120).
+
 * `dfm_control()` gains `verbose`, which turns the samplers quiet. Both models
   honour it, and it silences the `utils::txtProgressBar` as well as the
   progress `message()`s — the bar writes with `cat()`, so `suppressMessages()`

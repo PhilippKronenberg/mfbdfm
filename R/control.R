@@ -107,6 +107,11 @@
 #'     initialisation) stopped on its iteration cap rather than on convergence.}
 #'   \item{`mfbdfm_warning_fit_failed`}{a fit failed and
 #'     [run_fcast()]`(on_error = "warn")` turned the error into a warning.}
+#'   \item{`mfbdfm_warning_collinear`}{two or more input series are
+#'     near-perfectly correlated on their overlapping observed span. Raised
+#'     once per fit, naming the pairs. Muffle it once you have decided the
+#'     duplication is intended -- see the "Near-collinear input series"
+#'     section of [mfbdfm_data()] for what it costs you if it is not.}
 #' }
 #'
 #' All of them also inherit from `mfbdfm_warning`. To muffle one:
