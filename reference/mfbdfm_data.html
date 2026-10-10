@@ -180,6 +180,31 @@ which the daily route reproduces. Daily input is already on that grid and is
 passed straight through.</p>
 <p>A weekly observation's date is taken to label the <strong>end</strong> of its week, which
 is this package's own convention (see <code><a href="dec2week.html">dec2week()</a></code>).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="near-collinear-input-series">Near-collinear input series<a class="anchor" aria-label="anchor" href="#near-collinear-input-series"></a></h2>
+    <p><code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> reports pairs of series that are near-perfectly correlated, and
+<code><a href="ind_dfm.html">ind_dfm()</a></code> and <code><a href="fcast_dfm.html">fcast_dfm()</a></code> warn about them with condition class
+<code>mfbdfm_warning_collinear</code> (see <code><a href="dfm_control.html">dfm_control()</a></code> on muffling it).</p>
+<p>This is worth checking because in an indicator panel a duplicated series is
+not hypothetical: the same underlying quantity often enters twice, as a level
+and as an index, or as a total alongside its own components – and nothing
+about assembling your own <code>flows</code>/<code>stocks</code> lists makes that visible.</p>
+<p>The statistic is the correlation of each pair <strong>on its overlapping observed
+span only</strong>, flagged at <code>|r| &gt; 0.99</code>, with pairs overlapping in fewer than 24
+observations skipped. The overlap restriction matters: the matrix the models
+are fitted to encodes missing as <code>0</code>, so a correlation taken over it would
+measure the padding as much as the data. Correlation is unaffected by the
+standardization <code><a href="prepare_data.html">prepare_data()</a></code> applies, so the figure reported is the one
+the standardized matrix would give.</p>
+<p><strong>It is a warning and not an error, deliberately.</strong> A factor model does not
+break on collinear inputs – not even on exactly collinear ones. The
+likelihood stays proper and the sampler still converges; what happens is that
+the loading the two series share is split between them, so that signal is
+silently overweighted in the factor and no later diagnostic flags it. Which
+of the two to drop is a question about the data rather than about the
+numerics, so there is no separate code path for the collinear case: the
+warning names the pair and the choice stays yours.</p>
 <p>Note this is one of the things you get by going through <code>mfbdfm_data()</code>:
 passing <code>flows</code>/<code>stocks</code> straight to a model does no such conversion, and a
 frequency-52 series there will still quietly cost you most of your monthly

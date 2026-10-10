@@ -190,6 +190,13 @@ initialisation) stopped on its iteration cap rather than on convergence.</p></dd
 <dd><p>a fit failed and
 <code><a href="run_fcast.html">run_fcast()</a></code><code>(on_error = "warn")</code> turned the error into a warning.</p></dd>
 
+<dt><code>mfbdfm_warning_collinear</code></dt>
+<dd><p>two or more input series are
+near-perfectly correlated on their overlapping observed span. Raised
+once per fit, naming the pairs. Muffle it once you have decided the
+duplication is intended – see the "Near-collinear input series"
+section of <code><a href="mfbdfm_data.html">mfbdfm_data()</a></code> for what it costs you if it is not.</p></dd>
+
 
 </dl><p>All of them also inherit from <code>mfbdfm_warning</code>. To muffle one:</p>
 <p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers</a></span><span class="op">(</span></span>

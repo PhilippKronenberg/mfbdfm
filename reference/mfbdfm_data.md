@@ -161,6 +161,42 @@ A weekly observation's date is taken to label the **end** of its week,
 which is this package's own convention (see
 [`dec2week()`](https://philippkronenberg.github.io/mfbdfm/reference/dec2week.md)).
 
+## Near-collinear input series
+
+[`print()`](https://rdrr.io/r/base/print.html) reports pairs of series
+that are near-perfectly correlated, and
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+and
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+warn about them with condition class `mfbdfm_warning_collinear` (see
+[`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+on muffling it).
+
+This is worth checking because in an indicator panel a duplicated series
+is not hypothetical: the same underlying quantity often enters twice, as
+a level and as an index, or as a total alongside its own components –
+and nothing about assembling your own `flows`/`stocks` lists makes that
+visible.
+
+The statistic is the correlation of each pair **on its overlapping
+observed span only**, flagged at `|r| > 0.99`, with pairs overlapping in
+fewer than 24 observations skipped. The overlap restriction matters: the
+matrix the models are fitted to encodes missing as `0`, so a correlation
+taken over it would measure the padding as much as the data. Correlation
+is unaffected by the standardization
+[`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+applies, so the figure reported is the one the standardized matrix would
+give.
+
+**It is a warning and not an error, deliberately.** A factor model does
+not break on collinear inputs – not even on exactly collinear ones. The
+likelihood stays proper and the sampler still converges; what happens is
+that the loading the two series share is split between them, so that
+signal is silently overweighted in the factor and no later diagnostic
+flags it. Which of the two to drop is a question about the data rather
+than about the numerics, so there is no separate code path for the
+collinear case: the warning names the pair and the choice stays yours.
+
 Note this is one of the things you get by going through `mfbdfm_data()`:
 passing `flows`/`stocks` straight to a model does no such conversion,
 and a frequency-52 series there will still quietly cost you most of your

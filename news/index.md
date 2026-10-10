@@ -459,6 +459,25 @@ Two changes can break existing code, both described in full below:
   values would advertise a capability the model does not have
   ([\#104](https://github.com/PhilippKronenberg/mfbdfm/issues/104)).
 
+- Input series that are near-perfectly correlated are now flagged before
+  the fit instead of after.
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  and
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  warn, with condition class `mfbdfm_warning_collinear`, and
+  [`print()`](https://rdrr.io/r/base/print.html) on an `mfbdfm_data`
+  object lists the pairs. The statistic is the correlation of each pair
+  on its *overlapping observed span*, flagged at `|r| > 0.99` and
+  skipped below 24 overlapping observations — a correlation over the
+  prepared matrix would not do, since the zeros there encode missing. It
+  is deliberately a warning and not an error: a factor model does not
+  break on collinear inputs, it splits the shared loading between the
+  duplicates, so the signal is silently overweighted and no later
+  diagnostic catches it. Which series to drop is a question about the
+  data, so the warning names the pair and leaves the choice to the
+  caller
+  ([\#120](https://github.com/PhilippKronenberg/mfbdfm/issues/120)).
+
 - [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
   gains `verbose`, which turns the samplers quiet. Both models honour
   it, and it silences the

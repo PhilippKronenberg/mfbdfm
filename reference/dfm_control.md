@@ -180,6 +180,15 @@ rest:
   [`run_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/run_fcast.md)`(on_error = "warn")`
   turned the error into a warning.
 
+- `mfbdfm_warning_collinear`:
+
+  two or more input series are near-perfectly correlated on their
+  overlapping observed span. Raised once per fit, naming the pairs.
+  Muffle it once you have decided the duplication is intended – see the
+  "Near-collinear input series" section of
+  [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+  for what it costs you if it is not.
+
 All of them also inherit from `mfbdfm_warning`. To muffle one:
 
     withCallingHandlers(
