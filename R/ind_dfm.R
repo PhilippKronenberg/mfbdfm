@@ -143,13 +143,17 @@
 #'     \item{data_augmented}{`ts` matrix of the augmented dataset.}
 #'     \item{inventory}{Data frame describing the series (see
 #'       [create_inventory()]).}
+#'     \item{draws}{The retained posterior draws (see [mfbdfm_draws]), or
+#'       `NULL` with `keep_draws = FALSE` in [dfm_control()]. Present by
+#'       default; this is what [mfbdfm_diagnostics()] reads.}
 #'     \item{call}{The matched call.}
 #'   }
 #'
 #' @seealso [fcast_dfm()] for the multi-factor model, [dfm_priors()] to vary
-#'   the priors, [mfbdfm_nowcast()] to extract the nowcasts from the fit, and
-#'   [ind_dfm_methods] for the `print`, `summary`, `plot`, `coef`, `fitted`,
-#'   `residuals` and `as.data.frame` methods.
+#'   the priors, [mfbdfm_nowcast()] to extract the nowcasts from the fit,
+#'   [mfbdfm_diagnostics()] for convergence diagnostics over the retained
+#'   draws, and [ind_dfm_methods] for the `print`, `summary`, `plot`, `coef`,
+#'   `fitted`, `residuals` and `as.data.frame` methods.
 #'
 #' @examples
 #' \donttest{
@@ -433,6 +437,23 @@ ind_dfm <- function(flows = NULL,
               "data_raw" = c(flows, stocks),
               "data_augmented" = Xmat_full,
               "inventory" = inventory)
+
+  # retained draws (#110), assembled from the draws the sampler already
+  # produced and after every posterior mean above has been taken, so nothing is
+  # re-simulated and no RNG is consumed. `flist` rather than par_save$f, so
+  # colMeans(out$draws$factor) reproduces out$factor.
+  if(isTRUE(control$keep_draws)){
+    out$draws <- build_draws_ind(par_save = par_save,
+                                 flist = flist,
+                                 inventory = inventory,
+                                 target = target,
+                                 s = s, t = t,
+                                 stochastic_volatility = stochastic_volatility,
+                                 control = control,
+                                 length_sample = length_sample,
+                                 burn_in = burn_in,
+                                 thinning = thinning)
+  }
 
   out$call <- match.call()
   class(out) <- "ind_dfm"

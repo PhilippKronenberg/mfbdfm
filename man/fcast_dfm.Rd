@@ -94,7 +94,8 @@ nowcast for \code{target}, extracted from \code{ncst}.}
 quantiles -- for \code{lambda}, \code{phi}, \code{sigma}, \code{rho} and \code{h}, read out of
 the rotated draws at fit time. The posterior \emph{mean} stays in \code{pars},
 so the two cannot disagree. There is deliberately no \code{omega} entry:
-\code{omega} is drawn here but not retained. Used by
+\code{omega} is drawn here but not packed into the rotated draws these
+summaries are read from (its draws are in \code{draws}). Used by
 \code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}.}
 \item{ncst}{List with \code{mean} and \code{var}, each a named list of nowcasts
 for every input series at its own frequency.}
@@ -113,6 +114,10 @@ inspection: \code{nowcast} (a data frame of \code{time}, \code{observed}, \code{
 \code{lower}, \code{upper} at the target's own frequency) and
 \code{high_frequency} (the same columns for the high-frequency growth
 estimate). See \link{fcast_dfm_methods}.}
+\item{draws}{The retained posterior draws, \strong{after rotation and
+identification} (see \link{mfbdfm_draws}), or \code{NULL} with
+\code{keep_draws = FALSE} in \code{\link[=dfm_control]{dfm_control()}}. Present by default; this is
+what \code{\link[=mfbdfm_diagnostics]{mfbdfm_diagnostics()}} reads.}
 \item{call}{The matched call.}
 }
 }
@@ -252,10 +257,10 @@ Switzerland. \emph{Swiss Journal of Economics and Statistics}, 162, 10.
 \code{\link[=mfbdfm_nowcast]{mfbdfm_nowcast()}} to extract the nowcasts from the fit, and
 \link{fcast_dfm_methods} for the methods the fit supports.
 
-Other model fitting functions: 
-\code{\link{dfm_memory}()},
-\code{\link{ind_dfm}()},
-\code{\link{run_fcast}()},
-\code{\link{select_factors}()}
+Other model fitting functions:
+\code{\link[=dfm_memory]{dfm_memory()}},
+\code{\link[=ind_dfm]{ind_dfm()}},
+\code{\link[=run_fcast]{run_fcast()}},
+\code{\link[=select_factors]{select_factors()}}
 }
 \concept{model fitting functions}

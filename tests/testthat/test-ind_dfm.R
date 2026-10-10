@@ -23,7 +23,7 @@ test_that("ind_dfm returns a complete, finite fit object", {
   expect_named(fit, c("factor", "factor_var", "factor_std", "index", "nowcast",
                       "nowcast_var", "target", "pars", "pars_dist", "data",
                       "data_raw",
-                      "data_augmented", "inventory", "call"))
+                      "data_augmented", "inventory", "draws", "call"))
   expect_s3_class(fit$factor, "ts")
   expect_equal(frequency(fit$factor), 48)
   expect_equal(frequency(fit$nowcast), 4)

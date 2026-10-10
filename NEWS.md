@@ -1,4 +1,86 @@
-# mfbdfm 0.1.0.9000
+# mfbdfm 0.2.0.9000
+
+* Fits now **keep their posterior draws**, so convergence can be checked after
+  the fact instead of only watched during sampling (#110). Both samplers
+  already held every retained draw in memory for the whole fit and then
+  averaged and discarded it; the draws are now returned in `fit$draws`, an
+  `mfbdfm_draws` object with a matrix of parameter draws (one column per scalar
+  parameter), the nowcast draws, and optionally the factor paths. Nothing about
+  the sampling changed: no RNG is consumed by storing them, and a fit is
+  bit-identical with `keep_draws` on and off.
+  - `dfm_control()` gains `keep_draws` (default `TRUE` -- the parameter and
+    nowcast matrices are small), `keep_factor_draws` (default `FALSE` -- the
+    factor paths are the one large component) and, for `ind_dfm()` only,
+    `keep_burn_in`, which retains the burn-in parameter draws so a trace plot
+    can show the chain settling. `keep_burn_in` is deliberately absent from
+    `fcast_dfm()` rather than accepted and ignored: that model identifies post
+    hoc, and a burn-in draw has no rotation reference to be comparable against.
+  - For `fcast_dfm()` the draws are stored **after** rotation and
+    identification, so they are comparable across iterations.
+  - `print()`, `as.data.frame()`, `as.mcmc()` (so the chain can be handed
+    straight to coda) and `plot()` methods; see `?mfbdfm_draws`.
+* New `mfbdfm_diagnostics()`: effective sample size, the Geweke z-score and,
+  on request, the Heidelberger-Welch tests for every parameter of either fit
+  class, as a tidy data frame whose `print()` highlights what failed. Single
+  chain, so no R-hat, and the documentation says so rather than computing one
+  from a single chain and leaving it quietly meaningless.
+  - A zero-variance chain is a **normal** outcome in this package --
+    `lambda[target]` is pinned by `ind_dfm()`'s identification, `rho` is held
+    at `1e-9` when `serial_correlation = FALSE`, and the volatility parameters
+    do not exist when `stochastic_volatility = FALSE` -- so those rows are
+    reported as `constant` and excluded from the pass/fail count rather than
+    counted as convergence failures.
+* New trace and posterior-density plots over the retained draws, in the
+  package's ggplot style: `plot(fit$draws)` or `plot()` on the diagnostics
+  object, which defaults to showing whatever it flagged. Trace left, density
+  right, as in coda's `plot.mcmc`, with the running mean overlaid, the
+  posterior mean and 95% interval marked, and the burn-in shaded when it was
+  retained.
+* `dfm_memory()` gains `keep_draws`/`keep_factor_draws`, which add the
+  retained draws' footprint to the estimate. Their cost is arithmetic -- one
+  live copy of each matrix at its exact size -- not a re-calibration: the eight
+  calibration fits behind the model predate retained draws.
+* coda moves from Suggests to Imports, being load-bearing for an exported
+  function now rather than a plotting nicety.
+
+# mfbdfm 0.2.0
+
+Tools for reading a fitted model: tables with posterior uncertainty
+(`mfbdfm_table_*()`), per-series contributions to the factor and nowcast
+(`mfbdfm_contributions()`), a nowcast accessor (`mfbdfm_nowcast()`), six
+ggplot views of a fit, per-series R-squared in `summary()`, `logLik()`/`AIC()`/
+`BIC()`, and Bai-Ng factor-count selection (`select_factors()`). Also a
+small self-contained example dataset with the GDP target
+(`mfbdfm_example_data`), quiet fits and classed warnings for scripted sweeps,
+and a precomputed applied vignette alongside a new methodology vignette.
+
+The samplers are unchanged, so factors, nowcasts and parameters match 0.1.0.
+One correction **does** change results: the cumulated activity index now
+compounds `(1 + gr)` rather than `exp(gr)`, moving `$index` and the level
+tables built on it by up to ~0.1 index points (#92, below).
+
+Two changes can break existing code, both described in full below:
+
+* `plot()` on a fit returns a ggplot object instead of drawing in base
+  graphics and returning its input invisibly, so inside a loop or function
+  it must be `print()`ed.
+* `summary()` prints the measurement-error **variance** with its interval,
+  where it used to print the square root of its posterior mean.
+
+* The applied vignette is now **precomputed** (the rOpenSci `.Rmd.orig`
+  pattern): `vignettes/mfbdfm.Rmd.orig` is the source to edit, `Rscript
+  vignettes/precompile.R` knits it into the committed `vignettes/mfbdfm.Rmd`
+  with output and figures baked in, and neither `R CMD check` nor pkgdown
+  re-runs the fits. (`vignette("methodology")` fits nothing and stays an
+  ordinary vignette.) The `run_wai_adj()`/`run_ar()` pipeline that was
+  `eval = FALSE` now shows real fitted output, and the chains are 2000 draws
+  after 500 burn-in rather than the 200/50 chosen to keep a live build fast.
+  The `dm_test_modified()`
+  line that referenced objects it never created is gone: a Diebold-Mariano
+  test needs a vector of *real-time* errors, and the in-sample WAI nowcast
+  error is ~1e-16 by construction of the anchoring, so the vignette shows that
+  identity instead and says why the published comparison has to be real-time
+  (#98).
 
 * Degenerate-but-well-formed input series are handled at both model entry
   points instead of failing deep inside the sampler (#121). Every series is
@@ -246,6 +328,19 @@
   the reason recorded in `?ind_dfm_methods`: the nowcasts are computed while
   the model is fitted, so a `predict()` returning stored values would
   advertise a capability the model does not have (#104).
+
+* Input series that are near-perfectly correlated are now flagged before the
+  fit instead of after. `ind_dfm()` and `fcast_dfm()` warn, with condition
+  class `mfbdfm_warning_collinear`, and `print()` on an `mfbdfm_data` object
+  lists the pairs. The statistic is the correlation of each pair on its
+  *overlapping observed span*, flagged at `|r| > 0.99` and skipped below 24
+  overlapping observations — a correlation over the prepared matrix would not
+  do, since the zeros there encode missing. It is deliberately a warning and
+  not an error: a factor model does not break on collinear inputs, it splits
+  the shared loading between the duplicates, so the signal is silently
+  overweighted and no later diagnostic catches it. Which series to drop is a
+  question about the data, so the warning names the pair and leaves the choice
+  to the caller (#120).
 
 * `dfm_control()` gains `verbose`, which turns the samplers quiet. Both models
   honour it, and it silences the `utils::txtProgressBar` as well as the

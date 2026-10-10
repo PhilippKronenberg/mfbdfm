@@ -32,7 +32,7 @@ path with its credible band. This function exists for the
 \code{\link[=run_ar]{run_ar()}}/\code{\link[=run_wai_adj]{run_wai_adj()}} backcast workflow, which also needs the AR
 benchmark, and returns only the latest value.
 
-Other backcasting functions: 
-\code{\link{retrieve_nowcast_var}()}
+Other backcasting functions:
+\code{\link[=retrieve_nowcast_var]{retrieve_nowcast_var()}}
 }
 \concept{backcasting functions}

@@ -38,6 +38,15 @@ reference:
   - print.summary.mfbdfm_fit
   - mfbdfm_contributions
 
+- title: Posterior draws & convergence diagnostics
+  desc: >
+    The retained MCMC draws a fit carries, the single-chain convergence
+    statistics computed from them, and the trace and posterior-density plots
+    that go with both.
+  contents:
+  - mfbdfm_draws
+  - mfbdfm_diagnostics
+
 - title: Tables from a fitted model
   desc: >
     Table-ready summaries of a fit -- loadings, parameters and the nowcast,

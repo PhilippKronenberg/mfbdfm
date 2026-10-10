@@ -436,6 +436,40 @@ test_that("target is checked at construction and defaulted into the models", {
 })
 
 
+test_that("print() reports near-collinear pairs, and says nothing when there are none", {
+
+  set.seed(13)
+  v <- stats::rnorm(60)
+  dates <- seq(as.Date("2014-01-01"), by = "month", length.out = 60)
+  long <- rbind(
+    data.frame(series = "level", date = dates, value = v),
+    data.frame(series = "index", date = dates, value = 100 * v + 5),
+    data.frame(series = "other", date = dates, value = stats::rnorm(60)))
+  meta <- data.frame(series = c("level", "index", "other"),
+                     type = c("flow", "flow", "stock"),
+                     stringsAsFactors = FALSE)
+
+  out <- paste(utils::capture.output(print(mfbdfm_data(long, meta))),
+               collapse = "\n")
+  expect_match(out, "near-collinear pairs")
+  # the series are held in name order, so the pair may be printed either way round
+  expect_match(out, "index ~ level|level ~ index")
+  expect_false(grepl("other ~|~ other", out))
+
+  # a clean panel keeps the clean output it had before the screen existed.
+  # Note make_long() is *not* usable here: it is built from linear ramps
+  # (1:36, 36:1, 1:144), which are exactly collinear and correctly flagged.
+  dat <- make_synth_dat()
+  clean_meta <- data.frame(
+    series = c(names(dat$flows), names(dat$stocks)),
+    type = rep(c("flow", "stock"), lengths(dat)),
+    stringsAsFactors = FALSE)
+  clean <- paste(utils::capture.output(
+    print(mfbdfm_data(c(dat$flows, dat$stocks), clean_meta))), collapse = "\n")
+  expect_false(grepl("near-collinear", clean, fixed = TRUE))
+})
+
+
 test_that("ind_dfm() gives an identical fit from mfbdfm_data() and from flows/stocks", {
 
   data(data_ch_dataset_test)
