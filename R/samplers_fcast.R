@@ -527,7 +527,13 @@ draw_phi_fcast <- function(f, h, p, q, t, s, phi_old){
 #' @importFrom stats rgamma
 draw_omega_fcast <- function(h, t, p, s, omega_old, prior, control){
 
-  m <- matrix(h[(s+1):nrow(h),] - h[s:(nrow(h)-1),])
+  # lag-1 differences of the volatility path from period s+1 on. max(s, 1) and
+  # not s: for a single-frequency panel (s = 0) the second index would be
+  # 0:(nrow(h)-1), from which R drops the zero, so the two operands differed in
+  # length by one and the subtraction recycled with a warning (#147). Identical
+  # to h[(s+1):N] - h[s:(N-1)] for every s >= 1.
+  lo <- max(s, 1L)
+  m <- matrix(h[(lo+1):nrow(h),] - h[lo:(nrow(h)-1),])
 
   # this prior choice is uninformative
   c0 <- prior$c0

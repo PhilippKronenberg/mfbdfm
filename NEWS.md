@@ -1,5 +1,35 @@
 # mfbdfm 0.2.0.9000
 
+* **Both models now fit a single-frequency panel** -- a plain dynamic factor
+  model, where every input series shares one frequency, so `k = 1` and the
+  temporal-aggregation lag count `s = 2*(k - 1)` is zero. Previously both
+  `ind_dfm()` and `fcast_dfm()` died on such input with
+  `evaluation nested too deeply` (or `C stack usage ... too close to the
+  limit`, depending on `options(expressions)`). Three separate `s = 0` defects
+  were behind it (#147):
+
+  - `get_gmat()` built its middle lag blocks with `lapply((s-1):0, ...)`, and
+    the colon operator counts *up* from `-1` when `s = 0`, so the loop read
+    `Llist[["-1"]]` -- `NULL` -- and `rho %*% NULL` sent `Matrix`'s `%*%`
+    dispatch into unbounded recursion instead of erroring. Shared by both
+    models, which is why both failed.
+  - `get_nowcast()` located the target's periods with
+    `round(time + 1/freq_max, 3) %% (1/freq_target) == 0`, which demands an
+    exact zero out of a floating-point modulo. That only materialises when
+    `1/freq_target` is exactly representable: a quarterly target works, a
+    monthly or weekly one selects **no rows at all**. The rule now lives in one
+    internal helper, used by `get_nowcast()` and by `mfbdfm_contributions()`'s
+    nowcast decomposition, and compares in integer periods with a tolerance.
+  - `draw_omega_fcast()` differenced the volatility path over
+    `h[(s+1):N] - h[s:(N-1)]`; for `s = 0` R drops the zero index from the
+    second operand, so the two differed in length by one and the subtraction
+    recycled with a warning.
+
+  All three fixes are behaviour-preserving for mixed-frequency data: the
+  `dev/baseline.R` digests are bit-identical before and after, and the new
+  period-selection helper returns the identical row index to the old modulo
+  expression wherever that expression returned anything.
+
 * The stationarity the models assume is now **stated and screened for**, rather
   than only embodied in the code. `?ind_dfm` gains an "Assumptions" section --
   inherited verbatim by `?fcast_dfm`, so the two cannot drift -- setting out

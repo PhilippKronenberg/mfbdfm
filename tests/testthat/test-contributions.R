@@ -212,3 +212,30 @@ test_that("print and plot run on both classes and both quantities", {
     expect_error(plot(ct, factor = ct$q + 1), "index into")
   }
 })
+
+
+test_that("contributions and logLik work on a single-frequency fit (#147)", {
+  # dfm_joint_precision() calls get_gmat() too, and the decomposition locates
+  # the target's periods by the same rule get_nowcast() uses, so both of #147's
+  # s = 0 / float-modulo failures reach this path as well
+  set.seed(1)
+  mk <- function(x) stats::ts(x, start = c(2014, 1), frequency = 12)
+  p <- list(a = mk(stats::rnorm(60)), b = mk(stats::rnorm(60)),
+            c = mk(stats::rnorm(60)))
+  fit <- suppressMessages(
+    ind_dfm(flows = p[c("a", "b")], stocks = p["c"], target = "a",
+            length_sample = 8, burn_in = 3, plots = FALSE))
+
+  expect_true(is.finite(as.numeric(stats::logLik(fit))))
+
+  ct <- mfbdfm_contributions(fit)
+
+  # the target's own grid is every period of the panel here, which is exactly
+  # what the float modulo could not find: it selected no rows for a monthly
+  # target, leaving the nowcast decomposition empty
+  expect_equal(nrow(ct$nowcast_totals), 60L)
+  expect_equal(nrow(ct$nowcast), 60L * nrow(fit$inventory))
+  expect_false(anyNA(ct$nowcast$contribution))
+  expect_equal(ct$nowcast_totals$systematic + ct$nowcast_totals$idiosyncratic,
+               ct$nowcast_totals$plugin, tolerance = 1e-8)
+})
