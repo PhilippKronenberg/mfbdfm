@@ -32,6 +32,14 @@
 #'     of the result.
 #' }
 #'
+#' A constant or all-missing series cannot be standardized at step 1 and is
+#' **dropped before the criteria are computed**, with a warning naming every
+#' series dropped (condition class `mfbdfm_warning_dropped_series`, as in
+#' [ind_dfm()] and [fcast_dfm()] -- see [dfm_control()] on muffling it). It
+#' carries no information about the factors, so dropping it loses nothing; the
+#' "at least two series at the highest frequency" requirement is then checked
+#' on the survivors.
+#'
 #' With \eqn{V(k)} the mean squared residual of the \eqn{k}-factor principal
 #' component approximation of the \eqn{T \times N} panel, the criteria are
 #'
@@ -70,7 +78,11 @@
 #'   default). Accepted so that the same data specification works here and in
 #'   [fcast_dfm()], and validated if supplied, but it does **not** enter the
 #'   criteria -- no series is treated specially by a principal-component
-#'   decomposition.
+#'   decomposition. Being validated includes the degenerate-series screen: a
+#'   supplied `target` that is constant or all-missing errors, exactly as it
+#'   would in [fcast_dfm()], rather than being dropped. With `target = NULL`
+#'   nothing is treated as a target and no series is protected from the
+#'   screen.
 #' @param max_q Integer, the largest factor count to evaluate. Must be smaller
 #'   than both the number of series and the number of periods in the panel
 #'   actually used.
@@ -155,6 +167,18 @@ select_factors <- function(flows = NULL,
     stop("`max_q` must be a single positive whole number, not ",
          deparse(max_q), ".", call. = FALSE)
   }
+
+  # A constant or all-missing series standardizes to a column of NaN, which
+  # listwise deletion below then turns into an empty panel - an error blaming
+  # missing data for something else entirely (#146). Dropped here instead,
+  # with the entry points' own classed warning. A degenerate `target` errors,
+  # but only when the user actually asked for that series: the stand-in above
+  # is an arbitrary first series and must not be able to stop the call.
+  .s <- screen_degenerate_series(flows, stocks,
+                                 target = if(target_given) target else NULL,
+                                 context = "before computing the criteria")
+  flows <- .s$flows; stocks <- .s$stocks
+  if(!target_given) target <- c(names(flows), names(stocks))[1L]
 
   inventory <- create_inventory(flows = flows, stocks = stocks)
 

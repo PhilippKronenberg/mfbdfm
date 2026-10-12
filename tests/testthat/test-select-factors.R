@@ -128,3 +128,72 @@ test_that("a minimum on the boundary warns instead of being reported as a choice
                                        max_q = 8))
   expect_length(sel2$at_boundary, 0)
 })
+
+test_that("degenerate series are dropped, not reported as missing data (#146)", {
+  d <- make_synth_factor_panel(q = 2, n = 20, t = 120)
+  ref <- select_factors(flows = d$flows, stocks = d$stocks, max_q = 5)
+
+  # one constant and one all-NA series at the highest (and only) frequency
+  bad <- d
+  tmpl <- d$flows$x1
+  bad$flows$flat <- stats::ts(rep(2, length(tmpl)), start = stats::start(tmpl),
+                              frequency = stats::frequency(tmpl))
+  bad$stocks$blank <- stats::ts(rep(NA_real_, length(tmpl)),
+                                start = stats::start(tmpl),
+                                frequency = stats::frequency(tmpl))
+
+  w <- expect_warning(sel <- select_factors(flows = bad$flows,
+                                            stocks = bad$stocks, max_q = 5),
+                      class = "mfbdfm_warning_dropped_series")
+  expect_match(conditionMessage(w), "flat")
+  expect_match(conditionMessage(w), "blank")
+  expect_match(conditionMessage(w), "is constant")
+  expect_match(conditionMessage(w), "no non-missing observations")
+
+  # the criteria are computed on the survivors, i.e. on the original panel
+  expect_false(any(c("flat", "blank") %in% sel$series))
+  expect_false(any(c("flat", "blank") %in% sel$excluded))
+  expect_equal(sel$n_series, ref$n_series)
+  expect_equal(sel$n_obs, ref$n_obs)
+  expect_equal(sel$q_hat, ref$q_hat)
+})
+
+test_that("a degenerate first series with target = NULL warns but does not error", {
+  d <- make_synth_factor_panel(q = 2, n = 20, t = 120)
+  tmpl <- d$flows$x1
+  # x1 is the stand-in target select_factors() uses when target is NULL; it
+  # must not be able to stop the call just because it is degenerate
+  d$flows$x1 <- stats::ts(rep(3, length(tmpl)), start = stats::start(tmpl),
+                          frequency = stats::frequency(tmpl))
+
+  w <- expect_warning(sel <- select_factors(flows = d$flows,
+                                            stocks = d$stocks, max_q = 5),
+                      class = "mfbdfm_warning_dropped_series")
+  expect_match(conditionMessage(w), "x1")
+  expect_false("x1" %in% sel$series)
+  expect_equal(sel$n_series, 19L)
+})
+
+test_that("an explicitly supplied degenerate target errors", {
+  d <- make_synth_factor_panel(q = 2, n = 20, t = 120)
+  tmpl <- d$flows$x1
+  d$flows$x2 <- stats::ts(rep(3, length(tmpl)), start = stats::start(tmpl),
+                          frequency = stats::frequency(tmpl))
+
+  expect_error(select_factors(flows = d$flows, stocks = d$stocks,
+                              target = "x2", max_q = 5),
+               "`target` (\"x2\") is constant", fixed = TRUE)
+})
+
+test_that("dropping can leave too few highest-frequency series", {
+  dat <- make_synth_dat()
+  dat$stocks$s1 <- stats::ts(rep(NA_real_, length(dat$stocks$s1)),
+                             start = stats::start(dat$stocks$s1),
+                             frequency = stats::frequency(dat$stocks$s1))
+
+  # the fixture's weekly block is w1 + s1; with s1 dropped, w1 is alone and
+  # the survivors fail the two-series requirement
+  expect_error(suppressWarnings(
+    select_factors(flows = dat$flows, stocks = dat$stocks, target = "gdp")),
+    "at least two series at the highest frequency")
+})
