@@ -340,10 +340,18 @@ degenerate_reason <- function(x){
 #' being quietly dropped here. `q` is re-checked against the surviving count,
 #' since dropping can leave fewer series than factors.
 #'
+#' [select_factors()] calls it too (#146), passing `target = NULL` when the
+#' user supplied none -- there the target is a stand-in for the shared
+#' validator and must not be able to stop the call -- and a `context` phrase,
+#' since nothing is being fitted there.
+#'
+#' @param context Phrase completing "Dropped n degenerate series <context>:".
+#'
 #' @return A list with the surviving `flows` and `stocks`.
 #'
 #' @noRd
-screen_degenerate_series <- function(flows, stocks, target, q = NULL){
+screen_degenerate_series <- function(flows, stocks, target, q = NULL,
+                                     context = "before fitting"){
 
   reasons <- character(0)
 
@@ -372,7 +380,7 @@ screen_degenerate_series <- function(flows, stocks, target, q = NULL){
   stocks <- keep(stocks)
 
   mfbdfm_warn(
-    paste0("Dropped ", length(reasons), " degenerate series before fitting: ",
+    paste0("Dropped ", length(reasons), " degenerate series ", context, ": ",
            paste(paste0(sQuote(names(reasons)), " ", reasons), collapse = "; "),
            ". Standardizing such a series divides by zero or by NA, so it ",
            "cannot enter the model; it carries no information about the factor."),

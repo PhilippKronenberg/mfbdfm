@@ -1,5 +1,17 @@
 # mfbdfm 0.2.0.9000
 
+* `select_factors()` now applies the same degenerate-series screen as the two
+  model entry points: a constant or all-missing series is **dropped before the
+  criteria are computed**, with one warning naming every series dropped and
+  carrying the condition class `mfbdfm_warning_dropped_series` (#146). Such a
+  series standardizes to a column of `NaN`, which listwise deletion then turned
+  into an empty panel -- so the call used to fail with "No usable periods remain
+  after removing missing values", which blamed missing data, suggested
+  `na_action = "interpolate"` (which does not help) and never named the
+  offending series. A supplied `target` that is degenerate errors instead, as
+  it does in `fcast_dfm()`; with `target = NULL` the internal first-series
+  stand-in is not protected and can be dropped like any other series.
+
 * The stationarity the models assume is now **stated and screened for**, rather
   than only embodied in the code. `?ind_dfm` gains an "Assumptions" section --
   inherited verbatim by `?fcast_dfm`, so the two cannot drift -- setting out
