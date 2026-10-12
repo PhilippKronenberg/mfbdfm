@@ -63,7 +63,10 @@ fcast_dfm(
 
 - burn_in:
 
-  Integer, number of initial draws to discard.
+  Integer, number of initial draws to discard. `0` is allowed, which is
+  what the second leg of a continued chain wants – see
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)'s
+  `starting_values`.
 
 - thinning:
 
@@ -112,7 +115,8 @@ fcast_dfm(
   `dfm_control("fcast_dfm", strict = TRUE)` switches the rotation to the
   algorithm as specified in the online appendix, and
   `dfm_control("fcast_dfm", verbose = FALSE)` silences the progress
-  messages and the progress bar.
+  messages and the progress bar. `seed` and `starting_values` there make
+  a fit reproducible on its own terms and let a chain be continued.
 
 ## Value
 
@@ -207,6 +211,26 @@ An object of class `"fcast_dfm"`: a list with components
   Present by default; this is what
   [`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
   reads.
+
+- rng:
+
+  The random stream the fit ran under: `seed` (the
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+  setting, or `NULL`), `kind`
+  ([`RNGkind()`](https://rdrr.io/r/base/Random.html)), `start` (the
+  `.Random.seed` the sampler began from) and `end` (its position when
+  the **sampler** finished, which is before the evaluation phase redraws
+  the factors – that is the position a continuation resumes from).
+  Recorded whether or not a seed was given.
+
+- final_state:
+
+  The sampler's last draw, **unrotated**, in its own parameter blocks
+  (`f`, `lambda`, `phi`, `sigma`, `rho`, `h`, `omega`, `Xmat`,
+  `indicators`). Pass the fit as
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)'s
+  `starting_values` to continue the chain from here; see there for why
+  the two legs' *rotated* output is not comparable.
 
 - call:
 

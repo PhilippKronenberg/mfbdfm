@@ -116,7 +116,9 @@ when saving.</p></dd>
 
 
 <dt id="arg-burn-in">burn_in<a class="anchor" aria-label="anchor" href="#arg-burn-in"></a></dt>
-<dd><p>Integer, number of initial draws to discard.</p></dd>
+<dd><p>Integer, number of initial draws to discard. <code>0</code> is
+allowed, which is what the second leg of a continued chain wants –
+see <code><a href="dfm_control.html">dfm_control()</a></code>'s <code>starting_values</code>.</p></dd>
 
 
 <dt id="arg-thinning">thinning<a class="anchor" aria-label="anchor" href="#arg-thinning"></a></dt>

@@ -59,7 +59,10 @@ ind_dfm(
 
 - burn_in:
 
-  Integer, number of initial draws to discard.
+  Integer, number of initial draws to discard. `0` is allowed, which is
+  what the second leg of a continued chain wants – see
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)'s
+  `starting_values`.
 
 - thinning:
 
@@ -106,7 +109,8 @@ ind_dfm(
   and the numerical jitter. Omit it (the default) and the published
   behaviour is reproduced exactly.
   `dfm_control("ind_dfm", verbose = FALSE)` silences the progress
-  messages and the progress bar.
+  messages and the progress bar; `seed` and `starting_values` there make
+  a fit reproducible on its own terms and let a chain be continued.
 
 ## Value
 
@@ -188,6 +192,24 @@ An object of class `"ind_dfm"`: a list with components
   Present by default; this is what
   [`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
   reads.
+
+- rng:
+
+  The random stream the fit ran under: `seed` (the
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+  setting, or `NULL`), `kind`
+  ([`RNGkind()`](https://rdrr.io/r/base/Random.html)), `start` (the
+  `.Random.seed` the sampler began from) and `end` (its position when
+  the sampler finished). Recorded whether or not a seed was given, so an
+  unseeded fit is still reproducible after the fact.
+
+- final_state:
+
+  The sampler's last draw, in its own parameter blocks (`f`, `lambda`,
+  `phi`, `sigma`, `rho`, `h`, `omega`, `Xmat`, `indicators`). Pass the
+  fit as
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)'s
+  `starting_values` to continue the chain from here.
 
 - call:
 

@@ -39,6 +39,8 @@ dfm_control("fcast_dfm", strict = TRUE)
 #>   verbose                  TRUE      
 #>   keep_draws               TRUE      
 #>   keep_factor_draws        FALSE     
+#>   seed                     NULL      
+#>   starting_values          NULL      
 #>   omega_max                1         
 #>   rotation_criterion       "sum"       (default "mean")
 #>   rotation_tol             1e-09     

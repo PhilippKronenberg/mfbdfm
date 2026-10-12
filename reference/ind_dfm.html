@@ -106,7 +106,9 @@ named list of <code>ts</code> objects treated as flow variables. Must contain
 
 
 <dt id="arg-burn-in">burn_in<a class="anchor" aria-label="anchor" href="#arg-burn-in"></a></dt>
-<dd><p>Integer, number of initial draws to discard.</p></dd>
+<dd><p>Integer, number of initial draws to discard. <code>0</code> is
+allowed, which is what the second leg of a continued chain wants –
+see <code><a href="dfm_control.html">dfm_control()</a></code>'s <code>starting_values</code>.</p></dd>
 
 
 <dt id="arg-thinning">thinning<a class="anchor" aria-label="anchor" href="#arg-thinning"></a></dt>
@@ -150,7 +152,9 @@ numerical guards that were previously hard-coded – the stationarity screen
 on the measurement-error autocorrelations, the caps on <code>phi</code> and <code>sigma</code>,
 and the numerical jitter. Omit it (the default) and the published behaviour
 is reproduced exactly. <code>dfm_control("ind_dfm", verbose = FALSE)</code> silences
-the progress messages and the progress bar.</p></dd>
+the progress messages and the progress bar; <code>seed</code> and <code>starting_values</code>
+there make a fit reproducible on its own terms and let a chain be
+continued.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -211,6 +215,19 @@ there for which blocks are present and why.</p></dd>
 <dd><p>The retained posterior draws (see <a href="mfbdfm_draws.html">mfbdfm_draws</a>), or
 <code>NULL</code> with <code>keep_draws = FALSE</code> in <code><a href="dfm_control.html">dfm_control()</a></code>. Present by
 default; this is what <code><a href="mfbdfm_diagnostics.html">mfbdfm_diagnostics()</a></code> reads.</p></dd>
+
+<dt>rng</dt>
+<dd><p>The random stream the fit ran under: <code>seed</code> (the
+<code><a href="dfm_control.html">dfm_control()</a></code> setting, or <code>NULL</code>), <code>kind</code> (<code><a href="https://rdrr.io/r/base/Random.html" class="external-link">RNGkind()</a></code>), <code>start</code>
+(the <code>.Random.seed</code> the sampler began from) and <code>end</code> (its position
+when the sampler finished). Recorded whether or not a seed was given,
+so an unseeded fit is still reproducible after the fact.</p></dd>
+
+<dt>final_state</dt>
+<dd><p>The sampler's last draw, in its own parameter blocks
+(<code>f</code>, <code>lambda</code>, <code>phi</code>, <code>sigma</code>, <code>rho</code>, <code>h</code>, <code>omega</code>, <code>Xmat</code>,
+<code>indicators</code>). Pass the fit as <code><a href="dfm_control.html">dfm_control()</a></code>'s <code>starting_values</code> to
+continue the chain from here.</p></dd>
 
 <dt>call</dt>
 <dd><p>The matched call.</p></dd>

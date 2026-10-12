@@ -92,10 +92,77 @@ chosen model does not have is an error, so a typo surfaces immediately.</p></dd>
     <p>This holds settings that affect <em>how</em> the sampler searches, not <em>what model</em>
 it fits. Priors live in <code><a href="dfm_priors.html">dfm_priors()</a></code>; model structure is in the arguments
 of <code><a href="ind_dfm.html">ind_dfm()</a></code> and <code><a href="fcast_dfm.html">fcast_dfm()</a></code>.</p>
-<p>Deliberately absent: initial values, and the numerical conditioning constants
-that are not choices (the <code>1e-9</code> ridge that encodes "effectively zero"
-autocorrelation when <code>serial_correlation = FALSE</code>, and the <code>pi - 1e-16</code> domain
-guard on the Givens angles).</p>
+<p>Deliberately absent: the numerical conditioning constants that are not
+choices (the <code>1e-9</code> ridge that encodes "effectively zero" autocorrelation
+when <code>serial_correlation = FALSE</code>, and the <code>pi - 1e-16</code> domain guard on the
+Givens angles).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="where-the-chain-starts-seed-and-starting-values">Where the chain starts: <code>seed</code> and <code>starting_values</code><a class="anchor" aria-label="anchor" href="#where-the-chain-starts-seed-and-starting-values"></a></h2>
+    <p>Both default to <code>NULL</code>, which is the behaviour the package has always had:
+the sampler draws its own initial state from whatever random stream the
+caller happens to have. Setting either is what makes a fit reproducible on
+its own terms, lets two differently-initialised chains be compared, and lets
+a chain that turned out too short be continued instead of re-run (#117).</p>
+<dl><dt><code>seed</code></dt>
+<dd><p>A single whole number. <code>set.seed(seed)</code> runs at the start of
+the fit and the caller's own stream position is <strong>restored on exit</strong>, so
+a seeded fit does not silently move the global stream. Either way –
+seed or no seed – the fit records the state it ran under in <code>fit$rng</code>,
+so even an unseeded fit can be reproduced after the fact:
+<code>fit$rng$start</code> is the <code>.Random.seed</code> the sampler began from and
+<code>fit$rng$kind</code> the <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">RNGkind()</a></code> it ran under.</p></dd>
+
+<dt><code>starting_values</code></dt>
+<dd><p>Either a named list of parameter blocks, or a
+previous fit of the <strong>same</strong> model, in which case its chain is
+continued. The block names are the sampler's own:
+<code>f</code>, <code>lambda</code>, <code>phi</code>, <code>sigma</code>, <code>rho</code>, <code>h</code>, <code>omega</code>, <code>Xmat</code>,
+<code>indicators</code>. A partial list is fine – the blocks you do not supply are
+initialised exactly as they always were – and the name is plural
+because the argument takes several values (rOpenSci BS2.11).</p></dd>
+
+
+</dl><p>A supplied block is used as given and its random initialisation is skipped,
+so a <em>complete</em> set of starting values consumes no random numbers at all.
+That is what makes continuation exact rather than approximate.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="continuing-a-chain">Continuing a chain<a class="anchor" aria-label="anchor" href="#continuing-a-chain"></a></h2>
+    <p>Passing a fit as <code>starting_values</code> resumes both the parameter state
+(<code>fit$final_state</code>, the sampler's last draw) and the random stream
+(<code>fit$rng$end</code>, its position when the sampler finished). With <code>burn_in = 0</code>
+on the second leg, two legs of <code>N</code> draws are then <em>the same chain</em> as one run
+of <code>2N</code>:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="va">leg1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ind_dfm.html">ind_dfm</a></span><span class="op">(</span><span class="va">mfbdfm_example_data</span>, length_sample <span class="op">=</span> <span class="fl">500</span>, burn_in <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>                control <span class="op">=</span> <span class="fu"><a href="../reference/dfm_control.html">dfm_control</a></span><span class="op">(</span><span class="st">"ind_dfm"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">leg2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ind_dfm.html">ind_dfm</a></span><span class="op">(</span><span class="va">mfbdfm_example_data</span>, length_sample <span class="op">=</span> <span class="fl">500</span>, burn_in <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>                control <span class="op">=</span> <span class="fu"><a href="../reference/dfm_control.html">dfm_control</a></span><span class="op">(</span><span class="st">"ind_dfm"</span>, starting_values <span class="op">=</span> <span class="va">leg1</span><span class="op">)</span><span class="op">)</span></span></code></pre><p></p></div>
+<p><code>leg2$draws</code> then holds exactly the second half of the 1000-draw run, and
+<code>leg2$final_state</code> is identical to that run's. Note what the legs are <em>not</em>:
+each leg's posterior means (<code>$nowcast</code>, <code>$factor</code>, ...) summarise only its
+own draws, so the two have to be pooled through <code>$draws</code> rather than
+averaged from the fit objects.</p>
+<p>Two caveats, both deliberate:</p>
+<ul><li><p>Setting <code>seed</code> <strong>and</strong> passing a fit asks for two different stream
+positions. <code>seed</code> wins and the fit warns, because the result is then two
+legs that are not one chain.</p></li>
+<li><p>For <code><a href="fcast_dfm.html">fcast_dfm()</a></code> the continuation is exact <em>in the sampler</em> – the
+final state after two legs is identical to the single run's – but the
+reported output is not comparable across legs. That model identifies post
+hoc, and the rotation computes its reference from the retained draws of
+the fit at hand, so each leg is rotated onto its own reference.
+Continue a <code><a href="fcast_dfm.html">fcast_dfm()</a></code> chain to extend the sampler, not to splice the
+rotated output.</p></li>
+</ul><p>A fit cannot be continued by the other model (the two samplers do not share a
+parameter state), nor onto different data, a different <code>p</code>/<code>q</code>, or different
+<code>stochastic_volatility</code>/<code>serial_correlation</code> settings: the specification the
+state belongs to is recorded with it and the mismatch is an error naming what
+moved.</p>
+<p>Not applicable yet: rOpenSci BS2.9 (distinct seeds per chain by default) and
+BS2.10 (a diagnostic message when identical seeds are passed) describe
+multiple chains in one call, which neither entry point runs – one call is one
+chain. They become relevant if a <code>chains</code> argument is ever added.</p>
     </div>
     <div class="section level2">
     <h2 id="the-rotation-stopping-rule">The rotation stopping rule<a class="anchor" aria-label="anchor" href="#the-rotation-stopping-rule"></a></h2>
@@ -242,6 +309,8 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   omega_max                1         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_criterion       "mean"    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_tol             1e-09     </span>
@@ -265,6 +334,8 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   omega_max                1         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_criterion       "sum"       (default "mean")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_tol             1e-09     </span>
@@ -285,6 +356,8 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   omega_max                1         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_criterion       "sum"       (default "mean")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_tol             1e-10       (default 1e-09)</span>
@@ -303,6 +376,8 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                10          (default 5)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             FALSE     </span>
@@ -319,6 +394,8 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  FALSE       (default TRUE)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                5         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             FALSE     </span>
@@ -335,9 +412,45 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        TRUE        (default FALSE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                5         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             TRUE        (default FALSE)</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># a reproducible fit, and one started from an explicit factor path</span></span></span>
+<span class="r-in"><span><span class="fu">dfm_control</span><span class="op">(</span><span class="st">"ind_dfm"</span>, seed <span class="op">=</span> <span class="fl">2026</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Control settings for ind_dfm()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max                  0.99      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max_tries            10        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_fallback             0.98      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     2026        (default NULL)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                5         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             FALSE     </span>
+<span class="r-in"><span><span class="fu">dfm_control</span><span class="op">(</span><span class="st">"ind_dfm"</span>, starting_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>phi <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Control settings for ind_dfm()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max                  0.99      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max_tries            10        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_fallback             0.98      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          &lt;phi&gt;       (default NULL)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                5         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             FALSE     </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

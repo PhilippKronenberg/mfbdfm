@@ -50,10 +50,91 @@ model structure is in the arguments of
 and
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
 
-Deliberately absent: initial values, and the numerical conditioning
-constants that are not choices (the `1e-9` ridge that encodes
-"effectively zero" autocorrelation when `serial_correlation = FALSE`,
-and the `pi - 1e-16` domain guard on the Givens angles).
+Deliberately absent: the numerical conditioning constants that are not
+choices (the `1e-9` ridge that encodes "effectively zero"
+autocorrelation when `serial_correlation = FALSE`, and the `pi - 1e-16`
+domain guard on the Givens angles).
+
+## Where the chain starts: `seed` and `starting_values`
+
+Both default to `NULL`, which is the behaviour the package has always
+had: the sampler draws its own initial state from whatever random stream
+the caller happens to have. Setting either is what makes a fit
+reproducible on its own terms, lets two differently-initialised chains
+be compared, and lets a chain that turned out too short be continued
+instead of re-run (#117).
+
+- `seed`:
+
+  A single whole number. `set.seed(seed)` runs at the start of the fit
+  and the caller's own stream position is **restored on exit**, so a
+  seeded fit does not silently move the global stream. Either way – seed
+  or no seed – the fit records the state it ran under in `fit$rng`, so
+  even an unseeded fit can be reproduced after the fact: `fit$rng$start`
+  is the `.Random.seed` the sampler began from and `fit$rng$kind` the
+  [`RNGkind()`](https://rdrr.io/r/base/Random.html) it ran under.
+
+- `starting_values`:
+
+  Either a named list of parameter blocks, or a previous fit of the
+  **same** model, in which case its chain is continued. The block names
+  are the sampler's own: `f`, `lambda`, `phi`, `sigma`, `rho`, `h`,
+  `omega`, `Xmat`, `indicators`. A partial list is fine – the blocks you
+  do not supply are initialised exactly as they always were – and the
+  name is plural because the argument takes several values (rOpenSci
+  BS2.11).
+
+A supplied block is used as given and its random initialisation is
+skipped, so a *complete* set of starting values consumes no random
+numbers at all. That is what makes continuation exact rather than
+approximate.
+
+## Continuing a chain
+
+Passing a fit as `starting_values` resumes both the parameter state
+(`fit$final_state`, the sampler's last draw) and the random stream
+(`fit$rng$end`, its position when the sampler finished). With
+`burn_in = 0` on the second leg, two legs of `N` draws are then *the
+same chain* as one run of `2N`:
+
+    leg1 <- ind_dfm(mfbdfm_example_data, length_sample = 500, burn_in = 100,
+                    control = dfm_control("ind_dfm", seed = 1))
+    leg2 <- ind_dfm(mfbdfm_example_data, length_sample = 500, burn_in = 0,
+                    control = dfm_control("ind_dfm", starting_values = leg1))
+
+`leg2$draws` then holds exactly the second half of the 1000-draw run,
+and `leg2$final_state` is identical to that run's. Note what the legs
+are *not*: each leg's posterior means (`$nowcast`, `$factor`, ...)
+summarise only its own draws, so the two have to be pooled through
+`$draws` rather than averaged from the fit objects.
+
+Two caveats, both deliberate:
+
+- Setting `seed` **and** passing a fit asks for two different stream
+  positions. `seed` wins and the fit warns, because the result is then
+  two legs that are not one chain.
+
+- For
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  the continuation is exact *in the sampler* – the final state after two
+  legs is identical to the single run's – but the reported output is not
+  comparable across legs. That model identifies post hoc, and the
+  rotation computes its reference from the retained draws of the fit at
+  hand, so each leg is rotated onto its own reference. Continue a
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  chain to extend the sampler, not to splice the rotated output.
+
+A fit cannot be continued by the other model (the two samplers do not
+share a parameter state), nor onto different data, a different `p`/`q`,
+or different `stochastic_volatility`/`serial_correlation` settings: the
+specification the state belongs to is recorded with it and the mismatch
+is an error naming what moved.
+
+Not applicable yet: rOpenSci BS2.9 (distinct seeds per chain by default)
+and BS2.10 (a diagnostic message when identical seeds are passed)
+describe multiple chains in one call, which neither entry point runs –
+one call is one chain. They become relevant if a `chains` argument is
+ever added.
 
 ## The rotation stopping rule
 
@@ -242,6 +323,8 @@ dfm_control("fcast_dfm")
 #>   verbose                  TRUE      
 #>   keep_draws               TRUE      
 #>   keep_factor_draws        FALSE     
+#>   seed                     NULL      
+#>   starting_values          NULL      
 #>   omega_max                1         
 #>   rotation_criterion       "mean"    
 #>   rotation_tol             1e-09     
@@ -265,6 +348,8 @@ dfm_control("fcast_dfm", strict = TRUE)
 #>   verbose                  TRUE      
 #>   keep_draws               TRUE      
 #>   keep_factor_draws        FALSE     
+#>   seed                     NULL      
+#>   starting_values          NULL      
 #>   omega_max                1         
 #>   rotation_criterion       "sum"       (default "mean")
 #>   rotation_tol             1e-09     
@@ -285,6 +370,8 @@ dfm_control("fcast_dfm", rotation_criterion = "sum", rotation_tol = 1e-10)
 #>   verbose                  TRUE      
 #>   keep_draws               TRUE      
 #>   keep_factor_draws        FALSE     
+#>   seed                     NULL      
+#>   starting_values          NULL      
 #>   omega_max                1         
 #>   rotation_criterion       "sum"       (default "mean")
 #>   rotation_tol             1e-10       (default 1e-09)
@@ -303,6 +390,8 @@ dfm_control("ind_dfm", sigma_max = 10)
 #>   verbose                  TRUE      
 #>   keep_draws               TRUE      
 #>   keep_factor_draws        FALSE     
+#>   seed                     NULL      
+#>   starting_values          NULL      
 #>   phi_sum_max              0.9       
 #>   sigma_max                10          (default 5)
 #>   keep_burn_in             FALSE     
@@ -319,6 +408,8 @@ dfm_control("ind_dfm", verbose = FALSE)
 #>   verbose                  FALSE       (default TRUE)
 #>   keep_draws               TRUE      
 #>   keep_factor_draws        FALSE     
+#>   seed                     NULL      
+#>   starting_values          NULL      
 #>   phi_sum_max              0.9       
 #>   sigma_max                5         
 #>   keep_burn_in             FALSE     
@@ -335,7 +426,43 @@ dfm_control("ind_dfm", keep_factor_draws = TRUE, keep_burn_in = TRUE)
 #>   verbose                  TRUE      
 #>   keep_draws               TRUE      
 #>   keep_factor_draws        TRUE        (default FALSE)
+#>   seed                     NULL      
+#>   starting_values          NULL      
 #>   phi_sum_max              0.9       
 #>   sigma_max                5         
 #>   keep_burn_in             TRUE        (default FALSE)
+
+# a reproducible fit, and one started from an explicit factor path
+dfm_control("ind_dfm", seed = 2026)
+#> Control settings for ind_dfm()
+#> 
+#>   rho_max                  0.99      
+#>   rho_max_tries            10        
+#>   rho_fallback             0.98      
+#>   jitter                   1e-09     
+#>   sv_offset                0.001     
+#>   verbose                  TRUE      
+#>   keep_draws               TRUE      
+#>   keep_factor_draws        FALSE     
+#>   seed                     2026        (default NULL)
+#>   starting_values          NULL      
+#>   phi_sum_max              0.9       
+#>   sigma_max                5         
+#>   keep_burn_in             FALSE     
+dfm_control("ind_dfm", starting_values = list(phi = 0.5))
+#> Control settings for ind_dfm()
+#> 
+#>   rho_max                  0.99      
+#>   rho_max_tries            10        
+#>   rho_fallback             0.98      
+#>   jitter                   1e-09     
+#>   sv_offset                0.001     
+#>   verbose                  TRUE      
+#>   keep_draws               TRUE      
+#>   keep_factor_draws        FALSE     
+#>   seed                     NULL      
+#>   starting_values          <phi>       (default NULL)
+#>   phi_sum_max              0.9       
+#>   sigma_max                5         
+#>   keep_burn_in             FALSE     
 ```

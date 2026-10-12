@@ -57,7 +57,10 @@ run_wai_adj(
 
 - burn_in:
 
-  Integer, number of initial draws to discard.
+  Integer, number of initial draws to discard. `0` is allowed, which is
+  what the second leg of a continued chain wants – see
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)'s
+  `starting_values`.
 
 - thinning:
 
