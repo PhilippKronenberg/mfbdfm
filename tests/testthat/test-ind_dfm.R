@@ -462,3 +462,32 @@ test_that("ind_dfm is insensitive to double.eps-scale input noise (G5.9a)", {
   expect_gt(stats::cor(as.numeric(plain$nowcast), as.numeric(noised$nowcast)),
             1 - 1e-9)
 })
+
+
+test_that("ind_dfm fits a single-frequency panel (#147)", {
+  # k = 1, so s = 0: the temporal-aggregation machinery degenerates. Two
+  # separate failures lived here - get_gmat()'s middle lag blocks recursed to a
+  # stack overflow, and get_nowcast()'s float modulo then selected no rows for
+  # a monthly target, because 1/12 never comes out of `%%` as an exact zero.
+  for (f in c(12, 52)) {
+    set.seed(1)
+    mk <- function(x) stats::ts(x, start = c(2014, 1), frequency = f)
+    p <- list(a = mk(stats::rnorm(60)), b = mk(stats::rnorm(60)),
+              c = mk(stats::rnorm(60)))
+
+    fit <- suppressMessages(
+      ind_dfm(flows = p[c("a", "b")], stocks = p["c"], target = "a",
+              length_sample = 10, burn_in = 3, thinning = 1, plots = FALSE))
+
+    expect_s3_class(fit, "ind_dfm")
+    expect_equal(frequency(fit$nowcast), f)
+    expect_equal(frequency(fit$factor), f)
+    # the target is observed every period, so the nowcast spans the whole panel
+    expect_length(fit$nowcast, 60)
+    expect_false(anyNA(fit$nowcast))
+    expect_false(anyNA(fit$factor))
+    # factor_std has no latent lead periods to carry
+    expect_length(fit$factor_std, nrow(fit$data))
+    expect_equal(as.numeric(fit$pars$lambda[fit$inventory$key == "a"]), 1)
+  }
+})

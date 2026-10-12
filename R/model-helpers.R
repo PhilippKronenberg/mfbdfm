@@ -284,8 +284,13 @@ get_zmat <- function(f, n, t, s, Llist, rho){
 #' @noRd
 get_gmat <- function(Gmat_prealloc, Llist, rho, lambda, s, t, n){
 
+  # rev(seq_len(s) - 1), not (s-1):0: the two agree for every s >= 1, but for a
+  # single-frequency panel (s = 0) the colon form counts *up* to c(-1, 0) and
+  # reads Llist[["-1"]], i.e. NULL, which sends Matrix's %*% dispatch into
+  # unbounded recursion rather than erroring (#147). Here it is empty, and
+  # do.call(cbind, list()) is NULL, which cbind() drops.
   aux <- cbind(-rho %*% Llist[[as.character(s)]] %*% lambda,
-               do.call(cbind, lapply((s-1):0, function(sx){
+               do.call(cbind, lapply(rev(seq_len(s) - 1), function(sx){
                  (Llist[[as.character(sx+1)]] - rho %*% Llist[[as.character(sx)]]) %*% lambda})),
                Llist[[as.character(0)]] %*% lambda)
 
@@ -297,6 +302,30 @@ get_gmat <- function(Gmat_prealloc, Llist, rho, lambda, s, t, n){
 }
 
 
+#' Rows of the prepared panel that hold a series' period-end observations
+#'
+#' [prepare_data()] shifts every observation to the last high-frequency slot of
+#' its own period, so a series of frequency `freq` is observed only on the rows
+#' where `tt + 1/freq_max` falls on its period grid.
+#'
+#' @details
+#' The test is done in integer periods with a tolerance rather than as
+#' `round(tt + 1/freq_max, 3) %% (1/freq) == 0`. That form demands an exact
+#' zero out of a floating-point modulo, which only materialises when `1/freq`
+#' is exactly representable: a quarterly target (`1/4`) works, a monthly one
+#' (`1/12`) does not, and the comparison then silently selects no rows at all
+#' (#147). Multiplying by `freq` instead puts the quantity on an integer scale
+#' where a tolerance is meaningful.
+#'
+#' @noRd
+target_period_rows <- function(tt, freq_max, freq){
+
+  x <- (as.numeric(tt) + 1/freq_max) * freq
+  which(abs(x - round(x)) < 1e-6)
+
+}
+
+
 #' Extract the target series nowcast from the augmented dataset
 #'
 #' @noRd
@@ -304,7 +333,9 @@ get_gmat <- function(Gmat_prealloc, Llist, rho, lambda, s, t, n){
 get_nowcast <- function(Xmat_full, inventory, target, flows){
 
   # get the entry where GDP is usually recorded
-  idx <- which(round(time(Xmat_full) + 1/max(inventory$freq), 3) %% (1/frequency(flows[[target]])) == 0)
+  idx <- target_period_rows(tt = time(Xmat_full),
+                            freq_max = max(inventory$freq),
+                            freq = frequency(flows[[target]]))
   target_fit <- Xmat_full[idx, which(inventory$key==target)]
 
 

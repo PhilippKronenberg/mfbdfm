@@ -165,6 +165,15 @@ test_that("screen_degenerate_series drops with a classed warning, errors on the 
   expect_error(screen_degenerate_series(flat_target, stocks["s1"], "gdp"),
                "`target` (\"gdp\") is constant", fixed = TRUE)
 
+  # target = NULL protects nothing: select_factors() passes it that way when
+  # the user supplied no target, so its stand-in cannot stop the call (#146)
+  w <- expect_warning(
+    out <- screen_degenerate_series(flat_target, stocks["s1"], NULL,
+                                    context = "before computing the criteria"),
+    class = "mfbdfm_warning_dropped_series")
+  expect_match(conditionMessage(w), "before computing the criteria", fixed = TRUE)
+  expect_named(out$flows, "ok")
+
   # emptying the panel entirely is an error, not an empty fit
   expect_error(suppressWarnings(
     screen_degenerate_series(flows["flat"], stocks["blank"], "nope")),
