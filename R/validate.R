@@ -109,12 +109,20 @@ validate_model_inputs <- function(flows, stocks, target,
     }
   }
 
-  for(nm in c("p", "length_sample", "burn_in", "thinning")){
+  for(nm in c("p", "length_sample", "thinning")){
     v <- get(nm)
     if(!is_count(v) || v < 1){
       stop("`", nm, "` must be a single positive whole number, not ",
            deparse(v), ".", call. = FALSE)
     }
+  }
+
+  # burn_in alone may be 0: the second leg of a continued chain starts from the
+  # first leg's final state, which has already burned in, so demanding at least
+  # one discarded draw there would throw away a draw of the same chain (#117).
+  if(!is_count(burn_in) || burn_in < 0){
+    stop("`burn_in` must be a single whole number >= 0, not ",
+         deparse(burn_in), ".", call. = FALSE)
   }
 
   # Collinearity screen (BS3.1). Raised here rather than in each entry point

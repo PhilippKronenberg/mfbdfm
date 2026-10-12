@@ -216,6 +216,53 @@ test_that("verbose is a validated logical defaulting to TRUE for both models", {
 })
 
 
+test_that("seed and starting_values default to NULL in both models (#117)", {
+
+  for(m in c("ind_dfm", "fcast_dfm")){
+    ctrl <- dfm_control(m)
+    # present-but-NULL, not absent: the entry points read them by name
+    expect_true("seed" %in% names(ctrl))
+    expect_true("starting_values" %in% names(ctrl))
+    expect_null(ctrl$seed)
+    expect_null(ctrl$starting_values)
+  }
+
+  expect_identical(dfm_control("ind_dfm", seed = 42)$seed, 42)
+
+  expect_error(dfm_control("ind_dfm", seed = "a"),
+               "must be a single finite whole number")
+  expect_error(dfm_control("ind_dfm", seed = 1.5),
+               "must be a single finite whole number")
+  expect_error(dfm_control("ind_dfm", seed = c(1, 2)),
+               "must be a single finite whole number")
+  expect_error(dfm_control("ind_dfm", seed = Inf),
+               "must be a single finite whole number")
+
+  # the shape check happens here; the dimensions a starting value has to match
+  # are not known until the data has been prepared, so the entry point
+  # finishes the job (see test-starting-values.R)
+  expect_error(dfm_control("ind_dfm", starting_values = 1:3),
+               "must be a named list of parameter blocks")
+  expect_silent(dfm_control("ind_dfm", starting_values = list(phi = 0.5)))
+})
+
+
+test_that("print.dfm_control() renders NULL and a fit, which format() cannot", {
+
+  out <- paste(utils::capture.output(print(dfm_control("ind_dfm", seed = 11))),
+               collapse = "\n")
+  expect_match(out, "seed")
+  expect_match(out, "default NULL")
+  expect_match(out, "starting_values\\s+NULL")
+
+  fake <- structure(list(), class = "ind_dfm")
+  ctrl <- dfm_control("ind_dfm")
+  ctrl$starting_values <- fake
+  out <- paste(utils::capture.output(print(ctrl)), collapse = "\n")
+  expect_match(out, "<ind_dfm fit>", fixed = TRUE)
+})
+
+
 test_that("mfbdfm warnings carry a class that can be muffled individually", {
 
   # Every class inherits from mfbdfm_warning, so the family can be muffled at

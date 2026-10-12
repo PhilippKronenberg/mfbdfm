@@ -22,7 +22,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                          stochastic_volatility = TRUE, serial_correlation = TRUE,
                          priors = dfm_priors("ind_dfm"),
                          control = dfm_control("ind_dfm"),
-                         verbose = TRUE){
+                         verbose = TRUE,
+                         start = NULL){
 
   # fill in the priors whose published default is a rule in terms of t or p
   priors <- resolve_priors(priors, t = t, p = p)
@@ -54,23 +55,33 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   # preallocations
   Llist <- get_distributed_lags(inventory)
 
-  # random parameter starting values
-  phi <- c(0.75,rep(0,p-1))
-  lambda <- Matrix(1,n,1)
-  sigma <- Diagonal(x = runif(n), n = n)
-  omega <- 1e-2
-  h <- matrix(-5, t+s, 1)
-  f <- matrix(rnorm(t+s), t+s, 1)
+  # random parameter starting values.
+  #
+  # Any block supplied in `start` is taken as given and its initialisation
+  # below is skipped - and because `init()`'s second argument is a promise, a
+  # skipped initialisation draws nothing. A complete `start` therefore consumes
+  # no random numbers at all, which is what makes continuing a chain exact
+  # rather than approximate; with `start = NULL` the stream is consumed exactly
+  # as it always was. See dfm_control()'s "Where the chain starts" (#117).
+  init <- function(nm, value) if(is.null(start[[nm]])) value else start[[nm]]
+
+  phi <- init("phi", c(0.75,rep(0,p-1)))
+  lambda <- init("lambda", Matrix(1,n,1))
+  sigma <- init("sigma", Diagonal(x = runif(n), n = n))
+  omega <- init("omega", 1e-2)
+  h <- init("h", matrix(-5, t+s, 1))
+  f <- init("f", matrix(rnorm(t+s), t+s, 1))
   # with serial_correlation = FALSE the measurement-error autocorrelations are
   # held at (effectively) zero rather than drawn; 1e-9 rather than exactly 0 to
   # avoid singularities downstream, matching fcast_dfm()
-  if(serial_correlation){
-    rho <- Diagonal(x = runif(n))
+  rho <- init("rho", if(serial_correlation){
+    Diagonal(x = runif(n))
   } else {
-    rho <- Diagonal(x = 1e-9, n = n)
-  }
-  Xmat = matrix(rnorm(t*n), t, n)
-  indicators = replicate(t+s, sample(x = 1:7, size = 1, prob = rep(1/7,7)))
+    Diagonal(x = 1e-9, n = n)
+  })
+  Xmat = init("Xmat", matrix(rnorm(t*n), t, n))
+  indicators = init("indicators",
+                    replicate(t+s, sample(x = 1:7, size = 1, prob = rep(1/7,7))))
 
   # precompute sparse structures that depend only on the fixed data/dimensions
   # (Ymat, n, t, s), not on any sampled parameter, so they would otherwise be
@@ -260,6 +271,16 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   # name (ind_dfm()'s averages, pars_dist_ind()), so adding one cannot disturb
   # them
   if(keep_burn) par_save$burn <- burn_save
+
+  # the state the loop finished in, in the sampler's own types, so handing it
+  # back as `start` resumes where this chain stopped (#117). `indicators` is
+  # part of it even when stochastic volatility is off, where it is never drawn:
+  # a state that is complete whatever the switches say is a state that consumes
+  # no random numbers on the way back in.
+  par_save$final_state <- list(f = f, lambda = lambda, phi = phi,
+                               sigma = sigma, rho = rho, h = h,
+                               omega = omega, Xmat = Xmat,
+                               indicators = indicators)
 
   return(par_save)
 

@@ -179,7 +179,9 @@
 #'   `flows` (e.g. `"ch.seco.gdp.real.gdp.ssa"`).
 #' @param p Integer, number of factor lags in the factor state equation.
 #' @param length_sample Integer, number of posterior draws to keep.
-#' @param burn_in Integer, number of initial draws to discard.
+#' @param burn_in Integer, number of initial draws to discard. `0` is
+#'   allowed, which is what the second leg of a continued chain wants --
+#'   see [dfm_control()]'s `starting_values`.
 #' @param thinning Integer, keep every `thinning`-th draw after burn-in.
 #' @param plots Logical, if `TRUE` draw base-graphics diagnostic plots of
 #'   the data and of factor/volatility convergence during sampling.
@@ -203,7 +205,9 @@
 #'   on the measurement-error autocorrelations, the caps on `phi` and `sigma`,
 #'   and the numerical jitter. Omit it (the default) and the published behaviour
 #'   is reproduced exactly. `dfm_control("ind_dfm", verbose = FALSE)` silences
-#'   the progress messages and the progress bar.
+#'   the progress messages and the progress bar; `seed` and `starting_values`
+#'   there make a fit reproducible on its own terms and let a chain be
+#'   continued.
 #'
 #' @return An object of class `"ind_dfm"`: a list with components
 #'   \describe{
@@ -236,6 +240,15 @@
 #'     \item{draws}{The retained posterior draws (see [mfbdfm_draws]), or
 #'       `NULL` with `keep_draws = FALSE` in [dfm_control()]. Present by
 #'       default; this is what [mfbdfm_diagnostics()] reads.}
+#'     \item{rng}{The random stream the fit ran under: `seed` (the
+#'       [dfm_control()] setting, or `NULL`), `kind` ([RNGkind()]), `start`
+#'       (the `.Random.seed` the sampler began from) and `end` (its position
+#'       when the sampler finished). Recorded whether or not a seed was given,
+#'       so an unseeded fit is still reproducible after the fact.}
+#'     \item{final_state}{The sampler's last draw, in its own parameter blocks
+#'       (`f`, `lambda`, `phi`, `sigma`, `rho`, `h`, `omega`, `Xmat`,
+#'       `indicators`). Pass the fit as [dfm_control()]'s `starting_values` to
+#'       continue the chain from here.}
 #'     \item{call}{The matched call.}
 #'   }
 #'
@@ -359,6 +372,19 @@ ind_dfm <- function(flows = NULL,
 
   verbose <- isTRUE(control$verbose)
 
+  # WHERE THE CHAIN STARTS --------------------------------------------------
+
+  # Resolved here rather than in the sampler: the dimensions a starting value
+  # has to match are only known now, and validation belongs in the exported
+  # function. Nothing above this point touches the random stream, so setting
+  # the seed here is as good as setting it on entry (#117).
+  spec <- fit_spec(model = "ind_dfm", n = n, t = t, s = s, p = p, q = 1,
+                   stochastic_volatility = stochastic_volatility,
+                   serial_correlation = serial_correlation)
+  start <- resolve_starting_values(control$starting_values, spec)
+  rng <- rng_begin(control$seed, continue_from = start$rng)
+  on.exit(rng_restore_caller(rng), add = TRUE)
+
   if(verbose) message("preallocating..")
   # q = 1 for this model
   Gmat_prealloc <- get_gmat_prealloc(n = n, q = 1, s = s, t = t)
@@ -386,7 +412,13 @@ ind_dfm <- function(flows = NULL,
                            serial_correlation = serial_correlation,
                            priors = priors,
                        control = control,
-                       verbose = verbose)
+                       verbose = verbose,
+                       start = start$state)
+
+  # read the stream position the sampler left behind, before anything else can
+  # move it; this is what a continuation resumes from. Kept in its own variable
+  # because `rng` still carries what the on.exit() above has to put back.
+  rng_rec <- rng_finish(rng)
 
   if(verbose) message("processing output..")
 
@@ -550,6 +582,13 @@ ind_dfm <- function(flows = NULL,
                                  burn_in = burn_in,
                                  thinning = thinning)
   }
+
+  # reproducibility record and the sampler's last state (#117). The state
+  # carries the specification it belongs to as an attribute, so handing this
+  # fit back as `starting_values` cannot silently continue a chain onto
+  # different data or a different model configuration.
+  out$rng <- rng_rec
+  out$final_state <- structure(par_save$final_state, spec = spec)
 
   out$call <- match.call()
   class(out) <- "ind_dfm"
