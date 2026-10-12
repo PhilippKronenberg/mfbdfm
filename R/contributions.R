@@ -505,7 +505,7 @@ dfm_nowcast_contributions <- function(fit, jp, C, Cf, grp, by){
   fq <- inv[j, "freq"]
   tt <- as.numeric(time(jp$Ymat))
   # get_nowcast()'s own rule, so the two pick the same periods
-  idx <- which(round(tt + 1/freq_max, 3) %% (1/fq) == 0)
+  idx <- target_period_rows(tt = tt, freq_max = freq_max, freq = fq)
   shift <- (freq_max/fq - 1)/freq_max
   nc_time <- tt[idx] - shift
 

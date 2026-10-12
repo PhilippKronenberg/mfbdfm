@@ -140,3 +140,52 @@ test_that("the prepared data does not depend on the units of the inputs (BS7.4a)
     expect_equal(inv2$sd[match(others, inv2$key)], inv$sd[match(others, inv$key)])
   }
 })
+
+
+test_that("target_period_rows matches the old modulo rule where it worked (#147)", {
+  dat <- make_synth_dat()
+  inv <- create_inventory(flows = dat$flows, stocks = dat$stocks)
+  Ymat <- prepare_data(flows = dat$flows, stocks = dat$stocks,
+                       inventory = inv, target = "gdp")
+
+  tt <- stats::time(Ymat)
+  freq_max <- max(inv$freq)
+
+  for (fq in sort(unique(inv$freq))) {
+    old <- which(round(tt + 1/freq_max, 3) %% (1/fq) == 0)
+    new <- mfbdfm:::target_period_rows(tt, freq_max, fq)
+
+    # every series is observed on its own grid, so the count is fixed by the
+    # panel's length - the old rule returned nothing at all unless 1/fq was
+    # exactly representable, which is the bug
+    expect_equal(length(new), length(seq(1, length(tt), by = freq_max/fq)))
+
+    # and where the float modulo did produce an answer (fq = 4), it is the
+    # same one: the fix is behaviour-preserving for a quarterly target
+    if (length(old) > 0) expect_identical(as.integer(new), as.integer(old))
+  }
+})
+
+
+test_that("get_gmat has no middle lag blocks for a single-frequency panel (#147)", {
+  # s = 0 made lapply((s-1):0, ...) read Llist[["-1"]], i.e. NULL, and
+  # rho %*% NULL recursed in Matrix's dispatch rather than erroring
+  n <- 3L
+  inv <- data.frame(key = c("a", "b", "c"),
+                    type = factor(c("flow", "flow", "stock"),
+                                  levels = c("stock", "flow")),
+                    freq = rep(12, n), stringsAsFactors = FALSE)
+  Llist <- mfbdfm:::get_distributed_lags(inv)
+  expect_named(Llist, "0")
+
+  t <- 10L
+  Gmat <- mfbdfm:::get_gmat(mfbdfm:::get_gmat_prealloc(n = n, q = 1, s = 0, t = t),
+                            Llist = Llist,
+                            rho = Matrix::Diagonal(x = rep(0.3, n)),
+                            lambda = matrix(1, n, 1),
+                            s = 0, t = t, n = n)
+
+  # q*(t+s) rows by n*(t-1) columns, transposed by get_gmat()
+  expect_equal(dim(Gmat), c(n*(t - 1L), t))
+  expect_true(all(is.finite(as.matrix(Gmat))))
+})

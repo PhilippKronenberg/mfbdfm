@@ -342,3 +342,26 @@ test_that("fcast_dfm is insensitive to double.eps-scale input noise (G5.9a)", {
             1 - 1e-9)
   expect_true(all(align_factors(plain$factor, noised$factor) > 1 - 1e-9))
 })
+
+
+test_that("fcast_dfm fits a single-frequency panel (#147)", {
+  # the (s-1):0 trap in get_gmat() is shared with ind_dfm(); draw_omega_fcast()
+  # additionally differenced h over 0:(nrow(h)-1), from which R drops the zero,
+  # so the subtraction recycled with a warning
+  for (f in c(12, 52)) {
+    set.seed(1)
+    mk <- function(x) stats::ts(x, start = c(2014, 1), frequency = f)
+    p <- list(a = mk(stats::rnorm(60)), b = mk(stats::rnorm(60)),
+              c = mk(stats::rnorm(60)))
+
+    fit <- expect_no_warning(suppressMessages(
+      fcast_dfm(flows = p[c("a", "b")], stocks = p["c"], target = "a", q = 1,
+                length_sample = 10, burn_in = 3, thinning = 1, plots = FALSE)))
+
+    expect_s3_class(fit, "fcast_dfm")
+    expect_equal(frequency(fit$nowcast), f)
+    expect_length(fit$nowcast, 60)
+    expect_false(anyNA(fit$nowcast))
+    expect_false(anyNA(fit$factor))
+  }
+})
