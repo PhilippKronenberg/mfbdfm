@@ -194,7 +194,8 @@ initialisation) stopped on its iteration cap rather than on convergence.</p></dd
 <dd><p>at least one input series was
 constant or entirely missing, so it could not be standardized, and was
 dropped before fitting. Raised once per fit, naming every series
-dropped.</p></dd>
+dropped – and once per <code><a href="select_factors.html">select_factors()</a></code> call, which screens the same
+way before computing the criteria.</p></dd>
 
 <dt><code>mfbdfm_warning_collinear</code></dt>
 <dd><p>two or more input series are

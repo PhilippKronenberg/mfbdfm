@@ -40,6 +40,12 @@ select_factors(
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
   and validated if supplied, but it does **not** enter the criteria – no
   series is treated specially by a principal-component decomposition.
+  Being validated includes the degenerate-series screen: a supplied
+  `target` that is constant or all-missing errors, exactly as it would
+  in
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
+  rather than being dropped. With `target = NULL` nothing is treated as
+  a target and no series is protected from the screen.
 
 - max_q:
 
@@ -142,6 +148,19 @@ applied. The reduction is deliberate and is reported by
 4.  The retained block is re-standardized column by column over the
     retained periods, and the criteria are computed from the singular
     values of the result.
+
+A constant or all-missing series cannot be standardized at step 1 and is
+**dropped before the criteria are computed**, with a warning naming
+every series dropped (condition class `mfbdfm_warning_dropped_series`,
+as in
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+and
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+– see
+[`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+on muffling it). It carries no information about the factors, so
+dropping it loses nothing; the "at least two series at the highest
+frequency" requirement is then checked on the survivors.
 
 With \\V(k)\\ the mean squared residual of the \\k\\-factor principal
 component approximation of the \\T \times N\\ panel, the criteria are

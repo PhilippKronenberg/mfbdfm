@@ -184,7 +184,9 @@ rest:
 
   at least one input series was constant or entirely missing, so it
   could not be standardized, and was dropped before fitting. Raised once
-  per fit, naming every series dropped.
+  per fit, naming every series dropped – and once per
+  [`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
+  call, which screens the same way before computing the criteria.
 
 - `mfbdfm_warning_collinear`:
 

@@ -2,6 +2,59 @@
 
 ## mfbdfm 0.2.0.9000
 
+- **Both models now fit a single-frequency panel** – a plain dynamic
+  factor model, where every input series shares one frequency, so
+  `k = 1` and the temporal-aggregation lag count `s = 2*(k - 1)` is
+  zero. Previously both
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  and
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  died on such input with `evaluation nested too deeply` (or
+  `C stack usage ... too close to the limit`, depending on
+  `options(expressions)`). Three separate `s = 0` defects were behind it
+  ([\#147](https://github.com/PhilippKronenberg/mfbdfm/issues/147)):
+
+  - `get_gmat()` built its middle lag blocks with
+    `lapply((s-1):0, ...)`, and the colon operator counts *up* from `-1`
+    when `s = 0`, so the loop read `Llist[["-1"]]` – `NULL` – and
+    `rho %*% NULL` sent `Matrix`’s `%*%` dispatch into unbounded
+    recursion instead of erroring. Shared by both models, which is why
+    both failed.
+  - `get_nowcast()` located the target’s periods with
+    `round(time + 1/freq_max, 3) %% (1/freq_target) == 0`, which demands
+    an exact zero out of a floating-point modulo. That only materialises
+    when `1/freq_target` is exactly representable: a quarterly target
+    works, a monthly or weekly one selects **no rows at all**. The rule
+    now lives in one internal helper, used by `get_nowcast()` and by
+    [`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)’s
+    nowcast decomposition, and compares in integer periods with a
+    tolerance.
+  - `draw_omega_fcast()` differenced the volatility path over
+    `h[(s+1):N] - h[s:(N-1)]`; for `s = 0` R drops the zero index from
+    the second operand, so the two differed in length by one and the
+    subtraction recycled with a warning.
+
+  All three fixes are behaviour-preserving for mixed-frequency data: the
+  `dev/baseline.R` digests are bit-identical before and after, and the
+  new period-selection helper returns the identical row index to the old
+  modulo expression wherever that expression returned anything.
+
+- [`select_factors()`](https://philippkronenberg.github.io/mfbdfm/reference/select_factors.md)
+  now applies the same degenerate-series screen as the two model entry
+  points: a constant or all-missing series is **dropped before the
+  criteria are computed**, with one warning naming every series dropped
+  and carrying the condition class `mfbdfm_warning_dropped_series`
+  ([\#146](https://github.com/PhilippKronenberg/mfbdfm/issues/146)).
+  Such a series standardizes to a column of `NaN`, which listwise
+  deletion then turned into an empty panel – so the call used to fail
+  with “No usable periods remain after removing missing values”, which
+  blamed missing data, suggested `na_action = "interpolate"` (which does
+  not help) and never named the offending series. A supplied `target`
+  that is degenerate errors instead, as it does in
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md);
+  with `target = NULL` the internal first-series stand-in is not
+  protected and can be dropped like any other series.
+
 - The stationarity the models assume is now **stated and screened for**,
   rather than only embodied in the code.
   [`?ind_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)

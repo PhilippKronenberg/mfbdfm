@@ -86,7 +86,11 @@ as flow variables, or
 default). Accepted so that the same data specification works here and in
 <code><a href="fcast_dfm.html">fcast_dfm()</a></code>, and validated if supplied, but it does <strong>not</strong> enter the
 criteria – no series is treated specially by a principal-component
-decomposition.</p></dd>
+decomposition. Being validated includes the degenerate-series screen: a
+supplied <code>target</code> that is constant or all-missing errors, exactly as it
+would in <code><a href="fcast_dfm.html">fcast_dfm()</a></code>, rather than being dropped. With <code>target = NULL</code>
+nothing is treated as a target and no series is protected from the
+screen.</p></dd>
 
 
 <dt id="arg-max-q">max_q<a class="anchor" aria-label="anchor" href="#arg-max-q"></a></dt>
@@ -172,7 +176,14 @@ observed value outward at the ends (<code>na_action = "interpolate"</code>).</p>
 <li><p>The retained block is re-standardized column by column over the
 retained periods, and the criteria are computed from the singular values
 of the result.</p></li>
-</ol><p>With \(V(k)\) the mean squared residual of the \(k\)-factor principal
+</ol><p>A constant or all-missing series cannot be standardized at step 1 and is
+<strong>dropped before the criteria are computed</strong>, with a warning naming every
+series dropped (condition class <code>mfbdfm_warning_dropped_series</code>, as in
+<code><a href="ind_dfm.html">ind_dfm()</a></code> and <code><a href="fcast_dfm.html">fcast_dfm()</a></code> – see <code><a href="dfm_control.html">dfm_control()</a></code> on muffling it). It
+carries no information about the factors, so dropping it loses nothing; the
+"at least two series at the highest frequency" requirement is then checked
+on the survivors.</p>
+<p>With \(V(k)\) the mean squared residual of the \(k\)-factor principal
 component approximation of the \(T \times N\) panel, the criteria are</p>
 <p>$$IC_1(k) = \log V(k) + k \frac{N+T}{NT} \log\frac{NT}{N+T}$$
 $$IC_2(k) = \log V(k) + k \frac{N+T}{NT} \log \min(N,T)$$
