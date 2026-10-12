@@ -8,41 +8,46 @@ test_that("is_crisis_period flags the two crisis windows", {
   expect_equal(is_crisis_period(dates), c(TRUE, FALSE, TRUE, FALSE))
 })
 
-test_that("is_crisis_period_fcast flags the four Eckert et al. windows", {
+test_that('is_crisis_period(windows = "fcast") flags the four Eckert et al. windows', {
 
   # Windows are inclusive at both ends, so the boundaries are pinned explicitly:
   # a shifted edge would silently reclassify whole quarters of the evaluation.
-  expect_true(all(is_crisis_period_fcast(
+  expect_true(all(is_crisis_period(
     c(2008.75, 2009.5,      # global financial crisis, both edges
       2011.5,  2013,        # euro crisis
       2015,    2015.25,     # Swiss franc shock
-      2020,    2021.5))))   # Covid-19
+      2020,    2021.5),     # Covid-19
+    windows = "fcast")))
 
   # just outside each window
-  expect_false(any(is_crisis_period_fcast(
-    c(2008.5, 2009.75, 2011.25, 2013.25, 2014.75, 2015.5, 2019.75, 2021.75))))
+  expect_false(any(is_crisis_period(
+    c(2008.5, 2009.75, 2011.25, 2013.25, 2014.75, 2015.5, 2019.75, 2021.75),
+    windows = "fcast")))
 
-  expect_equal(is_crisis_period_fcast(c(2019, 2020, 2021.25, 2022)),
+  expect_equal(is_crisis_period(c(2019, 2020, 2021.25, 2022), windows = "fcast"),
                c(FALSE, TRUE, TRUE, FALSE))
 })
 
 
 test_that("the two crisis definitions are different and not interchangeable", {
 
-  # This is the trap the _fcast suffix exists to prevent. 2012 is a crisis
-  # quarter for Eckert et al. (euro crisis) but is not in is_crisis_period()'s
+  # This is the trap the `windows` argument exists to make explicit. 2012 is a
+  # crisis quarter for Eckert et al. (euro crisis) but is not in the "wai"
   # windows at all; 2015Q1 likewise. Measured on the paper's own panel the two
   # agree on only 124 of its 240 crisis rows.
-  expect_true(is_crisis_period_fcast(2012))
+  expect_true(is_crisis_period(2012, windows = "fcast"))
   expect_false(is_crisis_period(as.Date("2012-06-01")))
 
-  expect_true(is_crisis_period_fcast(2015))
+  expect_true(is_crisis_period(2015, windows = "fcast"))
   expect_false(is_crisis_period(as.Date("2015-02-01")))
 
   # and they take different inputs, so a mixed-up call is an error rather than
   # a silently wrong classification
-  expect_error(is_crisis_period_fcast(as.Date("2020-04-01")),
+  expect_error(is_crisis_period(as.Date("2020-04-01"), windows = "fcast"),
                "must be numeric decimal time")
+
+  # an unknown definition is an error, not a silent fallback to the default
+  expect_error(is_crisis_period(2012, windows = "ekmn"), "should be one of")
 })
 
 

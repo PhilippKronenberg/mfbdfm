@@ -223,7 +223,7 @@ if (nrow(by_horizon)) print(by_horizon, n = 20)
 
 # The paper's `tables_subperiods`, from 3a_evaluation_full.R. Windows are on
 # `period` (the target quarter) and inclusive at both ends, matching
-# is_crisis_period_fcast(). Q1 = .00, Q2 = .25, Q3 = .50, Q4 = .75.
+# is_crisis_period(windows = "fcast"). Q1 = .00, Q2 = .25, Q3 = .50, Q4 = .75.
 EVAL_SUBPERIODS <- list(
   "2000Q1-2021Q3" = c(2000,    2021.5),
   "2005Q1-2021Q3" = c(2005,    2021.5),
@@ -260,7 +260,7 @@ by_subperiod <- bind_rows(lapply(names(EVAL_SUBPERIODS), function(nm){
 }))
 
 by_regime <- scored %>%
-  mutate(regime = ifelse(is_crisis_period_fcast(period),
+  mutate(regime = ifelse(is_crisis_period(period, windows = "fcast"),
                          "Crisis Periods", "Non-Crisis Periods")) %>%
   group_by(dataset, regime) %>%
   summarise(n = n(),

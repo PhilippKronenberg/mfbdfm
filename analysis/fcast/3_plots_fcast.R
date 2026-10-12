@@ -153,15 +153,15 @@ emit("logscore_by_horizon", by_h, function(d) {
 # horizon counted DOWN to publication on the x axis, and - the part that carries
 # the comparison - a second panel of log-ratios against a benchmark, with a
 # reference line at zero so "below the line is better" reads directly.
-# is_crisis_period_fcast(), NOT is_crisis_period(). The two are different
+# windows = "fcast", NOT the default windows = "wai". The two are different
 # definitions and are not interchangeable: this one classifies the target
 # QUARTER and covers four episodes, the other classifies the nowcast DATE and
 # covers two. On the paper's own panel they agree on only 124 of its 240 crisis
 # rows, and using the wrong one puts crisis RMSFE for the monthly benchmark at
-# 0.0262 instead of the 0.0210 the paper plots. See ?is_crisis_period_fcast.
+# 0.0262 instead of the 0.0210 the paper plots. See ?is_crisis_period.
 crisis <- oos %>% filter(in_window)
 if (nrow(crisis)) {
-  crisis$regime <- ifelse(is_crisis_period_fcast(crisis$period),
+  crisis$regime <- ifelse(is_crisis_period(crisis$period, windows = "fcast"),
                           "Crisis Periods", "Non-Crisis Periods")
 }
 

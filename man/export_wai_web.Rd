@@ -98,26 +98,7 @@ that the front end's parser does not have to know R's spelling of missing.
 Numbers use \code{.} as the decimal separator and no thousands separator, rows are
 sorted ascending by date, and lines end with \verb{\\n} on every platform.
 }
-\examples{
-\donttest{
-# run_wai_adj() is what makes a fit file, so the example produces the file it
-# then exports, on a short chain.
-data(mfbdfm_example_data)
-d <- mfbdfm_example_data
-out <- tempfile(); dir.create(out)
-
-set.seed(1)
-run_wai_adj(flows = d$flows, stocks = d$stocks, target = d$target,
-            date = 2023, dataset_used = "example",
-            length_sample = 20, burn_in = 5, output_dir = out)
-
-web <- export_wai_web(file.path(out, "example", "fit_2023.Rda"),
-                      dir = file.path(out, "web"))
-head(web$data)
-web$meta$n_obs
-unlink(out, recursive = TRUE)
-}
-}
 \seealso{
 \code{\link[=extract_wai_data]{extract_wai_data()}}, which produces the underlying tables.
 }
+\keyword{internal}

@@ -64,13 +64,14 @@ Comments in the scripts here still cite them by line number (e.g.
 `plots_nowcast_scores.R:186` for the log-score definition). Those citations
 record *where a decision came from*, not a file you can open. Every decision
 they encode is written out below, in the Verification section, or in the package
-documentation — `?is_crisis_period_fcast` for the crisis windows in particular —
+documentation — `?is_crisis_period` for the crisis windows in particular —
 so the citations are provenance, not a dependency.
 
 What was absorbed:
 
 - `3a_evaluation_full.R` → the evaluation core, the 18 named subperiods, and the
-  crisis/non-crisis split, now `is_crisis_period_fcast()` in the package.
+  crisis/non-crisis split, now `is_crisis_period(windows = "fcast")` in the
+  package.
 - `plots_nowcast*.R` (five files, ~90% duplicated) → collapsed into
   `3_plots_fcast.R` and `4_reproduce_paper_figures.R`.
 
@@ -175,7 +176,7 @@ here. Recorded in full so the definitions survive without the archived files:
 The distinction matters: the log score is negative, so a *ratio* of it is `NaN`
 wherever series and benchmark straddle zero, which silently drops rows.
 
-The crisis/non-crisis split is `is_crisis_period_fcast()` in the package —
-**not** `is_crisis_period()`, which classifies the nowcast date rather than the
-target quarter and covers two episodes rather than four. On the paper's panel
-the two agree on only 124 of its 240 crisis rows.
+The crisis/non-crisis split is `is_crisis_period(windows = "fcast")` in the
+package — **not** the default `windows = "wai"`, which classifies the nowcast
+date rather than the target quarter and covers two episodes rather than four. On
+the paper's panel the two agree on only 124 of its 240 crisis rows.

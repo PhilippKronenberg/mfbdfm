@@ -14,13 +14,7 @@
 #'
 #' @importFrom dplyr filter pull mutate %>%
 #' @importFrom stats sd
-#' @examples
-#' ind <- data.frame(time = seq(as.Date("2010-01-07"), by = "week", length.out = 200),
-#'                   value = rnorm(200, 5, 2))
-#' gdp <- data.frame(value = seq(as.Date("2010-01-01"), by = "quarter", length.out = 40),
-#'                   y = rnorm(40, 1, 1))
-#' head(rescale_to_gdp(ind, gdp))
-#' @export
+#' @keywords internal
 rescale_to_gdp <- function(indicator_df, gdp_hist_df,
                            ref_start = as.Date("2005-01-01"),
                            ref_end   = as.Date("2025-12-31")) {
@@ -62,11 +56,7 @@ rescale_to_gdp <- function(indicator_df, gdp_hist_df,
 #'
 #' @importFrom dplyr select mutate group_by summarise arrange lag transmute filter %>%
 #' @importFrom lubridate floor_date
-#' @examples
-#' lv <- data.frame(time = seq(as.Date("2020-01-07"), by = "week", length.out = 150),
-#'                  value = 100 * cumprod(1 + rnorm(150, 0, 0.002)))
-#' head(build_wai_qoq_mean_series(lv))
-#' @export
+#' @keywords internal
 build_wai_qoq_mean_series <- function(level_df) {
   level_df %>%
     select(time, value) %>%
@@ -88,13 +78,7 @@ build_wai_qoq_mean_series <- function(level_df) {
 #'   level index, anything else returns the stored QoQ table.
 #'
 #' @return Data frame with `time` and `value`.
-#' @examples
-#' res <- list(tab_gr_qoq = data.frame(time = as.Date("2020-01-07"), value = 1),
-#'             tab_gr_lv = data.frame(time = seq(as.Date("2020-01-07"), by = "week",
-#'                                               length.out = 150),
-#'                                    value = cumprod(1 + rnorm(150, 0, 0.002))))
-#' prepare_wai_qoq_series(res, method = "last")
-#' @export
+#' @keywords internal
 prepare_wai_qoq_series <- function(wai_result, method) {
   if (method == "mean") {
     return(build_wai_qoq_mean_series(wai_result$tab_gr_lv))
@@ -578,16 +562,9 @@ render_correlation_heatmap <- function(cor_tables, series_order, output_file, fi
 #' @return `df` with its `Lag_*` columns renamed. A data frame with no such
 #'   columns is returned unchanged.
 #'
-#' @examples
-#' df <- data.frame(Series = c("WAI", "AR"), Lag_0 = c(1, 2), Lag_1 = c(3, 4))
-#' suffix_cols(df, "QoQ")
-#'
-#' # columns that are not lags are left alone, and a frame without any is a no-op
-#' suffix_cols(data.frame(Series = "WAI", value = 1), "QoQ")
-#'
 #' @family evaluation table functions
 #' @importFrom dplyr rename_with starts_with %>%
-#' @export
+#' @keywords internal
 suffix_cols <- function(df, suffix) {
 
   # Guard the no-match case. rename_with() applies the function to the selected

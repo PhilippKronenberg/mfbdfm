@@ -1,9 +1,11 @@
 # =============================================================================
 # mfbdfm self-test: load the data and run every exported function
 # =============================================================================
-# Installs the package from this source tree and calls all 55 exported functions
-# and all 18 S3 methods, in the order a real workflow uses them. Run from the
-# repository root:
+# Installs the package from this source tree and calls all 46 exported functions
+# and exercises the S3 methods, in the order a real workflow uses them. The
+# count is checked, not asserted: section 15 compares what this file calls
+# against NAMESPACE, so a stale number here cannot hide an untested export. Run
+# from the repository root:
 #
 #     Rscript demo/run_package_demo.R
 #
@@ -20,7 +22,9 @@
 # Deliberately OUTSIDE the package (demo/ is in .Rbuildignore) and uses only
 # exported functions and shipped data - no internals, no private data, nothing
 # from analysis/. Anyone who clones the repo can run it. If something here
-# breaks, a user's workflow breaks.
+# breaks, a user's workflow breaks. That rule is why #102's 18 un-exported
+# helpers lost their sections here rather than gaining a `mfbdfm:::` prefix:
+# they are no longer part of what a user can break.
 #
 # It is also the skeleton for checking against real private data: swap the
 # shipped dataset at the marked point in section 2 and raise the chain lengths.
@@ -82,18 +86,9 @@ dat <- data_ch_dataset_test
 # 3. VINTAGE SELECTION --------------------------------------------------------
 step(3, "Vintage pickers")
 
-latest <- get_latest_numeric_vintage(vint, lower_bound = 2005.438,
-                                     upper_bound = decimal_date_local(Sys.Date()))
-ok("get_latest_numeric_vintage():", latest)
-
 v2023 <- select_most_recent_GDP_vintage(2023, vint)
 ok("select_most_recent_GDP_vintage():", length(v2023), "quarters,",
    sum(!is.na(v2023)), "observed")
-
-nxt <- get_next_extending_numeric_vintage(vint, as.Date("2019-09-30"),
-                                          lower_bound = 2005)
-ok("get_next_extending_numeric_vintage():", nxt)
-ok("get_next_target_vintage():", get_next_target_vintage(2020.5, c(2020.25, 2020.75, 2021)))
 
 
 # 4. FREQUENCY AND DATE UTILITIES ---------------------------------------------
@@ -102,7 +97,7 @@ step(4, "Frequency and date helpers")
 ok("dec2week(2020):", format(dec2week(2020)))
 ok("decimal_date_local():", round(decimal_date_local(as.Date("2020-07-01")), 4))
 ok("crisis flags (WAI / EKMN):", is_crisis_period(as.Date("2020-04-01")),
-   "/", is_crisis_period_fcast(2020.25))
+   "/", is_crisis_period(2020.25, windows = "fcast"))
 ok("week2mon() frequency:", stats::frequency(week2mon(dat)$flows[[1]]))
 ok("subsetting:", length(drop_weekly(dat)$flows), "monthly-only,",
    length(drop_financial(dat)$flows), "no financials,",
@@ -225,9 +220,6 @@ fc <- suppressWarnings(
 ok("multi-factor fit written;", length(list.files(fit_dir, recursive = TRUE)),
    "fit files on disk")
 
-ok("latest_fit_file():",
-   basename(latest_fit_file(file.path(fit_dir, "demo"),
-                            cutoff_decimal = eval_date + 1)))
 wai_tabs <- extract_wai_data(file.path(fit_dir, "demo",
                                        paste0("fit_", eval_date, ".Rda")))
 ok("extract_wai_data():", paste(names(wai_tabs), collapse = ", "))
@@ -249,28 +241,16 @@ step(12, "wai_sample_config() and the output helpers")
 
 cfg <- wai_sample_config(sample_id = "demo",
                          output_root = file.path(out_root, "sample"))
-# wai_sample_config() is a pure query and creates nothing. The write helpers
-# create their own directory; output_figure_path() does not, so make it here -
-# this is exactly what analysis/5_plots/_setup.R does.
+# wai_sample_config() is a pure query and creates nothing, so the output tree is
+# made here - exactly what analysis/5_plots/_setup.R does. The writing helpers
+# that used to be demonstrated below (write_table_output(), save_result_output(),
+# output_figure_path(), filter_to_sample(), suffix_cols()) were un-exported in
+# #102, and this script calls exported functions only.
 for (dd in c(cfg$figures_dir, cfg$tables_dir, cfg$results_dir)) {
   dir.create(dd, recursive = TRUE, showWarnings = FALSE)
 }
 ok("config for sample", cfg$sample_id, "ending", format(cfg$sample_end_date),
    "=", cfg$sample_end_decimal)
-
-write_table_output("demo_table.tex", "\\textbf{table}", cfg$tables_dir)
-save_result_output(fit, "demo_fit.Rda", cfg$results_dir)
-figpath <- output_figure_path("demo_figure.pdf", cfg$figures_dir)
-grDevices::pdf(figpath, width = 6, height = 4); plot(fit$factor); grDevices::dev.off()
-ok("wrote a table, a result object and", basename(figpath))
-
-qdf <- data.frame(time = seq(as.Date("2019-01-01"), by = "quarter", length.out = 12),
-                  value = rnorm(12))
-ok("filter_to_sample():", nrow(filter_to_sample(qdf, end_date = as.Date("2020-12-31"))),
-   "of", nrow(qdf), "rows kept")
-ok("suffix_cols():",
-   paste(names(suffix_cols(data.frame(Series = "WAI", Lag_0 = 1, Lag_1 = 2), "QoQ")),
-         collapse = ", "))
 
 
 # 13. EVALUATION: CORRELATION TABLES AND PLOTS --------------------------------
@@ -282,9 +262,6 @@ ok("mfbdfm_example_inputs():", length(inputs), "objects")
 
 cor_tab <- get_combined_cor_table("mean", "indicators", inputs = inputs)
 ok("get_combined_cor_table():", nrow(cor_tab), "x", ncol(cor_tab))
-
-comb <- create_combined_latex_table(list(mean = cor_tab))
-ok("create_combined_latex_table():", nchar(comb$table_tex), "chars of LaTeX")
 
 render_correlation_heatmap(
   cor_tables   = list(mean = cor_tab),
@@ -303,28 +280,12 @@ print(plot_comparison(wai_df, cmp_df, "Benchmark", crises, gdp_df,
                       sample_end_date = as.Date("2021-12-31")))
 ok("plot_comparison() produced a plot")
 
-ok("rescale_to_gdp():", nrow(rescale_to_gdp(wai_df, gdp_df)), "rows")
-
-lv <- data.frame(time = seq(as.Date("2020-01-07"), by = "week", length.out = 150),
-                 value = 100 * cumprod(1 + rnorm(150, 0, 0.002)))
-ok("build_wai_qoq_mean_series():", nrow(build_wai_qoq_mean_series(lv)), "quarters")
-ok("prepare_wai_qoq_series():",
-   nrow(prepare_wai_qoq_series(list(tab_gr_qoq = data.frame(time = as.Date("2020-01-07"),
-                                                            value = 1),
-                                    tab_gr_lv = lv), method = "last")), "rows")
-
 
 # 14. EVALUATION: FIT AND ERROR TABLES ----------------------------------------
 step(14, "In-sample fit, relative errors, out-of-sample summaries, DM test")
 
 fit_tabs <- get_insample_fit_table("mean", "indicators", inputs = inputs)
 ok("get_insample_fit_table():", paste(names(fit_tabs), collapse = ", "))
-
-rel <- calculate_relative_errors(fit_tabs)
-ok("calculate_relative_errors():", paste(names(rel), collapse = ", "))
-
-ann <- annotate_relative_errors(rel$RMSE_relative, fit_tabs$PVAL_RMSE, "RMSE")
-ok("annotate_relative_errors():", nrow(ann), "rows")
 
 details <- get_insample_error_details("mean", "indicators", inputs = inputs)
 ok("get_insample_error_details():", nrow(details), "rows")
@@ -341,11 +302,6 @@ combined_results <- expand.grid(
 combined_results$error <- rnorm(nrow(combined_results), 0, 0.5)
 relerr <- create_rel_error_tables(combined_results, model_order = c("WAI", "AR"))
 ok("create_rel_error_tables():", paste(names(relerr), collapse = ", "))
-
-print_evaluation_periods(
-  data.frame(Series = "WAI",
-             date = seq(as.Date("2010-01-01"), by = "quarter", length.out = 8)),
-  "Series", "date", context_label = "self-test")
 
 set.seed(5)
 ok("dm_test_modified() p-value:",

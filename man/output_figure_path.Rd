@@ -30,6 +30,4 @@ path \code{"outputs/figures"}, which had been harmless for as long as the functi
 was a plain \code{\link[=file.path]{file.path()}} call, and the suite started leaving
 \code{tests/testthat/outputs/figures} behind in the source tree.
 }
-\examples{
-output_figure_path("history.pdf", figures_dir = file.path(tempdir(), "figures"))
-}
+\keyword{internal}

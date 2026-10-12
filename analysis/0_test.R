@@ -11,6 +11,10 @@ library(foreach)
 library(readxl)
 
 library(mfbdfm)
+# The analysis scripts also use a handful of package internals (#102 un-exported
+# them; they are plumbing for this directory, not package API). analysis/_internals.R
+# binds them once and lists exactly which ones.
+source(file.path("analysis", "_internals.R"), local = TRUE)
 
 sample_config <- wai_sample_config(sample_id = "0_test",
                                     output_root = file.path("analysis", "outputs", "0_test"))
