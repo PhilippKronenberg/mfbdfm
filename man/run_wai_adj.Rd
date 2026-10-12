@@ -36,7 +36,9 @@ when saving.}
 
 \item{length_sample}{Integer, number of posterior draws to keep.}
 
-\item{burn_in}{Integer, number of initial draws to discard.}
+\item{burn_in}{Integer, number of initial draws to discard. \code{0} is
+allowed, which is what the second leg of a continued chain wants --
+see \code{\link[=dfm_control]{dfm_control()}}'s \code{starting_values}.}
 
 \item{thinning}{Integer, keep every \code{thinning}-th draw after burn-in.}
 

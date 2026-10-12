@@ -25,14 +25,29 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
                             stochastic_volatility, serial_correlation,
                             priors = dfm_priors("fcast_dfm"),
                             control = dfm_control("fcast_dfm"),
-                            verbose = TRUE){
+                            verbose = TRUE,
+                            start = NULL){
 
   # fill in the priors whose published default is a rule in terms of t
   priors <- resolve_priors(priors, t = t, p = p)
 
   # preallocate chains
   chain <- matrix(NA, burn_in + thinning*length_sample, 100)
-  checks <- sample(t*n, 100, replace = FALSE)
+
+  # A fixed random subset of the augmented data, tracked below as a running
+  # convergence check and read only by the `plots = TRUE` trace plot.
+  #
+  # Drawing it consumes the random stream, which matters for exactly one
+  # reason: when a chain is continued, this single sample() would sit between
+  # the two legs and they would no longer be the same chain as one long run. So
+  # a fit given starting values takes the subset deterministically instead.
+  # Nothing in the returned fit depends on which entries are tracked, and a
+  # fit *without* starting values draws it exactly as before (#117).
+  checks <- if(is.null(start)){
+    sample(t*n, 100, replace = FALSE)
+  } else {
+    as.integer(seq(1, t*n, length.out = 100))
+  }
 
   # preallocation of output matrices
   theta_out <- matrix(NA, length_sample, n*t+n*q+q^2*p+2*n+t+s)
@@ -46,21 +61,32 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
   # preallocations of constant parameters
   Llist <- get_distributed_lags(inventory)
 
-  # random parameter starting values
-  phi <- lapply(1:p, function(px) Diagonal(x = 0.1/(1+p), n = q))
-  lambda <- Matrix(rnorm(n*q)*0.01, n, q)
-  sigma <- Diagonal(x = runif(n), n = n)
-  h <- matrix(0, t+s, 1)
-  f <- matrix(rnorm((t+s)*q), t+s, q)
+  # random parameter starting values.
+  #
+  # As in run_sampling(): a block supplied in `start` is taken as given and its
+  # initialisation skipped, and because `init()`'s second argument is a promise
+  # a skipped initialisation draws nothing. A complete `start` consumes no
+  # random numbers, which is what makes continuing a chain exact; with
+  # `start = NULL` the stream is consumed exactly as it always was (#117).
+  init <- function(nm, value) if(is.null(start[[nm]])) value else start[[nm]]
+
+  phi <- init("phi", lapply(1:p, function(px) Diagonal(x = 0.1/(1+p), n = q)))
+  lambda <- init("lambda", Matrix(rnorm(n*q)*0.01, n, q))
+  sigma <- init("sigma", Diagonal(x = runif(n), n = n))
+  h <- init("h", matrix(0, t+s, 1))
+  f <- init("f", matrix(rnorm((t+s)*q), t+s, q))
   # if serial correlation = FALSE, we set rhos to a very small number
-  if(serial_correlation){
-    rho <- Diagonal(x = runif(n))
+  rho <- init("rho", if(serial_correlation){
+    Diagonal(x = runif(n))
   } else {
-    rho <- Diagonal(x = 1e-9, n = n)
-  }
-  omega <- 0.05
-  Xmat <- matrix(rnorm(t*n), t, n)
-  indicators <- matrix(replicate(q*(t+s), sample(x = 1:7, size = 1, prob = rep(1/7,7))), t+s, q)
+    Diagonal(x = 1e-9, n = n)
+  })
+  omega <- init("omega", 0.05)
+  Xmat <- init("Xmat", matrix(rnorm(t*n), t, n))
+  indicators <- init("indicators",
+                     matrix(replicate(q*(t+s),
+                                      sample(x = 1:7, size = 1, prob = rep(1/7,7))),
+                            t+s, q))
 
   # initialize progress bar; NULL when quiet, since the bar writes with cat()
   # and so cannot be silenced from outside the call (#118)
@@ -164,10 +190,19 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
   if(!is.null(pb)) close(pb)
   warn_rho_fallback(rho_tally, control)
 
-  # an attribute rather than a second return value: the rotation and
+  # attributes rather than further return values: the rotation and
   # identification steps take the packed matrix itself, and fcast_dfm() reads
-  # this off before dropping theta_out
+  # these off before dropping theta_out.
+  #
+  # `final_state` is the UNROTATED state the loop finished in, which is the
+  # only state a continuation can resume from - the sampler runs unidentified,
+  # so rotating it would start the next leg from a draw the next leg's own
+  # rotation reference knows nothing about (#117).
   attr(theta_out, "omega") <- omega_out
+  attr(theta_out, "final_state") <- list(f = f, lambda = lambda, phi = phi,
+                                         sigma = sigma, rho = rho, h = h,
+                                         omega = omega, Xmat = Xmat,
+                                         indicators = indicators)
   return(theta_out)
 
 }

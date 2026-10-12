@@ -36,10 +36,85 @@ This holds settings that affect \emph{how} the sampler searches, not \emph{what 
 it fits. Priors live in \code{\link[=dfm_priors]{dfm_priors()}}; model structure is in the arguments
 of \code{\link[=ind_dfm]{ind_dfm()}} and \code{\link[=fcast_dfm]{fcast_dfm()}}.
 
-Deliberately absent: initial values, and the numerical conditioning constants
-that are not choices (the \code{1e-9} ridge that encodes "effectively zero"
-autocorrelation when \code{serial_correlation = FALSE}, and the \code{pi - 1e-16} domain
-guard on the Givens angles).
+Deliberately absent: the numerical conditioning constants that are not
+choices (the \code{1e-9} ridge that encodes "effectively zero" autocorrelation
+when \code{serial_correlation = FALSE}, and the \code{pi - 1e-16} domain guard on the
+Givens angles).
+}
+
+\section{Where the chain starts: \code{seed} and \code{starting_values}}{
+Both default to \code{NULL}, which is the behaviour the package has always had:
+the sampler draws its own initial state from whatever random stream the
+caller happens to have. Setting either is what makes a fit reproducible on
+its own terms, lets two differently-initialised chains be compared, and lets
+a chain that turned out too short be continued instead of re-run (#117).
+
+\describe{
+\item{\code{seed}}{A single whole number. \code{set.seed(seed)} runs at the start of
+the fit and the caller's own stream position is \strong{restored on exit}, so
+a seeded fit does not silently move the global stream. Either way --
+seed or no seed -- the fit records the state it ran under in \code{fit$rng},
+so even an unseeded fit can be reproduced after the fact:
+\code{fit$rng$start} is the \code{.Random.seed} the sampler began from and
+\code{fit$rng$kind} the \code{\link[=RNGkind]{RNGkind()}} it ran under.}
+\item{\code{starting_values}}{Either a named list of parameter blocks, or a
+previous fit of the \strong{same} model, in which case its chain is
+continued. The block names are the sampler's own:
+\code{f}, \code{lambda}, \code{phi}, \code{sigma}, \code{rho}, \code{h}, \code{omega}, \code{Xmat},
+\code{indicators}. A partial list is fine -- the blocks you do not supply are
+initialised exactly as they always were -- and the name is plural
+because the argument takes several values (rOpenSci BS2.11).}
+}
+
+A supplied block is used as given and its random initialisation is skipped,
+so a \emph{complete} set of starting values consumes no random numbers at all.
+That is what makes continuation exact rather than approximate.
+}
+
+\section{Continuing a chain}{
+Passing a fit as \code{starting_values} resumes both the parameter state
+(\code{fit$final_state}, the sampler's last draw) and the random stream
+(\code{fit$rng$end}, its position when the sampler finished). With \code{burn_in = 0}
+on the second leg, two legs of \code{N} draws are then \emph{the same chain} as one run
+of \verb{2N}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{leg1 <- ind_dfm(mfbdfm_example_data, length_sample = 500, burn_in = 100,
+                control = dfm_control("ind_dfm", seed = 1))
+leg2 <- ind_dfm(mfbdfm_example_data, length_sample = 500, burn_in = 0,
+                control = dfm_control("ind_dfm", starting_values = leg1))
+}\if{html}{\out{</div>}}
+
+\code{leg2$draws} then holds exactly the second half of the 1000-draw run, and
+\code{leg2$final_state} is identical to that run's. Note what the legs are \emph{not}:
+each leg's posterior means (\verb{$nowcast}, \verb{$factor}, ...) summarise only its
+own draws, so the two have to be pooled through \verb{$draws} rather than
+averaged from the fit objects.
+
+Two caveats, both deliberate:
+
+\itemize{
+\item Setting \code{seed} \strong{and} passing a fit asks for two different stream
+positions. \code{seed} wins and the fit warns, because the result is then two
+legs that are not one chain.
+\item For \code{\link[=fcast_dfm]{fcast_dfm()}} the continuation is exact \emph{in the sampler} -- the
+final state after two legs is identical to the single run's -- but the
+reported output is not comparable across legs. That model identifies post
+hoc, and the rotation computes its reference from the retained draws of
+the fit at hand, so each leg is rotated onto its own reference.
+Continue a \code{fcast_dfm()} chain to extend the sampler, not to splice the
+rotated output.
+}
+
+A fit cannot be continued by the other model (the two samplers do not share a
+parameter state), nor onto different data, a different \code{p}/\code{q}, or different
+\code{stochastic_volatility}/\code{serial_correlation} settings: the specification the
+state belongs to is recorded with it and the mismatch is an error naming what
+moved.
+
+Not applicable yet: rOpenSci BS2.9 (distinct seeds per chain by default) and
+BS2.10 (a diagnostic message when identical seeds are passed) describe
+multiple chains in one call, which neither entry point runs -- one call is one
+chain. They become relevant if a \code{chains} argument is ever added.
 }
 
 \section{The rotation stopping rule}{
@@ -168,6 +243,10 @@ dfm_control("ind_dfm", verbose = FALSE)
 
 # keep the factor-path draws too, and the burn-in, for trace plots
 dfm_control("ind_dfm", keep_factor_draws = TRUE, keep_burn_in = TRUE)
+
+# a reproducible fit, and one started from an explicit factor path
+dfm_control("ind_dfm", seed = 2026)
+dfm_control("ind_dfm", starting_values = list(phi = 0.5))
 
 }
 \references{

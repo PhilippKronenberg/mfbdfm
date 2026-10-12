@@ -1,5 +1,55 @@
 # mfbdfm 0.2.0.9000
 
+* **A fit can now be seeded, started from explicit values, and continued**
+  (#117, rOpenSci BS2.7/BS2.8/BS2.11/BS5.0/BS1.3a). Three new
+  `dfm_control()` settings, in both models per the parity rule:
+
+  - `seed` runs `set.seed()` at the start of the fit and **restores the
+    caller's stream position on exit**, so a seeded fit no longer silently
+    moves the global stream. Independently of it, every fit now records the
+    state it actually ran under in `fit$rng` (`seed`, `kind`, `start`, `end`),
+    so even an unseeded fit is reproducible after the fact -- previously a fit
+    was only reproducible if the caller happened to remember which
+    `set.seed()` preceded it.
+  - `starting_values` takes a named list of the sampler's own parameter blocks
+    (`f`, `lambda`, `phi`, `sigma`, `rho`, `h`, `omega`, `Xmat`,
+    `indicators`), validated for shape against the prepared data and naming
+    the offending block. A partial list is fine: the blocks not supplied are
+    initialised exactly as before. Two differently-initialised chains can
+    therefore be compared, which is the usual informal convergence check.
+  - `starting_values` also takes a **previous fit of the same model**, which
+    continues its chain. Both the parameter state (`fit$final_state`, the
+    sampler's last draw, new on the fit) and the random stream
+    (`fit$rng$end`) are resumed, so `N` draws followed by a continuation of
+    `N` with `burn_in = 0` is bit-identical to one run of `2N`: the fits'
+    `$final_state`, `$rng$end` and `$draws` all agree exactly. Asserted for
+    both models in the test suite.
+
+  Three things worth knowing. `burn_in = 0` is now accepted -- the second leg
+  of a continued chain has nothing left to burn in. For `fcast_dfm()` the
+  continuation is exact *in the sampler* but the two legs' **rotated** output
+  is not comparable, each leg being rotated onto a reference built from its own
+  retained draws; continue the chain to extend the sampler, not to splice the
+  output. And a chain cannot be continued onto different data, a different
+  `p`/`q`, different `stochastic_volatility`/`serial_correlation`, or by the
+  other model: the specification the state belongs to is recorded with it and a
+  mismatch is an error naming what moved.
+
+  **Defaults are untouched.** With `seed = NULL` and `starting_values = NULL` --
+  both defaults -- the samplers consume the random stream exactly as before,
+  verified by refitting all four `dev/baseline.R` configurations against the
+  parent commit on one machine: bit-identical in every component. The one place
+  this needed care is `fcast_dfm()`, whose sampler draws a random subset of the
+  augmented data to track for its `plots = TRUE` convergence trace; that single
+  `sample()` call would otherwise sit between two legs of a continued chain, so
+  a fit *given* starting values takes the subset deterministically instead.
+  Nothing in the returned fit depends on which entries are tracked.
+
+  Not applicable yet: BS2.9 (distinct seeds per chain by default) and BS2.10
+  (a diagnostic message on identical seeds) describe several chains in one
+  call, which neither entry point runs -- one call is one chain. Noted rather
+  than silently skipped.
+
 * **Both models now fit a single-frequency panel** -- a plain dynamic factor
   model, where every input series shares one frequency, so `k = 1` and the
   temporal-aggregation lag count `s = 2*(k - 1)` is zero. Previously both
