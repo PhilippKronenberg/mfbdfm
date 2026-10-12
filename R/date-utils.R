@@ -21,63 +21,61 @@ decimal_date_local <- function(x) {
 }
 
 
-#' Flag dates falling into the crisis periods
+#' Flag crisis periods
 #'
-#' Marks dates inside the financial crisis (2008-07-07 to 2009-09-28) or
-#' the Covid-19 crisis (2020-01-01 to 2021-12-28).
+#' Flags the crisis episodes of either published analysis. `windows = "wai"`
+#' (the default) marks **dates** inside the two windows used by the Weekly
+#' Activity Index analysis; `windows = "fcast"` marks **target quarters**
+#' inside the four windows used by the out-of-sample evaluation of Eckert,
+#' Kronenberg, Mikosch & Neuwirth (2025).
 #'
-#' @param date_vec `Date` vector (or coercible).
+#' @details
+#' The two definitions are **not** interchangeable, which is why the choice is
+#' an explicit argument rather than something a caller can drift past. They
+#' differ in two ways, both of which matter:
 #'
-#' @return Logical vector.
+#' \describe{
+#'   \item{What is classified}{`"wai"` takes the **date the nowcast was made**,
+#'     as a `Date`. `"fcast"` takes the **target quarter** being nowcast, as
+#'     decimal time (`2020.25` for 2020Q2) -- the `period` column of the
+#'     evaluation panel. In a real-time evaluation those are weeks or months
+#'     apart, so the two label different rows.}
+#'   \item{Which episodes}{`"wai"` covers the global financial crisis
+#'     (2008-07-07 to 2009-09-28) and Covid-19 (2020-01-01 to 2021-12-28).
+#'     `"fcast"` adds the euro crisis and the 2015 Swiss franc shock, and its
+#'     windows are quarters rather than days.}
+#' }
+#'
+#' Measured on the paper's own evaluation panel, the two agree on only 124 of
+#' its 240 crisis dates, and using `"wai"` where `"fcast"` is meant does not
+#' reproduce the published figures: crisis RMSFE for the monthly benchmark comes
+#' out at 0.0262 against the 0.0210 the `"fcast"` definition gives, which is
+#' what the paper plots.
+#'
+#' Before version 0.1.0.9000 the `"fcast"` windows lived in a second exported
+#' function, `is_crisis_period_fcast()`. Two exported functions for one concept
+#' with different hard-coded windows is exactly the parity problem the `windows`
+#' argument removes; `is_crisis_period(x, windows = "fcast")` replaces it.
+#'
+#' @param date_vec Periods to classify. For `windows = "wai"` a `Date` vector
+#'   (or coercible). For `windows = "fcast"` a numeric vector of target quarters
+#'   in decimal time, e.g. `2020.25` for 2020Q2.
+#' @param windows Which crisis definition to apply: `"wai"` (default) for the
+#'   date-based windows of the Weekly Activity Index analysis, or `"fcast"` for
+#'   the quarter-based windows of Eckert et al. (2025).
+#'
+#' @return Logical vector, `TRUE` for periods inside a crisis window.
 #'
 #' @examples
 #' is_crisis_period(as.Date(c("2015-01-01", "2020-06-01")))
 #'
-#' @export
-is_crisis_period <- function(date_vec) {
-  crisis_dates <- data.frame(
-    start = as.Date(c("2008-07-07", "2020-01-01")),
-    end = as.Date(c("2009-09-28", "2021-12-28"))
-  )
-  vapply(as.Date(date_vec), function(d) any(d >= crisis_dates$start & d <= crisis_dates$end), logical(1))
-}
-
-
-#' Flag target quarters falling into the Eckert et al. (2025) crisis periods
+#' # the Eckert et al. (2025) windows, on target quarters in decimal time:
+#' # 2020Q1-2021Q3 are crisis quarters, 2019 and 2022 are not
+#' is_crisis_period(c(2019, 2020, 2021.25, 2022), windows = "fcast")
 #'
-#' The crisis/non-crisis split used in the out-of-sample evaluation of Eckert,
-#' Kronenberg, Mikosch & Neuwirth (2025). Carries the `_fcast` suffix for the
-#' same reason the multi-factor internals do: it is the counterpart of
-#' [is_crisis_period()] for that paper, and the two are **not** interchangeable.
-#'
-#' @details
-#' Two differences from [is_crisis_period()], both of which matter:
-#'
-#' \describe{
-#'   \item{What is classified}{This takes the **target quarter** being nowcast,
-#'     as decimal time (`2020.25` for 2020Q2). [is_crisis_period()] takes the
-#'     **date the nowcast was made**. In a real-time evaluation those are weeks
-#'     or months apart, so the two label different rows.}
-#'   \item{Which episodes}{Four windows here -- the global financial crisis, the
-#'     euro crisis, the 2015 Swiss franc shock and Covid-19. [is_crisis_period()]
-#'     covers only the first and last.}
-#' }
-#'
-#' Measured on the paper's own evaluation panel, the two agree on only 124 of
-#' its 240 crisis dates, and substituting [is_crisis_period()] does not
-#' reproduce the published figures: crisis RMSFE for the monthly benchmark comes
-#' out at 0.0262 against the 0.0210 this definition gives, which is what the
-#' paper plots.
-#'
-#' @param period Numeric vector of target quarters in decimal time, e.g.
-#'   `2020.25` for 2020Q2. This is the `period` column of the evaluation panel,
-#'   not the nowcast date.
-#'
-#' @return Logical vector, `TRUE` for quarters inside a crisis window.
-#'
-#' @examples
-#' # 2020Q1-2021Q3 are crisis quarters; 2019 and 2022 are not
-#' is_crisis_period_fcast(c(2019, 2020, 2021.25, 2022))
+#' # and the two genuinely differ -- 2012 is a crisis quarter only for "fcast"
+#' is_crisis_period(2012, windows = "fcast")
+#' is_crisis_period(as.Date("2012-06-01"))
 #'
 #' @references
 #' Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
@@ -85,24 +83,35 @@ is_crisis_period <- function(date_vec) {
 #' *Journal of Applied Econometrics*, 40(3), 270-290.
 #' \doi{10.1002/jae.3104}
 #'
-#' @seealso [is_crisis_period()] for the date-based definition used by the
-#'   Weekly Activity Index analysis.
 #' @export
-is_crisis_period_fcast <- function(period) {
+is_crisis_period <- function(date_vec, windows = c("wai", "fcast")) {
 
-  if (!is.numeric(period)) {
-    stop("`period` must be numeric decimal time (e.g. 2020.25 for 2020Q2), ",
-         "not a ", class(period)[1], ". This function classifies the target ",
-         "quarter, not the nowcast date - see is_crisis_period() for the ",
-         "latter.", call. = FALSE)
+  windows <- match.arg(windows)
+
+  if (windows == "wai") {
+    crisis_dates <- data.frame(
+      start = as.Date(c("2008-07-07", "2020-01-01")),
+      end = as.Date(c("2009-09-28", "2021-12-28"))
+    )
+    return(vapply(as.Date(date_vec),
+                  function(d) any(d >= crisis_dates$start & d <= crisis_dates$end),
+                  logical(1)))
+  }
+
+  if (!is.numeric(date_vec)) {
+    stop("With `windows = \"fcast\"`, `date_vec` must be numeric decimal time ",
+         "(e.g. 2020.25 for 2020Q2), not a ", class(date_vec)[1], ". That ",
+         "definition classifies the target quarter being nowcast, not the date ",
+         "the nowcast was made - use `windows = \"wai\"` for the latter.",
+         call. = FALSE)
   }
 
   # Verbatim from 3a_evaluation_full.R of the paper's replication code; the
   # windows are inclusive at both ends.
-  (period >= 2008.75 & period <= 2009.5)    |   # global financial crisis
-    (period >= 2011.5  & period <= 2013)    |   # euro crisis
-    (period >= 2015    & period <= 2015.25) |   # Swiss franc shock
-    (period >= 2020    & period <= 2021.5)      # Covid-19
+  (date_vec >= 2008.75 & date_vec <= 2009.5)    |   # global financial crisis
+    (date_vec >= 2011.5  & date_vec <= 2013)    |   # euro crisis
+    (date_vec >= 2015    & date_vec <= 2015.25) |   # Swiss franc shock
+    (date_vec >= 2020    & date_vec <= 2021.5)      # Covid-19
 
 }
 
@@ -260,10 +269,7 @@ aggregate_predictor_to_quarterly <- function(df, cut_off_month_pos = NULL, metho
 #' @return The smallest target vintage strictly after `pred_vintage`, or
 #'   `NA` if none exists.
 #'
-#' @examples
-#' get_next_target_vintage(2020.5, c(2020.25, 2020.75, 2021))
-#'
-#' @export
+#' @keywords internal
 get_next_target_vintage <- function(pred_vintage, target_vintages) {
   valid_targets <- target_vintages[target_vintages > pred_vintage]
   if (length(valid_targets) == 0) return(NA_real_)

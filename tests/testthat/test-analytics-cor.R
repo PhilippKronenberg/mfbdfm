@@ -101,7 +101,10 @@ test_that("suffix_cols renames only the lag columns, and tolerates having none",
   plain <- data.frame(Series = "WAI", value = 1)
   expect_identical(suffix_cols(plain, "QoQ"), plain)
 
-  # and it is what analysis/5_plots/analytics_in_sample.R needs at script level:
-  # exported, not internal
-  expect_true("suffix_cols" %in% getNamespaceExports("mfbdfm"))
+  # analysis/5_plots/analytics_in_sample.R calls it at script level, which is
+  # what #23 was about. It is no longer *exported* for that (#102 made it an
+  # internal); the script reaches it through analysis/_internals.R, so what has
+  # to hold here is that the name still resolves inside the namespace.
+  expect_true(is.function(get0("suffix_cols", envir = asNamespace("mfbdfm"))))
+  expect_false("suffix_cols" %in% getNamespaceExports("mfbdfm"))
 })

@@ -1,5 +1,52 @@
 # mfbdfm 0.2.0.9000
 
+## Breaking changes
+
+* **The export surface is narrower by 19 functions** (#102). 18 analysis-script
+  helpers are now package internals, and `is_crisis_period_fcast()` has been
+  folded into `is_crisis_period()`. The criterion applied was whether a user of
+  `library(mfbdfm)` who is not running the scripts in this repository would have
+  a reason to call the function; the 19 below failed it. They are still in `R/`
+  and still covered by the test suite, so nothing was deleted -- but they are no
+  longer part of the API and carry no stability promise. The package is
+  GitHub-distributed at 0.2.x and every known caller lives in this repository,
+  so this is a clean break with no deprecation cycle.
+
+  No longer exported, from `analytics-config.R`: `write_table_output()`,
+  `save_result_output()`, `output_figure_path()`, `filter_to_sample()`,
+  `latest_fit_file()`, `get_latest_numeric_vintage()`,
+  `get_next_extending_numeric_vintage()`. From `analytics-cor.R`:
+  `rescale_to_gdp()`, `build_wai_qoq_mean_series()`, `prepare_wai_qoq_series()`,
+  `suffix_cols()`. From `analytics-tables.R`: `calculate_relative_errors()`,
+  `annotate_relative_errors()`, `create_combined_latex_table()`,
+  `print_evaluation_periods()`. From `date-utils.R`:
+  `get_next_target_vintage()`. From `web-export.R`: `export_wai_web()`,
+  `gdp_web_series()`.
+
+  That takes the package from 65 exports to 46. The 38 S3 methods are untouched,
+  and so is every model, data-preparation, vintage, frequency and analytics
+  *entry point* -- `ind_dfm()`, `fcast_dfm()`, `mfbdfm_data()`,
+  `wai_sample_config()`, `get_combined_cor_table()`, `dm_test_modified()` and
+  the rest all remain exported.
+
+* **`is_crisis_period()` gains a `windows` argument and
+  `is_crisis_period_fcast()` is gone** (#102). `is_crisis_period(x)` is
+  unchanged -- it still takes `Date`s and the two Weekly Activity Index crisis
+  windows -- and `is_crisis_period(x, windows = "fcast")` replaces
+  `is_crisis_period_fcast(x)`, taking target quarters in decimal time and the
+  four Eckert et al. (2025) windows. Two exported functions for one concept
+  with different hard-coded windows was exactly the parity problem the argument
+  removes; a mixed-up call is still an error rather than a silently wrong
+  classification.
+
+* The analysis scripts reach the un-exported helpers through a new
+  `analysis/_internals.R`, which binds them once and whose list is the record of
+  which internals the research workflow depends on. `analysis/5_plots/_setup.R`,
+  `analysis/fcast/_setup.R` and the three scripts that use neither prelude
+  source it.
+
+## Other changes
+
 * The stationarity the models assume is now **stated and screened for**, rather
   than only embodied in the code. `?ind_dfm` gains an "Assumptions" section --
   inherited verbatim by `?fcast_dfm`, so the two cannot drift -- setting out

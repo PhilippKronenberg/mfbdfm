@@ -15,8 +15,8 @@
 # Writes CSV and LaTeX to tables_dir.
 #
 # Two things taken from the package rather than re-implemented: the crisis
-# split is is_crisis_period_fcast() (see ?is_crisis_period_fcast - it is NOT
-# is_crisis_period()), and the DM test is dm_test_modified(), the
+# split is is_crisis_period(windows = "fcast") (see ?is_crisis_period - it is
+# NOT the default windows = "wai"), and the DM test is dm_test_modified(), the
 # Harvey-Leybourne-Newbold small-sample correction the WAI tables already use.
 # The original called forecast::dm.test() directly.
 # -----------------------------------------------------------------------------
@@ -71,7 +71,7 @@ message("panel: ", nrow(panel), " rows, models ",
 # SUBSAMPLES --------------------------------------------------------------
 
 # all / crisis / non-crisis, stacked, exactly as error_table.R does
-panel$crisis <- is_crisis_period_fcast(panel$period)
+panel$crisis <- is_crisis_period(panel$period, windows = "fcast")
 
 stacked <- bind_rows(
   panel %>% mutate(subsample = "all"),

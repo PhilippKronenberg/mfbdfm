@@ -19,10 +19,4 @@ Data frame with \code{time} and \code{value}.
 \description{
 Select the QoQ series for a WAI result, given the aggregation method
 }
-\examples{
-res <- list(tab_gr_qoq = data.frame(time = as.Date("2020-01-07"), value = 1),
-            tab_gr_lv = data.frame(time = seq(as.Date("2020-01-07"), by = "week",
-                                              length.out = 150),
-                                   value = cumprod(1 + rnorm(150, 0, 0.002))))
-prepare_wai_qoq_series(res, method = "last")
-}
+\keyword{internal}

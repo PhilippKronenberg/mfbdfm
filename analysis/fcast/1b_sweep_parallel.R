@@ -28,7 +28,8 @@
 #
 # 2019 is in the range for a reason. Every target quarter a 2020-only sweep
 # reaches (2020Q1 to 2021Q1) is inside the Covid window of
-# is_crisis_period_fcast(), so on its own it produces NO non-crisis rows: the
+# is_crisis_period(windows = "fcast"), so on its own it produces NO non-crisis
+# rows: the
 # crisis-vs-normal figures lose a panel and the Diebold-Mariano tests have
 # nothing to compare crisis performance against. 2019 supplies the other side.
 # -----------------------------------------------------------------------------

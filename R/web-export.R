@@ -81,26 +81,7 @@
 #'
 #' @importFrom stats time
 #' @importFrom utils packageVersion write.table
-#' @examples
-#' \donttest{
-#' # run_wai_adj() is what makes a fit file, so the example produces the file it
-#' # then exports, on a short chain.
-#' data(mfbdfm_example_data)
-#' d <- mfbdfm_example_data
-#' out <- tempfile(); dir.create(out)
-#'
-#' set.seed(1)
-#' run_wai_adj(flows = d$flows, stocks = d$stocks, target = d$target,
-#'             date = 2023, dataset_used = "example",
-#'             length_sample = 20, burn_in = 5, output_dir = out)
-#'
-#' web <- export_wai_web(file.path(out, "example", "fit_2023.Rda"),
-#'                       dir = file.path(out, "web"))
-#' head(web$data)
-#' web$meta$n_obs
-#' unlink(out, recursive = TRUE)
-#' }
-#' @export
+#' @keywords internal
 export_wai_web <- function(fit_path, dir = NULL, gdp = NULL, digits = 4,
                            vintage_date = NULL) {
 
@@ -413,12 +394,7 @@ to_json <- function(x) {
 #'
 #' @seealso [get_real_time_gdp_vintages()] for the untransformed vintages.
 #'
-#' @examples
-#' \donttest{
-#' gdp <- gdp_web_series()
-#' tail(gdp)
-#' }
-#' @export
+#' @keywords internal
 gdp_web_series <- function(vintage = "latest", base_date = as.Date("2019-10-01"),
                            start_date = as.Date("1990-01-01"), end_date = NULL,
                            ...) {

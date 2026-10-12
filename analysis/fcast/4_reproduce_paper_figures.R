@@ -84,7 +84,7 @@ panel <- panel %>%
   # the paper's own filters, 3a_evaluation_full.R lines 225 and 230
   filter(period >= 2005, period <= 2021.5, horizon %in% 1:12) %>%
   mutate(series = paste0(model_lbl[model], " (", data_lbl[dataset], ")"),
-         regime = ifelse(is_crisis_period_fcast(period),
+         regime = ifelse(is_crisis_period(period, windows = "fcast"),
                          "Crisis Periods", "Non-Crisis Periods"))
 
 

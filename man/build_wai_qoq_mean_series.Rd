@@ -16,8 +16,4 @@ Data frame with quarterly \code{time} and growth \code{value}.
 Averages the level index by quarter and computes annualized
 quarter-on-quarter growth in percent.
 }
-\examples{
-lv <- data.frame(time = seq(as.Date("2020-01-07"), by = "week", length.out = 150),
-                 value = 100 * cumprod(1 + rnorm(150, 0, 0.002)))
-head(build_wai_qoq_mean_series(lv))
-}
+\keyword{internal}

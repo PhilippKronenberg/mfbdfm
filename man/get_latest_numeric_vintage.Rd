@@ -21,8 +21,4 @@ The newest vintage as a numeric decimal date.
 \description{
 Newest numeric vintage within bounds
 }
-\examples{
-vintages <- data.frame(time = 1:3, "2020.25" = rnorm(3), "2020.75" = rnorm(3),
-                       check.names = FALSE)
-get_latest_numeric_vintage(vintages, upper_bound = 2020.5)
-}
+\keyword{internal}

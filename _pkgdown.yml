@@ -69,8 +69,6 @@ reference:
   - retrieve_nowcast
   - retrieve_nowcast_var
   - extract_wai_data
-  - export_wai_web
-  - gdp_web_series
   - get_real_time_gdp_vintages
   - select_most_recent_GDP_vintage
   - cut_data
@@ -86,39 +84,22 @@ reference:
   - dec2week
   - decimal_date_local
   - is_crisis_period
-  - is_crisis_period_fcast
   - daily2weekly
   - aggregate_predictor_to_quarterly
-  - get_next_target_vintage
 
 - title: Analytics configuration & output
-  desc: Sample configuration and output-path helpers for the analytics scripts.
+  desc: Sample configuration for the analytics scripts.
   contents:
   - wai_sample_config
-  - latest_fit_file
-  - write_table_output
-  - save_result_output
-  - output_figure_path
-  - filter_to_sample
-  - get_latest_numeric_vintage
-  - get_next_extending_numeric_vintage
 
 - title: Evaluation tables & plots
   desc: In-sample and out-of-sample forecast evaluation tables and plots.
   contents:
-  - rescale_to_gdp
-  - build_wai_qoq_mean_series
-  - prepare_wai_qoq_series
   - plot_comparison
   - get_combined_cor_table
-  - suffix_cols
   - render_correlation_heatmap
   - dm_test_modified
   - get_insample_fit_table
-  - calculate_relative_errors
-  - annotate_relative_errors
-  - create_combined_latex_table
-  - print_evaluation_periods
   - create_error_summary_tables
   - get_insample_error_details
   - create_rel_error_tables

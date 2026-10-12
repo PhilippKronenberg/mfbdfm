@@ -20,11 +20,4 @@ The extending vintage as a numeric decimal date.
 Finds the newest vintage available at \code{reference_date}, then returns
 the first later vintage whose series reaches further into the sample.
 }
-\examples{
-vintages <- data.frame(
-  time = seq(as.Date("2019-01-01"), by = "quarter", length.out = 4),
-  "2019.5" = c(1, 2, NA, NA), "2020.25" = c(1, 2, 3, NA),
-  check.names = FALSE
-)
-get_next_extending_numeric_vintage(vintages, as.Date("2019-09-30"))
-}
+\keyword{internal}

@@ -29,12 +29,5 @@ inside its own body -- so the script failed with
 \verb{could not find function "suffix_cols"} the first time the analytics chain was
 run end to end (#23). One definition now, visible to both.
 }
-\examples{
-df <- data.frame(Series = c("WAI", "AR"), Lag_0 = c(1, 2), Lag_1 = c(3, 4))
-suffix_cols(df, "QoQ")
-
-# columns that are not lags are left alone, and a frame without any is a no-op
-suffix_cols(data.frame(Series = "WAI", value = 1), "QoQ")
-
-}
 \concept{evaluation table functions}
+\keyword{internal}

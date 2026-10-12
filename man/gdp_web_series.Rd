@@ -54,12 +54,7 @@ mutually consistent by construction:
 \item{\code{index}}{\code{100 * level_t / level_base}}
 }
 }
-\examples{
-\donttest{
-gdp <- gdp_web_series()
-tail(gdp)
-}
-}
 \seealso{
 \code{\link[=get_real_time_gdp_vintages]{get_real_time_gdp_vintages()}} for the untransformed vintages.
 }
+\keyword{internal}
