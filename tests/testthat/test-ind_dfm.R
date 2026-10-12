@@ -23,7 +23,8 @@ test_that("ind_dfm returns a complete, finite fit object", {
   expect_named(fit, c("factor", "factor_var", "factor_std", "index", "nowcast",
                       "nowcast_var", "target", "pars", "pars_dist", "data",
                       "data_raw",
-                      "data_augmented", "inventory", "draws", "call"))
+                      "data_augmented", "inventory", "draws", "rng",
+                      "final_state", "call"))
   expect_s3_class(fit$factor, "ts")
   expect_equal(frequency(fit$factor), 48)
   expect_equal(frequency(fit$nowcast), 4)
@@ -490,4 +491,118 @@ test_that("ind_dfm fits a single-frequency panel (#147)", {
     expect_length(fit$factor_std, nrow(fit$data))
     expect_equal(as.numeric(fit$pars$lambda[fit$inventory$key == "a"]), 1)
   }
+})
+
+
+# --- seed, starting values and continuing a chain (#117) -------------------
+#
+# The example dataset rather than the windowed test data: 8 series over a
+# short span, so each of the fits below is about a second. All of them go
+# through dfm_control(), which is where these settings live.
+
+# deliberately not suppressWarnings(): one of the tests below is about a
+# warning this path raises
+small_ind <- function(..., length_sample = 4, burn_in = 3) {
+  suppressMessages(
+    ind_dfm(mfbdfm_example_data, length_sample = length_sample,
+            burn_in = burn_in, thinning = 1, plots = FALSE, ...))
+}
+
+
+test_that("dfm_control(seed =) makes a fit reproducible and leaves the stream", {
+
+  ctl <- function(...) dfm_control("ind_dfm", verbose = FALSE, ...)
+
+  set.seed(123)
+  before <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+
+  a <- small_ind(control = ctl(seed = 42))
+  # the caller's position is handed back: a seeded fit does not silently move
+  # the global stream
+  expect_identical(get(".Random.seed", envir = globalenv(), inherits = FALSE),
+                   before)
+
+  b <- small_ind(control = ctl(seed = 42))
+  expect_identical(a$nowcast, b$nowcast)
+  expect_identical(a$factor, b$factor)
+  expect_identical(unclass(a$final_state), unclass(b$final_state))
+
+  c_ <- small_ind(control = ctl(seed = 43))
+  expect_false(identical(a$nowcast, c_$nowcast))
+
+  # the record is there whether or not a seed was given, which is what makes an
+  # unseeded fit reproducible after the fact
+  expect_identical(a$rng$seed, 42L)
+  expect_identical(a$rng$kind, RNGkind())
+  expect_type(a$rng$start, "integer")
+  expect_false(identical(a$rng$start, a$rng$end))
+
+  set.seed(5)
+  d <- small_ind()
+  expect_null(d$rng$seed)
+  set.seed(5)
+  expect_identical(d$rng$start,
+                   get(".Random.seed", envir = globalenv(), inherits = FALSE))
+})
+
+
+test_that("an explicit starting value is used rather than drawn", {
+
+  fit <- small_ind(control = dfm_control("ind_dfm", verbose = FALSE, seed = 1,
+                                         starting_values = list(phi = 0.5)))
+  expect_s3_class(fit, "ind_dfm")
+
+  # supplying a block skips its initialisation, so the stream is consumed
+  # differently and the chain is a different one
+  plain <- small_ind(control = dfm_control("ind_dfm", verbose = FALSE, seed = 1))
+  expect_false(identical(fit$nowcast, plain$nowcast))
+
+  # a starting value that does not fit the data is an error naming the block
+  expect_error(
+    small_ind(control = dfm_control("ind_dfm", verbose = FALSE,
+                                    starting_values = list(f = 1:3))),
+    "starting_values$f", fixed = TRUE)
+})
+
+
+test_that("two legs of a continued chain are the same chain as one long run", {
+
+  ctl <- function(...) dfm_control("ind_dfm", verbose = FALSE, ...)
+
+  leg1 <- small_ind(length_sample = 4, burn_in = 3, control = ctl(seed = 7))
+  leg2 <- small_ind(length_sample = 4, burn_in = 0,
+                    control = ctl(starting_values = leg1))
+  full <- small_ind(length_sample = 8, burn_in = 3, control = ctl(seed = 7))
+
+  # the acceptance test from #117: N draws then a continuation of N equals one
+  # run of 2N, exactly
+  expect_identical(unclass(leg2$final_state), unclass(full$final_state))
+  expect_identical(leg2$rng$end, full$rng$end)
+  expect_identical(leg1$draws$parameters, full$draws$parameters[1:4, ])
+  expect_identical(leg2$draws$parameters, full$draws$parameters[5:8, ])
+  expect_identical(leg2$draws$nowcast, full$draws$nowcast[5:8, ])
+
+  # each leg's posterior means summarise only its own draws, so they are NOT
+  # the long run's - the draws have to be pooled instead
+  expect_false(identical(leg2$nowcast, full$nowcast))
+
+  # a seed as well asks for two different stream positions, and says so
+  expect_warning(small_ind(length_sample = 2, burn_in = 0,
+                           control = ctl(seed = 1, starting_values = leg1)),
+                 "`seed` wins")
+})
+
+
+test_that("a fit cannot be continued onto a different specification", {
+
+  ctl <- function(...) dfm_control("ind_dfm", verbose = FALSE, ...)
+  leg1 <- small_ind(length_sample = 2, burn_in = 2, control = ctl(seed = 2))
+
+  expect_error(small_ind(length_sample = 2, burn_in = 0, p = 2,
+                         control = ctl(starting_values = leg1)),
+               "different model specification")
+  expect_error(small_ind(length_sample = 2, burn_in = 0,
+                         stochastic_volatility = FALSE,
+                         control = ctl(starting_values = leg1)),
+               "stochastic_volatility")
 })

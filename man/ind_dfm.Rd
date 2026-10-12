@@ -36,7 +36,9 @@ named list of \code{ts} objects treated as flow variables. Must contain
 
 \item{length_sample}{Integer, number of posterior draws to keep.}
 
-\item{burn_in}{Integer, number of initial draws to discard.}
+\item{burn_in}{Integer, number of initial draws to discard. \code{0} is
+allowed, which is what the second leg of a continued chain wants --
+see \code{\link[=dfm_control]{dfm_control()}}'s \code{starting_values}.}
 
 \item{thinning}{Integer, keep every \code{thinning}-th draw after burn-in.}
 
@@ -66,7 +68,9 @@ numerical guards that were previously hard-coded -- the stationarity screen
 on the measurement-error autocorrelations, the caps on \code{phi} and \code{sigma},
 and the numerical jitter. Omit it (the default) and the published behaviour
 is reproduced exactly. \code{dfm_control("ind_dfm", verbose = FALSE)} silences
-the progress messages and the progress bar.}
+the progress messages and the progress bar; \code{seed} and \code{starting_values}
+there make a fit reproducible on its own terms and let a chain be
+continued.}
 }
 \value{
 An object of class \code{"ind_dfm"}: a list with components
@@ -100,6 +104,15 @@ there for which blocks are present and why.}
 \item{draws}{The retained posterior draws (see \link{mfbdfm_draws}), or
 \code{NULL} with \code{keep_draws = FALSE} in \code{\link[=dfm_control]{dfm_control()}}. Present by
 default; this is what \code{\link[=mfbdfm_diagnostics]{mfbdfm_diagnostics()}} reads.}
+\item{rng}{The random stream the fit ran under: \code{seed} (the
+\code{\link[=dfm_control]{dfm_control()}} setting, or \code{NULL}), \code{kind} (\code{\link[=RNGkind]{RNGkind()}}), \code{start}
+(the \code{.Random.seed} the sampler began from) and \code{end} (its position
+when the sampler finished). Recorded whether or not a seed was given,
+so an unseeded fit is still reproducible after the fact.}
+\item{final_state}{The sampler's last draw, in its own parameter blocks
+(\code{f}, \code{lambda}, \code{phi}, \code{sigma}, \code{rho}, \code{h}, \code{omega}, \code{Xmat},
+\code{indicators}). Pass the fit as \code{\link[=dfm_control]{dfm_control()}}'s \code{starting_values} to
+continue the chain from here.}
 \item{call}{The matched call.}
 }
 }

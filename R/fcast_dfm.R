@@ -102,7 +102,9 @@
 #' @param q Integer, number of factors. Must be smaller than the number of
 #'   input series.
 #' @param length_sample Integer, number of posterior draws to keep.
-#' @param burn_in Integer, number of initial draws to discard.
+#' @param burn_in Integer, number of initial draws to discard. `0` is
+#'   allowed, which is what the second leg of a continued chain wants --
+#'   see [dfm_control()]'s `starting_values`.
 #' @param thinning Integer, keep every `thinning`-th draw after burn-in.
 #' @param plots Logical, if `TRUE` draw diagnostic plots of the factors,
 #'   stochastic volatility and trace plots during sampling.
@@ -125,7 +127,8 @@
 #'   `dfm_control("fcast_dfm", strict = TRUE)` switches the rotation to the
 #'   algorithm as specified in the online appendix, and
 #'   `dfm_control("fcast_dfm", verbose = FALSE)` silences the progress messages
-#'   and the progress bar.
+#'   and the progress bar. `seed` and `starting_values` there make a fit
+#'   reproducible on its own terms and let a chain be continued.
 #'
 #' @return An object of class `"fcast_dfm"`: a list with components
 #'   \describe{
@@ -169,6 +172,17 @@
 #'       identification** (see [mfbdfm_draws]), or `NULL` with
 #'       `keep_draws = FALSE` in [dfm_control()]. Present by default; this is
 #'       what [mfbdfm_diagnostics()] reads.}
+#'     \item{rng}{The random stream the fit ran under: `seed` (the
+#'       [dfm_control()] setting, or `NULL`), `kind` ([RNGkind()]), `start`
+#'       (the `.Random.seed` the sampler began from) and `end` (its position
+#'       when the **sampler** finished, which is before the evaluation phase
+#'       redraws the factors -- that is the position a continuation resumes
+#'       from). Recorded whether or not a seed was given.}
+#'     \item{final_state}{The sampler's last draw, **unrotated**, in its own
+#'       parameter blocks (`f`, `lambda`, `phi`, `sigma`, `rho`, `h`, `omega`,
+#'       `Xmat`, `indicators`). Pass the fit as [dfm_control()]'s
+#'       `starting_values` to continue the chain from here; see there for why
+#'       the two legs' *rotated* output is not comparable.}
 #'     \item{call}{The matched call.}
 #'   }
 #'
@@ -297,6 +311,18 @@ fcast_dfm <- function(flows = NULL,
 
   verbose <- isTRUE(control$verbose)
 
+  # WHERE THE CHAIN STARTS --------------------------------------------------
+
+  # Resolved here rather than in the sampler: the dimensions a starting value
+  # has to match are only known now, and validation belongs in the exported
+  # function. Nothing above this point touches the random stream (#117).
+  spec <- fit_spec(model = "fcast_dfm", n = n, t = t, s = s, p = p, q = q,
+                   stochastic_volatility = stochastic_volatility,
+                   serial_correlation = serial_correlation)
+  start <- resolve_starting_values(control$starting_values, spec)
+  rng <- rng_begin(control$seed, continue_from = start$rng)
+  on.exit(rng_restore_caller(rng), add = TRUE)
+
   if(verbose) message("preallocating..")
   Gmat_prealloc <- get_gmat_prealloc(n = n, q = q, s = s, t = t)
 
@@ -316,7 +342,16 @@ fcast_dfm <- function(flows = NULL,
                                serial_correlation = serial_correlation,
                                priors = priors,
                                control = control,
-                               verbose = verbose)
+                               verbose = verbose,
+                               start = start$state)
+
+  # read the stream position the sampler left behind BEFORE the evaluation
+  # phase below, which redraws the factors from every retained draw and so
+  # consumes the stream further. A continuation resumes from here, not from
+  # where the fit as a whole ends. Kept in its own variable because `rng` still
+  # carries what the on.exit() above has to put back.
+  rng_rec <- rng_finish(rng)
+  final_state <- attr(theta_out, "final_state")
 
 
   # ROTATION ----------------------------------------------------------------
@@ -356,6 +391,13 @@ fcast_dfm <- function(flows = NULL,
                         length_sample = length_sample,
                         burn_in = burn_in,
                         thinning = thinning)
+
+  # reproducibility record and the sampler's last state (#117). The state
+  # carries the specification it belongs to as an attribute, so handing this
+  # fit back as `starting_values` cannot silently continue a chain onto
+  # different data or a different model configuration.
+  out$rng <- rng_rec
+  out$final_state <- structure(final_state, spec = spec)
 
   out$call <- match.call()
   class(out) <- "fcast_dfm"

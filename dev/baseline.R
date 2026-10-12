@@ -101,6 +101,13 @@ baseline_fits <- function(){
 baseline_digest <- function(fit){
 
   keep <- function(x) if(is.null(x)) NULL else as.numeric(x)
+  keep_state <- function(s){
+    if(is.null(s)) return(NULL)
+    unlist(lapply(s, function(b){
+      if(is.list(b)) b <- unlist(lapply(b, as.matrix))
+      as.numeric(as.matrix(b))
+    }), use.names = FALSE)
+  }
 
   list(factor = keep(fit$factor),
        factor_var = keep(fit$factor_var),
@@ -117,7 +124,13 @@ baseline_digest <- function(fit){
        phi = keep(unlist(fit$pars$phi)),
        sigma = keep(fit$pars$sigma),
        rho = keep(fit$pars$rho),
-       h = keep(fit$pars$h))
+       h = keep(fit$pars$h),
+       # The sampler's last draw, which a continued chain resumes from (#117).
+       # A bug that stored the wrong iteration or block would leave every
+       # averaged output above untouched, so it is covered in its own right.
+       # Blocks are flattened in their stored order; Matrix blocks via
+       # as.matrix(), phi (a list of lag blocks under fcast_dfm) via unlist().
+       final_state = keep_state(fit$final_state))
 
 }
 

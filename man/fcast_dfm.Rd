@@ -42,7 +42,9 @@ input series.}
 
 \item{length_sample}{Integer, number of posterior draws to keep.}
 
-\item{burn_in}{Integer, number of initial draws to discard.}
+\item{burn_in}{Integer, number of initial draws to discard. \code{0} is
+allowed, which is what the second leg of a continued chain wants --
+see \code{\link[=dfm_control]{dfm_control()}}'s \code{starting_values}.}
 
 \item{thinning}{Integer, keep every \code{thinning}-th draw after burn-in.}
 
@@ -73,7 +75,8 @@ default) and the published behaviour is reproduced exactly;
 \code{dfm_control("fcast_dfm", strict = TRUE)} switches the rotation to the
 algorithm as specified in the online appendix, and
 \code{dfm_control("fcast_dfm", verbose = FALSE)} silences the progress messages
-and the progress bar.}
+and the progress bar. \code{seed} and \code{starting_values} there make a fit
+reproducible on its own terms and let a chain be continued.}
 }
 \value{
 An object of class \code{"fcast_dfm"}: a list with components
@@ -118,6 +121,17 @@ estimate). See \link{fcast_dfm_methods}.}
 identification} (see \link{mfbdfm_draws}), or \code{NULL} with
 \code{keep_draws = FALSE} in \code{\link[=dfm_control]{dfm_control()}}. Present by default; this is
 what \code{\link[=mfbdfm_diagnostics]{mfbdfm_diagnostics()}} reads.}
+\item{rng}{The random stream the fit ran under: \code{seed} (the
+\code{\link[=dfm_control]{dfm_control()}} setting, or \code{NULL}), \code{kind} (\code{\link[=RNGkind]{RNGkind()}}), \code{start}
+(the \code{.Random.seed} the sampler began from) and \code{end} (its position
+when the \strong{sampler} finished, which is before the evaluation phase
+redraws the factors -- that is the position a continuation resumes
+from). Recorded whether or not a seed was given.}
+\item{final_state}{The sampler's last draw, \strong{unrotated}, in its own
+parameter blocks (\code{f}, \code{lambda}, \code{phi}, \code{sigma}, \code{rho}, \code{h}, \code{omega},
+\code{Xmat}, \code{indicators}). Pass the fit as \code{\link[=dfm_control]{dfm_control()}}'s
+\code{starting_values} to continue the chain from here; see there for why
+the two legs' \emph{rotated} output is not comparable.}
 \item{call}{The matched call.}
 }
 }

@@ -365,3 +365,69 @@ test_that("fcast_dfm fits a single-frequency panel (#147)", {
     expect_false(anyNA(fit$factor))
   }
 })
+
+
+# --- seed, starting values and continuing a chain (#117) -------------------
+#
+# Same settings as ind_dfm(), per the parity rule, with one difference that is
+# intrinsic to this model: the continuation is exact in the SAMPLER, and the
+# rotated output of two legs is not comparable, because each leg's rotation
+# reference is computed from its own retained draws.
+
+small_fcast <- function(..., length_sample = 3, burn_in = 2) {
+  suppressMessages(
+    fcast_dfm(mfbdfm_example_data, q = 2, p = 1, length_sample = length_sample,
+              burn_in = burn_in, thinning = 1, plots = FALSE, ...))
+}
+
+
+test_that("dfm_control(seed =) makes a fcast_dfm fit reproducible", {
+
+  ctl <- function(...) dfm_control("fcast_dfm", verbose = FALSE, ...)
+
+  set.seed(321)
+  before <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+
+  a <- suppressWarnings(small_fcast(control = ctl(seed = 11)))
+  expect_identical(get(".Random.seed", envir = globalenv(), inherits = FALSE),
+                   before)
+
+  b <- suppressWarnings(small_fcast(control = ctl(seed = 11)))
+  expect_identical(a$nowcast, b$nowcast)
+  expect_identical(unclass(a$final_state), unclass(b$final_state))
+
+  expect_identical(a$rng$seed, 11L)
+  expect_identical(a$rng$kind, RNGkind())
+  # $end is the position the SAMPLER left behind, which the evaluation phase
+  # then moves past: it redraws the factors from every retained draw
+  expect_false(identical(a$rng$end,
+                         get(".Random.seed", envir = globalenv(),
+                             inherits = FALSE)))
+})
+
+
+test_that("a continued fcast_dfm chain matches the long run in the sampler", {
+
+  ctl <- function(...) dfm_control("fcast_dfm", verbose = FALSE, ...)
+
+  leg1 <- suppressWarnings(small_fcast(length_sample = 3, burn_in = 2,
+                                       control = ctl(seed = 5)))
+  leg2 <- suppressWarnings(small_fcast(length_sample = 3, burn_in = 0,
+                                       control = ctl(starting_values = leg1)))
+  full <- suppressWarnings(small_fcast(length_sample = 6, burn_in = 2,
+                                       control = ctl(seed = 5)))
+
+  # the unrotated state is what a continuation resumes from, and it is exact
+  expect_identical(unclass(leg2$final_state), unclass(full$final_state))
+  expect_identical(leg2$rng$end, full$rng$end)
+
+  # the rotated output is NOT: each leg rotates onto a reference built from its
+  # own draws, which is why ?dfm_control says to continue the sampler rather
+  # than splice the output
+  expect_false(identical(leg2$factor, full$factor))
+
+  expect_error(suppressWarnings(
+    fcast_dfm(mfbdfm_example_data, q = 2, length_sample = 2, burn_in = 0,
+              control = ctl(starting_values = leg1), plots = FALSE, p = 2)),
+    "different model specification")
+})

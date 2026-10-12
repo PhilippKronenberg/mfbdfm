@@ -13,10 +13,86 @@
 #' it fits. Priors live in [dfm_priors()]; model structure is in the arguments
 #' of [ind_dfm()] and [fcast_dfm()].
 #'
-#' Deliberately absent: initial values, and the numerical conditioning constants
-#' that are not choices (the `1e-9` ridge that encodes "effectively zero"
-#' autocorrelation when `serial_correlation = FALSE`, and the `pi - 1e-16` domain
-#' guard on the Givens angles).
+#' Deliberately absent: the numerical conditioning constants that are not
+#' choices (the `1e-9` ridge that encodes "effectively zero" autocorrelation
+#' when `serial_correlation = FALSE`, and the `pi - 1e-16` domain guard on the
+#' Givens angles).
+#'
+#' # Where the chain starts: `seed` and `starting_values`
+#'
+#' Both default to `NULL`, which is the behaviour the package has always had:
+#' the sampler draws its own initial state from whatever random stream the
+#' caller happens to have. Setting either is what makes a fit reproducible on
+#' its own terms, lets two differently-initialised chains be compared, and lets
+#' a chain that turned out too short be continued instead of re-run (#117).
+#'
+#' \describe{
+#'   \item{`seed`}{A single whole number. `set.seed(seed)` runs at the start of
+#'     the fit and the caller's own stream position is **restored on exit**, so
+#'     a seeded fit does not silently move the global stream. Either way --
+#'     seed or no seed -- the fit records the state it ran under in `fit$rng`,
+#'     so even an unseeded fit can be reproduced after the fact:
+#'     `fit$rng$start` is the `.Random.seed` the sampler began from and
+#'     `fit$rng$kind` the [RNGkind()] it ran under.}
+#'   \item{`starting_values`}{Either a named list of parameter blocks, or a
+#'     previous fit of the **same** model, in which case its chain is
+#'     continued. The block names are the sampler's own:
+#'     `f`, `lambda`, `phi`, `sigma`, `rho`, `h`, `omega`, `Xmat`,
+#'     `indicators`. A partial list is fine -- the blocks you do not supply are
+#'     initialised exactly as they always were -- and the name is plural
+#'     because the argument takes several values (rOpenSci BS2.11).}
+#' }
+#'
+#' A supplied block is used as given and its random initialisation is skipped,
+#' so a *complete* set of starting values consumes no random numbers at all.
+#' That is what makes continuation exact rather than approximate.
+#'
+#' # Continuing a chain
+#'
+#' Passing a fit as `starting_values` resumes both the parameter state
+#' (`fit$final_state`, the sampler's last draw) and the random stream
+#' (`fit$rng$end`, its position when the sampler finished). With `burn_in = 0`
+#' on the second leg, two legs of `N` draws are then *the same chain* as one run
+#' of `2N`:
+#'
+#' ```r
+#' leg1 <- ind_dfm(mfbdfm_example_data, length_sample = 500, burn_in = 100,
+#'                 control = dfm_control("ind_dfm", seed = 1))
+#' leg2 <- ind_dfm(mfbdfm_example_data, length_sample = 500, burn_in = 0,
+#'                 control = dfm_control("ind_dfm", starting_values = leg1))
+#' ```
+#'
+#' `leg2$draws` then holds exactly the second half of the 1000-draw run, and
+#' `leg2$final_state` is identical to that run's. Note what the legs are *not*:
+#' each leg's posterior means (`$nowcast`, `$factor`, ...) summarise only its
+#' own draws, so the two have to be pooled through `$draws` rather than
+#' averaged from the fit objects.
+#'
+#' Two caveats, both deliberate:
+#'
+#' \itemize{
+#'   \item Setting `seed` **and** passing a fit asks for two different stream
+#'     positions. `seed` wins and the fit warns, because the result is then two
+#'     legs that are not one chain.
+#'   \item For [fcast_dfm()] the continuation is exact *in the sampler* -- the
+#'     final state after two legs is identical to the single run's -- but the
+#'     reported output is not comparable across legs. That model identifies post
+#'     hoc, and the rotation computes its reference from the retained draws of
+#'     the fit at hand, so each leg is rotated onto its own reference.
+#'     Continue a `fcast_dfm()` chain to extend the sampler, not to splice the
+#'     rotated output.
+#' }
+#'
+#' A fit cannot be continued by the other model (the two samplers do not share a
+#' parameter state), nor onto different data, a different `p`/`q`, or different
+#' `stochastic_volatility`/`serial_correlation` settings: the specification the
+#' state belongs to is recorded with it and the mismatch is an error naming what
+#' moved.
+#'
+#' Not applicable yet: rOpenSci BS2.9 (distinct seeds per chain by default) and
+#' BS2.10 (a diagnostic message when identical seeds are passed) describe
+#' multiple chains in one call, which neither entry point runs -- one call is one
+#' chain. They become relevant if a `chains` argument is ever added.
 #'
 #' # The rotation stopping rule
 #'
@@ -160,6 +236,10 @@
 #' # keep the factor-path draws too, and the burn-in, for trace plots
 #' dfm_control("ind_dfm", keep_factor_draws = TRUE, keep_burn_in = TRUE)
 #'
+#' # a reproducible fit, and one started from an explicit factor path
+#' dfm_control("ind_dfm", seed = 2026)
+#' dfm_control("ind_dfm", starting_values = list(phi = 0.5))
+#'
 #' @references
 #' Assmann, C., Boysen-Hogrefe, J., & Pape, M. (2016). Bayesian analysis of
 #' static and dynamic factor models with an unknown number of factors, and
@@ -252,7 +332,12 @@ control_defaults <- function(model){
     # retained draws (#110). Both samplers hold every draw in memory anyway, so
     # these decide what survives into the fit object, not what is computed.
     keep_draws = TRUE,
-    keep_factor_draws = FALSE
+    keep_factor_draws = FALSE,
+    # where the chain starts (#117). NULL for both means "exactly as before":
+    # the sampler draws its own initial state from whatever stream the caller
+    # has, which is why a default fit is bit-identical to a pre-#117 one.
+    seed = NULL,
+    starting_values = NULL
   )
 
   if(model == "ind_dfm"){
@@ -335,6 +420,33 @@ validate_control <- function(ctrl){
          call. = FALSE)
   }
 
+  # `seed` is checked here; `starting_values` only for its shape, because the
+  # dimensions it has to match are not known until the data has been prepared.
+  # The entry points finish the job via resolve_starting_values() (#117).
+  if(!is.null(ctrl$seed) &&
+     (!is.numeric(ctrl$seed) || length(ctrl$seed) != 1 ||
+      !is.finite(ctrl$seed) || ctrl$seed != round(ctrl$seed))){
+    stop("`seed` must be a single finite whole number, or NULL to use ",
+         "whatever random stream the caller has, not ", deparse(ctrl$seed), ".",
+         call. = FALSE)
+  }
+
+  if(!is.null(ctrl$starting_values) &&
+     !is.list(ctrl$starting_values) &&
+     !inherits(ctrl$starting_values, c("ind_dfm", "fcast_dfm"))){
+    stop("`starting_values` must be a named list of parameter blocks, a ",
+         "previous fit to continue, or NULL, not a ",
+         class(ctrl$starting_values)[1], ".", call. = FALSE)
+  }
+
+  if(inherits(ctrl$starting_values, c("ind_dfm", "fcast_dfm")) &&
+     !is.null(ctrl$model) && !inherits(ctrl$starting_values, ctrl$model)){
+    stop("`starting_values` is a ", class(ctrl$starting_values)[1],
+         " fit but the control object is for ", ctrl$model,
+         "(). A chain can only be continued by the model that produced it.",
+         call. = FALSE)
+  }
+
   if(!is.null(ctrl$rotation_criterion) &&
      !identical(ctrl$rotation_criterion, "mean") &&
      !identical(ctrl$rotation_criterion, "sum")){
@@ -402,15 +514,24 @@ print.dfm_control <- function(x, ...){
       if(isTRUE(x$strict)) "  [strict: published rotation rule]" else "", "\n\n",
       sep = "")
 
+  # NULL is a legitimate value for `seed`/`starting_values` and a fit is a
+  # legitimate value for the latter, neither of which format() can render
+  show <- function(v){
+    if(is.null(v)) return("NULL")
+    if(inherits(v, "ind_dfm") || inherits(v, "fcast_dfm")){
+      return(paste0("<", class(v)[1], " fit>"))
+    }
+    if(is.list(v)) return(paste0("<", paste(names(v), collapse = ","), ">"))
+    if(is.character(v)) return(paste0("\"", v, "\""))
+    format(v)
+  }
+
   for(nm in nms){
     v <- x[[nm]]
     changed <- !identical(v, defaults[[nm]])
-    cat(sprintf("  %-24s %-10s%s\n", nm,
-                if(is.character(v)) paste0("\"", v, "\"") else format(v),
-                if(changed) sprintf("  (default %s)",
-                                    if(is.character(defaults[[nm]]))
-                                      paste0("\"", defaults[[nm]], "\"")
-                                    else format(defaults[[nm]])) else ""))
+    cat(sprintf("  %-24s %-10s%s\n", nm, show(v),
+                if(changed) sprintf("  (default %s)", show(defaults[[nm]]))
+                else ""))
   }
 
   if(identical(x$rotation_criterion, "mean")){

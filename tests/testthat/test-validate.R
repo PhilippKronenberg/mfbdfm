@@ -46,13 +46,21 @@ test_that("validate_model_inputs names the offending argument", {
   expect_error(call_it(target = c("a", "b")), "single series name")
   expect_error(call_it(target = "nope"), "not among the supplied series")
 
-  for (nm in c("p", "length_sample", "burn_in", "thinning")) {
+  for (nm in c("p", "length_sample", "thinning")) {
     for (bad in list(0, 2.5, "1", c(1, 2))) {
       expect_error(do.call(call_it, stats::setNames(list(bad), nm)),
                    paste0("`", nm, "` must be a single positive whole number"),
                    fixed = TRUE)
     }
   }
+
+  # burn_in is the one that may be 0 - the second leg of a continued chain has
+  # nothing left to burn in (#117)
+  for (bad in list(-1, 2.5, "1", c(1, 2))) {
+    expect_error(call_it(burn_in = bad),
+                 "`burn_in` must be a single whole number >= 0", fixed = TRUE)
+  }
+  expect_true(call_it(burn_in = 0))
 })
 
 
