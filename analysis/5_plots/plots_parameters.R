@@ -36,7 +36,10 @@ available <- round(as.numeric(sub("^fit_(.*)\\.Rda$", "\\1",
 # "cannot open file", naming nothing useful.
 start_date <- min(available)
 end_date <- max(available)
-date_vec <- round(seq(start_date, end_date, 1/48), 3)
+# Half a step past end_date: the file names are rounded to 3 decimals, so
+# 2025.979 sits just BELOW the true 2025 + 47/48 and a plain seq() to it stopped
+# one week short, silently dropping the most recent vintage.
+date_vec <- round(seq(start_date, end_date + 1/96, 1/48), 3)
 
 missing <- setdiff(date_vec, available)
 date_vec <- intersect(date_vec, available)
