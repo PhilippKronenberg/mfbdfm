@@ -56,6 +56,7 @@ Documentation is generated from roxygen2 comments; **do not hand-edit
     ├── analysis/                       # Research workflow scripts (not part of the built package)
     │   ├── 1_data_prep_dataset.R, 2_backcast.R, 4_tables.R, real_time_backcast.R,
     │   │   0_test.R
+    │   ├── _internals.R                # Binds the package internals the scripts use (#102)
     │   ├── 5_plots/                    # In-sample / out-of-sample evaluation scripts
     │   │   └── _setup.R                # Shared prelude: library(mfbdfm) + wai_sample_config()
     │   ├── outputs/                    # figures/tables/results per wai_sample_config() (gitignored)
@@ -83,10 +84,10 @@ matters for the 1:1 test-file convention below):
 | `backcast.R` | [`run_ar()`](https://philippkronenberg.github.io/mfbdfm/reference/run_ar.md), [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md), [`retrieve_nowcast()`](https://philippkronenberg.github.io/mfbdfm/reference/retrieve_nowcast.md), [`extract_wai_data()`](https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.md) |
 | `vintages.R` | [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md), [`cut_data()`](https://philippkronenberg.github.io/mfbdfm/reference/cut_data.md), [`cut_data_real_time()`](https://philippkronenberg.github.io/mfbdfm/reference/cut_data_real_time.md), [`select_most_recent_GDP_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/select_most_recent_GDP_vintage.md) |
 | `frequency-utils.R` | [`week2mon()`](https://philippkronenberg.github.io/mfbdfm/reference/week2mon.md), [`drop_weekly()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_weekly.md), [`drop_financial()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_financial.md), [`drop_retail()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_retail.md), [`dec2week()`](https://philippkronenberg.github.io/mfbdfm/reference/dec2week.md) |
-| `date-utils.R` | [`decimal_date_local()`](https://philippkronenberg.github.io/mfbdfm/reference/decimal_date_local.md), [`is_crisis_period()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period.md), [`daily2weekly()`](https://philippkronenberg.github.io/mfbdfm/reference/daily2weekly.md), [`aggregate_predictor_to_quarterly()`](https://philippkronenberg.github.io/mfbdfm/reference/aggregate_predictor_to_quarterly.md), [`get_next_target_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/get_next_target_vintage.md) |
-| `analytics-config.R` | [`wai_sample_config()`](https://philippkronenberg.github.io/mfbdfm/reference/wai_sample_config.md) + output-path helpers ([`write_table_output()`](https://philippkronenberg.github.io/mfbdfm/reference/write_table_output.md), [`save_result_output()`](https://philippkronenberg.github.io/mfbdfm/reference/save_result_output.md), [`output_figure_path()`](https://philippkronenberg.github.io/mfbdfm/reference/output_figure_path.md), [`filter_to_sample()`](https://philippkronenberg.github.io/mfbdfm/reference/filter_to_sample.md), vintage pickers) |
-| `analytics-cor.R` | Correlation tables/plots: [`get_combined_cor_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.md), [`plot_comparison()`](https://philippkronenberg.github.io/mfbdfm/reference/plot_comparison.md), [`render_correlation_heatmap()`](https://philippkronenberg.github.io/mfbdfm/reference/render_correlation_heatmap.md), [`rescale_to_gdp()`](https://philippkronenberg.github.io/mfbdfm/reference/rescale_to_gdp.md) |
-| `analytics-tables.R` | Fit/error tables: [`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md), [`get_insample_fit_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_fit_table.md), [`create_error_summary_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_error_summary_tables.md), [`create_rel_error_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_rel_error_tables.md) |
+| `date-utils.R` | [`decimal_date_local()`](https://philippkronenberg.github.io/mfbdfm/reference/decimal_date_local.md), [`is_crisis_period()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period.md) (its `windows` argument picks the WAI or the Eckert et al. windows), [`daily2weekly()`](https://philippkronenberg.github.io/mfbdfm/reference/daily2weekly.md), [`aggregate_predictor_to_quarterly()`](https://philippkronenberg.github.io/mfbdfm/reference/aggregate_predictor_to_quarterly.md), internal [`get_next_target_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/get_next_target_vintage.md) |
+| `analytics-config.R` | [`wai_sample_config()`](https://philippkronenberg.github.io/mfbdfm/reference/wai_sample_config.md) + the **internal** output-path helpers ([`write_table_output()`](https://philippkronenberg.github.io/mfbdfm/reference/write_table_output.md), [`save_result_output()`](https://philippkronenberg.github.io/mfbdfm/reference/save_result_output.md), [`output_figure_path()`](https://philippkronenberg.github.io/mfbdfm/reference/output_figure_path.md), [`filter_to_sample()`](https://philippkronenberg.github.io/mfbdfm/reference/filter_to_sample.md), [`latest_fit_file()`](https://philippkronenberg.github.io/mfbdfm/reference/latest_fit_file.md), vintage pickers) |
+| `analytics-cor.R` | Correlation tables/plots: [`get_combined_cor_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.md), [`plot_comparison()`](https://philippkronenberg.github.io/mfbdfm/reference/plot_comparison.md), [`render_correlation_heatmap()`](https://philippkronenberg.github.io/mfbdfm/reference/render_correlation_heatmap.md); internal [`rescale_to_gdp()`](https://philippkronenberg.github.io/mfbdfm/reference/rescale_to_gdp.md), [`suffix_cols()`](https://philippkronenberg.github.io/mfbdfm/reference/suffix_cols.md), `*_wai_qoq_*()` |
+| `analytics-tables.R` | Fit/error tables: [`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md), [`get_insample_fit_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_fit_table.md), [`create_error_summary_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_error_summary_tables.md), [`create_rel_error_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_rel_error_tables.md); internal [`calculate_relative_errors()`](https://philippkronenberg.github.io/mfbdfm/reference/calculate_relative_errors.md), [`annotate_relative_errors()`](https://philippkronenberg.github.io/mfbdfm/reference/annotate_relative_errors.md), [`create_combined_latex_table()`](https://philippkronenberg.github.io/mfbdfm/reference/create_combined_latex_table.md), [`print_evaluation_periods()`](https://philippkronenberg.github.io/mfbdfm/reference/print_evaluation_periods.md) |
 | `methods.R` | S3 methods for both fit classes (`print`/`summary`/`plot`/`coef`/`fitted`/`residuals`/`as.data.frame`), documented under `ind_dfm_methods` and `fcast_dfm_methods` |
 | `contributions.R` | [`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md) + its `print`/`as.data.frame`/`plot` methods, and the internal `dfm_joint_precision()` / `dfm_state_weights()` that [`logLik()`](https://rdrr.io/r/stats/logLik.html) also builds on (#109) |
 | `priors.R` | [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md) + [`print.dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_priors.md); structural vs tunable priors |
@@ -94,6 +95,7 @@ matters for the 1:1 test-file convention below):
 | `data-input.R` | [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md) + [`print.mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/print.mfbdfm_data.md) and the frequency-harmonisation helpers (#56) |
 | `validate.R` | `resolve_data_arg()`, `validate_model_inputs()`, `is_count()` — shared entry-point validation; no exports |
 | `memory.R` | [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md), [`dfm_workers()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md) — measured peak-memory bound and worker planning (#64) |
+| `web-export.R` | Internal [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md), [`gdp_web_series()`](https://philippkronenberg.github.io/mfbdfm/reference/gdp_web_series.md) — the CSV/JSON files behind the public WAI dashboard; written by `analysis/update_wai_web.R`, not package API (#102) |
 | `example-data.R` | [`mfbdfm_example_inputs()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_inputs.md) — the synthetic analytics `inputs` bundle used by both the reference examples and the tests |
 | `data.R` | Roxygen docs for the two shipped datasets (no functions) |
 | `globals.R` | [`utils::globalVariables()`](https://rdrr.io/r/utils/globalVariables.html) call only (no functions) |
@@ -506,6 +508,23 @@ constraint.
   into the caller’s environment) and **`load_analytics_packages()`** was
   deleted entirely (replaced by proper `@importFrom`). Analysis scripts
   source `analysis/5_plots/_setup.R` for the shared prelude.
+- **The analysis scripts depend on package internals, and
+  `analysis/_internals.R` is the list of which ones** (#102). 18
+  analysis-only helpers
+  ([`write_table_output()`](https://philippkronenberg.github.io/mfbdfm/reference/write_table_output.md),
+  [`rescale_to_gdp()`](https://philippkronenberg.github.io/mfbdfm/reference/rescale_to_gdp.md),
+  [`create_combined_latex_table()`](https://philippkronenberg.github.io/mfbdfm/reference/create_combined_latex_table.md),
+  the vintage pickers,
+  [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md),
+  …) were un-exported *in place*: they stayed in `R/` — so they stay
+  covered by the 1:1 test files, which a move to `analysis/` would have
+  cost — but lost their `@export`. `analysis/_internals.R` binds all 18
+  once, rather than rewriting ~100 call sites as `mfbdfm:::fn()`; it is
+  sourced by both `_setup.R` preludes and by `0_test.R`, `2_backcast.R`
+  and `update_wai_web.R`, which use neither. Adding a name to that list
+  is a visible decision in a diff — which is the point. Note the
+  direction of the obligation: an internal carries no stability promise,
+  so changing one can break a script here without warning.
 - **[`aggregate_predictor_to_quarterly()`](https://philippkronenberg.github.io/mfbdfm/reference/aggregate_predictor_to_quarterly.md)
   dispatches on the deparsed *name* of its `df` argument** (checks if it
   contains `"AR"`) — legacy behavior kept for compatibility with the

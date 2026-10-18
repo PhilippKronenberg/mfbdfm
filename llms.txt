@@ -272,10 +272,27 @@ fixes the output layout, and the evaluation helpers work off it:
 ``` r
 
 cfg <- wai_sample_config(sample_id = "my_run")
+cfg$tables_dir                 # where tables go
+cfg$figures_dir                # where figures go
+
 dm_test_modified(errors_model, errors_benchmark, alternative = "less")
-write_table_output("table.csv", contents, cfg$tables_dir)
-save_result_output(fit, "fit.Rda", cfg$results_dir)
+get_combined_cor_table("mean", "indicators", inputs = mfbdfm_example_inputs())
 ```
+
+The small helpers that write into `cfg$tables_dir`/`cfg$results_dir` and
+assemble the paper’s LaTeX tables are package internals, not API — they
+are plumbing for the scripts under `analysis/`, and
+`analysis/_internals.R` is the list of which ones. The exported
+evaluation entry points are
+[`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md),
+[`get_combined_cor_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.md),
+[`get_insample_fit_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_fit_table.md),
+[`get_insample_error_details()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_error_details.md),
+[`create_error_summary_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_error_summary_tables.md),
+[`create_rel_error_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_rel_error_tables.md),
+[`plot_comparison()`](https://philippkronenberg.github.io/mfbdfm/reference/plot_comparison.md)
+and
+[`render_correlation_heatmap()`](https://philippkronenberg.github.io/mfbdfm/reference/render_correlation_heatmap.md).
 
 Frequency and date helpers used throughout:
 [`week2mon()`](https://philippkronenberg.github.io/mfbdfm/reference/week2mon.md),
@@ -284,10 +301,11 @@ Frequency and date helpers used throughout:
 [`decimal_date_local()`](https://philippkronenberg.github.io/mfbdfm/reference/decimal_date_local.md),
 [`drop_weekly()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_weekly.md),
 [`drop_financial()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_financial.md),
-[`drop_retail()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_retail.md),
-[`is_crisis_period()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period.md)
+[`drop_retail()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_retail.md)
 and
-[`is_crisis_period_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period_fcast.md).
+[`is_crisis_period()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period.md)
+(whose `windows` argument selects the Weekly Activity Index crisis
+windows or the Eckert et al. (2025) ones).
 
 ## The analysis pipeline
 
@@ -558,10 +576,6 @@ handling real-time GDP vintages.
   : Extract the nowcast variance from a fit object
 - [`extract_wai_data()`](https://philippkronenberg.github.io/mfbdfm/reference/extract_wai_data.md)
   : Extract WAI growth, level and year-over-year tables from a saved fit
-- [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md)
-  : Export WAI results as a web-ready CSV and metadata file
-- [`gdp_web_series()`](https://philippkronenberg.github.io/mfbdfm/reference/gdp_web_series.md)
-  : Published GDP on the same scale as the exported WAI series
 - [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md)
   : Read the real-time GDP vintage database
 - [`select_most_recent_GDP_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/select_most_recent_GDP_vintage.md)
@@ -588,68 +602,33 @@ Converting between weekly/monthly/daily frequencies and decimal dates.
 - [`decimal_date_local()`](https://philippkronenberg.github.io/mfbdfm/reference/decimal_date_local.md)
   : Convert dates to decimal years (day-of-year convention)
 - [`is_crisis_period()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period.md)
-  : Flag dates falling into the crisis periods
-- [`is_crisis_period_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period_fcast.md)
-  : Flag target quarters falling into the Eckert et al. (2025) crisis
-  periods
+  : Flag crisis periods
 - [`daily2weekly()`](https://philippkronenberg.github.io/mfbdfm/reference/daily2weekly.md)
   : Aggregate a higher-frequency series to the 48-week grid
 - [`aggregate_predictor_to_quarterly()`](https://philippkronenberg.github.io/mfbdfm/reference/aggregate_predictor_to_quarterly.md)
   : Aggregate a predictor data frame to quarterly frequency
-- [`get_next_target_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/get_next_target_vintage.md)
-  : First target vintage after a prediction vintage
 
 ## Analytics configuration & output
 
-Sample configuration and output-path helpers for the analytics scripts.
+Sample configuration for the analytics scripts.
 
 - [`wai_sample_config()`](https://philippkronenberg.github.io/mfbdfm/reference/wai_sample_config.md)
   : Build the sample configuration for an analytics run
-- [`latest_fit_file()`](https://philippkronenberg.github.io/mfbdfm/reference/latest_fit_file.md)
-  : Find the newest fit file up to a cutoff date
-- [`write_table_output()`](https://philippkronenberg.github.io/mfbdfm/reference/write_table_output.md)
-  : Write a table output file
-- [`save_result_output()`](https://philippkronenberg.github.io/mfbdfm/reference/save_result_output.md)
-  : Save a result object to the results directory
-- [`output_figure_path()`](https://philippkronenberg.github.io/mfbdfm/reference/output_figure_path.md)
-  : Build the full path for a figure output file
-- [`filter_to_sample()`](https://philippkronenberg.github.io/mfbdfm/reference/filter_to_sample.md)
-  : Filter a data frame to the evaluation sample window
-- [`get_latest_numeric_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/get_latest_numeric_vintage.md)
-  : Newest numeric vintage within bounds
-- [`get_next_extending_numeric_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/get_next_extending_numeric_vintage.md)
-  : Next vintage that extends the data beyond a reference date's vintage
 
 ## Evaluation tables & plots
 
 In-sample and out-of-sample forecast evaluation tables and plots.
 
-- [`rescale_to_gdp()`](https://philippkronenberg.github.io/mfbdfm/reference/rescale_to_gdp.md)
-  : Rescale an indicator to GDP moments
-- [`build_wai_qoq_mean_series()`](https://philippkronenberg.github.io/mfbdfm/reference/build_wai_qoq_mean_series.md)
-  : Quarter-on-quarter growth from a weekly level series
-- [`prepare_wai_qoq_series()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_wai_qoq_series.md)
-  : Select the QoQ series for a WAI result, given the aggregation method
 - [`plot_comparison()`](https://philippkronenberg.github.io/mfbdfm/reference/plot_comparison.md)
   : Plot the WAI against a comparison indicator and GDP
 - [`get_combined_cor_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.md)
   : Cross correlations of the WAI and benchmarks with GDP
-- [`suffix_cols()`](https://philippkronenberg.github.io/mfbdfm/reference/suffix_cols.md)
-  : Suffix the lag columns of a correlation or error table
 - [`render_correlation_heatmap()`](https://philippkronenberg.github.io/mfbdfm/reference/render_correlation_heatmap.md)
   : Render the lag-correlation heatmap grid and save it
 - [`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md)
   : Modified Diebold-Mariano test
 - [`get_insample_fit_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_fit_table.md)
   : In-sample fit metrics of the WAI and benchmarks against GDP
-- [`calculate_relative_errors()`](https://philippkronenberg.github.io/mfbdfm/reference/calculate_relative_errors.md)
-  : Relative RMSE/MAE tables (normalized to the WAI)
-- [`annotate_relative_errors()`](https://philippkronenberg.github.io/mfbdfm/reference/annotate_relative_errors.md)
-  : Annotate relative error tables with significance stars
-- [`create_combined_latex_table()`](https://philippkronenberg.github.io/mfbdfm/reference/create_combined_latex_table.md)
-  : Combine per-method lag tables into one LaTeX table
-- [`print_evaluation_periods()`](https://philippkronenberg.github.io/mfbdfm/reference/print_evaluation_periods.md)
-  : Print the evaluation period per series
 - [`create_error_summary_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_error_summary_tables.md)
   : Error summary tables with crisis/non-crisis split
 - [`get_insample_error_details()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_error_details.md)

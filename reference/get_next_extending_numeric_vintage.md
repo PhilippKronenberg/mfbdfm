@@ -26,15 +26,3 @@ get_next_extending_numeric_vintage(df, reference_date, lower_bound = -Inf)
 ## Value
 
 The extending vintage as a numeric decimal date.
-
-## Examples
-
-``` r
-vintages <- data.frame(
-  time = seq(as.Date("2019-01-01"), by = "quarter", length.out = 4),
-  "2019.5" = c(1, 2, NA, NA), "2020.25" = c(1, 2, 3, NA),
-  check.names = FALSE
-)
-get_next_extending_numeric_vintage(vintages, as.Date("2019-09-30"))
-#> [1] 2020.25
-```

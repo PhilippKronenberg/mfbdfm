@@ -301,20 +301,6 @@
 
         <dt>
 
-          <code><a href="export_wai_web.html">export_wai_web()</a></code>
-
-        </dt>
-        <dd>Export WAI results as a web-ready CSV and metadata file</dd>
-
-        <dt>
-
-          <code><a href="gdp_web_series.html">gdp_web_series()</a></code>
-
-        </dt>
-        <dd>Published GDP on the same scale as the exported WAI series</dd>
-
-        <dt>
-
           <code><a href="get_real_time_gdp_vintages.html">get_real_time_gdp_vintages()</a></code>
 
         </dt>
@@ -397,14 +383,7 @@
           <code><a href="is_crisis_period.html">is_crisis_period()</a></code>
 
         </dt>
-        <dd>Flag dates falling into the crisis periods</dd>
-
-        <dt>
-
-          <code><a href="is_crisis_period_fcast.html">is_crisis_period_fcast()</a></code>
-
-        </dt>
-        <dd>Flag target quarters falling into the Eckert et al. (2025) crisis periods</dd>
+        <dd>Flag crisis periods</dd>
 
         <dt>
 
@@ -419,17 +398,10 @@
 
         </dt>
         <dd>Aggregate a predictor data frame to quarterly frequency</dd>
-
-        <dt>
-
-          <code><a href="get_next_target_vintage.html">get_next_target_vintage()</a></code>
-
-        </dt>
-        <dd>First target vintage after a prediction vintage</dd>
       </dl></div><div class="section level2">
       <h2 id="analytics-configuration-output">Analytics configuration &amp; output<a class="anchor" aria-label="anchor" href="#analytics-configuration-output"></a></h2>
 
-      <div class="section-desc"><p>Sample configuration and output-path helpers for the analytics scripts.</p></div>
+      <div class="section-desc"><p>Sample configuration for the analytics scripts.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -442,55 +414,6 @@
 
         </dt>
         <dd>Build the sample configuration for an analytics run</dd>
-
-        <dt>
-
-          <code><a href="latest_fit_file.html">latest_fit_file()</a></code>
-
-        </dt>
-        <dd>Find the newest fit file up to a cutoff date</dd>
-
-        <dt>
-
-          <code><a href="write_table_output.html">write_table_output()</a></code>
-
-        </dt>
-        <dd>Write a table output file</dd>
-
-        <dt>
-
-          <code><a href="save_result_output.html">save_result_output()</a></code>
-
-        </dt>
-        <dd>Save a result object to the results directory</dd>
-
-        <dt>
-
-          <code><a href="output_figure_path.html">output_figure_path()</a></code>
-
-        </dt>
-        <dd>Build the full path for a figure output file</dd>
-
-        <dt>
-
-          <code><a href="filter_to_sample.html">filter_to_sample()</a></code>
-
-        </dt>
-        <dd>Filter a data frame to the evaluation sample window</dd>
-
-        <dt>
-
-          <code><a href="get_latest_numeric_vintage.html">get_latest_numeric_vintage()</a></code>
-
-        </dt>
-        <dd>Newest numeric vintage within bounds</dd>
-
-        <dt>
-
-          <code><a href="get_next_extending_numeric_vintage.html">get_next_extending_numeric_vintage()</a></code>
-
-        </dt>
-        <dd>Next vintage that extends the data beyond a reference date's vintage</dd>
       </dl></div><div class="section level2">
       <h2 id="evaluation-tables-plots">Evaluation tables &amp; plots<a class="anchor" aria-label="anchor" href="#evaluation-tables-plots"></a></h2>
 
@@ -503,27 +426,6 @@
 
       <dl><dt>
 
-          <code><a href="rescale_to_gdp.html">rescale_to_gdp()</a></code>
-
-        </dt>
-        <dd>Rescale an indicator to GDP moments</dd>
-
-        <dt>
-
-          <code><a href="build_wai_qoq_mean_series.html">build_wai_qoq_mean_series()</a></code>
-
-        </dt>
-        <dd>Quarter-on-quarter growth from a weekly level series</dd>
-
-        <dt>
-
-          <code><a href="prepare_wai_qoq_series.html">prepare_wai_qoq_series()</a></code>
-
-        </dt>
-        <dd>Select the QoQ series for a WAI result, given the aggregation method</dd>
-
-        <dt>
-
           <code><a href="plot_comparison.html">plot_comparison()</a></code>
 
         </dt>
@@ -535,13 +437,6 @@
 
         </dt>
         <dd>Cross correlations of the WAI and benchmarks with GDP</dd>
-
-        <dt>
-
-          <code><a href="suffix_cols.html">suffix_cols()</a></code>
-
-        </dt>
-        <dd>Suffix the lag columns of a correlation or error table</dd>
 
         <dt>
 
@@ -563,34 +458,6 @@
 
         </dt>
         <dd>In-sample fit metrics of the WAI and benchmarks against GDP</dd>
-
-        <dt>
-
-          <code><a href="calculate_relative_errors.html">calculate_relative_errors()</a></code>
-
-        </dt>
-        <dd>Relative RMSE/MAE tables (normalized to the WAI)</dd>
-
-        <dt>
-
-          <code><a href="annotate_relative_errors.html">annotate_relative_errors()</a></code>
-
-        </dt>
-        <dd>Annotate relative error tables with significance stars</dd>
-
-        <dt>
-
-          <code><a href="create_combined_latex_table.html">create_combined_latex_table()</a></code>
-
-        </dt>
-        <dd>Combine per-method lag tables into one LaTeX table</dd>
-
-        <dt>
-
-          <code><a href="print_evaluation_periods.html">print_evaluation_periods()</a></code>
-
-        </dt>
-        <dd>Print the evaluation period per series</dd>
 
         <dt>
 

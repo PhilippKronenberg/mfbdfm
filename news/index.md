@@ -2,6 +2,77 @@
 
 ## mfbdfm 0.2.0.9000
 
+### Breaking changes
+
+- **The export surface is narrower by 19 functions**
+  ([\#102](https://github.com/PhilippKronenberg/mfbdfm/issues/102)). 18
+  analysis-script helpers are now package internals, and
+  `is_crisis_period_fcast()` has been folded into
+  [`is_crisis_period()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period.md).
+  The criterion applied was whether a user of
+  [`library(mfbdfm)`](https://github.com/PhilippKronenberg/mfbdfm) who
+  is not running the scripts in this repository would have a reason to
+  call the function; the 19 below failed it. They are still in `R/` and
+  still covered by the test suite, so nothing was deleted – but they are
+  no longer part of the API and carry no stability promise. The package
+  is GitHub-distributed at 0.2.x and every known caller lives in this
+  repository, so this is a clean break with no deprecation cycle.
+
+  No longer exported, from `analytics-config.R`:
+  [`write_table_output()`](https://philippkronenberg.github.io/mfbdfm/reference/write_table_output.md),
+  [`save_result_output()`](https://philippkronenberg.github.io/mfbdfm/reference/save_result_output.md),
+  [`output_figure_path()`](https://philippkronenberg.github.io/mfbdfm/reference/output_figure_path.md),
+  [`filter_to_sample()`](https://philippkronenberg.github.io/mfbdfm/reference/filter_to_sample.md),
+  [`latest_fit_file()`](https://philippkronenberg.github.io/mfbdfm/reference/latest_fit_file.md),
+  [`get_latest_numeric_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/get_latest_numeric_vintage.md),
+  [`get_next_extending_numeric_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/get_next_extending_numeric_vintage.md).
+  From `analytics-cor.R`:
+  [`rescale_to_gdp()`](https://philippkronenberg.github.io/mfbdfm/reference/rescale_to_gdp.md),
+  [`build_wai_qoq_mean_series()`](https://philippkronenberg.github.io/mfbdfm/reference/build_wai_qoq_mean_series.md),
+  [`prepare_wai_qoq_series()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_wai_qoq_series.md),
+  [`suffix_cols()`](https://philippkronenberg.github.io/mfbdfm/reference/suffix_cols.md).
+  From `analytics-tables.R`:
+  [`calculate_relative_errors()`](https://philippkronenberg.github.io/mfbdfm/reference/calculate_relative_errors.md),
+  [`annotate_relative_errors()`](https://philippkronenberg.github.io/mfbdfm/reference/annotate_relative_errors.md),
+  [`create_combined_latex_table()`](https://philippkronenberg.github.io/mfbdfm/reference/create_combined_latex_table.md),
+  [`print_evaluation_periods()`](https://philippkronenberg.github.io/mfbdfm/reference/print_evaluation_periods.md).
+  From `date-utils.R`:
+  [`get_next_target_vintage()`](https://philippkronenberg.github.io/mfbdfm/reference/get_next_target_vintage.md).
+  From `web-export.R`:
+  [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md),
+  [`gdp_web_series()`](https://philippkronenberg.github.io/mfbdfm/reference/gdp_web_series.md).
+
+  That takes the package from 65 exports to 46. The 38 S3 methods are
+  untouched, and so is every model, data-preparation, vintage, frequency
+  and analytics *entry point* –
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md),
+  [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md),
+  [`wai_sample_config()`](https://philippkronenberg.github.io/mfbdfm/reference/wai_sample_config.md),
+  [`get_combined_cor_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.md),
+  [`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md)
+  and the rest all remain exported.
+
+- **[`is_crisis_period()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period.md)
+  gains a `windows` argument and `is_crisis_period_fcast()` is gone**
+  ([\#102](https://github.com/PhilippKronenberg/mfbdfm/issues/102)).
+  `is_crisis_period(x)` is unchanged – it still takes `Date`s and the
+  two Weekly Activity Index crisis windows – and
+  `is_crisis_period(x, windows = "fcast")` replaces
+  `is_crisis_period_fcast(x)`, taking target quarters in decimal time
+  and the four Eckert et al. (2025) windows. Two exported functions for
+  one concept with different hard-coded windows was exactly the parity
+  problem the argument removes; a mixed-up call is still an error rather
+  than a silently wrong classification.
+
+- The analysis scripts reach the un-exported helpers through a new
+  `analysis/_internals.R`, which binds them once and whose list is the
+  record of which internals the research workflow depends on.
+  `analysis/5_plots/_setup.R`, `analysis/fcast/_setup.R` and the three
+  scripts that use neither prelude source it.
+
+### Other changes
+
 - **A fit can now be seeded, started from explicit values, and
   continued**
   ([\#117](https://github.com/PhilippKronenberg/mfbdfm/issues/117),

@@ -67,6 +67,7 @@
 ├── analysis/                       # Research workflow scripts (not part of the built package)
 │   ├── 1_data_prep_dataset.R, 2_backcast.R, 4_tables.R, real_time_backcast.R,
 │   │   0_test.R
+│   ├── _internals.R                # Binds the package internals the scripts use (#102)
 │   ├── 5_plots/                    # In-sample / out-of-sample evaluation scripts
 │   │   └── _setup.R                # Shared prelude: library(mfbdfm) + wai_sample_config()
 │   ├── outputs/                    # figures/tables/results per wai_sample_config() (gitignored)
@@ -112,16 +113,16 @@
 </td>
 </tr><tr><td><code>date-utils.R</code></td>
 <td>
-<code><a href="reference/decimal_date_local.html">decimal_date_local()</a></code>, <code><a href="reference/is_crisis_period.html">is_crisis_period()</a></code>, <code><a href="reference/daily2weekly.html">daily2weekly()</a></code>, <code><a href="reference/aggregate_predictor_to_quarterly.html">aggregate_predictor_to_quarterly()</a></code>, <code><a href="reference/get_next_target_vintage.html">get_next_target_vintage()</a></code>
+<code><a href="reference/decimal_date_local.html">decimal_date_local()</a></code>, <code><a href="reference/is_crisis_period.html">is_crisis_period()</a></code> (its <code>windows</code> argument picks the WAI or the Eckert et al. windows), <code><a href="reference/daily2weekly.html">daily2weekly()</a></code>, <code><a href="reference/aggregate_predictor_to_quarterly.html">aggregate_predictor_to_quarterly()</a></code>, internal <code><a href="reference/get_next_target_vintage.html">get_next_target_vintage()</a></code>
 </td>
 </tr><tr><td><code>analytics-config.R</code></td>
 <td>
-<code><a href="reference/wai_sample_config.html">wai_sample_config()</a></code> + output-path helpers (<code><a href="reference/write_table_output.html">write_table_output()</a></code>, <code><a href="reference/save_result_output.html">save_result_output()</a></code>, <code><a href="reference/output_figure_path.html">output_figure_path()</a></code>, <code><a href="reference/filter_to_sample.html">filter_to_sample()</a></code>, vintage pickers)</td>
+<code><a href="reference/wai_sample_config.html">wai_sample_config()</a></code> + the <strong>internal</strong> output-path helpers (<code><a href="reference/write_table_output.html">write_table_output()</a></code>, <code><a href="reference/save_result_output.html">save_result_output()</a></code>, <code><a href="reference/output_figure_path.html">output_figure_path()</a></code>, <code><a href="reference/filter_to_sample.html">filter_to_sample()</a></code>, <code><a href="reference/latest_fit_file.html">latest_fit_file()</a></code>, vintage pickers)</td>
 </tr><tr><td><code>analytics-cor.R</code></td>
-<td>Correlation tables/plots: <code><a href="reference/get_combined_cor_table.html">get_combined_cor_table()</a></code>, <code><a href="reference/plot_comparison.html">plot_comparison()</a></code>, <code><a href="reference/render_correlation_heatmap.html">render_correlation_heatmap()</a></code>, <code><a href="reference/rescale_to_gdp.html">rescale_to_gdp()</a></code>
+<td>Correlation tables/plots: <code><a href="reference/get_combined_cor_table.html">get_combined_cor_table()</a></code>, <code><a href="reference/plot_comparison.html">plot_comparison()</a></code>, <code><a href="reference/render_correlation_heatmap.html">render_correlation_heatmap()</a></code>; internal <code><a href="reference/rescale_to_gdp.html">rescale_to_gdp()</a></code>, <code><a href="reference/suffix_cols.html">suffix_cols()</a></code>, <code>*_wai_qoq_*()</code>
 </td>
 </tr><tr><td><code>analytics-tables.R</code></td>
-<td>Fit/error tables: <code><a href="reference/dm_test_modified.html">dm_test_modified()</a></code>, <code><a href="reference/get_insample_fit_table.html">get_insample_fit_table()</a></code>, <code><a href="reference/create_error_summary_tables.html">create_error_summary_tables()</a></code>, <code><a href="reference/create_rel_error_tables.html">create_rel_error_tables()</a></code>
+<td>Fit/error tables: <code><a href="reference/dm_test_modified.html">dm_test_modified()</a></code>, <code><a href="reference/get_insample_fit_table.html">get_insample_fit_table()</a></code>, <code><a href="reference/create_error_summary_tables.html">create_error_summary_tables()</a></code>, <code><a href="reference/create_rel_error_tables.html">create_rel_error_tables()</a></code>; internal <code><a href="reference/calculate_relative_errors.html">calculate_relative_errors()</a></code>, <code><a href="reference/annotate_relative_errors.html">annotate_relative_errors()</a></code>, <code><a href="reference/create_combined_latex_table.html">create_combined_latex_table()</a></code>, <code><a href="reference/print_evaluation_periods.html">print_evaluation_periods()</a></code>
 </td>
 </tr><tr><td><code>methods.R</code></td>
 <td>S3 methods for both fit classes (<code>print</code>/<code>summary</code>/<code>plot</code>/<code>coef</code>/<code>fitted</code>/<code>residuals</code>/<code>as.data.frame</code>), documented under <code>ind_dfm_methods</code> and <code>fcast_dfm_methods</code>
@@ -144,6 +145,8 @@
 </tr><tr><td><code>memory.R</code></td>
 <td>
 <code><a href="reference/dfm_memory.html">dfm_memory()</a></code>, <code><a href="reference/dfm_memory.html">dfm_workers()</a></code> — measured peak-memory bound and worker planning (#64)</td>
+</tr><tr><td><code>web-export.R</code></td>
+<td>Internal <code><a href="reference/export_wai_web.html">export_wai_web()</a></code>, <code><a href="reference/gdp_web_series.html">gdp_web_series()</a></code> — the CSV/JSON files behind the public WAI dashboard; written by <code>analysis/update_wai_web.R</code>, not package API (#102)</td>
 </tr><tr><td><code>example-data.R</code></td>
 <td>
 <code><a href="reference/mfbdfm_example_inputs.html">mfbdfm_example_inputs()</a></code> — the synthetic analytics <code>inputs</code> bundle used by both the reference examples and the tests</td>
@@ -284,6 +287,8 @@ Files not of a type allowed in a 'data' directory:
 <strong>Analytics table builders take an explicit <code>inputs</code> list</strong>, not implicit globals. <code><a href="reference/get_combined_cor_table.html">get_combined_cor_table()</a></code>, <code><a href="reference/get_insample_fit_table.html">get_insample_fit_table()</a></code>, <code><a href="reference/get_insample_error_details.html">get_insample_error_details()</a></code> all require <code>inputs = &lt;named list of ~10-16 data objects&gt;</code>, validated against a <code>required_inputs</code> vector per <code>analysis_set</code>. This replaced the old pattern of scripts stuffing objects into the calling environment.</li>
 <li>
 <strong><code><a href="reference/wai_sample_config.html">wai_sample_config()</a></code></strong> replaced the old <code>initialize_plots_insample_context()</code> (which wrote into the caller’s environment) and <strong><code>load_analytics_packages()</code></strong> was deleted entirely (replaced by proper <code>@importFrom</code>). Analysis scripts source <code>analysis/5_plots/_setup.R</code> for the shared prelude.</li>
+<li>
+<strong>The analysis scripts depend on package internals, and <code>analysis/_internals.R</code> is the list of which ones</strong> (#102). 18 analysis-only helpers (<code><a href="reference/write_table_output.html">write_table_output()</a></code>, <code><a href="reference/rescale_to_gdp.html">rescale_to_gdp()</a></code>, <code><a href="reference/create_combined_latex_table.html">create_combined_latex_table()</a></code>, the vintage pickers, <code><a href="reference/export_wai_web.html">export_wai_web()</a></code>, …) were un-exported <em>in place</em>: they stayed in <code>R/</code> — so they stay covered by the 1:1 test files, which a move to <code>analysis/</code> would have cost — but lost their <code>@export</code>. <code>analysis/_internals.R</code> binds all 18 once, rather than rewriting ~100 call sites as <code>mfbdfm:::fn()</code>; it is sourced by both <code>_setup.R</code> preludes and by <code>0_test.R</code>, <code>2_backcast.R</code> and <code>update_wai_web.R</code>, which use neither. Adding a name to that list is a visible decision in a diff — which is the point. Note the direction of the obligation: an internal carries no stability promise, so changing one can break a script here without warning.</li>
 <li>
 <strong><code><a href="reference/aggregate_predictor_to_quarterly.html">aggregate_predictor_to_quarterly()</a></code> dispatches on the deparsed <em>name</em> of its <code>df</code> argument</strong> (checks if it contains <code>"AR"</code>) — legacy behavior kept for compatibility with the analysis scripts, documented with a warning on the function. Don’t rename objects passed to it.</li>
 <li>Binary/generated data under <code>analysis/</code> (<code>Rda/results_*</code>, <code>fit_*</code>, <code>out/</code>, benchmark PDFs) is <strong>gitignored, not deleted</strong> — it exists locally but isn’t tracked. Don’t assume <code>analysis/out/</code> etc. are empty; don’t re-add ignored patterns without checking <code>.gitignore</code>.</li>

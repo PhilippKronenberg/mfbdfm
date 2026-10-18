@@ -24,14 +24,3 @@ latest_fit_file(folder, cutoff_decimal = Inf)
 ## Value
 
 Full path of the selected fit file.
-
-## Examples
-
-``` r
-dir <- tempfile(); dir.create(dir)
-mod <- list()
-save(mod, file = file.path(dir, "fit_2020.5.Rda"))
-save(mod, file = file.path(dir, "fit_2021.25.Rda"))
-latest_fit_file(dir, cutoff_decimal = 2020.9)
-#> [1] "/tmp/RtmpdLXYwv/file1a433a3524f6/fit_2020.5.Rda"
-```

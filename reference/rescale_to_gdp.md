@@ -32,20 +32,3 @@ rescale_to_gdp(
 ## Value
 
 `indicator_df` with the `value` column rescaled.
-
-## Examples
-
-``` r
-ind <- data.frame(time = seq(as.Date("2010-01-07"), by = "week", length.out = 200),
-                  value = rnorm(200, 5, 2))
-gdp <- data.frame(value = seq(as.Date("2010-01-01"), by = "quarter", length.out = 40),
-                  y = rnorm(40, 1, 1))
-head(rescale_to_gdp(ind, gdp))
-#>         time      value
-#> 1 2010-01-07  0.1956704
-#> 2 2010-01-14  0.9554228
-#> 3 2010-01-21  0.6408553
-#> 4 2010-01-28 -0.4862692
-#> 5 2010-02-04  1.6189044
-#> 6 2010-02-11  0.1508127
-```

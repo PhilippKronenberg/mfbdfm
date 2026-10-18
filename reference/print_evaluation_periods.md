@@ -36,17 +36,3 @@ print_evaluation_periods(
 ## Value
 
 Invisibly, the period summary data frame.
-
-## Examples
-
-``` r
-df <- data.frame(Series = "WAI",
-                 date = seq(as.Date("2010-01-01"), by = "quarter", length.out = 8))
-print_evaluation_periods(df, "Series", "date", context_label = "example")
-#> 
-#> Evaluation periods: example
-#> # A tibble: 1 × 3
-#>   Series start_quarter end_quarter
-#>   <chr>  <chr>         <chr>      
-#> 1 WAI    2010 Q1       2011 Q4    
-```

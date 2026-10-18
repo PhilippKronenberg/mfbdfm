@@ -38,10 +38,3 @@ for as long as the function was a plain
 [`file.path()`](https://rdrr.io/r/base/file.path.html) call, and the
 suite started leaving `tests/testthat/outputs/figures` behind in the
 source tree.
-
-## Examples
-
-``` r
-output_figure_path("history.pdf", figures_dir = file.path(tempdir(), "figures"))
-#> [1] "/tmp/RtmpdLXYwv/figures/history.pdf"
-```

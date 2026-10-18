@@ -34,20 +34,3 @@ filter_to_sample(
 ## Value
 
 The filtered data frame.
-
-## Examples
-
-``` r
-df <- data.frame(time = seq(as.Date("2019-01-01"), by = "quarter", length.out = 12),
-                 value = rnorm(12))
-filter_to_sample(df, end_date = as.Date("2020-12-31"))
-#>         time      value
-#> 1 2019-01-01 -0.2641978
-#> 2 2019-04-01 -1.0805675
-#> 3 2019-07-01 -0.8418855
-#> 4 2019-10-01  0.1195891
-#> 5 2020-01-01 -0.1607350
-#> 6 2020-04-01  0.6333895
-#> 7 2020-07-01 -0.6920894
-#> 8 2020-10-01  0.1064894
-```

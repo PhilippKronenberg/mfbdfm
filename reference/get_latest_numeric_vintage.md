@@ -28,12 +28,3 @@ get_latest_numeric_vintage(df, lower_bound = -Inf, upper_bound)
 ## Value
 
 The newest vintage as a numeric decimal date.
-
-## Examples
-
-``` r
-vintages <- data.frame(time = 1:3, "2020.25" = rnorm(3), "2020.75" = rnorm(3),
-                       check.names = FALSE)
-get_latest_numeric_vintage(vintages, upper_bound = 2020.5)
-#> [1] 2020.25
-```

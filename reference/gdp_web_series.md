@@ -79,19 +79,3 @@ mutually consistent by construction:
 
 [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md)
 for the untransformed vintages.
-
-## Examples
-
-``` r
-# \donttest{
-gdp <- gdp_web_series()
-tail(gdp)
-#>           time        qoq       yoy    index
-#> 139 2024-07-01  1.1674579 1.3326842 109.3509
-#> 140 2024-10-01  2.0917482 1.4850989 109.9183
-#> 141 2025-01-01  3.1933685 2.4066841 110.7855
-#> 142 2025-04-01  0.4934981 1.7314671 110.9219
-#> 143 2025-07-01 -1.7448686 0.9912874 110.4349
-#> 144 2025-10-01  0.6043191 0.6214114 110.6013
-# }
-```

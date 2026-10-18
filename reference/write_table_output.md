@@ -26,12 +26,3 @@ write_table_output(filename, contents, tables_dir)
 ## Value
 
 Invisibly, the full path written.
-
-## Examples
-
-``` r
-dir <- tempfile(); dir.create(dir)
-write_table_output("example.tex", "\\textbf{table}", tables_dir = dir)
-readLines(file.path(dir, "example.tex"))
-#> [1] "\\textbf{table}"
-```

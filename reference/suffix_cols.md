@@ -37,18 +37,3 @@ carried a second, identical copy defined inside its own body – so the
 script failed with `could not find function "suffix_cols"` the first
 time the analytics chain was run end to end (#23). One definition now,
 visible to both.
-
-## Examples
-
-``` r
-df <- data.frame(Series = c("WAI", "AR"), Lag_0 = c(1, 2), Lag_1 = c(3, 4))
-suffix_cols(df, "QoQ")
-#>   Series Lag_0_QoQ Lag_1_QoQ
-#> 1    WAI         1         3
-#> 2     AR         2         4
-
-# columns that are not lags are left alone, and a frame without any is a no-op
-suffix_cols(data.frame(Series = "WAI", value = 1), "QoQ")
-#>   Series value
-#> 1    WAI     1
-```

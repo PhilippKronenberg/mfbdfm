@@ -83,21 +83,6 @@ inside its own body – so the script failed with
 run end to end (#23). One definition now, visible to both.</p>
     </div>
 
-    <div class="section level2">
-    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Series <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WAI"</span>, <span class="st">"AR"</span><span class="op">)</span>, Lag_0 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, Lag_1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">suffix_cols</span><span class="op">(</span><span class="va">df</span>, <span class="st">"QoQ"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Series Lag_0_QoQ Lag_1_QoQ</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1    WAI         1         3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2     AR         2         4</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># columns that are not lags are left alone, and a frame without any is a no-op</span></span></span>
-<span class="r-in"><span><span class="fu">suffix_cols</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Series <span class="op">=</span> <span class="st">"WAI"</span>, value <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, <span class="st">"QoQ"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Series value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1    WAI     1</span>
-<span class="r-in"><span></span></span>
-</code></pre></div>
-    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

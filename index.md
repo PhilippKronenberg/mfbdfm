@@ -272,10 +272,27 @@ fixes the output layout, and the evaluation helpers work off it:
 ``` r
 
 cfg <- wai_sample_config(sample_id = "my_run")
+cfg$tables_dir                 # where tables go
+cfg$figures_dir                # where figures go
+
 dm_test_modified(errors_model, errors_benchmark, alternative = "less")
-write_table_output("table.csv", contents, cfg$tables_dir)
-save_result_output(fit, "fit.Rda", cfg$results_dir)
+get_combined_cor_table("mean", "indicators", inputs = mfbdfm_example_inputs())
 ```
+
+The small helpers that write into `cfg$tables_dir`/`cfg$results_dir` and
+assemble the paper’s LaTeX tables are package internals, not API — they
+are plumbing for the scripts under `analysis/`, and
+`analysis/_internals.R` is the list of which ones. The exported
+evaluation entry points are
+[`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md),
+[`get_combined_cor_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.md),
+[`get_insample_fit_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_fit_table.md),
+[`get_insample_error_details()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_error_details.md),
+[`create_error_summary_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_error_summary_tables.md),
+[`create_rel_error_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_rel_error_tables.md),
+[`plot_comparison()`](https://philippkronenberg.github.io/mfbdfm/reference/plot_comparison.md)
+and
+[`render_correlation_heatmap()`](https://philippkronenberg.github.io/mfbdfm/reference/render_correlation_heatmap.md).
 
 Frequency and date helpers used throughout:
 [`week2mon()`](https://philippkronenberg.github.io/mfbdfm/reference/week2mon.md),
@@ -284,10 +301,11 @@ Frequency and date helpers used throughout:
 [`decimal_date_local()`](https://philippkronenberg.github.io/mfbdfm/reference/decimal_date_local.md),
 [`drop_weekly()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_weekly.md),
 [`drop_financial()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_financial.md),
-[`drop_retail()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_retail.md),
-[`is_crisis_period()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period.md)
+[`drop_retail()`](https://philippkronenberg.github.io/mfbdfm/reference/drop_retail.md)
 and
-[`is_crisis_period_fcast()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period_fcast.md).
+[`is_crisis_period()`](https://philippkronenberg.github.io/mfbdfm/reference/is_crisis_period.md)
+(whose `windows` argument selects the Weekly Activity Index crisis
+windows or the Eckert et al. (2025) ones).
 
 ## The analysis pipeline
 
