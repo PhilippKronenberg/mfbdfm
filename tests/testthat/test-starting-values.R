@@ -111,6 +111,29 @@ test_that("NULL starting values resolve to nothing at all", {
 })
 
 
+test_that("the elided marker a fit stores is refused with an explanation (#119)", {
+
+  marker <- elided_starting_values(structure(list(), class = "ind_dfm"))
+  expect_s3_class(marker, "mfbdfm_elided")
+  expect_match(unclass(marker), "ind_dfm fit, not stored", fixed = TRUE)
+
+  # it still passes validate_control(), so a control object read back off a fit
+  # can be inspected and printed; only fitting from it is refused
+  ctrl <- dfm_control("ind_dfm")
+  ctrl$starting_values <- marker
+  expect_true(validate_control(ctrl))
+
+  expect_error(resolve_starting_values(marker, spec_ind()),
+               "does not keep the state it continued from")
+  expect_error(resolve_starting_values(marker, spec_ind()),
+               "pass the previous fit itself")
+
+  # a plain list of blocks is elided too - it is as large as the state
+  expect_match(unclass(elided_starting_values(list(f = 1))),
+               "parameter blocks", fixed = TRUE)
+})
+
+
 test_that("unknown and unnamed starting values are refused by name", {
 
   expect_error(resolve_starting_values(list(nope = 1), spec_ind()),

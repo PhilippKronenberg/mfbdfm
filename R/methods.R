@@ -846,6 +846,11 @@ fit_summary <- function(object, model){
                  loadings_table = mfbdfm_table_loadings(object),
                  parameters_table = mfbdfm_table_parameters(object),
                  nowcast = object$nowcast,
+                 # the specification the fit ran under, carried through so a
+                 # summary object is self-contained (#119). NULL for a fit made
+                 # before #119.
+                 priors = object$priors,
+                 control = object$control,
                  n_observed = sum(!is.na(res)),
                  rmse = sqrt(mean(res^2, na.rm = TRUE)),
                  r_squared = fit_r_squared(object)),
@@ -901,6 +906,7 @@ print.summary.mfbdfm_fit <- function(x, ...){
       else
         "Multi-factor mixed-frequency dynamic factor model (Eckert et al. 2025)\n")
   if(!is.null(x$call)) cat("Call: ", deparse(x$call, nlines = 2), "\n", sep = "")
+  cat_structural_flag(x$priors)
 
   cat("\n  series (n) : ", x$dims$n, "\n", sep = "")
   cat("  factors (q): ", x$dims$q, "\n", sep = "")
@@ -935,6 +941,8 @@ print.summary.mfbdfm_fit <- function(x, ...){
     }
 
   }
+
+  cat_fit_specification(x)
 
   invisible(x)
 
@@ -972,6 +980,65 @@ print_r_squared <- function(r2, n_max = 14L, n_ends = 5L){
 }
 
 
+# ------------------------------------------------------- specification ----
+
+#' Flag a fit whose identifying priors were overridden
+#'
+#' Printed loudly, and at the top of both `print()` and `summary()`, because
+#' this is the flag the whole stored specification exists for (#119): two of
+#' `ind_dfm()`'s priors *are* the identification (`?dfm_priors`), so a fit whose
+#' `structural_modified` is `TRUE` is a different model from the published one
+#' and nothing else about the fit says so.
+#'
+#' Tolerates a `NULL` `priors`, which is what a fit made before #119 -- or a
+#' hand-assembled one -- has.
+#'
+#' @noRd
+cat_structural_flag <- function(priors){
+
+  if(!isTRUE(priors$structural_modified)) return(invisible(NULL))
+
+  cat("\n  !! IDENTIFYING PRIORS OVERRIDDEN - this is NOT the published model.\n")
+  cat("     A structural prior of ", priors$model, "() was changed, so the\n",
+      sep = "")
+  cat("     model's identification changed with it. See ?dfm_priors.\n")
+
+  invisible(NULL)
+
+}
+
+
+#' Print the prior and control specification stored with a fit
+#'
+#' The full specification, always, not only the entries that differ from the
+#' defaults -- which is what BS5.2 asks for and what the issue asked for. The
+#' formatting is `print.dfm_priors()`'s and `print.dfm_control()`'s rather than
+#' a second copy here, so the specification shown with a fit and the one shown
+#' by `dfm_priors()` cannot drift apart (#119).
+#'
+#' @noRd
+cat_fit_specification <- function(x){
+
+  if(!is.null(x$priors)){
+    cat("\n")
+    print(x$priors)
+  }
+
+  if(!is.null(x$control)){
+    cat("\n")
+    print(x$control)
+  }
+
+  if(!is.null(x$priors) || !is.null(x$control)){
+    cat("\n  (the specification above is stored with the fit, as $priors and",
+        "$control)\n")
+  }
+
+  invisible(NULL)
+
+}
+
+
 # --------------------------------------------------------------- print ----
 
 #' @rdname ind_dfm_methods
@@ -981,6 +1048,7 @@ print.ind_dfm <- function(x, n_show = 8, ...){
 
   cat("Single-factor mixed-frequency dynamic factor model (Kronenberg 2026)\n")
   if(!is.null(x$call)) cat("Call: ", deparse(x$call, nlines = 2), "\n", sep = "")
+  cat_structural_flag(x$priors)
 
   d <- fit_dims(x)
   cat("\n  series (n) : ", d$n, "\n", sep = "")
@@ -996,6 +1064,8 @@ print.ind_dfm <- function(x, n_show = 8, ...){
                 formatC(nc$time[i], format = "f", digits = 3, width = 10),
                 formatC(nc$nowcast[i], format = "f", digits = 5, width = 12)))
   }
+
+  cat_fit_specification(x)
 
   cat("\nFull results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),\n")
   cat("summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),\n")

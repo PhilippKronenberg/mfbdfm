@@ -307,6 +307,100 @@ test_that("ind_dfm's target R-squared is ~1 by construction (#99)", {
   expect_gt(get("signal"), get("noise"))
 })
 
+test_that("both classes store the resolved specification and print it (#119)", {
+  fl <- fits()
+
+  for (nm in names(fl)) {
+    fit <- fl[[nm]]
+
+    # BS5.2: the specification comes back with the fit, defaults included -
+    # neither of these fits passed `priors` or `control` at all
+    expect_s3_class(fit$priors, "dfm_priors")
+    expect_s3_class(fit$control, "dfm_control")
+    expect_identical(fit$priors$model, nm)
+    expect_identical(fit$control$model, nm)
+    expect_false(isTRUE(fit$priors$structural_modified))
+
+    # "resolved" means no entry is left as the <from data> NULL placeholder,
+    # so the record is the numbers the sampler used
+    meta <- c("model", "type", "structural", "structural_modified")
+    for (b in setdiff(names(fit$priors), meta)) {
+      expect_false(any(vapply(fit$priors[[b]], is.null, logical(1))))
+    }
+
+    # a default fit stores no starting values, so there is nothing to elide
+    expect_null(fit$control$starting_values)
+
+    # the full specification is printed, by print.dfm_priors() and
+    # print.dfm_control() rather than reformatted in the fit methods
+    out <- paste(utils::capture.output(print(fit)), collapse = "\n")
+    expect_match(out, "Priors for")
+    expect_match(out, "Control settings for")
+    expect_match(out, "$priors and $control", fixed = TRUE)
+
+    s <- paste(utils::capture.output(print(summary(fit))), collapse = "\n")
+    expect_match(s, "Priors for")
+    expect_match(s, "Control settings for")
+  }
+})
+
+
+test_that("an overridden identifying prior survives the fit and is flagged (#119)", {
+  # the gap this issue was opened for: a fit whose structural prior was changed
+  # is a different model from the published one, and nothing used to say so
+  expect_warning(dfm_priors("ind_dfm", sigma_target = list(c0 = 2, d0 = 1)),
+                 "structural prior")
+  p <- suppressWarnings(dfm_priors("ind_dfm", sigma_target = list(c0 = 2, d0 = 1)))
+
+  set.seed(4)
+  fit <- suppressMessages(ind_dfm(mfbdfm_example_data, length_sample = 4,
+                                  burn_in = 3, priors = p))
+
+  expect_true(fit$priors$structural_modified)
+  expect_equal(fit$priors$sigma_target$c0, 2)
+
+  out <- paste(utils::capture.output(print(fit)), collapse = "\n")
+  expect_match(out, "IDENTIFYING PRIORS OVERRIDDEN")
+  expect_match(out, "NOT the published model", fixed = TRUE)
+
+  s <- paste(utils::capture.output(print(summary(fit))), collapse = "\n")
+  expect_match(s, "IDENTIFYING PRIORS OVERRIDDEN")
+
+  # and a fit made before #119, which has neither component, still prints
+  bare <- fit
+  bare$priors <- NULL
+  bare$control <- NULL
+  out <- paste(utils::capture.output(print(bare)), collapse = "\n")
+  expect_match(out, "Most recent nowcasts")
+  expect_false(grepl("Priors for", out, fixed = TRUE))
+})
+
+
+test_that("a continued chain does not nest the previous fit in $control (#119)", {
+  set.seed(6)
+  first <- suppressMessages(ind_dfm(mfbdfm_example_data, length_sample = 4,
+                                    burn_in = 3))
+
+  second <- suppressMessages(
+    ind_dfm(mfbdfm_example_data, length_sample = 4, burn_in = 0,
+            control = dfm_control("ind_dfm", starting_values = first)))
+
+  # the record says the chain was continued without carrying the fit it was
+  # continued from, which would nest one fit inside the next
+  expect_s3_class(second$control$starting_values, "mfbdfm_elided")
+  expect_false(inherits(second$control$starting_values, "ind_dfm"))
+
+  out <- paste(utils::capture.output(print(second$control)), collapse = "\n")
+  expect_match(out, "<ind_dfm fit, not stored>", fixed = TRUE)
+
+  # and reusing that control object says what to pass instead
+  expect_error(suppressMessages(
+    ind_dfm(mfbdfm_example_data, length_sample = 4, burn_in = 0,
+            control = second$control)),
+    "does not keep the state it continued from")
+})
+
+
 test_that("print and summary work and return invisibly", {
   fl <- fits()
   grDevices::pdf(NULL)
