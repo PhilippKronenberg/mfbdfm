@@ -155,6 +155,11 @@ suppressPackageStartupMessages({
   library(zoo)
 })
 
+# export_wai_web() and gdp_web_series() are package internals (#102: they write
+# the dashboard files, which is repo operations rather than package API).
+# analysis/_internals.R binds them.
+source(file.path("analysis", "_internals.R"), local = TRUE)
+
 # 1. Refresh the prepared dataset from the private raw sources ---------------
 if (!skip_prep) {
   say("preparing dataset from data/dataset/ ...")

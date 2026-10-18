@@ -28,8 +28,4 @@ Invisibly, the period summary data frame.
 \description{
 Print the evaluation period per series
 }
-\examples{
-df <- data.frame(Series = "WAI",
-                 date = seq(as.Date("2010-01-01"), by = "quarter", length.out = 8))
-print_evaluation_periods(df, "Series", "date", context_label = "example")
-}
+\keyword{internal}

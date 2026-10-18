@@ -18,7 +18,4 @@ The smallest target vintage strictly after \code{pred_vintage}, or
 \description{
 First target vintage after a prediction vintage
 }
-\examples{
-get_next_target_vintage(2020.5, c(2020.25, 2020.75, 2021))
-
-}
+\keyword{internal}

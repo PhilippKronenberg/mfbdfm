@@ -250,14 +250,26 @@ off it:
 
 ``` r
 cfg <- wai_sample_config(sample_id = "my_run")
+cfg$tables_dir                 # where tables go
+cfg$figures_dir                # where figures go
+
 dm_test_modified(errors_model, errors_benchmark, alternative = "less")
-write_table_output("table.csv", contents, cfg$tables_dir)
-save_result_output(fit, "fit.Rda", cfg$results_dir)
+get_combined_cor_table("mean", "indicators", inputs = mfbdfm_example_inputs())
 ```
+
+The small helpers that write into `cfg$tables_dir`/`cfg$results_dir` and
+assemble the paper's LaTeX tables are package internals, not API — they are
+plumbing for the scripts under `analysis/`, and `analysis/_internals.R` is the
+list of which ones. The exported evaluation entry points are
+`dm_test_modified()`, `get_combined_cor_table()`, `get_insample_fit_table()`,
+`get_insample_error_details()`, `create_error_summary_tables()`,
+`create_rel_error_tables()`, `plot_comparison()` and
+`render_correlation_heatmap()`.
 
 Frequency and date helpers used throughout: `week2mon()`, `daily2weekly()`,
 `dec2week()`, `decimal_date_local()`, `drop_weekly()`, `drop_financial()`,
-`drop_retail()`, `is_crisis_period()` and `is_crisis_period_fcast()`.
+`drop_retail()` and `is_crisis_period()` (whose `windows` argument selects the
+Weekly Activity Index crisis windows or the Eckert et al. (2025) ones).
 
 ## The analysis pipeline
 

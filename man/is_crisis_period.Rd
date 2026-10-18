@@ -2,21 +2,72 @@
 % Please edit documentation in R/date-utils.R
 \name{is_crisis_period}
 \alias{is_crisis_period}
-\title{Flag dates falling into the crisis periods}
+\title{Flag crisis periods}
 \usage{
-is_crisis_period(date_vec)
+is_crisis_period(date_vec, windows = c("wai", "fcast"))
 }
 \arguments{
-\item{date_vec}{\code{Date} vector (or coercible).}
+\item{date_vec}{Periods to classify. For \code{windows = "wai"} a \code{Date} vector
+(or coercible). For \code{windows = "fcast"} a numeric vector of target quarters
+in decimal time, e.g. \code{2020.25} for 2020Q2.}
+
+\item{windows}{Which crisis definition to apply: \code{"wai"} (default) for the
+date-based windows of the Weekly Activity Index analysis, or \code{"fcast"} for
+the quarter-based windows of Eckert et al. (2025).}
 }
 \value{
-Logical vector.
+Logical vector, \code{TRUE} for periods inside a crisis window.
 }
 \description{
-Marks dates inside the financial crisis (2008-07-07 to 2009-09-28) or
-the Covid-19 crisis (2020-01-01 to 2021-12-28).
+Flags the crisis episodes of either published analysis. \code{windows = "wai"}
+(the default) marks \strong{dates} inside the two windows used by the Weekly
+Activity Index analysis; \code{windows = "fcast"} marks \strong{target quarters}
+inside the four windows used by the out-of-sample evaluation of Eckert,
+Kronenberg, Mikosch & Neuwirth (2025).
+}
+\details{
+The two definitions are \strong{not} interchangeable, which is why the choice is
+an explicit argument rather than something a caller can drift past. They
+differ in two ways, both of which matter:
+
+\describe{
+\item{What is classified}{\code{"wai"} takes the \strong{date the nowcast was made},
+as a \code{Date}. \code{"fcast"} takes the \strong{target quarter} being nowcast, as
+decimal time (\code{2020.25} for 2020Q2) -- the \code{period} column of the
+evaluation panel. In a real-time evaluation those are weeks or months
+apart, so the two label different rows.}
+\item{Which episodes}{\code{"wai"} covers the global financial crisis
+(2008-07-07 to 2009-09-28) and Covid-19 (2020-01-01 to 2021-12-28).
+\code{"fcast"} adds the euro crisis and the 2015 Swiss franc shock, and its
+windows are quarters rather than days.}
+}
+
+Measured on the paper's own evaluation panel, the two agree on only 124 of
+its 240 crisis dates, and using \code{"wai"} where \code{"fcast"} is meant does not
+reproduce the published figures: crisis RMSFE for the monthly benchmark comes
+out at 0.0262 against the 0.0210 the \code{"fcast"} definition gives, which is
+what the paper plots.
+
+Before version 0.1.0.9000 the \code{"fcast"} windows lived in a second exported
+function, \code{is_crisis_period_fcast()}. Two exported functions for one concept
+with different hard-coded windows is exactly the parity problem the \code{windows}
+argument removes; \code{is_crisis_period(x, windows = "fcast")} replaces it.
 }
 \examples{
 is_crisis_period(as.Date(c("2015-01-01", "2020-06-01")))
 
+# the Eckert et al. (2025) windows, on target quarters in decimal time:
+# 2020Q1-2021Q3 are crisis quarters, 2019 and 2022 are not
+is_crisis_period(c(2019, 2020, 2021.25, 2022), windows = "fcast")
+
+# and the two genuinely differ -- 2012 is a crisis quarter only for "fcast"
+is_crisis_period(2012, windows = "fcast")
+is_crisis_period(as.Date("2012-06-01"))
+
+}
+\references{
+Eckert, F., Kronenberg, P., Mikosch, H., & Neuwirth, S. (2025).
+Tracking economic activity with alternative high-frequency data.
+\emph{Journal of Applied Econometrics}, 40(3), 270-290.
+\doi{10.1002/jae.3104}
 }

@@ -26,10 +26,4 @@ the observation \code{Date} and column \code{y} the GDP value (legacy layout).}
 Standardizes an indicator over a reference window and rescales it to
 the mean and standard deviation of GDP over the same window.
 }
-\examples{
-ind <- data.frame(time = seq(as.Date("2010-01-07"), by = "week", length.out = 200),
-                  value = rnorm(200, 5, 2))
-gdp <- data.frame(value = seq(as.Date("2010-01-01"), by = "quarter", length.out = 40),
-                  y = rnorm(40, 1, 1))
-head(rescale_to_gdp(ind, gdp))
-}
+\keyword{internal}

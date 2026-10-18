@@ -15,9 +15,4 @@ A list with \code{RMSE_relative} and \code{MAE_relative} wide tables.
 \description{
 Relative RMSE/MAE tables (normalized to the WAI)
 }
-\examples{
-inputs <- mfbdfm_example_inputs()
-fit_tabs <- get_insample_fit_table("mean", "indicators", inputs = inputs)
-rel <- calculate_relative_errors(fit_tabs)
-rel$RMSE_relative
-}
+\keyword{internal}

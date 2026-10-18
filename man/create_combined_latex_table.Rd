@@ -29,9 +29,4 @@ A list with \code{combined_wide} (the assembled data frame) and
 \description{
 Combine per-method lag tables into one LaTeX table
 }
-\examples{
-inputs <- mfbdfm_example_inputs()
-cor_tab <- get_combined_cor_table("mean", "indicators", inputs = inputs)
-out <- create_combined_latex_table(list(mean = cor_tab))
-cat(substr(out$table_tex, 1, 300))
-}
+\keyword{internal}

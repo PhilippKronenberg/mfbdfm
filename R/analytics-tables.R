@@ -348,12 +348,7 @@ get_insample_fit_table <- function(method = c("mean", "last", "last_month"),
 #' @importFrom dplyr ungroup filter select mutate left_join across where
 #'   starts_with %>%
 #' @importFrom tidyr pivot_longer pivot_wider
-#' @examples
-#' inputs <- mfbdfm_example_inputs()
-#' fit_tabs <- get_insample_fit_table("mean", "indicators", inputs = inputs)
-#' rel <- calculate_relative_errors(fit_tabs)
-#' rel$RMSE_relative
-#' @export
+#' @keywords internal
 calculate_relative_errors <- function(fit_tables) {
   rmse_table <- fit_tables$RMSE %>% ungroup()
   mae_table  <- fit_tables$MAE %>% ungroup()
@@ -411,12 +406,7 @@ calculate_relative_errors <- function(fit_tables) {
 #'
 #' @importFrom dplyr mutate left_join select case_when starts_with %>%
 #' @importFrom tidyr pivot_longer pivot_wider
-#' @examples
-#' inputs <- mfbdfm_example_inputs()
-#' fit_tabs <- get_insample_fit_table("mean", "indicators", inputs = inputs)
-#' rel <- calculate_relative_errors(fit_tabs)
-#' annotate_relative_errors(rel$RMSE_relative, fit_tabs$PVAL_RMSE, "RMSE")
-#' @export
+#' @keywords internal
 annotate_relative_errors <- function(rel_table, pval_table, metric_prefix) {
   # Remove prefix to get lag names
   rel_long <- rel_table %>%
@@ -473,12 +463,7 @@ annotate_relative_errors <- function(rel_table, pval_table, metric_prefix) {
 #'   across everything all_of any_of starts_with %>%
 #' @importFrom knitr kable
 #' @importFrom kableExtra add_header_above kable_styling row_spec column_spec
-#' @examples
-#' inputs <- mfbdfm_example_inputs()
-#' cor_tab <- get_combined_cor_table("mean", "indicators", inputs = inputs)
-#' out <- create_combined_latex_table(list(mean = cor_tab))
-#' cat(substr(out$table_tex, 1, 300))
-#' @export
+#' @keywords internal
 create_combined_latex_table <- function(combined_tables_list,
                                         caption = "Cross Correlation with GDP for Different Lags and Aggregation Methods",
                                         include_period = FALSE,
@@ -634,11 +619,7 @@ create_combined_latex_table <- function(combined_tables_list,
 #' @importFrom dplyr filter group_by summarise mutate %>%
 #' @importFrom zoo as.yearqtr
 #' @importFrom rlang .data
-#' @examples
-#' df <- data.frame(Series = "WAI",
-#'                  date = seq(as.Date("2010-01-01"), by = "quarter", length.out = 8))
-#' print_evaluation_periods(df, "Series", "date", context_label = "example")
-#' @export
+#' @keywords internal
 print_evaluation_periods <- function(data, series_col, date_col, context_label, frequency_label = NULL, method_label = NULL) {
   if (is.null(data) || nrow(data) == 0) {
     return(invisible(NULL))

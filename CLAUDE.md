@@ -33,6 +33,7 @@ Documentation is generated from roxygen2 comments; **do not hand-edit `NAMESPACE
 ├── analysis/                       # Research workflow scripts (not part of the built package)
 │   ├── 1_data_prep_dataset.R, 2_backcast.R, 4_tables.R, real_time_backcast.R,
 │   │   0_test.R
+│   ├── _internals.R                # Binds the package internals the scripts use (#102)
 │   ├── 5_plots/                    # In-sample / out-of-sample evaluation scripts
 │   │   └── _setup.R                # Shared prelude: library(mfbdfm) + wai_sample_config()
 │   ├── outputs/                    # figures/tables/results per wai_sample_config() (gitignored)
@@ -60,10 +61,10 @@ Documentation is generated from roxygen2 comments; **do not hand-edit `NAMESPACE
 | `backcast.R` | `run_ar()`, `run_wai_adj()`, `retrieve_nowcast()`, `extract_wai_data()` |
 | `vintages.R` | `get_real_time_gdp_vintages()`, `cut_data()`, `cut_data_real_time()`, `select_most_recent_GDP_vintage()` |
 | `frequency-utils.R` | `week2mon()`, `drop_weekly()`, `drop_financial()`, `drop_retail()`, `dec2week()` |
-| `date-utils.R` | `decimal_date_local()`, `is_crisis_period()`, `daily2weekly()`, `aggregate_predictor_to_quarterly()`, `get_next_target_vintage()` |
-| `analytics-config.R` | `wai_sample_config()` + output-path helpers (`write_table_output()`, `save_result_output()`, `output_figure_path()`, `filter_to_sample()`, vintage pickers) |
-| `analytics-cor.R` | Correlation tables/plots: `get_combined_cor_table()`, `plot_comparison()`, `render_correlation_heatmap()`, `rescale_to_gdp()` |
-| `analytics-tables.R` | Fit/error tables: `dm_test_modified()`, `get_insample_fit_table()`, `create_error_summary_tables()`, `create_rel_error_tables()` |
+| `date-utils.R` | `decimal_date_local()`, `is_crisis_period()` (its `windows` argument picks the WAI or the Eckert et al. windows), `daily2weekly()`, `aggregate_predictor_to_quarterly()`, internal `get_next_target_vintage()` |
+| `analytics-config.R` | `wai_sample_config()` + the **internal** output-path helpers (`write_table_output()`, `save_result_output()`, `output_figure_path()`, `filter_to_sample()`, `latest_fit_file()`, vintage pickers) |
+| `analytics-cor.R` | Correlation tables/plots: `get_combined_cor_table()`, `plot_comparison()`, `render_correlation_heatmap()`; internal `rescale_to_gdp()`, `suffix_cols()`, `*_wai_qoq_*()` |
+| `analytics-tables.R` | Fit/error tables: `dm_test_modified()`, `get_insample_fit_table()`, `create_error_summary_tables()`, `create_rel_error_tables()`; internal `calculate_relative_errors()`, `annotate_relative_errors()`, `create_combined_latex_table()`, `print_evaluation_periods()` |
 | `methods.R` | S3 methods for both fit classes (`print`/`summary`/`plot`/`coef`/`fitted`/`residuals`/`as.data.frame`), documented under `ind_dfm_methods` and `fcast_dfm_methods` |
 | `contributions.R` | `mfbdfm_contributions()` + its `print`/`as.data.frame`/`plot` methods, and the internal `dfm_joint_precision()` / `dfm_state_weights()` that `logLik()` also builds on (#109) |
 | `priors.R` | `dfm_priors()` + `print.dfm_priors()`; structural vs tunable priors |
@@ -71,6 +72,7 @@ Documentation is generated from roxygen2 comments; **do not hand-edit `NAMESPACE
 | `data-input.R` | `mfbdfm_data()` + `print.mfbdfm_data()` and the frequency-harmonisation helpers (#56) |
 | `validate.R` | `resolve_data_arg()`, `validate_model_inputs()`, `is_count()` — shared entry-point validation; no exports |
 | `memory.R` | `dfm_memory()`, `dfm_workers()` — measured peak-memory bound and worker planning (#64) |
+| `web-export.R` | Internal `export_wai_web()`, `gdp_web_series()` — the CSV/JSON files behind the public WAI dashboard; written by `analysis/update_wai_web.R`, not package API (#102) |
 | `example-data.R` | `mfbdfm_example_inputs()` — the synthetic analytics `inputs` bundle used by both the reference examples and the tests |
 | `data.R` | Roxygen docs for the two shipped datasets (no functions) |
 | `globals.R` | `utils::globalVariables()` call only (no functions) |
@@ -202,6 +204,7 @@ Claude usage quota has been tight. Until the user says otherwise, follow the act
 - **`mfbdfm_example_data` (#105) is the default dataset for an example or a quick experiment**: 8 series, 17 KB, a ready `mfbdfm_data()` object carrying `target`, so `ind_dfm(mfbdfm_example_data, length_sample = 50, burn_in = 10)` is the whole call and runs in ~3 s. Built by `data-raw/example_data.R` from seven `data_ch_dataset` series plus GDP from the 2026.167 vintage, **pinned by name (`GDP_VINTAGE` in the script)** so neither appending a newer vintage to the CSV nor rerunning the script silently changes the dataset — to move it on, change `GDP_VINTAGE` and the vintage named in `R/data.R` together, then rerun. It is deliberately *not* for real-time evaluation (one baked-in vintage), and not for anything claiming to reproduce the paper (7 of 45 indicators). Examples that are genuinely *about* real-time vintages or the frequency utilities stay on `data_ch_dataset_test`.
 - **Analytics table builders take an explicit `inputs` list**, not implicit globals. `get_combined_cor_table()`, `get_insample_fit_table()`, `get_insample_error_details()` all require `inputs = <named list of ~10-16 data objects>`, validated against a `required_inputs` vector per `analysis_set`. This replaced the old pattern of scripts stuffing objects into the calling environment.
 - **`wai_sample_config()`** replaced the old `initialize_plots_insample_context()` (which wrote into the caller's environment) and **`load_analytics_packages()`** was deleted entirely (replaced by proper `@importFrom`). Analysis scripts source `analysis/5_plots/_setup.R` for the shared prelude.
+- **The analysis scripts depend on package internals, and `analysis/_internals.R` is the list of which ones** (#102). 18 analysis-only helpers (`write_table_output()`, `rescale_to_gdp()`, `create_combined_latex_table()`, the vintage pickers, `export_wai_web()`, …) were un-exported *in place*: they stayed in `R/` — so they stay covered by the 1:1 test files, which a move to `analysis/` would have cost — but lost their `@export`. `analysis/_internals.R` binds all 18 once, rather than rewriting ~100 call sites as `mfbdfm:::fn()`; it is sourced by both `_setup.R` preludes and by `0_test.R`, `2_backcast.R` and `update_wai_web.R`, which use neither. Adding a name to that list is a visible decision in a diff — which is the point. Note the direction of the obligation: an internal carries no stability promise, so changing one can break a script here without warning.
 - **`aggregate_predictor_to_quarterly()` dispatches on the deparsed *name* of its `df` argument** (checks if it contains `"AR"`) — legacy behavior kept for compatibility with the analysis scripts, documented with a warning on the function. Don't rename objects passed to it.
 - Binary/generated data under `analysis/` (`Rda/results_*`, `fit_*`, `out/`, benchmark PDFs) is **gitignored, not deleted** — it exists locally but isn't tracked. Don't assume `analysis/out/` etc. are empty; don't re-add ignored patterns without checking `.gitignore`.
 
