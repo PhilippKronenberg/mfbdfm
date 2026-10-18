@@ -9,7 +9,11 @@ save_result_output(object, filename, results_dir)
 \arguments{
 \item{object}{Object to save (stored under its own name).}
 
-\item{filename}{File name (without directory).}
+\item{filename}{File name (without directory). The object is written by
+\code{\link[=save]{save()}} and read back by \code{\link[=load]{load()}}, so the extension must be \code{.Rda},
+\code{.rda}, \code{.RData} or \code{.rdata}; \code{.Rda} is appended when none is given, and
+any other extension is an error rather than a binary payload under a name
+promising something else (G4.0).}
 
 \item{results_dir}{Directory to write into (e.g.
 \code{wai_sample_config()$results_dir}).}

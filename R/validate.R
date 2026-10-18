@@ -84,6 +84,20 @@ validate_model_inputs <- function(flows, stocks, target,
              paste(paste0(sQuote(names(x)[wrong]), " (", modes[wrong], ")"),
                    collapse = ", "), ".", call. = FALSE)
       }
+      # G2.16: Inf and NaN are neither data nor missing data, and both would be
+      # taken for one or the other. `prepare_data()` standardizes each series by
+      # its own mean and standard deviation, so a single Inf turns both into NaN
+      # and the whole column leaves the standardization as NaN - the fit then
+      # returns NaN nowcasts rather than failing. NaN is worse, because it passes
+      # is.na() and would therefore be imputed by the data augmentation as if it
+      # were a genuine unobserved period. Refused by name instead.
+      why <- vapply(x, nonfinite_reason, character(1))
+      if (any(nzchar(why))){
+        stop("`", nm, "` must contain only finite observations (`NA` for ",
+             "missing); these do not: ",
+             paste(paste0(sQuote(names(x)[nzchar(why)]), " ", why[nzchar(why)]),
+                   collapse = ", "), ".", call. = FALSE)
+      }
     }
   }
 
@@ -132,6 +146,48 @@ validate_model_inputs <- function(flows, stocks, target,
   warn_collinear_series(c(flows, stocks))
 
   invisible(TRUE)
+
+}
+
+
+#' Check an analytics `inputs` bundle and bind what it carries (G5.2a)
+#'
+#' The three analytics table builders -- [get_insample_fit_table()],
+#' [create_error_summary_tables()] and [get_combined_cor_table()] -- each take an
+#' explicit `inputs` list rather than reading the caller's environment, and each
+#' opened with the same four lines: diff the required names against
+#' `names(inputs)`, raise the same `"Missing required inputs: "`, then
+#' `list2env()` the bundle into the function's own environment. One message at
+#' three call sites is the duplication G5.2a is about, so both halves live here.
+#'
+#' Binding into `envir` is the point rather than an afterthought: the builders'
+#' bodies refer to the input objects by bare name, so the helper has to put them
+#' where its *caller* can see them, which is why `envir` defaults to
+#' [parent.frame()].
+#'
+#' @param inputs Named list of data objects, as supplied by the user.
+#' @param required Character vector of names `inputs` must carry.
+#' @param envir Environment the required objects are bound into.
+#'
+#' @return `envir`, invisibly.
+#'
+#' @noRd
+require_analysis_inputs <- function(inputs, required, envir = parent.frame()){
+
+  if(!is.list(inputs)){
+    stop("`inputs` must be a named list of the data objects the table is built ",
+         "from, not a ", class(inputs)[1], ". See mfbdfm_example_inputs() for ",
+         "the expected shape.", call. = FALSE)
+  }
+
+  missing_inputs <- setdiff(required, names(inputs))
+  if(length(missing_inputs) > 0){
+    stop("Missing required inputs: ", paste(missing_inputs, collapse = ", "),
+         call. = FALSE)
+  }
+
+  list2env(inputs[required], envir = envir)
+  invisible(envir)
 
 }
 
@@ -296,6 +352,31 @@ warn_collinear_series <- function(series, threshold = 0.99, min_overlap = 24){
     "mfbdfm_warning_collinear")
 
   invisible(pairs)
+
+}
+
+
+#' Does this series carry Inf or NaN, and how much of each? (G2.16)
+#'
+#' Returns a phrase completing "series 'x' <...>", or `""` when every
+#' observation is either finite or `NA`. `NaN` is counted separately from
+#' `+-Inf` because the two arrive for different reasons - a NaN is usually
+#' `0/0` somewhere upstream, an Inf a division by zero or an overflowing
+#' exponential - and because `is.na(NaN)` is `TRUE`, which is exactly why a NaN
+#' cannot be left to the missing-value machinery.
+#'
+#' @noRd
+nonfinite_reason <- function(s){
+
+  v <- as.numeric(s)
+  n_nan <- sum(is.nan(v))
+  n_inf <- sum(!is.na(v) & !is.finite(v))   # is.na() is TRUE for NaN already
+
+  if (!n_nan && !n_inf) return("")
+
+  parts <- c(if (n_inf) paste(n_inf, if (n_inf > 1) "Inf values" else "Inf value"),
+             if (n_nan) paste(n_nan, if (n_nan > 1) "NaN values" else "NaN value"))
+  paste("carries", paste(parts, collapse = " and "))
 
 }
 

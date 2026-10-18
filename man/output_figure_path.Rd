@@ -7,7 +7,12 @@
 output_figure_path(filename, figures_dir)
 }
 \arguments{
-\item{filename}{File name (without directory).}
+\item{filename}{File name (without directory). The extension selects the
+graphics device the caller will write with, so it must be one a device
+exists for (\code{.pdf}, \code{.png}, \code{.jpg}, \code{.jpeg}, \code{.svg}, \code{.eps}, \code{.ps},
+\code{.tiff}, \code{.tif}, \code{.bmp}, \code{.wmf}); \code{.pdf} is appended when none is given,
+since an extensionless path makes \code{ggplot2::ggsave()} error on a device it
+cannot guess (G4.0).}
 
 \item{figures_dir}{Directory the figure belongs in (e.g.
 \code{wai_sample_config()$figures_dir}). Must already exist; not created here.}

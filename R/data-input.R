@@ -389,6 +389,26 @@ df_to_series <- function(df, freq = integer()){
 
   long <- all(c("series", "value") %in% tolower(nms))
 
+  # G2.12: a list column (including a nested data frame) is a legitimate data
+  # frame column and never a legitimate series or date. Nothing upstream
+  # objects to one -- is.na() and order() both accept a list -- so it travels as
+  # far as make_ts(), where stats::ts() complains about a mode and names neither
+  # the column nor the argument it came in through. Named and refused here
+  # instead, and only for the columns this shape actually reads: a long frame
+  # may legitimately carry extra columns, and they are none of our business.
+  used <- if(long){
+    c(time_col, nms[tolower(nms) == "value"][1])
+  } else {
+    nms
+  }
+  listy <- used[vapply(df[used], is.list, logical(1))]
+  if(length(listy)){
+    stop("These columns of `data` are list columns, which cannot hold ",
+         "observations: ", paste(sQuote(listy), collapse = ", "),
+         ".\n  Flatten them (e.g. with `unlist()`) before passing the frame.",
+         call. = FALSE)
+  }
+
   if(long){
     s_col <- nms[tolower(nms) == "series"][1]
     v_col <- nms[tolower(nms) == "value"][1]
