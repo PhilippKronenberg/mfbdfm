@@ -13,6 +13,31 @@ test_that("cut_data applies the publication-lag conventions per frequency", {
   expect_true(all(sapply(c(cut$flows, cut$stocks), length) >= 24))
 })
 
+test_that("a date rounded to 3 decimals cuts exactly like the exact date (#157)", {
+  dat <- make_synth_dat()
+  vint <- make_synth_vintages()
+
+  # 2022 + 47/48 = 2022.979167 rounds DOWN to 2022.979. The exact comparison
+  # used to put that just before its own grid point and drop week 46, the
+  # latest observation - silently, which is what analysis/update_wai_web.R hit.
+  d <- 2022 + 47/48
+  expect_lt(round(d, 3), d)
+  expect_equal(as.numeric(tail(time(cut_data(dat, round(d, 3))$flows$w1), 1)),
+               2022 + 46/48)
+
+  # and in general: every weekly date of a year, rounded the way the workflow
+  # rounds it (20 of the 48 round down), cuts every frequency identically -
+  # for both cutters
+  for (w in 0:47) {
+    d <- 2023 + w/48
+    expect_identical(cut_data(dat, round(d, 3)), cut_data(dat, d),
+                     label = paste0("cut_data at week ", w))
+    expect_identical(cut_data_real_time(dat, round(d, 3), vint),
+                     cut_data_real_time(dat, d, vint),
+                     label = paste0("cut_data_real_time at week ", w))
+  }
+})
+
 test_that("select_most_recent_GDP_vintage picks the newest available vintage", {
   vint <- make_synth_vintages()
   expect_identical(select_most_recent_GDP_vintage(2023.5, vint), vint[["2023.25"]])
