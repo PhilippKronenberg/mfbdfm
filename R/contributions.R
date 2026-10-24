@@ -32,19 +32,33 @@
 #' entries are treated as exact.
 #'
 #' `h` covers all `t+s` periods in a [fcast_dfm()] fit. An [ind_dfm()] fit
-#' stores only the `t` in-sample periods (see #49), so the `s` pre-sample
-#' periods carried by the distributed lags are padded with its first value.
+#' stores the same full path in `$internal$h_full` (#101); a fit saved before
+#' that element existed has only the `t` in-sample periods of `$pars$h`
+#' (see #49), and the `s` pre-sample periods carried by the distributed lags are
+#' then padded with its first value.
+#'
+#' `Ymat` lets a caller evaluate the same system on a *different* panel at the
+#' same parameters, which is what [mfbdfm_news()] needs: the news decomposition
+#' conditions one fixed-parameter system on an old and a new data vintage, so
+#' the two have to share `Q`. A vintage that is longer than the fit's own sample
+#' extends `h` by holding its last value, which is the posterior mean of a
+#' random walk and not a fudge.
+#'
+#' @param object A fitted model from [ind_dfm()] or [fcast_dfm()].
+#' @param Ymat Optional prepared panel to use in place of `object$data`. Must
+#'   carry the fit's own series, in the inventory's order, standardised with the
+#'   inventory's moments; only the number of periods may differ.
 #'
 #' @return A list with the precision `Q`, its log determinant in closed form,
 #'   the observed/latent index sets and values, the model dimensions, and the
 #'   posterior mean parameters and aggregation matrices used to build it.
 #'
 #' @noRd
-dfm_joint_precision <- function(object){
+dfm_joint_precision <- function(object, Ymat = NULL){
 
   is_fcast <- inherits(object, "fcast_dfm")
 
-  Ymat <- object$data
+  if(is.null(Ymat)) Ymat <- object$data
   inventory <- object$inventory
   n <- ncol(Ymat)
   t <- nrow(Ymat)
@@ -54,7 +68,6 @@ dfm_joint_precision <- function(object){
   pars <- object$pars
   sigma_d <- as.numeric(pars$sigma)
   rho_d <- as.numeric(pars$rho)
-  h <- as.numeric(pars$h)
 
   if(is_fcast){
 
@@ -67,9 +80,10 @@ dfm_joint_precision <- function(object){
     q <- 1L
     phi <- lapply(as.numeric(pars$phi), function(x) matrix(x, 1, 1))
     lambda <- as.matrix(as.numeric(pars$lambda))
-    h <- c(rep(h[1], s), h)
 
   }
+
+  h <- dfm_h_path(object, t = t, s = s, is_fcast = is_fcast)
 
   p <- length(phi)
   rho <- Diagonal(x = rho_d)
@@ -124,6 +138,41 @@ dfm_joint_precision <- function(object){
        n = n, t = t, q = q, p = p, s = s, k = k,
        lambda = lambda, phi = phi, sigma = sigma_d, rho = rho_d, h = h,
        Llist = Llist, inventory = inventory, Ymat = Ymat, is_fcast = is_fcast)
+
+}
+
+
+#' The volatility path over all `t+s` periods of a given panel
+#'
+#' @details
+#' `$internal$h_full` (#101) is the posterior mean of `h` over every period the
+#' sampler carried, pre-sample periods included, and is used whenever it is
+#' present. A fit saved before it existed has only `$pars$h`: all `t+s` periods
+#' for [fcast_dfm()], but the `t` in-sample ones for [ind_dfm()], whose first
+#' value is then repeated over the `s` pre-sample periods.
+#'
+#' Padding at the *end* is a different matter. It only happens when the panel is
+#' longer than the fit's own sample, which is the news decomposition's normal
+#' case, and `h` is a random walk, so `E[h_{T+j} | h_T] = h_T` -- holding the
+#' last value is the posterior mean extension rather than a convenient guess.
+#'
+#' @noRd
+dfm_h_path <- function(object, t, s, is_fcast){
+
+  h <- object$internal$h_full
+
+  if(is.null(h)){
+    h <- as.numeric(object$pars$h)
+    if(!is_fcast) h <- c(rep(h[1], s), h)
+  } else {
+    h <- as.numeric(h)
+  }
+
+  m <- t + s
+  if(length(h) < m) h <- c(h, rep(h[length(h)], m - length(h)))
+  if(length(h) > m) h <- h[seq_len(m)]
+
+  h
 
 }
 

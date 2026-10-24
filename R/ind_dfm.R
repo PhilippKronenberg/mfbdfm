@@ -310,6 +310,13 @@
 #'       (`f`, `lambda`, `phi`, `sigma`, `rho`, `h`, `omega`, `Xmat`,
 #'       `indicators`). Pass the fit as [dfm_control()]'s `starting_values` to
 #'       continue the chain from here.}
+#'     \item{internal}{Bookkeeping the sampler's matrices cannot be rebuilt
+#'       without: `p` (the factor lag order), `t2` (the number of periods that
+#'       held data before `extend_to` padded the panel) and `h_full` (the
+#'       posterior mean volatility path over all `t+s` periods, where `pars$h`
+#'       covers the `t` in-sample ones only). Read by [mfbdfm_news()] and
+#'       [mfbdfm_contributions()]; not part of the API, and present on
+#'       [fcast_dfm()] fits too so the two agree.}
 #'     \item{call}{The matched call.}
 #'   }
 #'
@@ -658,6 +665,17 @@ ind_dfm <- function(flows = NULL,
   # different data or a different model configuration.
   out$rng <- rng_rec
   out$final_state <- structure(par_save$final_state, spec = spec)
+
+  # what it takes to rebuild the sampler's own matrices from a fit (#101).
+  # `pars` carries the posterior means a reader wants; these three are
+  # bookkeeping that happens to be needed to reconstruct F0, G and K, and would
+  # have had to be guessed otherwise: `p` is not recoverable from a scalar
+  # `pars$phi`, `t2` is lost the moment `extend_to` pads the panel, and
+  # `pars$h` is documented to cover the t in-sample periods only, so the s
+  # pre-sample ones were being approximated by repeating its first value.
+  # Additive, and deliberately under its own name rather than widening the
+  # documented `pars` list.
+  out$internal <- list(p = p, t2 = t2, h_full = as.numeric(h_out))
 
   out$call <- match.call()
   class(out) <- "ind_dfm"

@@ -24,7 +24,7 @@ test_that("ind_dfm returns a complete, finite fit object", {
                       "nowcast_var", "target", "pars", "pars_dist", "data",
                       "data_raw",
                       "data_augmented", "inventory", "draws", "priors",
-                      "control", "rng", "final_state", "call"))
+                      "control", "rng", "final_state", "internal", "call"))
   expect_s3_class(fit$factor, "ts")
   expect_equal(frequency(fit$factor), 48)
   expect_equal(frequency(fit$nowcast), 4)
@@ -35,6 +35,24 @@ test_that("ind_dfm returns a complete, finite fit object", {
   expect_equal(fit$target, "ch.seco.gdp.real.gdp.ssa")
   # identifying restriction: target loading fixed at 1
   expect_equal(as.numeric(fit$pars$lambda[fit$inventory$key == fit$target]), 1)
+})
+
+test_that("$internal carries p, t2 and the full volatility path", {
+  fit <- run_small_ind_dfm(42)
+
+  k <- max(fit$inventory$freq)/min(fit$inventory$freq)
+  s <- 2*(k - 1)
+  t <- nrow(fit$data)
+
+  expect_named(fit$internal, c("p", "t2", "h_full"))
+  expect_identical(fit$internal$p, 1)
+  # no extend_to here, so every period of the panel held data
+  expect_identical(fit$internal$t2, t)
+  # h_full spans the pre-sample periods the distributed lags reach into;
+  # pars$h is documented to be its in-sample slice (#49)
+  expect_length(fit$internal$h_full, t + s)
+  expect_equal(fit$internal$h_full[(s + 1):(t + s)],
+               as.numeric(fit$pars$h))
 })
 
 test_that("factor_std spans the sample plus the aggregation's latent periods", {

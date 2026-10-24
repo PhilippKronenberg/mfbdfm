@@ -126,6 +126,13 @@ so an unseeded fit is still reproducible after the fact.}
 (\code{f}, \code{lambda}, \code{phi}, \code{sigma}, \code{rho}, \code{h}, \code{omega}, \code{Xmat},
 \code{indicators}). Pass the fit as \code{\link[=dfm_control]{dfm_control()}}'s \code{starting_values} to
 continue the chain from here.}
+\item{internal}{Bookkeeping the sampler's matrices cannot be rebuilt
+without: \code{p} (the factor lag order), \code{t2} (the number of periods that
+held data before \code{extend_to} padded the panel) and \code{h_full} (the
+posterior mean volatility path over all \code{t+s} periods, where \code{pars$h}
+covers the \code{t} in-sample ones only). Read by \code{\link[=mfbdfm_news]{mfbdfm_news()}} and
+\code{\link[=mfbdfm_contributions]{mfbdfm_contributions()}}; not part of the API, and present on
+\code{\link[=fcast_dfm]{fcast_dfm()}} fits too so the two agree.}
 \item{call}{The matched call.}
 }
 }

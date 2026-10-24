@@ -303,6 +303,102 @@ factor:
 round(tail(fit$index), 2)
 ```
 
+## Which release moved the nowcast?
+
+A high-frequency indicator is revised every week, and the first question
+a user asks is which release did it. `mfbdfm_news()` answers that
+between two data vintages: for each newly released observation it reports
+the value that arrived (`actual`), the value the old vintage implied for
+it (`forecast`), the difference (`news`), the weight that news carries on
+the target (`gain`) and the product of the two (`impact`). The impacts
+add up to the revision.
+
+To demonstrate it, hold back the last four weeks of every high-frequency
+series and fit on that older vintage:
+
+```{r news-fit, results = "hide", message = FALSE}
+old <- mfbdfm_example_data
+drop4 <- function(x) stats::window(x, end = stats::time(x)[length(x) - 4])
+old$flows <- lapply(old$flows,
+                    function(x) if (frequency(x) > 4) drop4(x) else x)
+old$stocks <- lapply(old$stocks, drop4)
+
+set.seed(1)
+fit_old <- ind_dfm(old, length_sample = 2000, burn_in = 500)
+```
+
+The full dataset is then the new vintage, and the four weeks it adds are
+the news:
+
+```{r news}
+nw <- mfbdfm_news(fit_old, mfbdfm_example_data)
+nw
+```
+
+The per-observation detail is in the tidy table, which is also what
+`as.data.frame()` returns — one row per release, plus summary rows for the
+total revision and for the parameter term:
+
+```{r news-table}
+d <- as.data.frame(nw)
+rel <- d[d$term == "news", ]
+rel <- rel[order(-abs(rel$impact))[1:6], ]
+data.frame(series = substr(rel$series, 1, 16),
+           time = round(rel$time, 3),
+           actual = signif(rel$actual, 3),
+           forecast = signif(rel$forecast, 3),
+           news = signif(rel$news, 3),
+           gain = signif(rel$gain, 3),
+           impact = signif(rel$impact, 3),
+           row.names = NULL)
+```
+
+Note that `gain` is on each series' own scale — the weight of a one-unit
+move in *that* series on the target — so a series measured in index
+points carries a much smaller gain than one measured in growth rates,
+and the two are not comparable. `impact` is, because the series' scale
+cancels in the product.
+
+Two properties are worth checking rather than taking on trust. The
+impacts sum to the revision exactly, because the decomposition
+orthogonalises the forecast errors within the released block instead of
+weighting each release on its own:
+
+```{r news-exact}
+sum(d$impact[d$term %in% c("news", "revision")]) - nw$totals$total
+```
+
+And a release that lands exactly where the model expected it moves
+nothing — `news` of zero gives an `impact` of zero whatever the gain.
+
+`plot()` draws the waterfall from the old nowcast to the new one:
+
+```{r news-plot, fig.width = 6, fig.height = 4}
+plot(nw)
+```
+
+Three things are held at the old vintage's values, which is what makes
+the sum exact: the parameters, the volatility path, and — the one that is
+easy to miss — the standardisation. `prepare_data()` computes each
+series' mean and standard deviation from the vintage in hand, so the new
+vintage is re-prepared with the old fit's moments; using the new ones
+would make the nowcast a nonlinear function of the data and nothing would
+add up. The part of the revision that comes from re-estimating the model
+is reported separately as a `parameter` term, which needs a fit on the
+new vintage:
+
+```{r news-parameter}
+mfbdfm_news(fit_old, mfbdfm_example_data, new_fit = fit)$totals
+```
+
+For a 45-series panel the per-observation table is too fine to read;
+`by = "group"` aggregates the impacts to groups of series, and
+`$by_component` holds the aggregate for either choice. `mfbdfm_news()` is
+implemented for `ind_dfm()` fits: in `fcast_dfm()` the factors are
+identified only after sampling, by rotation, so a gain computed at fixed
+parameters would belong to a rotation the new vintage's fit does not
+reproduce.
+
 ## Bringing your own data
 
 `mfbdfm_example_data` arrived ready-made. The models themselves take
