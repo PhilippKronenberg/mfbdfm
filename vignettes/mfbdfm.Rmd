@@ -602,7 +602,7 @@ weighting each release on its own:
 
 ``` r
 sum(d$impact[d$term %in% c("news", "revision")]) - nw$totals$total
-#> [1] -5.421011e-20
+#> [1] 0
 ```
 
 And a release that lands exactly where the model expected it moves
