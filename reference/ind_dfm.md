@@ -193,6 +193,32 @@ An object of class `"ind_dfm"`: a list with components
   [`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
   reads.
 
+- priors:
+
+  The
+  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
+  object the fit ran under, **resolved**: the data-dependent entries
+  that
+  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
+  holds as `NULL` are filled in with the numbers this sample implies, so
+  this records what the sampler used rather than the rule it followed.
+  Present whether or not `priors` was given, so a default fit records
+  its priors too, and it carries the `structural_modified` flag – which
+  [`print()`](https://rdrr.io/r/base/print.html) and
+  [`summary()`](https://rdrr.io/r/base/summary.html) report loudly,
+  since a fit with an identifying prior overridden is not the published
+  model.
+
+- control:
+
+  The
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+  object the fit ran under, likewise including the defaults. One
+  exception: `starting_values` is replaced by a marker rather than
+  stored, because it is either a whole previous fit or a full set of
+  parameter blocks, and keeping it would nest one fit inside the next.
+  `rng$start` already records where the chain began.
+
 - rng:
 
   The random stream the fit ran under: `seed` (the

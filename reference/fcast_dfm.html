@@ -236,6 +236,14 @@ identification</strong> (see <a href="mfbdfm_draws.html">mfbdfm_draws</a>), or <
 <code>keep_draws = FALSE</code> in <code><a href="dfm_control.html">dfm_control()</a></code>. Present by default; this is
 what <code><a href="mfbdfm_diagnostics.html">mfbdfm_diagnostics()</a></code> reads.</p></dd>
 
+<dt>priors, control</dt>
+<dd><p>The resolved <code><a href="dfm_priors.html">dfm_priors()</a></code> and <code><a href="dfm_control.html">dfm_control()</a></code>
+objects the fit ran under, including the defaults when nothing was
+passed; see <code><a href="ind_dfm.html">ind_dfm()</a></code> for what "resolved" covers and why
+<code>control$starting_values</code> is elided. <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> show the
+full specification, and flag a fit whose identifying prior was
+overridden.</p></dd>
+
 <dt>rng</dt>
 <dd><p>The random stream the fit ran under: <code>seed</code> (the
 <code><a href="dfm_control.html">dfm_control()</a></code> setting, or <code>NULL</code>), <code>kind</code> (<code><a href="https://rdrr.io/r/base/Random.html" class="external-link">RNGkind()</a></code>), <code>start</code>
@@ -492,6 +500,38 @@ Switzerland. <em>Swiss Journal of Economics and Statistics</em>, 162, 10.
 <span class="r-out co"><span class="r-pr">#&gt;</span>     2026.000         NA     0.0035    -0.0117     0.0187</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1 of 45 periods have no observed value (nowcast/backcast).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Priors for fcast_dfm()  [type: default]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   lambda        b0 = 0, B0 = 1e+09  [structural]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sigma         c0 = 3, d0 = 1e-09</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho           r0 = 0, R0 = 0.001848</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   omega         c0 = 3, d0 = 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Control settings for fcast_dfm()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max                  0.99      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max_tries            10        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_fallback             0.98      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   verbose                  TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_draws               TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   keep_factor_draws        FALSE     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   omega_max                1         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_criterion       "mean"    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_tol             1e-09     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_max_iter        5         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_init_tol        1e-09     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_init_max_iter   100       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_on_failure      "warning" </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Note: rotation_criterion "mean" is weaker than the published rule.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   dfm_control("fcast_dfm", strict = TRUE) matches Eckert et al. (2025).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   (the specification above is stored with the fit, as $priors and $control)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Full results: $factor, $ncst (all series), $data_hf, $target_series;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> mfbdfm_nowcast() for the target's nowcasts</span>

@@ -212,6 +212,20 @@ An object of class `"fcast_dfm"`: a list with components
   [`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
   reads.
 
+- priors, control:
+
+  The resolved
+  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
+  and
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+  objects the fit ran under, including the defaults when nothing was
+  passed; see
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  for what "resolved" covers and why `control$starting_values` is
+  elided. [`print()`](https://rdrr.io/r/base/print.html) and
+  [`summary()`](https://rdrr.io/r/base/summary.html) show the full
+  specification, and flag a fit whose identifying prior was overridden.
+
 - rng:
 
   The random stream the fit ran under: `seed` (the
@@ -534,6 +548,38 @@ fit
 #>     2026.000         NA     0.0035    -0.0117     0.0187
 #> 
 #>   1 of 45 periods have no observed value (nowcast/backcast).
+#> 
+#> Priors for fcast_dfm()  [type: default]
+#> 
+#>   lambda        b0 = 0, B0 = 1e+09  [structural]
+#>   sigma         c0 = 3, d0 = 1e-09
+#>   rho           r0 = 0, R0 = 0.001848
+#>   omega         c0 = 3, d0 = 1
+#> 
+#> Control settings for fcast_dfm()
+#> 
+#>   rho_max                  0.99      
+#>   rho_max_tries            10        
+#>   rho_fallback             0.98      
+#>   jitter                   1e-09     
+#>   sv_offset                0.001     
+#>   verbose                  TRUE      
+#>   keep_draws               TRUE      
+#>   keep_factor_draws        FALSE     
+#>   seed                     NULL      
+#>   starting_values          NULL      
+#>   omega_max                1         
+#>   rotation_criterion       "mean"    
+#>   rotation_tol             1e-09     
+#>   rotation_max_iter        5         
+#>   rotation_init_tol        1e-09     
+#>   rotation_init_max_iter   100       
+#>   rotation_on_failure      "warning" 
+#> 
+#>   Note: rotation_criterion "mean" is weaker than the published rule.
+#>   dfm_control("fcast_dfm", strict = TRUE) matches Eckert et al. (2025).
+#> 
+#>   (the specification above is stored with the fit, as $priors and $control)
 #> 
 #> Full results: $factor, $ncst (all series), $data_hf, $target_series;
 #> mfbdfm_nowcast() for the target's nowcasts

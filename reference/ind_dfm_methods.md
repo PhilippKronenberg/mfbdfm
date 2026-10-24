@@ -373,6 +373,35 @@ fit
 #>     2025.750      0.00151
 #>     2026.000      0.00182
 #> 
+#> Priors for ind_dfm()  [type: default]
+#> 
+#>   sigma_target  c0 = 541, d0 = 0.541  [structural]
+#>   rho_target    r0 = 0, R0 = 1e-09  [structural]
+#>   sigma_other   c0 = 3, d0 = 0.05
+#>   rho_other     r0 = 0, R0 = 5
+#>   lambda        b0 = 0, B0 = 1
+#>   phi           a0 = 0, A0 = 0.12
+#>   omega         k0 = 541, l0 = 5.41
+#>   factor_var    c0 = 3, d0 = 0.01
+#> 
+#> Control settings for ind_dfm()
+#> 
+#>   rho_max                  0.99      
+#>   rho_max_tries            10        
+#>   rho_fallback             0.98      
+#>   jitter                   1e-09     
+#>   sv_offset                0.001     
+#>   verbose                  TRUE      
+#>   keep_draws               TRUE      
+#>   keep_factor_draws        FALSE     
+#>   seed                     NULL      
+#>   starting_values          NULL      
+#>   phi_sum_max              0.9       
+#>   sigma_max                5         
+#>   keep_burn_in             FALSE     
+#> 
+#>   (the specification above is stored with the fit, as $priors and $control)
+#> 
 #> Full results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),
 #> summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),
 #> logLik()

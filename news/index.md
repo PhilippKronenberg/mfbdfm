@@ -73,6 +73,40 @@
 
 ### Other changes
 
+- **A fit now carries the prior and control specification it ran under**
+  ([\#119](https://github.com/PhilippKronenberg/mfbdfm/issues/119),
+  rOpenSci BS5.2). `fit$priors` and `fit$control` hold the resolved
+  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
+  and
+  [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)
+  objects, on both fit classes per the parity rule, whether or not
+  either argument was passed – so a default fit records its defaults
+  too. Previously the only record was the unevaluated expression in
+  `fit$call`, which says nothing when the defaults were used and is
+  unresolvable once the object it names is gone.
+
+  “Resolved” means the numbers the sampler used: the data-dependent
+  prior entries
+  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)
+  holds as `NULL` (`sigma_target`’s `c0`/`d0`, `omega`’s `k0`/`l0`,
+  `phi`’s `A0`, `fcast_dfm`’s `rho$R0`) come back filled in for this
+  sample. [`print()`](https://rdrr.io/r/base/print.html) and
+  [`summary()`](https://rdrr.io/r/base/summary.html) now show the full
+  specification, and flag loudly at the top when `structural_modified`
+  is `TRUE` – a fit whose identifying prior was overridden is not the
+  published model, and that flag previously did not survive the fit at
+  all, which is the gap the issue was opened for.
+
+  One exception to “resolved”: `control$starting_values` is recorded as
+  a marker rather than stored, because it is either a whole previous fit
+  or a full set of parameter blocks, and keeping it would nest one fit
+  inside the next – a chain continued `k` times would serialise `O(k^2)`
+  fits. Where the chain began is already in `fit$rng$start` and the
+  state it reached in `fit$final_state`. Reusing such a control object
+  to fit is an error naming what to pass instead. Numerics are
+  untouched: `baseline_check()` reports every component of every
+  baseline fit identical.
+
 - **A fit can now be seeded, started from explicit values, and
   continued**
   ([\#117](https://github.com/PhilippKronenberg/mfbdfm/issues/117),

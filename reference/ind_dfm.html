@@ -216,6 +216,23 @@ there for which blocks are present and why.</p></dd>
 <code>NULL</code> with <code>keep_draws = FALSE</code> in <code><a href="dfm_control.html">dfm_control()</a></code>. Present by
 default; this is what <code><a href="mfbdfm_diagnostics.html">mfbdfm_diagnostics()</a></code> reads.</p></dd>
 
+<dt>priors</dt>
+<dd><p>The <code><a href="dfm_priors.html">dfm_priors()</a></code> object the fit ran under, <strong>resolved</strong>:
+the data-dependent entries that <code><a href="dfm_priors.html">dfm_priors()</a></code> holds as <code>NULL</code> are
+filled in with the numbers this sample implies, so this records what
+the sampler used rather than the rule it followed. Present whether or
+not <code>priors</code> was given, so a default fit records its priors too, and it
+carries the <code>structural_modified</code> flag – which <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and
+<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> report loudly, since a fit with an identifying prior
+overridden is not the published model.</p></dd>
+
+<dt>control</dt>
+<dd><p>The <code><a href="dfm_control.html">dfm_control()</a></code> object the fit ran under, likewise
+including the defaults. One exception: <code>starting_values</code> is replaced by
+a marker rather than stored, because it is either a whole previous fit
+or a full set of parameter blocks, and keeping it would nest one fit
+inside the next. <code>rng$start</code> already records where the chain began.</p></dd>
+
 <dt>rng</dt>
 <dd><p>The random stream the fit ran under: <code>seed</code> (the
 <code><a href="dfm_control.html">dfm_control()</a></code> setting, or <code>NULL</code>), <code>kind</code> (<code><a href="https://rdrr.io/r/base/Random.html" class="external-link">RNGkind()</a></code>), <code>start</code>
