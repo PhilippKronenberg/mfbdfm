@@ -113,6 +113,21 @@
 
 ## Other changes
 
+* **`cut_data()` and `cut_data_real_time()` no longer drop the latest
+  observation when the evaluation date arrives rounded down** (#157).
+  Evaluation dates travel through the workflow rounded to 3 decimals, because
+  they name the fit files, and 20 of the 48 weekly grid points round *down*:
+  `2025 + 47/48 = 2025.979167` becomes `2025.979`. The cut compared exactly,
+  so the rounded date fell just before its own grid point and the most recent
+  week was dropped without any warning. `analysis/update_wai_web.R` passes
+  exactly such a date, so in about 4 of every 10 weekly updates the published
+  WAI omitted its latest week. The cut now allows a tenth of a week of
+  tolerance, the remedy `trim_to()` got in #65. That is far below every
+  publication lag, so an exact date cuts exactly as before. The analysis
+  scripts that pass unrounded `seq(..., 1/48)` dates (`2_backcast.R`,
+  `real_time_backcast.R`), and so every stored fit they produced, were never
+  affected.
+
 * **A fit now carries the prior and control specification it ran under**
   (#119, rOpenSci BS5.2). `fit$priors` and `fit$control` hold the resolved
   `dfm_priors()` and `dfm_control()` objects, on both fit classes per the
