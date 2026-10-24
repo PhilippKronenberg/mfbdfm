@@ -52,7 +52,11 @@
 
 
 <dl><dt id="arg-filename">filename<a class="anchor" aria-label="anchor" href="#arg-filename"></a></dt>
-<dd><p>File name (without directory).</p></dd>
+<dd><p>File name (without directory). The contents are written as
+plain text by <code><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines()</a></code>, so the extension must be one of <code>.tex</code>,
+<code>.csv</code>, <code>.txt</code>, <code>.tsv</code> or <code>.md</code>; <code>.tex</code> is appended when none is given,
+that being what the table builders produce. Anything else is an error
+rather than a text file under a misleading name (G4.0).</p></dd>
 
 
 <dt id="arg-contents">contents<a class="anchor" aria-label="anchor" href="#arg-contents"></a></dt>

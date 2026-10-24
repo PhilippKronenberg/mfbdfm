@@ -107,6 +107,64 @@
   untouched: `baseline_check()` reports every component of every
   baseline fit identical.
 
+- **Six small conformance gaps from the rOpenSci standards self-audit
+  are closed**
+  ([\#125](https://github.com/PhilippKronenberg/mfbdfm/issues/125),
+  G4.0/G2.3b/G2.12/G2.14/G2.16/G5.2a). Four of them change behaviour:
+
+  - **Output file names are completed and checked** (G4.0). The internal
+    [`write_table_output()`](https://philippkronenberg.github.io/mfbdfm/reference/write_table_output.md),
+    [`save_result_output()`](https://philippkronenberg.github.io/mfbdfm/reference/save_result_output.md)
+    and
+    [`output_figure_path()`](https://philippkronenberg.github.io/mfbdfm/reference/output_figure_path.md)
+    took their `filename` verbatim, so
+    `save_result_output(x, "results")` wrote an extensionless file that
+    [`load()`](https://rdrr.io/r/base/load.html) does not recognise as
+    its own and `save_result_output(x, "results.csv")` wrote a
+    [`save()`](https://rdrr.io/r/base/save.html) payload under a name
+    promising text. A name with no extension now gets the writer’s own
+    (`.Rda`/`.tex`/`.pdf` respectively) and a name whose extension the
+    writer cannot produce is an error naming the argument, what was
+    given and what is accepted.
+    [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md)
+    likewise checks that `fit_path` names a file
+    [`load()`](https://rdrr.io/r/base/load.html) can read, rather than
+    leaving the user with a “bad restore file magic number”.
+  - **`Inf` and `NaN` in an input observation are refused by name**
+    (G2.16), from the shared validator, so both entry points get it. One
+    `Inf` made
+    [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)’s
+    mean and standard deviation `NaN` and the whole column left
+    standardization as `NaN`, and `NaN` additionally passes
+    [`is.na()`](https://rdrr.io/r/base/NA.html), so it was being imputed
+    by the data augmentation as though it were a genuinely unobserved
+    period. Supply `NA` for missing.
+  - **A list column in a data frame passed to
+    [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md)
+    is named and refused** (G2.12) instead of travelling as far as
+    [`stats::ts()`](https://rdrr.io/r/stats/ts.html), whose complaint
+    about a storage mode identifies neither the column nor the argument.
+    Only the columns the long/wide shape actually reads are checked: an
+    extra list column in a long frame rides along as before.
+  - **Two repeated [`stop()`](https://rdrr.io/r/base/stop.html) messages
+    now have one home each** (G5.2a): `"Missing required inputs: "`
+    moves to an internal `require_analysis_inputs()` shared by the three
+    analytics table builders, and
+    `"No valid vintages found for the configured sample."` to an
+    internal `valid_vintage_columns()` shared by the two vintage
+    pickers.
+
+  The other two are documentation:
+  [`?ind_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  and
+  [`?fcast_dfm`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  now state that there is deliberately **no `na_action` argument** – the
+  estimator *is* the missing-value treatment, so erroring on `NA` would
+  reject nearly every real mixed-frequency panel and imputing it would
+  hide a worse estimate of what the sampler already infers (G2.14/TS2.1)
+  – and that **character arguments, `target` included, are matched
+  case-sensitively** (G2.3b).
+
 - **A fit can now be seeded, started from explicit values, and
   continued**
   ([\#117](https://github.com/PhilippKronenberg/mfbdfm/issues/117),

@@ -56,7 +56,11 @@
 
 
 <dt id="arg-filename">filename<a class="anchor" aria-label="anchor" href="#arg-filename"></a></dt>
-<dd><p>File name (without directory).</p></dd>
+<dd><p>File name (without directory). The object is written by
+<code><a href="https://rdrr.io/r/base/save.html" class="external-link">save()</a></code> and read back by <code><a href="https://rdrr.io/r/base/load.html" class="external-link">load()</a></code>, so the extension must be <code>.Rda</code>,
+<code>.rda</code>, <code>.RData</code> or <code>.rdata</code>; <code>.Rda</code> is appended when none is given, and
+any other extension is an error rather than a binary payload under a name
+promising something else (G4.0).</p></dd>
 
 
 <dt id="arg-results-dir">results_dir<a class="anchor" aria-label="anchor" href="#arg-results-dir"></a></dt>

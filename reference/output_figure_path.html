@@ -64,7 +64,12 @@ any caller that has written a table or result through
 
 
 <dl><dt id="arg-filename">filename<a class="anchor" aria-label="anchor" href="#arg-filename"></a></dt>
-<dd><p>File name (without directory).</p></dd>
+<dd><p>File name (without directory). The extension selects the
+graphics device the caller will write with, so it must be one a device
+exists for (<code>.pdf</code>, <code>.png</code>, <code>.jpg</code>, <code>.jpeg</code>, <code>.svg</code>, <code>.eps</code>, <code>.ps</code>,
+<code>.tiff</code>, <code>.tif</code>, <code>.bmp</code>, <code>.wmf</code>); <code>.pdf</code> is appended when none is given,
+since an extensionless path makes <code><a href="https://ggplot2.tidyverse.org/reference/ggsave.html" class="external-link">ggplot2::ggsave()</a></code> error on a device it
+cannot guess (G4.0).</p></dd>
 
 
 <dt id="arg-figures-dir">figures_dir<a class="anchor" aria-label="anchor" href="#arg-figures-dir"></a></dt>

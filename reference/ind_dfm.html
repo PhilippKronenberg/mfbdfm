@@ -374,6 +374,54 @@ with few factors is what the model is for – and both entry points fit such
 a panel.</p>
     </div>
     <div class="section level2">
+    <h2 id="missing-values-and-the-absence-of-an-na-action-argument">Missing values and the absence of an na_action argument<a class="anchor" aria-label="anchor" href="#missing-values-and-the-absence-of-an-na-action-argument"></a></h2>
+
+
+<p><strong>Missing observations are expected input, not a problem to be disposed of
+before fitting.</strong> <code>NA</code> is how an unobserved high-frequency period is spelled,
+and a mixed-frequency panel is mostly made of them: a quarterly target
+observed once every thirteen weeks is missing in twelve of thirteen weekly
+periods, and a series that starts late, ends early or is published with a lag
+is missing at the edges. Every one of those is estimated as a latent state by
+data augmentation – a draw from its conditional posterior at each iteration,
+given the factor and that series' own loading and error process – so the
+missing periods are part of what the sampler infers rather than something it
+works around.</p>
+<p>Neither entry point therefore takes an <code>na_action</code> argument, and neither has
+a <code>...</code> to pass one through. The two choices such an argument usually offers do
+not exist here: <em>erroring</em> on <code>NA</code> would reject nearly every real
+mixed-frequency panel, including the shipped datasets, and <em>imputing</em> <code>NA</code>
+before fitting would substitute a worse estimate of the same quantity the
+model estimates jointly with everything else – then hide it, by handing the
+sampler a fabricated observation as if it had been measured. The estimator is
+the missing-value treatment, and it is not optional.</p>
+<p>Two consequences worth knowing:</p>
+<ul><li><p><code>Inf</code> and <code>NaN</code> are <strong>not</strong> missing values and are refused by name,
+before fitting. <code><a href="prepare_data.html">prepare_data()</a></code> standardizes each series by its own mean
+and standard deviation, so one <code>Inf</code> makes both <code>NaN</code> and the entire
+column leaves the standardization as <code>NaN</code>; <code>NaN</code> also passes <code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code>,
+so it would otherwise be augmented as though it were a genuinely
+unobserved period. Supply <code>NA</code> for missing.</p></li>
+<li><p>A series with <em>no</em> non-missing observations at all cannot be
+standardized and is dropped – see "Degenerate input series" above.</p></li>
+</ul></div>
+    <div class="section level2">
+    <h2 id="character-arguments-are-case-sensitive">Character arguments are case-sensitive<a class="anchor" aria-label="anchor" href="#character-arguments-are-case-sensitive"></a></h2>
+
+
+<p>Throughout the package, character arguments are matched <strong>exactly</strong>, with no
+case folding. <code>target</code> is compared against the names of the supplied series
+as given, so <code>target = "GDP"</code> does not find a series named <code>"gdp"</code> – it
+errors, listing the available names. Fixed choice sets (<code>model</code> and <code>type</code> in
+<code><a href="dfm_priors.html">dfm_priors()</a></code>, <code>model</code> in <code><a href="dfm_control.html">dfm_control()</a></code>, <code>method</code> and <code>analysis_set</code> in the
+analytics table builders, and the rest) go through <code><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg()</a></code>, which is
+likewise case-sensitive, though it does accept an unambiguous abbreviation.</p>
+<p>This is deliberate rather than an oversight: series names are data, and
+lower-casing them to be helpful would quietly merge two series that differ
+only in case and make the name the fit reports back differ from the name that
+went in.</p>
+    </div>
+    <div class="section level2">
     <h2 id="reproducibility-across-seeds">Reproducibility across seeds<a class="anchor" aria-label="anchor" href="#reproducibility-across-seeds"></a></h2>
 
 

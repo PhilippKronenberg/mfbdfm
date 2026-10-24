@@ -22,7 +22,10 @@ render_correlation_heatmap(cor_tables, series_order, output_file, figures_dir)
 
 - output_file:
 
-  File name for the saved figure.
+  File name for the saved figure. Passed to
+  [`output_figure_path()`](https://philippkronenberg.github.io/mfbdfm/reference/output_figure_path.md),
+  so the extension selects the device and `.pdf` is used when none is
+  given.
 
 - figures_dir:
 
@@ -70,7 +73,7 @@ render_correlation_heatmap(
                    "SNB-BCI", "KOF-BARO"),
   output_file = "correlation_heatmap.pdf", figures_dir = dir)
 grDevices::dev.off()
-#> agg_record_1a4b76afd419 
+#> agg_record_1add751ca715 
 #>                       2 
 unlink(dir, recursive = TRUE)
 ```

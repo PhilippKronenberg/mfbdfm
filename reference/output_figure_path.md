@@ -16,7 +16,13 @@ output_figure_path(filename, figures_dir)
 
 - filename:
 
-  File name (without directory).
+  File name (without directory). The extension selects the graphics
+  device the caller will write with, so it must be one a device exists
+  for (`.pdf`, `.png`, `.jpg`, `.jpeg`, `.svg`, `.eps`, `.ps`, `.tiff`,
+  `.tif`, `.bmp`, `.wmf`); `.pdf` is appended when none is given, since
+  an extensionless path makes
+  [`ggplot2::ggsave()`](https://ggplot2.tidyverse.org/reference/ggsave.html)
+  error on a device it cannot guess (G4.0).
 
 - figures_dir:
 

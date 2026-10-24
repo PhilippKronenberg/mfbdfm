@@ -380,6 +380,64 @@ More series than time periods is *not* degenerate – summarising many
 series with few factors is what the model is for – and both entry points
 fit such a panel.
 
+## Missing values and the absence of an na_action argument
+
+**Missing observations are expected input, not a problem to be disposed
+of before fitting.** `NA` is how an unobserved high-frequency period is
+spelled, and a mixed-frequency panel is mostly made of them: a quarterly
+target observed once every thirteen weeks is missing in twelve of
+thirteen weekly periods, and a series that starts late, ends early or is
+published with a lag is missing at the edges. Every one of those is
+estimated as a latent state by data augmentation – a draw from its
+conditional posterior at each iteration, given the factor and that
+series' own loading and error process – so the missing periods are part
+of what the sampler infers rather than something it works around.
+
+Neither entry point therefore takes an `na_action` argument, and neither
+has a `...` to pass one through. The two choices such an argument
+usually offers do not exist here: *erroring* on `NA` would reject nearly
+every real mixed-frequency panel, including the shipped datasets, and
+*imputing* `NA` before fitting would substitute a worse estimate of the
+same quantity the model estimates jointly with everything else – then
+hide it, by handing the sampler a fabricated observation as if it had
+been measured. The estimator is the missing-value treatment, and it is
+not optional.
+
+Two consequences worth knowing:
+
+- `Inf` and `NaN` are **not** missing values and are refused by name,
+  before fitting.
+  [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+  standardizes each series by its own mean and standard deviation, so
+  one `Inf` makes both `NaN` and the entire column leaves the
+  standardization as `NaN`; `NaN` also passes
+  [`is.na()`](https://rdrr.io/r/base/NA.html), so it would otherwise be
+  augmented as though it were a genuinely unobserved period. Supply `NA`
+  for missing.
+
+- A series with *no* non-missing observations at all cannot be
+  standardized and is dropped – see "Degenerate input series" above.
+
+## Character arguments are case-sensitive
+
+Throughout the package, character arguments are matched **exactly**,
+with no case folding. `target` is compared against the names of the
+supplied series as given, so `target = "GDP"` does not find a series
+named `"gdp"` – it errors, listing the available names. Fixed choice
+sets (`model` and `type` in
+[`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md),
+`model` in
+[`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md),
+`method` and `analysis_set` in the analytics table builders, and the
+rest) go through [`match.arg()`](https://rdrr.io/r/base/match.arg.html),
+which is likewise case-sensitive, though it does accept an unambiguous
+abbreviation.
+
+This is deliberate rather than an oversight: series names are data, and
+lower-casing them to be helpful would quietly merge two series that
+differ only in case and make the name the fit reports back differ from
+the name that went in.
+
 ## Assumptions
 
 This is a linear state-space model with time-invariant coefficients, so
