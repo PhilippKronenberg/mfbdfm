@@ -153,7 +153,7 @@
       </dl></div><div class="section level2">
       <h2 id="methods-on-fitted-models">Methods on fitted models<a class="anchor" aria-label="anchor" href="#methods-on-fitted-models"></a></h2>
 
-      <div class="section-desc"><p>The generics both fit classes support: print, summary, plot, coef, fitted, residuals, as.data.frame and logLik (and hence AIC/BIC), plus the decomposition of the factor and nowcast into per-series contributions.</p></div>
+      <div class="section-desc"><p>The generics both fit classes support: print, summary, plot, coef, fitted, residuals, as.data.frame and logLik (and hence AIC/BIC), plus the decomposition of the factor and nowcast into per-series contributions, and the news decomposition of a nowcast revision between two data vintages.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -187,6 +187,13 @@
 
         </dt>
         <dd>Contribution of each input series to the factor and to the nowcast</dd>
+
+        <dt>
+
+          <code><a href="mfbdfm_news.html">mfbdfm_news()</a></code> <code><a href="mfbdfm_news.html">print(<i>&lt;mfbdfm_news&gt;</i>)</a></code> <code><a href="mfbdfm_news.html">as.data.frame(<i>&lt;mfbdfm_news&gt;</i>)</a></code> <code><a href="mfbdfm_news.html">plot(<i>&lt;mfbdfm_news&gt;</i>)</a></code>
+
+        </dt>
+        <dd>News decomposition of a nowcast revision between two data vintages</dd>
       </dl></div><div class="section level2">
       <h2 id="posterior-draws-convergence-diagnostics">Posterior draws &amp; convergence diagnostics<a class="anchor" aria-label="anchor" href="#posterior-draws-convergence-diagnostics"></a></h2>
 

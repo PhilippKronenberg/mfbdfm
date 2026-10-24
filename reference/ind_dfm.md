@@ -237,6 +237,20 @@ An object of class `"ind_dfm"`: a list with components
   [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md)'s
   `starting_values` to continue the chain from here.
 
+- internal:
+
+  Bookkeeping the sampler's matrices cannot be rebuilt without: `p` (the
+  factor lag order), `t2` (the number of periods that held data before
+  `extend_to` padded the panel) and `h_full` (the posterior mean
+  volatility path over all `t+s` periods, where `pars$h` covers the `t`
+  in-sample ones only). Read by
+  [`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
+  and
+  [`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md);
+  not part of the API, and present on
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  fits too so the two agree.
+
 - call:
 
   The matched call.

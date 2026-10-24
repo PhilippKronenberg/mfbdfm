@@ -190,7 +190,8 @@ Journal of Economics and Statistics*, 162:10.
 
 Other model functions:
 [`mfbdfm_diagnostics()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md),
-[`mfbdfm_draws`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md)
+[`mfbdfm_draws`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_draws.md),
+[`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
 
 ## Examples
 
@@ -222,23 +223,23 @@ ct
 #> 
 #> Mean absolute contribution to the factor (standardized scale):
 #> 
-#>   ch.seco.gdp.real.gdp.ssa                      0.05430
+#>   ch.seco.gdp.real.gdp.ssa                      0.05416
 #>   SWPROPRCE                                     0.00108
-#>   SWCONPRCE                                     0.00080
+#>   SWCONPRCE                                     0.00079
 #>   SWISSMI                                       0.00062
 #> 
-#> Mean |residual| (parameter uncertainty, not explained by any series): 0.032
+#> Mean |residual| (parameter uncertainty, not explained by any series): 0.0319
 #> 
 #> Full results: $contributions, $totals, $nowcast, $nowcast_totals;
 #> as.data.frame(), plot()
 head(as.data.frame(ct))
 #>       time                   series  factor  contribution
-#> 1 2020.542 ch.seco.gdp.real.gdp.ssa factor1 -0.0005584833
-#> 2 2020.562 ch.seco.gdp.real.gdp.ssa factor1 -0.0011443835
-#> 3 2020.583 ch.seco.gdp.real.gdp.ssa factor1 -0.0017864633
-#> 4 2020.604 ch.seco.gdp.real.gdp.ssa factor1 -0.0025162433
-#> 5 2020.625 ch.seco.gdp.real.gdp.ssa factor1 -0.0033695497
-#> 6 2020.646 ch.seco.gdp.real.gdp.ssa factor1 -0.0043882726
+#> 1 2020.542 ch.seco.gdp.real.gdp.ssa factor1 -0.0003426136
+#> 2 2020.562 ch.seco.gdp.real.gdp.ssa factor1 -0.0007298406
+#> 3 2020.583 ch.seco.gdp.real.gdp.ssa factor1 -0.0011804705
+#> 4 2020.604 ch.seco.gdp.real.gdp.ssa factor1 -0.0017847879
+#> 5 2020.625 ch.seco.gdp.real.gdp.ssa factor1 -0.0025869263
+#> 6 2020.646 ch.seco.gdp.real.gdp.ssa factor1 -0.0035335671
 
 # the contributions add up to the smoothed factor, by construction
 agg <- tapply(as.data.frame(ct)$contribution, as.data.frame(ct)$time, sum)
@@ -260,10 +261,10 @@ mfbdfm_contributions(fit, by = "group", groups = grp)
 #> 
 #> Mean absolute contribution to the factor (standardized scale):
 #> 
-#>   real                                          0.05428
-#>   financial                                     0.00156
+#>   real                                          0.05414
+#>   financial                                     0.00155
 #> 
-#> Mean |residual| (parameter uncertainty, not explained by any series): 0.032
+#> Mean |residual| (parameter uncertainty, not explained by any series): 0.0319
 #> 
 #> Full results: $contributions, $totals, $nowcast, $nowcast_totals;
 #> as.data.frame(), plot()

@@ -47,7 +47,8 @@ the helpers that prepare their input data.
 The generics both fit classes support: print, summary, plot, coef,
 fitted, residuals, as.data.frame and logLik (and hence AIC/BIC), plus
 the decomposition of the factor and nowcast into per-series
-contributions.
+contributions, and the news decomposition of a nowcast revision between
+two data vintages.
 
 - [`coef(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
   [`fitted(`*`<ind_dfm>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm_methods.md)
@@ -78,6 +79,11 @@ contributions.
   [`as.data.frame(`*`<mfbdfm_contributions>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)
   [`plot(`*`<mfbdfm_contributions>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)
   : Contribution of each input series to the factor and to the nowcast
+- [`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
+  [`print(`*`<mfbdfm_news>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
+  [`as.data.frame(`*`<mfbdfm_news>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
+  [`plot(`*`<mfbdfm_news>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
+  : News decomposition of a nowcast revision between two data vintages
 
 ## Posterior draws & convergence diagnostics
 

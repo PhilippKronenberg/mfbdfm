@@ -533,6 +533,162 @@ round(tail(fit$index), 2)
 #> [1] 122.16 122.27 122.38 122.49 122.58 122.66
 ```
 
+## Which release moved the nowcast?
+
+A high-frequency indicator is revised every week, and the first question
+a user asks is which release did it.
+[`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
+answers that between two data vintages: for each newly released
+observation it reports the value that arrived (`actual`), the value the
+old vintage implied for it (`forecast`), the difference (`news`), the
+weight that news carries on the target (`gain`) and the product of the
+two (`impact`). The impacts add up to the revision.
+
+To demonstrate it, hold back the last four weeks of every high-frequency
+series and fit on that older vintage:
+
+``` r
+
+old <- mfbdfm_example_data
+drop4 <- function(x) stats::window(x, end = stats::time(x)[length(x) - 4])
+old$flows <- lapply(old$flows,
+                    function(x) if (frequency(x) > 4) drop4(x) else x)
+old$stocks <- lapply(old$stocks, drop4)
+
+set.seed(1)
+fit_old <- ind_dfm(old, length_sample = 2000, burn_in = 500)
+```
+
+The full dataset is then the new vintage, and the four weeks it adds are
+the news:
+
+``` r
+
+nw <- mfbdfm_news(fit_old, mfbdfm_example_data)
+nw
+#> News decomposition of a nowcast revision (ind_dfm)
+#> Call: mfbdfm_news(fit = fit_old, new_data = mfbdfm_example_data)
+#> 
+#>   target            : ch.seco.gdp.real.gdp.ssa
+#>   period            : 2026
+#>   new observations  : 28
+#>   revised           : 0
+#>   by                : series
+#> 
+#>   nowcast, old vintage         0.0039
+#>     + news                     0.0001
+#>     + data revisions           0.0000
+#>   nowcast, new vintage         0.0039
+#>     parameter revision            not computed (supply `new_fit`)
+#> 
+#> Impact on the nowcast, by series:
+#> 
+#>   traffic_PW                                    0.00032
+#>   electricity_out                               0.00023
+#>   ch.fso.rtt.ind.r.noga0801.sa                 -0.00023
+#>   ch.ozd.e.wa.index.re.d11                     -0.00012
+#>   SWPMIPROQ                                    -0.00012
+#>   SWISSMI                                      -0.00007
+#>   Arbeitsmarkt                                  0.00005
+#> 
+#> The nowcasts above plug in the posterior mean parameters rather than
+#> averaging over them (the fit's own nowcast does not reach this period). See ?mfbdfm_news.
+#> 
+#> Full results: $table, $news, $revisions, $by_component, $totals;
+#> as.data.frame(), plot()
+```
+
+The per-observation detail is in the tidy table, which is also what
+[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) returns —
+one row per release, plus summary rows for the total revision and for
+the parameter term:
+
+``` r
+
+d <- as.data.frame(nw)
+rel <- d[d$term == "news", ]
+rel <- rel[order(-abs(rel$impact))[1:6], ]
+data.frame(series = substr(rel$series, 1, 16),
+           time = round(rel$time, 3),
+           actual = signif(rel$actual, 3),
+           forecast = signif(rel$forecast, 3),
+           news = signif(rel$news, 3),
+           gain = signif(rel$gain, 3),
+           impact = signif(rel$impact, 3),
+           row.names = NULL)
+#>             series     time  actual  forecast    news     gain    impact
+#> 1 ch.fso.rtt.ind.r 2026.000 -0.0202  0.000490 -0.0207  0.01580 -0.000327
+#> 2       traffic_PW 2026.021  0.0477 -0.020800  0.0685  0.00319  0.000219
+#> 3  electricity_out 2025.979  0.0584  0.000142  0.0583  0.00339  0.000198
+#> 4  electricity_out 2025.938 -0.0535  0.009710 -0.0632  0.00277 -0.000175
+#> 5 ch.ozd.e.wa.inde 2025.667  0.0192 -0.002450  0.0217 -0.00693 -0.000150
+#> 6  electricity_out 2025.958  0.0444 -0.001440  0.0458  0.00312  0.000143
+```
+
+Note that `gain` is on each series’ own scale — the weight of a one-unit
+move in *that* series on the target — so a series measured in index
+points carries a much smaller gain than one measured in growth rates,
+and the two are not comparable. `impact` is, because the series’ scale
+cancels in the product.
+
+Two properties are worth checking rather than taking on trust. The
+impacts sum to the revision exactly, because the decomposition
+orthogonalises the forecast errors within the released block instead of
+weighting each release on its own:
+
+``` r
+
+sum(d$impact[d$term %in% c("news", "revision")]) - nw$totals$total
+#> [1] 0
+```
+
+And a release that lands exactly where the model expected it moves
+nothing — `news` of zero gives an `impact` of zero whatever the gain.
+
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) draws the
+waterfall from the old nowcast to the new one:
+
+``` r
+
+plot(nw)
+```
+
+![plot of chunk news-plot](mfbdfm-news-plot-1.png)
+
+plot of chunk news-plot
+
+Three things are held at the old vintage’s values, which is what makes
+the sum exact: the parameters, the volatility path, and — the one that
+is easy to miss — the standardisation.
+[`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+computes each series’ mean and standard deviation from the vintage in
+hand, so the new vintage is re-prepared with the old fit’s moments;
+using the new ones would make the nowcast a nonlinear function of the
+data and nothing would add up. The part of the revision that comes from
+re-estimating the model is reported separately as a `parameter` term,
+which needs a fit on the new vintage:
+
+``` r
+
+mfbdfm_news(fit_old, mfbdfm_example_data, new_fit = fit)$totals
+#>   nowcast_old revision         news        total     parameter nowcast_new
+#> 1 0.003864279        0 6.724228e-05 6.724228e-05 -3.900851e-06 0.003931521
+#>   posterior_old posterior_new
+#> 1            NA    0.01135958
+```
+
+For a 45-series panel the per-observation table is too fine to read;
+`by = "group"` aggregates the impacts to groups of series, and
+`$by_component` holds the aggregate for either choice.
+[`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
+is implemented for
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+fits: in
+[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+the factors are identified only after sampling, by rotation, so a gain
+computed at fixed parameters would belong to a rotation the new
+vintage’s fit does not reproduce.
+
 ## Bringing your own data
 
 `mfbdfm_example_data` arrived ready-made. The models themselves take

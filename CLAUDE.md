@@ -89,7 +89,8 @@ matters for the 1:1 test-file convention below):
 | `analytics-cor.R` | Correlation tables/plots: [`get_combined_cor_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.md), [`plot_comparison()`](https://philippkronenberg.github.io/mfbdfm/reference/plot_comparison.md), [`render_correlation_heatmap()`](https://philippkronenberg.github.io/mfbdfm/reference/render_correlation_heatmap.md); internal [`rescale_to_gdp()`](https://philippkronenberg.github.io/mfbdfm/reference/rescale_to_gdp.md), [`suffix_cols()`](https://philippkronenberg.github.io/mfbdfm/reference/suffix_cols.md), `*_wai_qoq_*()` |
 | `analytics-tables.R` | Fit/error tables: [`dm_test_modified()`](https://philippkronenberg.github.io/mfbdfm/reference/dm_test_modified.md), [`get_insample_fit_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_insample_fit_table.md), [`create_error_summary_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_error_summary_tables.md), [`create_rel_error_tables()`](https://philippkronenberg.github.io/mfbdfm/reference/create_rel_error_tables.md); internal [`calculate_relative_errors()`](https://philippkronenberg.github.io/mfbdfm/reference/calculate_relative_errors.md), [`annotate_relative_errors()`](https://philippkronenberg.github.io/mfbdfm/reference/annotate_relative_errors.md), [`create_combined_latex_table()`](https://philippkronenberg.github.io/mfbdfm/reference/create_combined_latex_table.md), [`print_evaluation_periods()`](https://philippkronenberg.github.io/mfbdfm/reference/print_evaluation_periods.md) |
 | `methods.R` | S3 methods for both fit classes (`print`/`summary`/`plot`/`coef`/`fitted`/`residuals`/`as.data.frame`), documented under `ind_dfm_methods` and `fcast_dfm_methods` |
-| `contributions.R` | [`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md) + its `print`/`as.data.frame`/`plot` methods, and the internal `dfm_joint_precision()` / `dfm_state_weights()` that [`logLik()`](https://rdrr.io/r/stats/logLik.html) also builds on (#109) |
+| `contributions.R` | [`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md) + its `print`/`as.data.frame`/`plot` methods, and the internal `dfm_joint_precision()` / `dfm_state_weights()` / `dfm_h_path()` / `dfm_resolve_groups()` that [`logLik()`](https://rdrr.io/r/stats/logLik.html) and [`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md) also build on (#109) |
+| `news.R` | [`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md) + its `print`/`as.data.frame`/`plot` methods — the Banbura-Modugno news decomposition of a nowcast revision between two data vintages; internal `dfm_target_plugin()`, `dfm_news_panels()` (#101). Builds on `contributions.R`’s joint precision rather than its own |
 | `priors.R` | [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md) + [`print.dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_priors.md); structural vs tunable priors |
 | `control.R` | [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md) + [`print.dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_control.md) — optional numerical/algorithmic knobs (#46) |
 | `data-input.R` | [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md) + [`print.mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/print.mfbdfm_data.md) and the frequency-harmonisation helpers (#56) |
@@ -112,13 +113,15 @@ interactively in R/RStudio.
 - [`devtools::load_all()`](https://devtools.r-lib.org/reference/load_all.html)
   — load the package for interactive development.
 - [`devtools::test()`](https://devtools.r-lib.org/reference/test.html) —
-  run the full testthat suite (1376 assertions, ~3 min; measured
-  2026-10-04 on an `x86_64-pc-linux-gnu` CI runner — the “677
-  assertions, ~42 s” recorded here before was from an earlier, much
-  smaller suite and had gone stale by a factor of four). The cost is now
-  spread across many short-chain fits rather than concentrated in one;
-  if a single change makes it jump, suspect a test that fits a model at
-  a default chain length rather than a short one, as a single
+  run the full testthat suite (2018 assertions, ~3.5 min; measured
+  2026-10-24 on an `x86_64-pc-linux-gnu` CI runner — the “1376
+  assertions, ~3 min” recorded here was measured 2026-10-04 and had
+  drifted by a third since; the “677 assertions, ~42 s” before that was
+  from an earlier, much smaller suite and had gone stale by a factor of
+  four). The cost is now spread across many short-chain fits rather than
+  concentrated in one; if a single change makes it jump, suspect a test
+  that fits a model at a default chain length rather than a short one,
+  as a single
   [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
   call on its 5000-draw default was once 143 s of a 179 s suite.
   Anything that would add minutes belongs in the extended suite instead
@@ -498,6 +501,29 @@ constraint.
   anything claiming to reproduce the paper (7 of 45 indicators).
   Examples that are genuinely *about* real-time vintages or the
   frequency utilities stay on `data_ch_dataset_test`.
+- **[`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)
+  and
+  [`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
+  are one piece of linear algebra used twice, and
+  `dfm_joint_precision()` is it.** Conditional on the posterior mean
+  parameters the whole system is one sparse Gaussian: contributions are
+  `W y`, news is the same weights applied to the forecast errors of the
+  newly released entries. Neither builds its own precision matrix, and a
+  change to `dfm_joint_precision()` moves both (plus
+  [`logLik()`](https://rdrr.io/r/stats/logLik.html)). Two traps
+  there: (a) **the standardisation is part of the parameters.**
+  [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+  computes each series’ mean/sd from the vintage in hand, so
+  [`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
+  re-prepares the new vintage with the *fit’s* inventory — recomputing
+  the moments makes the nowcast nonlinear in the data and the
+  decomposition stops adding up, which is why the change in
+  standardisation is deliberately reported in the `parameter` term
+  instead. (b) `dfm_joint_precision()` does **not** apply
+  `draw_factors()`’s `Svec` forecast-horizon mask, and should not: the
+  sampler needs it because it conditions on its own augmented data,
+  while these condition on genuine observations only and leave
+  everything else latent, which is the correct marginal.
 - **Analytics table builders take an explicit `inputs` list**, not
   implicit globals.
   [`get_combined_cor_table()`](https://philippkronenberg.github.io/mfbdfm/reference/get_combined_cor_table.md),

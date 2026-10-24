@@ -246,6 +246,14 @@ An object of class `"fcast_dfm"`: a list with components
   `starting_values` to continue the chain from here; see there for why
   the two legs' *rotated* output is not comparable.
 
+- internal:
+
+  `p`, `t2` and `h_full`, for parity with
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  – see there. All three are already available from `pars` in this
+  class; the element exists so a consumer need not know which class it
+  was handed. Not part of the API.
+
 - call:
 
   The matched call.

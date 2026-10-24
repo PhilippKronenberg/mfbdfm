@@ -246,6 +246,15 @@ so an unseeded fit is still reproducible after the fact.</p></dd>
 <code>indicators</code>). Pass the fit as <code><a href="dfm_control.html">dfm_control()</a></code>'s <code>starting_values</code> to
 continue the chain from here.</p></dd>
 
+<dt>internal</dt>
+<dd><p>Bookkeeping the sampler's matrices cannot be rebuilt
+without: <code>p</code> (the factor lag order), <code>t2</code> (the number of periods that
+held data before <code>extend_to</code> padded the panel) and <code>h_full</code> (the
+posterior mean volatility path over all <code>t+s</code> periods, where <code>pars$h</code>
+covers the <code>t</code> in-sample ones only). Read by <code><a href="mfbdfm_news.html">mfbdfm_news()</a></code> and
+<code><a href="mfbdfm_contributions.html">mfbdfm_contributions()</a></code>; not part of the API, and present on
+<code><a href="fcast_dfm.html">fcast_dfm()</a></code> fits too so the two agree.</p></dd>
+
 <dt>call</dt>
 <dd><p>The matched call.</p></dd>
 

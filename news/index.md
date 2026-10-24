@@ -71,6 +71,94 @@
   `analysis/5_plots/_setup.R`, `analysis/fcast/_setup.R` and the three
   scripts that use neither prelude source it.
 
+### New features
+
+- **[`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
+  decomposes a nowcast revision into the news in each newly released
+  observation**
+  ([\#101](https://github.com/PhilippKronenberg/mfbdfm/issues/101)),
+  after Bańbura and Modugno (2014). Between the vintage a fit was
+  estimated on and a newer one it reports, per release, the `actual`
+  value, the `forecast` the old vintage implied for it, the `news`
+  (actual minus forecast), the `gain` that news carries on the target
+  and the resulting `impact` – and the impacts add up to the revision.
+  This is the answer to “the nowcast moved this week, which release did
+  that?”, which nothing in the package could previously give.
+
+  There is no Kalman filter here to run the textbook derivation through:
+  the factors are drawn by a stacked, precision-based sampler. What
+  takes its place is that at fixed parameters the whole system is one
+  sparse Gaussian, so `E[z_L | y] = -Q_LL^-1 Q_LO y` and
+  `Cov(z_L | y) = Q_LL^-1` – the forecast of a not-yet-released
+  observation and the weight it carries are both blocks of the same
+  matrix, and a vintage update is just conditioning that Gaussian on
+  more of its own entries.
+  [`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)’s
+  joint-precision construction is reused rather than duplicated:
+  contributions are `W y`, news is the same `W` applied to the forecast
+  errors. One sparse Cholesky factorisation serves the whole
+  decomposition and `Q` is never inverted.
+
+  Exact, and tested as such: the impacts sum to the change in the
+  plug-in nowcast to 1e-8 on synthetic data, an observation equal to its
+  own forecast has exactly zero impact, and the exact conditioning
+  agrees with the samplers’ own `1e-9` observation nugget to `O(1e-9)`.
+  Three things are held at the old vintage’s values, and the last of
+  them is easy to get wrong: the parameters, the volatility path, and
+  **the standardisation** –
+  [`prepare_data()`](https://philippkronenberg.github.io/mfbdfm/reference/prepare_data.md)
+  computes each series’ mean and standard deviation from the vintage in
+  hand, so the new vintage is re-prepared with the fit’s inventory.
+  Using the new vintage’s own moments would make the nowcast nonlinear
+  in the data and nothing would add up.
+
+  What does not fit in the sum is reported rather than folded in: a
+  `revision` block for observations present in both vintages whose value
+  changed (also exact, and also additive per observation), and a
+  `parameter` term, `nowcast(theta_new) - nowcast(theta_old)`, which
+  needs a fit on the new vintage and is `NA` unless `new_fit` is
+  supplied. The change in standardisation lands in that term by
+  construction.
+
+  With [`print()`](https://rdrr.io/r/base/print.html),
+  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) – one
+  tidy table, per-observation rows plus summary rows for the total and
+  the parameter term – and
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html), a waterfall
+  from the old nowcast to the new one. Impacts aggregate to
+  `by = "series"` or `by = "group"`, since per-observation output is too
+  fine to read for a 45-series panel.
+
+  **[`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  is deferred, deliberately**
+  ([\#152](https://github.com/PhilippKronenberg/mfbdfm/issues/152)). The
+  algebra carries over but the target does not: that model’s factors are
+  pinned by a post-hoc Procrustes plus varimax rotation, so a gain
+  computed at a fixed `theta` would belong to a rotation the new
+  vintage’s fit does not reproduce. An `fcast_dfm` fit is an informative
+  error here rather than a plausible-looking number.
+
+- **A fit carries `$internal`**, holding the three things the samplers’
+  own matrices cannot be rebuilt from a fit without: `p` (not
+  recoverable from a scalar `pars$phi`), `t2` (lost the moment
+  `extend_to` pads the panel) and `h_full`, the posterior mean
+  volatility path over all `t+s` periods. On both fit classes, per the
+  parity rule, though
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  already had all three in `pars`. Not part of the API.
+
+  One consequence worth noting: `dfm_joint_precision()` was
+  approximating the `s` pre-sample volatility periods of an
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
+  fit by repeating `pars$h`’s first value, because that slice is all
+  `pars$h` keeps
+  ([\#49](https://github.com/PhilippKronenberg/mfbdfm/issues/49)). It
+  now reads `h_full` when present, so
+  [`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)
+  and [`logLik()`](https://rdrr.io/r/stats/logLik.html) on a newly
+  estimated fit use the real path. Both still work unchanged on a fit
+  saved before this release, which falls back to the old padding.
+
 ### Other changes
 
 - **A fit now carries the prior and control specification it ran under**

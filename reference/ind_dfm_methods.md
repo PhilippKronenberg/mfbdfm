@@ -426,9 +426,9 @@ head(as.data.frame(fit))
 #> 5 2015.083 -0.2675197    -7.405483     6.870443
 #> 6 2015.104  0.8339920    -4.034132     5.702116
 logLik(fit)
-#> 'log Lik.' -3127.606 (df=25)
+#> 'log Lik.' -3127.622 (df=25)
 AIC(fit)              # approximate here - see "What logLik() means"
-#> [1] 6305.213
+#> [1] 6305.244
 mfbdfm_nowcast(fit, last = TRUE)
 #>   time     nowcast          sd       lower       upper
 #> 1 2026 0.001822563 0.003008001 -0.00407301 0.007718136
