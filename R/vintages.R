@@ -254,6 +254,21 @@ cut_data <- function(dat, current_date){
 }
 
 
+# Cut `x` at `end`, keeping the grid point `end` names even when `end` arrived
+# rounded down. Evaluation dates travel through the workflow rounded to 3
+# decimals (they name the fit files), and 20 of the 48 weekly grid points round
+# DOWN - 2025 + 47/48 = 2025.979167 becomes 2025.979 - so an exact comparison
+# put the date just before its own grid point and silently dropped the latest
+# observation (#157; analysis/update_wai_web.R passes such a date). A tenth of a
+# week of tolerance absorbs any 3-decimal rounding and is far below every
+# publication lag, so an exact date cuts exactly as before. Same remedy as
+# trim_to() got in #65.
+#' @noRd
+#' @importFrom stats window
+cut_window <- function(x, end){
+  suppressWarnings(window(x, end = end + 0.1/48))
+}
+
 #' @noRd
 #' @importFrom stats window frequency
 cut_data_helper <- function(x, current_date){
@@ -264,19 +279,19 @@ cut_data_helper <- function(x, current_date){
 
       # weekly series are observed in the next week
       # e.g. W1 2020 = 2020.000, observed in 2020.000 + 1/48
-      suppressWarnings(window(x, end = current_date - 1/48))
+      cut_window(x, current_date - 1/48)
 
     } else if((frequency(x) == 12)){
 
       # monthly series are observed in the first week of the next month
       # e.g. Jan 2020 = 2020.000, observed in 2020.000 + 4/48 (= 2019.979 + 5/48))
-      suppressWarnings(window(x, end = current_date - 4/48))
+      cut_window(x, current_date - 4/48)
 
     } else {
 
       # quarterly series (= GDP) are observed in the first week of the third month after the end of the quarter
       # e.g. Q4 2019 = 2019.75, observed in 2020.000 + 8/48 (= 2019.979 + 9/48)
-      suppressWarnings(window(x, end = current_date - 1/4 - 8/48))
+      cut_window(x, current_date - 1/4 - 8/48)
     }
   }, error=function(cond) {
 
@@ -335,13 +350,13 @@ cut_data_helper_real_time <- function(x, current_date, GDP_gr_vintages){
 
       # weekly series are observed in the next week
       # e.g. W1 2020 = 2020.000, observed in 2020.000 + 1/48
-      suppressWarnings(window(x, end = current_date - 1/48))
+      cut_window(x, current_date - 1/48)
 
     } else if((frequency(x) == 12)){
 
       # monthly series are observed in the first week of the next month
       # e.g. Jan 2020 = 2020.000, observed in 2020.000 + 4/48 (= 2019.979 + 5/48))
-      suppressWarnings(window(x, end = current_date - 4/48))
+      cut_window(x, current_date - 4/48)
 
     } else {
 
