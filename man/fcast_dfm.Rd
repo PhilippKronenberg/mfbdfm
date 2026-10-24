@@ -121,6 +121,12 @@ estimate). See \link{fcast_dfm_methods}.}
 identification} (see \link{mfbdfm_draws}), or \code{NULL} with
 \code{keep_draws = FALSE} in \code{\link[=dfm_control]{dfm_control()}}. Present by default; this is
 what \code{\link[=mfbdfm_diagnostics]{mfbdfm_diagnostics()}} reads.}
+\item{priors, control}{The resolved \code{\link[=dfm_priors]{dfm_priors()}} and \code{\link[=dfm_control]{dfm_control()}}
+objects the fit ran under, including the defaults when nothing was
+passed; see \code{\link[=ind_dfm]{ind_dfm()}} for what "resolved" covers and why
+\code{control$starting_values} is elided. \code{print()} and \code{summary()} show the
+full specification, and flag a fit whose identifying prior was
+overridden.}
 \item{rng}{The random stream the fit ran under: \code{seed} (the
 \code{\link[=dfm_control]{dfm_control()}} setting, or \code{NULL}), \code{kind} (\code{\link[=RNGkind]{RNGkind()}}), \code{start}
 (the \code{.Random.seed} the sampler began from) and \code{end} (its position

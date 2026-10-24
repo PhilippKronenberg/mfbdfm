@@ -109,6 +109,17 @@ baseline_digest <- function(fit){
     }), use.names = FALSE)
   }
 
+  # Flatten a dfm_priors/dfm_control object to one "name = value" line per
+  # entry. `starting_values` is dropped rather than rendered: a fit elides it
+  # to a marker, so there is nothing to compare, and the baseline fits pass
+  # none anyway.
+  keep_spec <- function(x){
+    if(is.null(x)) return(NULL)
+    flat <- unlist(x[setdiff(names(x), "starting_values")], use.names = TRUE)
+    if(is.null(flat)) return(character(0))
+    paste0(names(flat), " = ", vapply(flat, format, character(1)))
+  }
+
   list(factor = keep(fit$factor),
        factor_var = keep(fit$factor_var),
        # $index went uncovered until #92, which is why baseline_check() stayed
@@ -130,7 +141,14 @@ baseline_digest <- function(fit){
        # averaged output above untouched, so it is covered in its own right.
        # Blocks are flattened in their stored order; Matrix blocks via
        # as.matrix(), phi (a list of lag blocks under fcast_dfm) via unlist().
-       final_state = keep_state(fit$final_state))
+       final_state = keep_state(fit$final_state),
+       # The resolved prior and control specification the fit stores (#119).
+       # Characters rather than numbers, because both blocks are mixed-type and
+       # what is being protected is that the recorded specification is still
+       # the one the sampler ran under - a changed default or a prior that
+       # stopped being resolved shows up here as a changed line, named.
+       priors = keep_spec(fit$priors),
+       control = keep_spec(fit$control))
 
 }
 
@@ -246,6 +264,11 @@ baseline_check <- function(path = BASELINE_PATH){
         av <- a[[k]]; bv <- b[[k]]
         if(is.null(av) || is.null(bv) || length(av) != length(bv)){
           cat(sprintf("      %-12s length %s -> %s\n", k, length(av), length(bv)))
+        } else if(!is.numeric(av) || !is.numeric(bv)){
+          # the priors/control digests are character (#119), so name the lines
+          # that moved rather than differencing them
+          moved <- which(av != bv)
+          for(i in moved) cat(sprintf("      %-12s %s -> %s\n", k, av[i], bv[i]))
         } else {
           cat(sprintf("      %-12s max abs diff %.3e   max rel %.3e\n", k,
                       max(abs(av - bv), na.rm = TRUE),

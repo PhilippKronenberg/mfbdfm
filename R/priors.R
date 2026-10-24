@@ -277,12 +277,21 @@ print.dfm_priors <- function(x, ...){
   cat("Priors for ", x$model, "()  [type: ", x$type, "]\n\n", sep = "")
 
   meta <- c("model", "type", "structural", "structural_modified")
+  from_data <- FALSE
   for(nm in setdiff(names(x), meta)){
 
     tag <- if(nm %in% x$structural) "  [structural]" else ""
     vals <- vapply(names(x[[nm]]), function(k){
       v <- x[[nm]][[k]]
-      if(is.null(v)) paste0(k, " = <from data>") else paste0(k, " = ", format(v, digits = 4))
+      if(is.null(v)){
+        from_data <<- TRUE
+        paste0(k, " = <from data>")
+      } else {
+        # collapsed, because a resolved entry can be a vector: `phi$A0` is one
+        # value per lag once the published 1/(lag^2) rule has been applied, and
+        # vapply() below takes exactly one string per prior (#119)
+        paste0(k, " = ", paste(format(v, digits = 4), collapse = ", "))
+      }
     }, character(1))
     cat(sprintf("  %-13s %s%s\n", nm, paste(vals, collapse = ", "), tag))
 
@@ -293,7 +302,11 @@ print.dfm_priors <- function(x, ...){
         "    published model. See ?dfm_priors.\n", sep = "")
   }
 
-  cat("\n<from data> entries follow the model's published rule in terms of t or p.\n")
+  # only when there is one to explain: a prior set stored on a fit comes back
+  # resolved, so every entry is a number and the note would be noise (#119)
+  if(from_data){
+    cat("\n<from data> entries follow the model's published rule in terms of t or p.\n")
+  }
 
   invisible(x)
 

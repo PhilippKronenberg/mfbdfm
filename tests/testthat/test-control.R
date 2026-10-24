@@ -260,6 +260,45 @@ test_that("print.dfm_control() renders NULL and a fit, which format() cannot", {
   ctrl$starting_values <- fake
   out <- paste(utils::capture.output(print(ctrl)), collapse = "\n")
   expect_match(out, "<ind_dfm fit>", fixed = TRUE)
+
+  # ... and the marker a fit stores in its place, bare rather than quoted (#119)
+  ctrl$starting_values <- elided_starting_values(fake)
+  out <- paste(utils::capture.output(print(ctrl)), collapse = "\n")
+  expect_match(out, "<ind_dfm fit, not stored>", fixed = TRUE)
+})
+
+
+test_that("fit_specification() resolves the priors and elides the state (#119)", {
+
+  spec <- fit_specification(dfm_priors("ind_dfm"), dfm_control("ind_dfm"),
+                            t = 100, p = 2)
+
+  expect_s3_class(spec$priors, "dfm_priors")
+  expect_s3_class(spec$control, "dfm_control")
+
+  # the data-dependent entries dfm_priors() holds as NULL come back as the
+  # numbers this sample implies, so the record is what the sampler used
+  expect_null(dfm_priors("ind_dfm")$sigma_target$c0)
+  expect_equal(spec$priors$sigma_target$c0, 100)
+  expect_equal(spec$priors$sigma_target$d0, 100 * 1e-3)
+  expect_equal(spec$priors$phi$A0, 0.12 / ((1:2)^2))
+
+  # and resolving an already-resolved object changes nothing, so the record
+  # cannot drift from the sampler's own resolve_priors() call
+  expect_identical(resolve_priors(spec$priors, t = 100, p = 2), spec$priors)
+
+  # a previous fit is not carried into the next one's control object
+  fake <- structure(list(), class = "ind_dfm")
+  spec2 <- fit_specification(dfm_priors("ind_dfm"),
+                             dfm_control("ind_dfm", starting_values = fake),
+                             t = 10, p = 1)
+  expect_s3_class(spec2$control$starting_values, "mfbdfm_elided")
+  expect_false(inherits(spec2$control$starting_values, "ind_dfm"))
+
+  # the fcast side resolves its own data-dependent entry
+  spec3 <- fit_specification(dfm_priors("fcast_dfm"), dfm_control("fcast_dfm"),
+                             t = 50, p = 1)
+  expect_equal(spec3$priors$rho$R0, 1/50)
 })
 
 

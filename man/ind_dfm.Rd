@@ -104,6 +104,19 @@ there for which blocks are present and why.}
 \item{draws}{The retained posterior draws (see \link{mfbdfm_draws}), or
 \code{NULL} with \code{keep_draws = FALSE} in \code{\link[=dfm_control]{dfm_control()}}. Present by
 default; this is what \code{\link[=mfbdfm_diagnostics]{mfbdfm_diagnostics()}} reads.}
+\item{priors}{The \code{\link[=dfm_priors]{dfm_priors()}} object the fit ran under, \strong{resolved}:
+the data-dependent entries that \code{\link[=dfm_priors]{dfm_priors()}} holds as \code{NULL} are
+filled in with the numbers this sample implies, so this records what
+the sampler used rather than the rule it followed. Present whether or
+not \code{priors} was given, so a default fit records its priors too, and it
+carries the \code{structural_modified} flag -- which \code{print()} and
+\code{summary()} report loudly, since a fit with an identifying prior
+overridden is not the published model.}
+\item{control}{The \code{\link[=dfm_control]{dfm_control()}} object the fit ran under, likewise
+including the defaults. One exception: \code{starting_values} is replaced by
+a marker rather than stored, because it is either a whole previous fit
+or a full set of parameter blocks, and keeping it would nest one fit
+inside the next. \code{rng$start} already records where the chain began.}
 \item{rng}{The random stream the fit ran under: \code{seed} (the
 \code{\link[=dfm_control]{dfm_control()}} setting, or \code{NULL}), \code{kind} (\code{\link[=RNGkind]{RNGkind()}}), \code{start}
 (the \code{.Random.seed} the sampler began from) and \code{end} (its position

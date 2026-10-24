@@ -288,6 +288,19 @@
 #'     \item{draws}{The retained posterior draws (see [mfbdfm_draws]), or
 #'       `NULL` with `keep_draws = FALSE` in [dfm_control()]. Present by
 #'       default; this is what [mfbdfm_diagnostics()] reads.}
+#'     \item{priors}{The [dfm_priors()] object the fit ran under, **resolved**:
+#'       the data-dependent entries that [dfm_priors()] holds as `NULL` are
+#'       filled in with the numbers this sample implies, so this records what
+#'       the sampler used rather than the rule it followed. Present whether or
+#'       not `priors` was given, so a default fit records its priors too, and it
+#'       carries the `structural_modified` flag -- which `print()` and
+#'       `summary()` report loudly, since a fit with an identifying prior
+#'       overridden is not the published model.}
+#'     \item{control}{The [dfm_control()] object the fit ran under, likewise
+#'       including the defaults. One exception: `starting_values` is replaced by
+#'       a marker rather than stored, because it is either a whole previous fit
+#'       or a full set of parameter blocks, and keeping it would nest one fit
+#'       inside the next. `rng$start` already records where the chain began.}
 #'     \item{rng}{The random stream the fit ran under: `seed` (the
 #'       [dfm_control()] setting, or `NULL`), `kind` ([RNGkind()]), `start`
 #'       (the `.Random.seed` the sampler began from) and `end` (its position
@@ -630,6 +643,14 @@ ind_dfm <- function(flows = NULL,
                                  burn_in = burn_in,
                                  thinning = thinning)
   }
+
+  # the prior and control specification the fit ran under (#119, BS5.2). The
+  # priors come back resolved - the data-dependent entries filled in with the
+  # numbers this sample implies - and the starting values elided; see
+  # fit_specification().
+  .spec <- fit_specification(priors, control, t = t, p = p)
+  out$priors <- .spec$priors
+  out$control <- .spec$control
 
   # reproducibility record and the sampler's last state (#117). The state
   # carries the specification it belongs to as an attribute, so handing this

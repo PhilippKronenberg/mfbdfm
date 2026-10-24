@@ -174,6 +174,12 @@
 #'       identification** (see [mfbdfm_draws]), or `NULL` with
 #'       `keep_draws = FALSE` in [dfm_control()]. Present by default; this is
 #'       what [mfbdfm_diagnostics()] reads.}
+#'     \item{priors, control}{The resolved [dfm_priors()] and [dfm_control()]
+#'       objects the fit ran under, including the defaults when nothing was
+#'       passed; see [ind_dfm()] for what "resolved" covers and why
+#'       `control$starting_values` is elided. `print()` and `summary()` show the
+#'       full specification, and flag a fit whose identifying prior was
+#'       overridden.}
 #'     \item{rng}{The random stream the fit ran under: `seed` (the
 #'       [dfm_control()] setting, or `NULL`), `kind` ([RNGkind()]), `start`
 #'       (the `.Random.seed` the sampler began from) and `end` (its position
@@ -394,6 +400,14 @@ fcast_dfm <- function(flows = NULL,
                         burn_in = burn_in,
                         thinning = thinning)
 
+  # the prior and control specification the fit ran under (#119, BS5.2). The
+  # priors come back resolved - the data-dependent entries filled in with the
+  # numbers this sample implies - and the starting values elided; see
+  # fit_specification().
+  .spec <- fit_specification(priors, control, t = t, p = p)
+  out$priors <- .spec$priors
+  out$control <- .spec$control
+
   # reproducibility record and the sampler's last state (#117). The state
   # carries the specification it belongs to as an attribute, so handing this
   # fit back as `starting_values` cannot silently continue a chain onto
@@ -416,6 +430,7 @@ print.fcast_dfm <- function(x, n_show = 8, ...){
 
   cat("Multi-factor mixed-frequency dynamic factor model (Eckert et al. 2025)\n")
   if(!is.null(x$call)) cat("Call: ", deparse(x$call, nlines = 2), "\n", sep = "")
+  cat_structural_flag(x$priors)
   cat("\n")
   cat("  series (n)      : ", x$pars$n, "\n", sep = "")
   cat("  factors (q)     : ", x$pars$q, "\n", sep = "")
@@ -444,6 +459,8 @@ print.fcast_dfm <- function(x, n_show = 8, ...){
     cat("\n  ", n_missing, " of ", nrow(nc),
         " periods have no observed value (nowcast/backcast).\n", sep = "")
   }
+
+  cat_fit_specification(x)
 
   cat("\nFull results: $factor, $ncst (all series), $data_hf, $target_series;\n")
   cat("mfbdfm_nowcast() for the target's nowcasts\n")

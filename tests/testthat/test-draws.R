@@ -109,6 +109,9 @@ test_that("retaining draws consumes no RNG and changes nothing else", {
                                   control = dfm_control("ind_dfm", ...)))
     f$draws <- NULL
     f$call <- NULL
+    # the fit records the control object it ran under (#119), which is the very
+    # thing being varied here; the point of this test is everything else
+    f$control <- NULL
     f
   }
 
@@ -128,6 +131,7 @@ test_that("retaining draws consumes no RNG and changes nothing else", {
                 control = dfm_control("fcast_dfm", ...))))
     f$draws <- NULL
     f$call <- NULL
+    f$control <- NULL
     f
   }
 
