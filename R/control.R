@@ -431,8 +431,12 @@ validate_control <- function(ctrl){
          call. = FALSE)
   }
 
+  # the elided marker is accepted here so a control object read back off a fit
+  # still validates; resolve_starting_values() is where it is refused, with an
+  # explanation of what to pass instead (#119)
   if(!is.null(ctrl$starting_values) &&
      !is.list(ctrl$starting_values) &&
+     !inherits(ctrl$starting_values, "mfbdfm_elided") &&
      !inherits(ctrl$starting_values, c("ind_dfm", "fcast_dfm"))){
     stop("`starting_values` must be a named list of parameter blocks, a ",
          "previous fit to continue, or NULL, not a ",
@@ -492,6 +496,60 @@ resolve_control <- function(control, model){
 }
 
 
+#' Record the specification a fit actually ran under
+#'
+#' BS5.2 asks that the prior specification come back with the fit, and the same
+#' argument applies to the numerical settings. `$call` is not that record: it
+#' says `priors = p` as written, which is unresolvable once `p` is gone, and
+#' says nothing at all when the defaults were used -- the common case. Both
+#' entry points call this once, so the two cannot drift apart (#119).
+#'
+#' `priors` is stored **resolved**: the data-dependent entries [dfm_priors()]
+#' holds as `NULL` are filled in with the numbers this sample implies, so the
+#' fit records what the sampler used rather than the rule it followed. The
+#' arithmetic is [resolve_priors()]'s own, called with the same `t` and `p` the
+#' sampler was given, and it is idempotent -- this consumes no RNG and changes
+#' nothing the sampler did.
+#'
+#' `control$starting_values` is replaced by a marker rather than stored. It is
+#' either a whole previous fit or a full set of parameter blocks, so keeping it
+#' would nest one fit inside the next and a chain continued k times would
+#' serialise O(k^2) fits. Where the chain started is already recorded by
+#' `$rng$start`, and the state it reached by `$final_state`.
+#'
+#' @noRd
+fit_specification <- function(priors, control, t, p){
+
+  if(!is.null(control$starting_values)){
+    control$starting_values <- elided_starting_values(control$starting_values)
+  }
+
+  list(priors = resolve_priors(priors, t = t, p = p),
+       control = control)
+
+}
+
+
+#' A stand-in for starting values that are not stored with the fit
+#'
+#' Classed so `print.dfm_control()` can render it as the note it is, and so
+#' `resolve_starting_values()` can refuse it with an explanation rather than
+#' with a type error.
+#'
+#' @noRd
+elided_starting_values <- function(x){
+
+  what <- if(inherits(x, "ind_dfm") || inherits(x, "fcast_dfm")){
+    paste0(class(x)[1], " fit")
+  } else {
+    "parameter blocks"
+  }
+
+  structure(paste0("<", what, ", not stored>"), class = "mfbdfm_elided")
+
+}
+
+
 #' Print a dfm_control object
 #'
 #' @param x An object of class `"dfm_control"` from [dfm_control()].
@@ -518,6 +576,9 @@ print.dfm_control <- function(x, ...){
   # legitimate value for the latter, neither of which format() can render
   show <- function(v){
     if(is.null(v)) return("NULL")
+    # the marker a fit stores in place of its starting values (#119); printed
+    # bare, since it is a note about what is absent rather than a value
+    if(inherits(v, "mfbdfm_elided")) return(unclass(v))
     if(inherits(v, "ind_dfm") || inherits(v, "fcast_dfm")){
       return(paste0("<", class(v)[1], " fit>"))
     }

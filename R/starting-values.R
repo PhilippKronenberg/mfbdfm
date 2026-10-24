@@ -166,6 +166,17 @@ resolve_starting_values <- function(starting_values, spec){
 
   if(is.null(starting_values)) return(list(state = NULL, rng = NULL))
 
+  # a control object read back off a fit, which records that the chain was
+  # continued without keeping the state it continued from (#119)
+  if(inherits(starting_values, "mfbdfm_elided")){
+    stop("`starting_values` here is ", unclass(starting_values),
+         ": a fit records that its chain was continued but does not keep the ",
+         "state it continued from, since storing it would nest one fit inside ",
+         "the next.\n  To continue a chain, pass the previous fit itself: ",
+         "dfm_control(\"", spec$model, "\", starting_values = <fit>).",
+         call. = FALSE)
+  }
+
   if(inherits(starting_values, "ind_dfm") ||
      inherits(starting_values, "fcast_dfm")){
     return(starting_values_from_fit(starting_values, spec))

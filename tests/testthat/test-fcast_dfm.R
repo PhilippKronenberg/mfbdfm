@@ -27,7 +27,7 @@ test_that("fcast_dfm returns a complete, finite fit object", {
   expect_s3_class(fit, "fcast_dfm")
   expect_true(all(c("factor", "factor_var", "target", "nowcast", "nowcast_var",
                     "pars", "ncst", "data_hf", "data_augmented",
-                    "inventory") %in% names(fit)))
+                    "inventory", "priors", "control") %in% names(fit)))
 
   # q factors, one column each
   expect_equal(ncol(fit$factor), 2)
