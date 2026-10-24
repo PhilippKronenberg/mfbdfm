@@ -245,3 +245,109 @@ test_that("wai_quarterly_flow() does not difference across a gap in quarters", {
   # the jump across the gap must not be differenced
   expect_true(all(abs(vals) < 1))
 })
+
+
+# Two short-chain fits on consecutive vintages of the shipped example data,
+# saved the way run_wai_adj() saves them (object `mod`). Built once per file run.
+measures_fixture <- local({
+  cache <- NULL
+  function() {
+    if (!is.null(cache)) return(cache)
+    new <- mfbdfm_example_data
+    old <- new
+    cut4 <- function(x) stats::window(x, end = stats::time(x)[length(x) - 4])
+    old$flows <- lapply(old$flows, function(x)
+      if (stats::frequency(x) > 4) cut4(x) else x)
+    old$stocks <- lapply(old$stocks, cut4)
+    fit_file <- function(d, seed) {
+      set.seed(seed)
+      mod <- suppressWarnings(ind_dfm(d, length_sample = 30, burn_in = 10,
+                                      control = dfm_control(verbose = FALSE)))
+      p <- tempfile(fileext = ".Rda")
+      save(mod, file = p)
+      list(path = p, fit = mod)
+    }
+    cache <<- list(old = fit_file(old, 1), new = fit_file(new, 2), new_data = new)
+    cache
+  }
+})
+
+
+test_that("export_wai_measures() validates its arguments", {
+  fx <- measures_fixture()
+  expect_error(export_wai_measures("no-such-file.Rda"), "existing fit file")
+  expect_error(export_wai_measures(synth_fit_file()), "must hold an `ind_dfm` fit")
+  expect_error(export_wai_measures(fx$new$path, news_fit_path = fx$old$path),
+               "give both or neither")
+  expect_error(export_wai_measures(fx$new$path, series_info = data.frame(a = 1)),
+               "columns `key`, `name` and `group`")
+})
+
+
+test_that("contributions add up to the published wai_qoq exactly", {
+  fx <- measures_fixture()
+  out <- export_wai_measures(fx$new$path, digits = 10)
+  co <- out$contributions
+  expect_named(co, c("date", "component", "value"))
+  expect_true(all(c("trend", "parameter_uncertainty") %in% co$component))
+
+  tot <- tapply(co$value, co$date, sum)
+  wai <- stats::setNames(as.numeric(fx$new$fit$factor),
+                         as.character(dec2week(as.numeric(stats::time(fx$new$fit$factor)))))
+  common <- intersect(names(tot), names(wai))
+  expect_gt(length(common), 100)
+  expect_equal(as.numeric(tot[common]), as.numeric(wai[common]), tolerance = 1e-6)
+})
+
+
+test_that("the series table carries names, groups, R-squared and loadings", {
+  fx <- measures_fixture()
+  keys <- fx$new$fit$inventory$key
+  info <- data.frame(key = keys, name = paste("Series", seq_along(keys)),
+                     group = rep(c("G1", "G2"), length.out = length(keys)))
+  out <- export_wai_measures(fx$new$path, series_info = info)
+  s <- out$series
+  expect_setequal(s$series, keys)
+  expect_true(all(s$group %in% c("G1", "G2")))
+  expect_equal(s$name[match(keys, s$series)], info$name)
+  expect_true(all(s$loading_lo <= s$loading & s$loading <= s$loading_hi, na.rm = TRUE))
+  expect_true(all(s$r2 <= 1, na.rm = TRUE))
+  # the target is the anchor: loading fixed at 1
+  expect_equal(s$loading[s$series == fx$new$fit$target], 1)
+  # series_info is optional: keys as names, everything in "Other"
+  plain <- export_wai_measures(fx$new$path)$series
+  expect_true(all(plain$group == "Other"))
+})
+
+
+test_that("news impacts add up to the revision on the published scale", {
+  fx <- measures_fixture()
+  out <- export_wai_measures(fx$new$path, news_fit_path = fx$old$path,
+                             news_new_data = fx$new_data, digits = 10)
+  expect_named(out$news, c("component", "impact"))
+  m <- out$meta
+  expect_true(m$news_available)
+  expect_gt(m$news_new_obs, 0)
+  expect_equal(sum(out$news$impact), m$news_nowcast_new - m$news_nowcast_old,
+               tolerance = 1e-6)
+  # without the news arguments there is no news, and the metadata says so
+  expect_false(export_wai_measures(fx$new$path)$meta$news_available)
+})
+
+
+test_that("export_wai_measures() writes its files, and nothing without `dir`", {
+  fx <- measures_fixture()
+  d <- local_tempdir_base()
+  export_wai_measures(fx$new$path, dir = d, news_fit_path = fx$old$path,
+                      news_new_data = fx$new_data)
+  expect_setequal(list.files(d), c("wai_contributions.csv", "wai_series.csv",
+                                   "wai_news.csv", "wai_measures_meta.json"))
+  co <- utils::read.csv(file.path(d, "wai_contributions.csv"))
+  expect_named(co, c("date", "component", "value"))
+  meta <- readLines(file.path(d, "wai_measures_meta.json"))
+  expect_true(any(grepl("\"news_available\": true", meta, fixed = TRUE)))
+
+  d2 <- local_tempdir_base()
+  export_wai_measures(fx$new$path)
+  expect_length(list.files(d2), 0)
+})
