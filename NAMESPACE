@@ -4,6 +4,7 @@ S3method(as.data.frame,fcast_dfm)
 S3method(as.data.frame,ind_dfm)
 S3method(as.data.frame,mfbdfm_contributions)
 S3method(as.data.frame,mfbdfm_draws)
+S3method(as.data.frame,mfbdfm_news)
 S3method(as.mcmc,mfbdfm_draws)
 S3method(autoplot,fcast_dfm)
 S3method(autoplot,ind_dfm)
@@ -20,6 +21,7 @@ S3method(plot,ind_dfm)
 S3method(plot,mfbdfm_contributions)
 S3method(plot,mfbdfm_diagnostics)
 S3method(plot,mfbdfm_draws)
+S3method(plot,mfbdfm_news)
 S3method(plot,select_factors)
 S3method(print,dfm_control)
 S3method(print,dfm_priors)
@@ -29,6 +31,7 @@ S3method(print,mfbdfm_contributions)
 S3method(print,mfbdfm_data)
 S3method(print,mfbdfm_diagnostics)
 S3method(print,mfbdfm_draws)
+S3method(print,mfbdfm_news)
 S3method(print,select_factors)
 S3method(print,summary.mfbdfm_fit)
 S3method(residuals,fcast_dfm)
@@ -68,6 +71,7 @@ export(mfbdfm_data)
 export(mfbdfm_diagnostics)
 export(mfbdfm_example_inputs)
 export(mfbdfm_kable)
+export(mfbdfm_news)
 export(mfbdfm_nowcast)
 export(mfbdfm_table_loadings)
 export(mfbdfm_table_nowcast)
@@ -163,6 +167,7 @@ importFrom(graphics,
   abline,
   axis,
   barplot,
+  box,
   legend,
   lines,
   matplot,
@@ -170,6 +175,7 @@ importFrom(graphics,
   plot.new,
   points,
   rect,
+  segments,
   title
 )
 importFrom(kableExtra,
@@ -199,6 +205,7 @@ importFrom(stats,
   cor,
   dnorm,
   frequency,
+  is.ts,
   lm,
   logLik,
   na.omit,

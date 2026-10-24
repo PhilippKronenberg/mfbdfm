@@ -189,6 +189,10 @@
 #'       `Xmat`, `indicators`). Pass the fit as [dfm_control()]'s
 #'       `starting_values` to continue the chain from here; see there for why
 #'       the two legs' *rotated* output is not comparable.}
+#'     \item{internal}{`p`, `t2` and `h_full`, for parity with [ind_dfm()] --
+#'       see there. All three are already available from `pars` in this class;
+#'       the element exists so a consumer need not know which class it was
+#'       handed. Not part of the API.}
 #'     \item{call}{The matched call.}
 #'   }
 #'
@@ -412,6 +416,12 @@ fcast_dfm <- function(flows = NULL,
   # different data or a different model configuration.
   out$rng <- rng_rec
   out$final_state <- structure(final_state, spec = spec)
+
+  # parity with ind_dfm()'s `$internal` (#101). `p` and the full volatility path
+  # are already in `pars` here, so this duplicates rather than adds -- but a
+  # consumer that reads `fit$internal` should not have to know which class it
+  # was handed. There is no `extend_to` in this entry point, so t2 == t.
+  out$internal <- list(p = p, t2 = t, h_full = as.numeric(out$pars$h))
 
   out$call <- match.call()
   class(out) <- "fcast_dfm"

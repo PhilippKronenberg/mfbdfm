@@ -138,6 +138,10 @@ parameter blocks (\code{f}, \code{lambda}, \code{phi}, \code{sigma}, \code{rho},
 \code{Xmat}, \code{indicators}). Pass the fit as \code{\link[=dfm_control]{dfm_control()}}'s
 \code{starting_values} to continue the chain from here; see there for why
 the two legs' \emph{rotated} output is not comparable.}
+\item{internal}{\code{p}, \code{t2} and \code{h_full}, for parity with \code{\link[=ind_dfm]{ind_dfm()}} --
+see there. All three are already available from \code{pars} in this class;
+the element exists so a consumer need not know which class it was
+handed. Not part of the API.}
 \item{call}{The matched call.}
 }
 }

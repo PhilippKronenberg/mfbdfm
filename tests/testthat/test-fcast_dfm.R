@@ -27,7 +27,14 @@ test_that("fcast_dfm returns a complete, finite fit object", {
   expect_s3_class(fit, "fcast_dfm")
   expect_true(all(c("factor", "factor_var", "target", "nowcast", "nowcast_var",
                     "pars", "ncst", "data_hf", "data_augmented",
-                    "inventory", "priors", "control") %in% names(fit)))
+                    "inventory", "priors", "control", "internal")
+                  %in% names(fit)))
+
+  # $internal mirrors ind_dfm()'s, per the parity rule (#101)
+  expect_named(fit$internal, c("p", "t2", "h_full"))
+  expect_identical(fit$internal$p, fit$pars$p)
+  expect_identical(fit$internal$t2, fit$pars$t)
+  expect_length(fit$internal$h_full, fit$pars$t + fit$pars$s)
 
   # q factors, one column each
   expect_equal(ncol(fit$factor), 2)
