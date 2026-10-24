@@ -73,6 +73,45 @@
   what to pass instead. Numerics are untouched: `baseline_check()` reports
   every component of every baseline fit identical.
 
+* **Six small conformance gaps from the rOpenSci standards self-audit are
+  closed** (#125, G4.0/G2.3b/G2.12/G2.14/G2.16/G5.2a). Four of them change
+  behaviour:
+
+  - **Output file names are completed and checked** (G4.0). The internal
+    `write_table_output()`, `save_result_output()` and `output_figure_path()`
+    took their `filename` verbatim, so `save_result_output(x, "results")` wrote
+    an extensionless file that `load()` does not recognise as its own and
+    `save_result_output(x, "results.csv")` wrote a `save()` payload under a name
+    promising text. A name with no extension now gets the writer's own
+    (`.Rda`/`.tex`/`.pdf` respectively) and a name whose extension the writer
+    cannot produce is an error naming the argument, what was given and what is
+    accepted. `export_wai_web()` likewise checks that `fit_path` names a file
+    `load()` can read, rather than leaving the user with a "bad restore file
+    magic number".
+  - **`Inf` and `NaN` in an input observation are refused by name** (G2.16),
+    from the shared validator, so both entry points get it. One `Inf` made
+    `prepare_data()`'s mean and standard deviation `NaN` and the whole column
+    left standardization as `NaN`, and `NaN` additionally passes `is.na()`, so
+    it was being imputed by the data augmentation as though it were a genuinely
+    unobserved period. Supply `NA` for missing.
+  - **A list column in a data frame passed to `mfbdfm_data()` is named and
+    refused** (G2.12) instead of travelling as far as `stats::ts()`, whose
+    complaint about a storage mode identifies neither the column nor the
+    argument. Only the columns the long/wide shape actually reads are checked:
+    an extra list column in a long frame rides along as before.
+  - **Two repeated `stop()` messages now have one home each** (G5.2a):
+    `"Missing required inputs: "` moves to an internal
+    `require_analysis_inputs()` shared by the three analytics table builders,
+    and `"No valid vintages found for the configured sample."` to an internal
+    `valid_vintage_columns()` shared by the two vintage pickers.
+
+  The other two are documentation: `?ind_dfm` and `?fcast_dfm` now state that
+  there is deliberately **no `na_action` argument** -- the estimator *is* the
+  missing-value treatment, so erroring on `NA` would reject nearly every real
+  mixed-frequency panel and imputing it would hide a worse estimate of what the
+  sampler already infers (G2.14/TS2.1) -- and that **character arguments,
+  `target` included, are matched case-sensitively** (G2.3b).
+
 * **A fit can now be seeded, started from explicit values, and continued**
   (#117, rOpenSci BS2.7/BS2.8/BS2.11/BS5.0/BS1.3a). Three new
   `dfm_control()` settings, in both models per the parity rule:

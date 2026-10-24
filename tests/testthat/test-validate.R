@@ -197,8 +197,6 @@ test_that("screen_degenerate_series drops with a classed warning, errors on the 
 
 test_that("Inf/NaN observations are screened at the entry points (G2.16)", {
 
-  skip("Enabled by #125")
-
   set.seed(1)
   flows <- list(gdp = stats::ts(rnorm(40, 0.4, 0.5), start = 2014, frequency = 4),
                 bad = stats::ts(c(rnorm(119), Inf), start = 2014, frequency = 12))
@@ -213,6 +211,62 @@ test_that("Inf/NaN observations are screened at the entry points (G2.16)", {
     validate_model_inputs(flows = flows, stocks = NULL, target = "gdp",
                           p = 1, length_sample = 10, burn_in = 5, thinning = 1),
     "bad")
+
+  # a stock series is screened on the same terms, and the message counts what
+  # it found rather than only naming the series
+  stocks <- list(s1 = stats::ts(c(rnorm(118), -Inf, NaN), start = 2014,
+                                frequency = 12))
+  expect_error(
+    validate_model_inputs(flows = flows["gdp"], stocks = stocks, target = "gdp",
+                          p = 1, length_sample = 10, burn_in = 5, thinning = 1),
+    "`stocks` must contain only finite observations", fixed = TRUE)
+  expect_error(
+    validate_model_inputs(flows = flows["gdp"], stocks = stocks, target = "gdp",
+                          p = 1, length_sample = 10, burn_in = 5, thinning = 1),
+    "1 Inf value and 1 NaN value", fixed = TRUE)
+
+  # NA, on the other hand, is ordinary input: it is what an unobserved period
+  # looks like, and the whole model is built to augment it
+  ok <- list(gdp = flows$gdp,
+             fine = stats::ts(c(rnorm(60), rep(NA_real_, 60)), start = 2014,
+                              frequency = 12))
+  expect_true(validate_model_inputs(flows = ok, stocks = NULL, target = "gdp",
+                                    p = 1, length_sample = 10, burn_in = 5,
+                                    thinning = 1))
+})
+
+
+test_that("nonfinite_reason reports Inf and NaN separately, and nothing else", {
+
+  expect_identical(nonfinite_reason(stats::ts(c(1, NA, 3))), "")
+  expect_identical(nonfinite_reason(stats::ts(c(1, Inf, 3))), "carries 1 Inf value")
+  expect_identical(nonfinite_reason(stats::ts(c(1, -Inf, Inf))),
+                   "carries 2 Inf values")
+  expect_identical(nonfinite_reason(stats::ts(c(NaN, 2, 3))), "carries 1 NaN value")
+  expect_identical(nonfinite_reason(stats::ts(c(NaN, Inf, 3))),
+                   "carries 1 Inf value and 1 NaN value")
+})
+
+
+test_that("require_analysis_inputs names what is missing and binds what is there (G5.2a)", {
+
+  # the one home of "Missing required inputs: ", shared by the three table
+  # builders - see test-analytics-tables.R / test-analytics-cor.R for the
+  # builders' own side of it
+  expect_error(require_analysis_inputs(list(a = 1), c("a", "b", "c")),
+               "Missing required inputs: b, c", fixed = TRUE)
+  expect_error(require_analysis_inputs(list(), "a"),
+               "Missing required inputs: a", fixed = TRUE)
+  expect_error(require_analysis_inputs("not a list", "a"),
+               "`inputs` must be a named list", fixed = TRUE)
+
+  # the required objects land in the caller's environment, under their own
+  # names, and nothing else does
+  f <- function(inputs){
+    require_analysis_inputs(inputs, c("a", "b"))
+    c(a, b, exists("spare", inherits = FALSE))
+  }
+  expect_identical(f(list(a = 1, b = 2, spare = 3)), c(1, 2, 0))
 })
 
 

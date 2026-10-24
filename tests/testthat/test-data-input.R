@@ -605,8 +605,6 @@ test_that("the screen's statistics are NA when there is too little to go on", {
 
 test_that("a list column in a long or wide data frame is refused by name (G2.12)", {
 
-  skip("Enabled by #125")
-
   # G2.12: a list column is a legitimate data frame column and never a
   # legitimate series, so it has to be named and refused rather than reaching
   # make_ts(), where the failure is about neither the column nor the argument.
@@ -623,4 +621,10 @@ test_that("a list column in a long or wide data frame is refused by name (G2.12)
                                  type = c("flow", "flow"),
                                  stringsAsFactors = FALSE)),
     "b")
+
+  # a long frame's *other* columns are none of our business: the shape reads
+  # only the date and value columns, so an extra list column rides along
+  long_extra <- make_long()
+  long_extra$notes <- I(replicate(nrow(long_extra), list("x"), simplify = FALSE))
+  expect_s3_class(mfbdfm_data(long_extra, make_long_meta()), "mfbdfm_data")
 })

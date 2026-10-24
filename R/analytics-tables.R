@@ -88,11 +88,7 @@ get_insample_fit_table <- function(method = c("mean", "last", "last_month"),
         "result_wai_no_hf", "result_wai_no_financial")
     }
   )
-  missing_inputs <- setdiff(required_inputs, names(inputs))
-  if (length(missing_inputs) > 0) {
-    stop("Missing required inputs: ", paste(missing_inputs, collapse = ", "))
-  }
-  list2env(inputs[required_inputs], envir = environment())
+  require_analysis_inputs(inputs, required_inputs)
 
   # --- Store WAI prediction errors for p-value comparisons
   wai_error_store <- list()
@@ -864,11 +860,7 @@ get_insample_error_details <- function(method = c("mean", "last", "last_month"),
         "result_wai_no_hf", "result_wai_no_financial")
     }
   )
-  missing_inputs <- setdiff(required_inputs, names(inputs))
-  if (length(missing_inputs) > 0) {
-    stop("Missing required inputs: ", paste(missing_inputs, collapse = ", "))
-  }
-  list2env(inputs[required_inputs], envir = environment())
+  require_analysis_inputs(inputs, required_inputs)
 
   aggregate_to_quarter <- function(df) {
     if (method == "mean") {

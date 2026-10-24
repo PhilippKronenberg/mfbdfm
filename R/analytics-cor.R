@@ -220,11 +220,7 @@ get_combined_cor_table <- function(method = c("mean", "last", "last_month"),
         "result_wai_no_hf", "result_wai_no_financial")
     }
   )
-  missing_inputs <- setdiff(required_inputs, names(inputs))
-  if (length(missing_inputs) > 0) {
-    stop("Missing required inputs: ", paste(missing_inputs, collapse = ", "))
-  }
-  list2env(inputs[required_inputs], envir = environment())
+  require_analysis_inputs(inputs, required_inputs)
 
   # Helper to aggregate one dataset
   aggregate_to_quarter <- function(df) {
@@ -437,7 +433,9 @@ get_combined_cor_table <- function(method = c("mean", "last", "last_month"),
 #' @param cor_tables Named list of correlation tables from
 #'   [get_combined_cor_table()], one per aggregation method.
 #' @param series_order Character vector giving the series display order.
-#' @param output_file File name for the saved figure.
+#' @param output_file File name for the saved figure. Passed to
+#'   `output_figure_path()`, so the extension selects the device and `.pdf` is
+#'   used when none is given.
 #' @param figures_dir Directory the figure is written to (e.g.
 #'   `wai_sample_config()$figures_dir`).
 #'

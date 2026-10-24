@@ -11,6 +11,20 @@ test_that("export_wai_web() validates its arguments", {
   # one with `time` but no recognised measure names the alternatives
   expect_error(export_wai_web(f, gdp = data.frame(time = 1, v = 2)),
                "`qoq`, `yoy`, `index`")
+
+  # G4.0: the fit is read with load(), so a file whose name says it is not an
+  # R data file is refused by name rather than by magic number. The file has to
+  # exist for the check to be reached, so copy the fixture to the wrong name.
+  wrong <- file.path(tempdir(), "fit_as_csv.csv")
+  file.copy(f, wrong, overwrite = TRUE)
+  on.exit(unlink(wrong), add = TRUE)
+  expect_error(export_wai_web(wrong), "must be an `.Rda`/`.RData` file",
+               fixed = TRUE)
+
+  bare <- file.path(tempdir(), "fit_no_extension")
+  file.copy(f, bare, overwrite = TRUE)
+  on.exit(unlink(bare), add = TRUE)
+  expect_error(export_wai_web(bare), "an extensionless file", fixed = TRUE)
 })
 
 

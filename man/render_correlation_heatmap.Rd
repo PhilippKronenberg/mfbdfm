@@ -12,7 +12,9 @@ render_correlation_heatmap(cor_tables, series_order, output_file, figures_dir)
 
 \item{series_order}{Character vector giving the series display order.}
 
-\item{output_file}{File name for the saved figure.}
+\item{output_file}{File name for the saved figure. Passed to
+\code{output_figure_path()}, so the extension selects the device and \code{.pdf} is
+used when none is given.}
 
 \item{figures_dir}{Directory the figure is written to (e.g.
 \code{wai_sample_config()$figures_dir}).}
