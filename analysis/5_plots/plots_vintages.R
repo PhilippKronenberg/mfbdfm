@@ -294,20 +294,13 @@ tab_rev_facets <- tab_rev %>%
   ) %>%
   filter(!is.na(Period))  # optional: drop rows outside the 3 periods
 
-blank_data <- bind_rows(
-  tab_rev %>% filter(Period == "2005–2010") %>% slice_tail(n = 1) %>%
-    mutate(value = c(-60, 60), time = as.Date("2009-12-31"), Period = "2005–2010"),
-  
-  tab_rev %>% filter(Period == "2010–2019") %>% slice_tail(n = 1) %>%
-    mutate(value = c(-60, 60), time = as.Date("2019-12-28"), Period = "2010–2019"),
-  
-  tab_rev %>% filter(Period == "2020–2021") %>% slice_tail(n = 1) %>%
-    mutate(value = c(-60, 60), time = as.Date("2021-12-28"), Period = "2020–2021")
-)
-
+# A `blank_data` frame for a geom_blank() axis padding used to be built here. Its
+# geom_blank() was already commented out, and building it stopped the script:
+# it filtered `tab_rev`, which has no `Period` column (only `tab_rev_facets`
+# does), and put two values into a one-row slice. Removed rather than repaired;
+# scale_y_continuous(expand = ) below does the padding.
 ggplot(tab_rev_facets, aes(x = time, y = value, group = Releases, color = Releases)) +
   geom_line(size = 0.1) +
-  #geom_blank(data = blank_data, aes(x = time, y = value, group = Releases, color = Releases)) +
   scale_color_gradient2(low = 'yellow', mid = 'red', high = 'blue', midpoint = 15) +
   facet_wrap(~ Period, ncol = 1, scales = "free") +
   xlab(NULL) +
