@@ -15,7 +15,8 @@
 # (analysis/2_backcast.R settings, default chain). A measure tracked ACROSS
 # vintages would need full_RT refitted with current code first.
 #
-# News decomposition (#101) is not implemented yet; add it here when it lands.
+# Section 5 adds the news decomposition (#101) of the move from this fit's
+# vintage to the next weekly one.
 # -----------------------------------------------------------------------------
 
 source(file.path("analysis", "5_plots", "_setup.R"))
@@ -118,5 +119,39 @@ write_table_output("table_measures_diagnostics.tex",
                                 caption = "MCMC convergence diagnostics of the baseline fit"),
                    tables_dir)
 save_base_plot(function() plot(diag), "measures_diagnostics.pdf", width = 25, height = 20)
+
+# 5. News: what the next week's releases did to the nowcast (#101) ------------
+# The fit is the OLD vintage. The new one is the same data, prepared exactly as
+# analysis/2_backcast.R prepared the fit's own (same GDP vintage, same cap), cut
+# one week later - so the difference between them is one week of releases.
+# Parameters are held at the fit's (no `new_fit`), so the `parameter` term is
+# NA and the impacts add up to the revision exactly.
+target <- "ch.seco.gdp.real.gdp.ssa"
+load("analysis/Rda/data_ch_dataset_test.Rda")   # provides `dat`
+dat <- cut_data(dat, current_date = 2026)
+gdp_vintages <- get_real_time_gdp_vintages("quarterly")
+gdp_vintage <- get_latest_numeric_vintage(
+  gdp_vintages, lower_bound = 2005.438,
+  upper_bound = round(decimal_date_local(as.Date("2026-03-07")), 3))
+dat$flows[[target]] <- zoo::na.trim(
+  stats::ts(gdp_vintages[[as.character(gdp_vintage)]], start = c(1990, 1), frequency = 4))
+
+fit_date <- 2025 + 47/48               # the exact grid point fit_2025.979 names (#157)
+new_vintage <- cut_data(dat, fit_date + 1/48)
+
+news <- mfbdfm_news(fit, new_data = new_vintage$flows, stocks = new_vintage$stocks,
+                    by = "group", groups = series_group)
+print(news)
+
+news_obs <- as.data.frame(news, what = "observation")
+news_obs$name <- unname(series_name[news_obs$series])
+utils::write.csv(news_obs, file.path(tables_dir, "table_measures_news_observations.csv"),
+                 row.names = FALSE)
+news_grp <- as.data.frame(news, what = "component")
+write_table_output("table_measures_news.tex",
+                   mfbdfm_kable(news_grp, format = "latex", digits = 4,
+                                caption = "News decomposition of the nowcast revision, one weekly vintage"),
+                   tables_dir)
+save_base_plot(function() plot(news), "measures_news.pdf", width = 25, height = 15)
 
 message("plots_measures.R: tables in ", tables_dir, ", figures in ", figures_dir)
