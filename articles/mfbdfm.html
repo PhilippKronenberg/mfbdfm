@@ -323,11 +323,41 @@ nowcasts:</p>
 <span><span class="co">#&gt;     2025.750      0.00151</span></span>
 <span><span class="co">#&gt;     2026.000      0.01136</span></span>
 <span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Priors for ind_dfm()  [type: default]</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   sigma_target  c0 = 541, d0 = 0.541  [structural]</span></span>
+<span><span class="co">#&gt;   rho_target    r0 = 0, R0 = 1e-09  [structural]</span></span>
+<span><span class="co">#&gt;   sigma_other   c0 = 3, d0 = 0.05</span></span>
+<span><span class="co">#&gt;   rho_other     r0 = 0, R0 = 5</span></span>
+<span><span class="co">#&gt;   lambda        b0 = 0, B0 = 1</span></span>
+<span><span class="co">#&gt;   phi           a0 = 0, A0 = 0.12</span></span>
+<span><span class="co">#&gt;   omega         k0 = 541, l0 = 5.41</span></span>
+<span><span class="co">#&gt;   factor_var    c0 = 3, d0 = 0.01</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Control settings for ind_dfm()</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   rho_max                  0.99      </span></span>
+<span><span class="co">#&gt;   rho_max_tries            10        </span></span>
+<span><span class="co">#&gt;   rho_fallback             0.98      </span></span>
+<span><span class="co">#&gt;   jitter                   1e-09     </span></span>
+<span><span class="co">#&gt;   sv_offset                0.001     </span></span>
+<span><span class="co">#&gt;   verbose                  TRUE      </span></span>
+<span><span class="co">#&gt;   keep_draws               TRUE      </span></span>
+<span><span class="co">#&gt;   keep_factor_draws        FALSE     </span></span>
+<span><span class="co">#&gt;   seed                     NULL      </span></span>
+<span><span class="co">#&gt;   starting_values          NULL      </span></span>
+<span><span class="co">#&gt;   phi_sum_max              0.9       </span></span>
+<span><span class="co">#&gt;   sigma_max                5         </span></span>
+<span><span class="co">#&gt;   keep_burn_in             FALSE     </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   (the specification above is stored with the fit, as $priors and $control)</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Full results: $factor, $nowcast, $index, $pars; mfbdfm_nowcast(),</span></span>
 <span><span class="co">#&gt; summary(), plot(), as.data.frame(), coef(), fitted(), residuals(),</span></span>
 <span><span class="co">#&gt; logLik()</span></span>
 <span><span class="co">#&gt; Tables: mfbdfm_table_loadings(), mfbdfm_table_parameters(),</span></span>
-<span><span class="co">#&gt; mfbdfm_table_nowcast()</span></span></code></pre></div>
+<span><span class="co">#&gt; mfbdfm_table_nowcast()</span></span>
+<span><span class="co">#&gt; Draws: $draws, mfbdfm_diagnostics()</span></span></code></pre></div>
 <p><code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> adds the posterior loadings and
 measurement-error variances, each with a 95% interval, the residual fit
 on the observed entries, and a per-series R-squared of the common
@@ -385,7 +415,36 @@ than as a finding:</p>
 <span><span class="co">#&gt;   electricity_out                           48    529     0.002</span></span>
 <span><span class="co">#&gt;   Note: the target's loading is fixed to 1 and its measurement error</span></span>
 <span><span class="co">#&gt;   shrunk towards zero to identify the factor, so its R-squared is ~1</span></span>
-<span><span class="co">#&gt;   by construction rather than as a finding.</span></span></code></pre></div>
+<span><span class="co">#&gt;   by construction rather than as a finding.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Priors for ind_dfm()  [type: default]</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   sigma_target  c0 = 541, d0 = 0.541  [structural]</span></span>
+<span><span class="co">#&gt;   rho_target    r0 = 0, R0 = 1e-09  [structural]</span></span>
+<span><span class="co">#&gt;   sigma_other   c0 = 3, d0 = 0.05</span></span>
+<span><span class="co">#&gt;   rho_other     r0 = 0, R0 = 5</span></span>
+<span><span class="co">#&gt;   lambda        b0 = 0, B0 = 1</span></span>
+<span><span class="co">#&gt;   phi           a0 = 0, A0 = 0.12</span></span>
+<span><span class="co">#&gt;   omega         k0 = 541, l0 = 5.41</span></span>
+<span><span class="co">#&gt;   factor_var    c0 = 3, d0 = 0.01</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Control settings for ind_dfm()</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   rho_max                  0.99      </span></span>
+<span><span class="co">#&gt;   rho_max_tries            10        </span></span>
+<span><span class="co">#&gt;   rho_fallback             0.98      </span></span>
+<span><span class="co">#&gt;   jitter                   1e-09     </span></span>
+<span><span class="co">#&gt;   sv_offset                0.001     </span></span>
+<span><span class="co">#&gt;   verbose                  TRUE      </span></span>
+<span><span class="co">#&gt;   keep_draws               TRUE      </span></span>
+<span><span class="co">#&gt;   keep_factor_draws        FALSE     </span></span>
+<span><span class="co">#&gt;   seed                     NULL      </span></span>
+<span><span class="co">#&gt;   starting_values          NULL      </span></span>
+<span><span class="co">#&gt;   phi_sum_max              0.9       </span></span>
+<span><span class="co">#&gt;   sigma_max                5         </span></span>
+<span><span class="co">#&gt;   keep_burn_in             FALSE     </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   (the specification above is stored with the fit, as $priors and $control)</span></span></code></pre></div>
 <p>The standard extractors all work. <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> returns the
 loadings, <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> gives a tidy frame of the factor
 and its band, and <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>/<code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> return

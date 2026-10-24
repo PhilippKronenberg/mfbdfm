@@ -135,9 +135,13 @@ interactively in R/RStudio.
   `vignettes/mfbdfm.Rmd` and the `vignettes/mfbdfm-*.png` figures are
   generated from it and committed (`fig.path = "mfbdfm-"` is a filename
   prefix, not a `figure/` subdirectory, which `R CMD check` would flag
-  as a knitr leftover). Takes ~5 min (three short-chain fits). Run it
-  after any vignette edit, and commit the regenerated `.Rmd` and figures
-  together with the `.orig`.
+  as a knitr leftover). Takes ~21 min (three fits at 2000 draws after
+  500 burn-in; measured 2026-10-24 on the 4-core Windows dev machine —
+  the “~5 min” recorded here before was stale). Same platform and seeds
+  reproduce every number and figure exactly, so a re-knit after a
+  print-only change diffs only in the printed lines. Run it after any
+  vignette edit, and commit the regenerated `.Rmd` and figures together
+  with the `.orig`.
 - `R CMD build .` then `R CMD check --no-manual <tarball>` — what CI
   actually runs; useful when `devtools` behavior and `R CMD check`
   behavior diverge.
