@@ -91,6 +91,19 @@ export_wai_web <- function(fit_path, dir = NULL, gdp = NULL, digits = 4,
   if (!file.exists(fit_path)) {
     stop("`fit_path` does not exist: ", fit_path, call. = FALSE)
   }
+  # G4.0: the file is read with load(), so its name has to name something load()
+  # can read. Checked here rather than left to load(), whose own complaint on a
+  # CSV or an .rds is a "bad restore file magic number" that names neither the
+  # argument nor what was expected. Nothing is appended, unlike the output-side
+  # helpers in analytics-config.R: the path has to exist, and completing a name
+  # that does not exist would only move the error.
+  fit_ext <- tools::file_ext(fit_path)
+  if (!tolower(fit_ext) %in% c("rda", "rdata")) {
+    stop("`fit_path` must be an `.Rda`/`.RData` file saved by run_wai_adj(), ",
+         "not ", if (nzchar(fit_ext)) paste0("a ", sQuote(paste0(".", fit_ext)),
+                                             " file") else "an extensionless file",
+         ": ", fit_path, call. = FALSE)
+  }
   if (!is_count(digits) || digits < 0) {
     stop("`digits` must be a single non-negative whole number, not ",
          deparse(digits), ".", call. = FALSE)

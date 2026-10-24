@@ -7,7 +7,11 @@
 write_table_output(filename, contents, tables_dir)
 }
 \arguments{
-\item{filename}{File name (without directory).}
+\item{filename}{File name (without directory). The contents are written as
+plain text by \code{\link[=writeLines]{writeLines()}}, so the extension must be one of \code{.tex},
+\code{.csv}, \code{.txt}, \code{.tsv} or \code{.md}; \code{.tex} is appended when none is given,
+that being what the table builders produce. Anything else is an error
+rather than a text file under a misleading name (G4.0).}
 
 \item{contents}{Character vector written via \code{\link[=writeLines]{writeLines()}}.}
 

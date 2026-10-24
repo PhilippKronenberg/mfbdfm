@@ -53,6 +53,7 @@ Imports:
     stats,
     tibble,
     tidyr (>= 1.0.0),
+    tools,
     utils,
     zoo
 Suggests:

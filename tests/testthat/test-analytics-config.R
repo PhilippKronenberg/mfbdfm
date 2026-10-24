@@ -89,6 +89,66 @@ test_that("output_figure_path creates nothing", {
   expect_false(dir.exists("outputs"))
 })
 
+test_that("output file names are completed when absent and refused when wrong (G4.0)", {
+
+  # the suffix is appended, not guessed at write time: an extensionless name
+  # used to produce a file load() does not recognise as its own
+  expect_identical(resolve_output_filename("results", "Rda", "Rda"), "results.Rda")
+  expect_identical(resolve_output_filename("results.", "Rda", "Rda"), "results.Rda")
+  # a name that already carries an acceptable extension is left exactly alone,
+  # including its case - both .Rda and .rda are save() output
+  expect_identical(resolve_output_filename("results.rda", "Rda", "Rda"), "results.rda")
+  expect_identical(
+    resolve_output_filename("results.RData", c("Rda", "RData"), "Rda"),
+    "results.RData")
+
+  # sQuote() honours getOption("useFancyQuotes"), so the quote characters
+  # themselves are not what to match on
+  expect_error(resolve_output_filename("results.csv", "Rda", "Rda"),
+               "has extension")
+  expect_error(resolve_output_filename("results.csv", "Rda", "Rda"),
+               "\\.csv.*does not write")
+  expect_error(resolve_output_filename("results.csv", "Rda", "Rda"),
+               "leave the extension off")
+  expect_error(resolve_output_filename("sub/results.Rda", "Rda", "Rda"),
+               "without a directory component", fixed = TRUE)
+  expect_error(resolve_output_filename(c("a.Rda", "b.Rda"), "Rda", "Rda"),
+               "a single non-empty file name", fixed = TRUE)
+  expect_error(resolve_output_filename("", "Rda", "Rda"),
+               "a single non-empty file name", fixed = TRUE)
+  # the argument is named, so the message points at the caller's own argument
+  expect_error(resolve_output_filename(NA_character_, "Rda", "Rda", arg = "file"),
+               "`file` must be", fixed = TRUE)
+})
+
+test_that("the three output helpers complete and check their file names (G4.0)", {
+
+  dir <- tempfile(); dir.create(dir); on.exit(unlink(dir, recursive = TRUE))
+
+  # save_result_output(): save() output, so .Rda - and the file is loadable
+  obj <- data.frame(x = 1:3)
+  path <- save_result_output(obj, "obj", results_dir = dir)
+  expect_identical(basename(path), "obj.Rda")
+  e <- new.env(); load(path, envir = e)
+  expect_identical(e$obj, obj)
+  expect_error(save_result_output(obj, "obj.csv", results_dir = dir), "\\.csv")
+
+  # write_table_output(): plain text, .tex by default, .csv also written today
+  expect_identical(basename(write_table_output("tab", "x", tables_dir = dir)),
+                   "tab.tex")
+  expect_identical(basename(write_table_output("tab.csv", "a,b", tables_dir = dir)),
+                   "tab.csv")
+  expect_error(write_table_output("tab.Rda", "x", tables_dir = dir), "\\.Rda")
+
+  # output_figure_path(): a graphics device has to exist for the extension, and
+  # it still creates nothing
+  expect_identical(output_figure_path("fig", figures_dir = dir),
+                   file.path(dir, "fig.pdf"))
+  expect_identical(output_figure_path("fig.png", figures_dir = dir),
+                   file.path(dir, "fig.png"))
+  expect_error(output_figure_path("fig.tex", figures_dir = dir), "\\.tex")
+})
+
 test_that("filter_to_sample keeps only the requested window", {
   df <- data.frame(time = seq(as.Date("2019-01-01"), by = "quarter", length.out = 12),
                    value = 1:12)

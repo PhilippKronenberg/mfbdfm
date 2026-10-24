@@ -281,6 +281,58 @@ with few factors is what the model is for -- and both entry points fit such
 a panel.
 }
 
+\section{Missing values and the absence of an na_action argument}{
+
+\strong{Missing observations are expected input, not a problem to be disposed of
+before fitting.} \code{NA} is how an unobserved high-frequency period is spelled,
+and a mixed-frequency panel is mostly made of them: a quarterly target
+observed once every thirteen weeks is missing in twelve of thirteen weekly
+periods, and a series that starts late, ends early or is published with a lag
+is missing at the edges. Every one of those is estimated as a latent state by
+data augmentation -- a draw from its conditional posterior at each iteration,
+given the factor and that series' own loading and error process -- so the
+missing periods are part of what the sampler infers rather than something it
+works around.
+
+Neither entry point therefore takes an \code{na_action} argument, and neither has
+a \code{...} to pass one through. The two choices such an argument usually offers do
+not exist here: \emph{erroring} on \code{NA} would reject nearly every real
+mixed-frequency panel, including the shipped datasets, and \emph{imputing} \code{NA}
+before fitting would substitute a worse estimate of the same quantity the
+model estimates jointly with everything else -- then hide it, by handing the
+sampler a fabricated observation as if it had been measured. The estimator is
+the missing-value treatment, and it is not optional.
+
+Two consequences worth knowing:
+
+\itemize{
+\item \code{Inf} and \code{NaN} are \strong{not} missing values and are refused by name,
+before fitting. \code{prepare_data()} standardizes each series by its own mean
+and standard deviation, so one \code{Inf} makes both \code{NaN} and the entire
+column leaves the standardization as \code{NaN}; \code{NaN} also passes \code{is.na()},
+so it would otherwise be augmented as though it were a genuinely
+unobserved period. Supply \code{NA} for missing.
+\item A series with \emph{no} non-missing observations at all cannot be
+standardized and is dropped -- see "Degenerate input series" above.
+}
+}
+
+\section{Character arguments are case-sensitive}{
+
+Throughout the package, character arguments are matched \strong{exactly}, with no
+case folding. \code{target} is compared against the names of the supplied series
+as given, so \code{target = "GDP"} does not find a series named \code{"gdp"} -- it
+errors, listing the available names. Fixed choice sets (\code{model} and \code{type} in
+\code{\link[=dfm_priors]{dfm_priors()}}, \code{model} in \code{\link[=dfm_control]{dfm_control()}}, \code{method} and \code{analysis_set} in the
+analytics table builders, and the rest) go through \code{\link[=match.arg]{match.arg()}}, which is
+likewise case-sensitive, though it does accept an unambiguous abbreviation.
+
+This is deliberate rather than an oversight: series names are data, and
+lower-casing them to be helpful would quietly merge two series that differ
+only in case and make the name the fit reports back differ from the name that
+went in.
+}
+
 \section{Reproducibility across seeds}{
 
 A fit is exactly reproducible given a seed, but two \emph{different} seeds give

@@ -60,6 +60,8 @@
 #' for every series remain available in `ncst` and `data_hf`.
 #'
 #' @inheritSection ind_dfm Degenerate input series
+#' @inheritSection ind_dfm Missing values and the absence of an na_action argument
+#' @inheritSection ind_dfm Character arguments are case-sensitive
 #'
 #' @section Reproducibility across seeds:
 #' Measured the same way as for [ind_dfm()] (see `?ind_dfm`): five seeds at
