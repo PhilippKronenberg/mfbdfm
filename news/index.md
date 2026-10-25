@@ -161,6 +161,25 @@
 
 ### Other changes
 
+- **The real-time GDP vintages are now rebuilt by a script, and gain the
+  2026q2 vintage**
+  ([\#164](https://github.com/PhilippKronenberg/mfbdfm/issues/164)).
+  `data-raw/realtime_gdp.R` downloads SECO’s real-time database
+  (`realtime-database.xlsx`, the updated Indergand & Leist 2014 data
+  set) and writes `inst/extdata/realtime_gdp.csv` (sheet `gdp`) and
+  `realtime_gdp_cssa.csv` (sheet `gdp_cssa`, the WAI target) in exactly
+  the format
+  [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md)
+  reads. Updating the vintages is now a rerun, with no code change. It
+  is the same source the shipped files were exported from. For all 104
+  vintages they already held, the output is textually identical, and
+  [`get_real_time_gdp_vintages()`](https://philippkronenberg.github.io/mfbdfm/reference/get_real_time_gdp_vintages.md)
+  returns identical values for them. The rebuild adds one vintage:
+  `2026q2`, released 2026-06-01, with data through 2026Q1. The script
+  stops without writing if the workbook’s layout changes, its vintages
+  are not consecutive, or it holds fewer vintages than the files it
+  would replace.
+
 - **The weekly website export now carries the WAI’s measures**, so the
   dashboard can show what moves the indicator, not just the indicator. A
   new internal
