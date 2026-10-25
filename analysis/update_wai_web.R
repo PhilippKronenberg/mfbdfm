@@ -182,12 +182,14 @@ GDP_gr_vintages <- get_real_time_gdp_vintages("quarterly")
 # The evaluation date is the most recent completed weekly period in the data.
 last_week <- max(vapply(c(dat$flows, dat$stocks),
                         function(x) max(as.numeric(stats::time(x))), numeric(1)))
-# Round to 3 decimals, which is what run_wai_adj() uses to NAME the fit file
-# (`paste0("fit_", round(date, 3), ".Rda")`). Rounding to 4 here made the
-# evaluation date and the filename disagree, and the run died looking for a file
-# that had just been written under a different name - after the full chain had
-# already run.
-eval_date <- round(last_week, 3)
+# The EXACT weekly grid point, not a rounded one. Rounding to 3 decimals here
+# (which is how fit files are named) put 20 of every 48 dates just below their
+# grid point, and cut_data_real_time() then dropped the latest week (#157; it now
+# tolerates that, but there is no reason to lean on it). The file name is still
+# derived with round(eval_date, 3) below, exactly as run_wai_adj() names it -
+# rounding to 4 there once made the two disagree and killed a run after the full
+# chain.
+eval_date <- round(last_week * 48) / 48
 say("fitting at ", eval_date, " (", length_sample, " draws after ", burn_in,
     " burn-in)", if (length_sample < 5000) " [SHORT CHAIN - smoke test only]" else
       " - this takes a while")
@@ -227,15 +229,54 @@ export_wai_web(fit_path, dir = staging, gdp = gdp_latest, digits = digits,
 info <- validate_export(staging)
 say("export validated: ", info$n, " weeks, ending ", info$last)
 
+# The measures the dashboard explains the indicator with: contributions by
+# group, per-series R-squared and loadings, and the news since the previous
+# run. News needs LAST week's fit as its old vintage; in weekly operation that is
+# the fit the previous run left in fits/web/, so it costs no extra fitting. With
+# none there (a first run), the news file is skipped and the metadata says so.
+meta_csv <- utils::read.csv(file.path("data-raw", "data_meta.csv"),
+                            stringsAsFactors = FALSE)
+series_info <- data.frame(key = meta_csv$keys, name = meta_csv$Name,
+                          group = meta_csv$Category, stringsAsFactors = FALSE)
+# GDP is the anchor - in-sample it IS the factor - so it gets its own group
+# rather than hiding inside "Production".
+series_info$group[series_info$key == target] <- "GDP (target)"
+if (!target %in% series_info$key) {
+  series_info <- rbind(series_info, data.frame(key = target, name = "Real GDP",
+                                               group = "GDP (target)"))
+}
+
+web_fits <- list.files(file.path(fit_root, "web"), pattern = "^fit_.*\\.Rda$",
+                       full.names = TRUE)
+web_dates <- as.numeric(sub("^fit_(.*)\\.Rda$", "\\1", basename(web_fits)))
+earlier <- which(web_dates < round(eval_date, 3))
+prev_fit <- if (length(earlier)) web_fits[earlier[which.max(web_dates[earlier])]] else NULL
+
+measures <- export_wai_measures(fit_path, dir = staging, series_info = series_info,
+                                news_fit_path = prev_fit,
+                                news_new_data = if (!is.null(prev_fit)) dat_rt,
+                                digits = digits,
+                                vintage_date = as.character(dec2week(eval_date)))
+must(file.exists(file.path(staging, "wai_contributions.csv")),
+     "export produced no wai_contributions.csv")
+must(file.exists(file.path(staging, "wai_series.csv")),
+     "export produced no wai_series.csv")
+say("measures exported: ", length(unique(measures$contributions$component)),
+    " contribution components, ", nrow(measures$series), " series, news ",
+    if (is.null(prev_fit)) "skipped (no earlier fit in fits/web)" else
+      paste0("against ", basename(prev_fit)))
+published <- c("wai_data.csv", "wai_meta.json", "wai_contributions.csv",
+               "wai_series.csv", "wai_measures_meta.json",
+               if (!is.null(measures$news)) "wai_news.csv")
+
 check_not_going_backwards(info$last, file.path(webapp_dir, "wai_data.csv"))
 
 # 4. Publish ---------------------------------------------------------------
 # invisible(): file.copy() returns a logical per file, and at a script's top
 # level that printed a bare `[1] TRUE TRUE` into the scheduled run's log.
-invisible(file.copy(file.path(staging, c("wai_data.csv", "wai_meta.json")),
-                    webapp_dir, overwrite = TRUE))
+invisible(file.copy(file.path(staging, published), webapp_dir, overwrite = TRUE))
 
-changed <- length(git("status", "--porcelain", "--", "wai_data.csv", "wai_meta.json")) > 0
+changed <- length(git("status", "--porcelain", "--", published)) > 0
 if (!changed) {
   say("no change in the published files - nothing to commit")
   say("done")
@@ -249,7 +290,7 @@ if (dry_run) {
 }
 
 msg <- paste0("Update WAI data to ", info$last)
-git("add", "--", "wai_data.csv", "wai_meta.json")
+git("add", "--", published)
 git("commit", "-m", shQuote(msg))
 git("push")
 say("pushed: ", msg)

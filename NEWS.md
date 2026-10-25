@@ -113,6 +113,21 @@
 
 ## Other changes
 
+* **The weekly website export now carries the WAI's measures**, so the
+  dashboard can show what moves the indicator, not just the indicator. A new
+  internal `export_wai_measures()`, called by `analysis/update_wai_web.R` next
+  to `export_wai_web()`, writes `wai_contributions.csv` (each group's
+  contribution, plus `trend` and `parameter_uncertainty`), `wai_series.csv`
+  (per-series name, group, R-squared and loading with its 95% band),
+  `wai_news.csv` (the news since the previous run's fit) and
+  `wai_measures_meta.json`. Everything is on the published scale. The
+  annualisation is not linear, so contributions and news use an exact additive
+  split of it: per date the contributions sum to `wai_qoq`, and the news
+  impacts sum to the nowcast revision. News reuses the fit the previous weekly
+  run left in `fits/web/`, so it costs no extra fitting.
+  `update_wai_web.R` also fits at the exact weekly grid date now rather than a
+  rounded one (#157).
+
 * **`cut_data()` and `cut_data_real_time()` no longer drop the latest
   observation when the evaluation date arrives rounded down** (#157).
   Evaluation dates travel through the workflow rounded to 3 decimals, because

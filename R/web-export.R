@@ -469,3 +469,198 @@ gdp_web_series <- function(vintage = "latest", base_date = as.Date("2019-10-01")
   rownames(out) <- NULL
   out
 }
+
+
+#' Write the WAI measures behind the public dashboard
+#'
+#' Companion to [export_wai_web()]: from the same weekly fit, write the three
+#' measures the dashboard explains the indicator with, each on the scale the
+#' dashboard publishes, so that its charts add up to the numbers it shows.
+#' Written by `analysis/update_wai_web.R`; not package API.
+#'
+#' @details
+#' **Contributions (`wai_contributions.csv`).** [mfbdfm_contributions()] splits
+#' the factor exactly, but on the sampler's standardised, non-annualised scale.
+#' The published `wai_qoq` is `F(z) = ((1 + sd*z + mean/k)^48 - 1) * 100` of
+#' that, which is not linear, so contributions to it do not exist as such. The
+#' file therefore uses an exact additive split on the published scale:
+#' `trend = F(0)` (the growth the model implies with every contribution at
+#' zero), each group's share of `F(T) - F(0)` in proportion to its
+#' standardised contribution (`T` the plug-in total), and
+#' `parameter_uncertainty = wai_qoq - F(T)`, the posterior-minus-plug-in
+#' residual [mfbdfm_contributions()] itself reports. Per date the components
+#' sum to `wai_qoq` exactly.
+#'
+#' **News (`wai_news.csv`).** [mfbdfm_news()] of the move from `news_fit_path`
+#' (last week's fit) to `news_new_data` (this week's data), aggregated to the
+#' groups and mapped onto annualised quarterly growth the same way: shares of
+#' `G(new) - G(old)`, `G(x) = ((1 + x)^4 - 1) * 100`, which sum exactly to the
+#' revision. Written only when both arguments are given.
+#'
+#' **Series (`wai_series.csv`).** One row per input series: name and group,
+#' frequency, the R-squared from `summary()` and the posterior loading with its
+#' 95% band (standardised scale, so loadings are comparable across series).
+#'
+#' @param fit_path Path to this week's fit `.Rda` (object `mod`), as for
+#'   [export_wai_web()].
+#' @param dir Directory to write into, or `NULL` to only return the tables.
+#' @param series_info Optional data frame with columns `key`, `name` and
+#'   `group`; series it lacks keep their key as name and go into `"Other"`.
+#' @param news_fit_path Optional path to LAST week's fit, the old vintage of the
+#'   news decomposition.
+#' @param news_new_data Optional list with `flows` and `stocks`: this week's
+#'   data, prepared exactly as this week's fit's was.
+#' @param digits Decimal places of the published values.
+#' @param vintage_date Optional vintage date recorded in the metadata.
+#'
+#' @return Invisibly, a list with `contributions`, `series`, `news` (or `NULL`)
+#'   and `meta`.
+#' @seealso [export_wai_web()], [mfbdfm_contributions()], [mfbdfm_news()].
+#' @keywords internal
+export_wai_measures <- function(fit_path, dir = NULL, series_info = NULL,
+                                news_fit_path = NULL, news_new_data = NULL,
+                                digits = 4, vintage_date = NULL) {
+
+  load_fit <- function(p, arg) {
+    if (!is.character(p) || length(p) != 1L || !file.exists(p)) {
+      stop("`", arg, "` must be the path of an existing fit file.", call. = FALSE)
+    }
+    e <- new.env()
+    load(p, envir = e)
+    if (!exists("mod", envir = e, inherits = FALSE) || !inherits(e$mod, "ind_dfm")) {
+      stop("`", arg, "` must hold an `ind_dfm` fit saved as `mod` by ",
+           "run_wai_adj(): ", p, call. = FALSE)
+    }
+    e$mod
+  }
+  fit <- load_fit(fit_path, "fit_path")
+  if (xor(is.null(news_fit_path), is.null(news_new_data))) {
+    stop("`news_fit_path` and `news_new_data` go together: give both or neither.",
+         call. = FALSE)
+  }
+  if (!is_count(digits)) {
+    stop("`digits` must be a single non-negative whole number.", call. = FALSE)
+  }
+
+  inv <- fit$inventory
+  keys <- inv$key
+  name_of <- stats::setNames(keys, keys)
+  group_of <- stats::setNames(rep("Other", length(keys)), keys)
+  if (!is.null(series_info)) {
+    if (!all(c("key", "name", "group") %in% names(series_info))) {
+      stop("`series_info` must have columns `key`, `name` and `group`.",
+           call. = FALSE)
+    }
+    m <- match(keys, series_info$key)
+    name_of[!is.na(m)] <- series_info$name[m[!is.na(m)]]
+    group_of[!is.na(m)] <- series_info$group[m[!is.na(m)]]
+  }
+
+  # contributions, on the published scale
+  tgt <- inv[inv$key == fit$target, ]
+  fq <- max(inv$freq)
+  k <- fq / min(inv$freq)
+  F_pub <- function(z) ((1 + tgt$sd * z + tgt$mean / k)^fq - 1) * 100
+  F_slope0 <- 100 * fq * tgt$sd * (1 + tgt$mean / k)^(fq - 1)
+
+  cg <- mfbdfm_contributions(fit, by = "group", groups = group_of)
+  cc <- cg$contributions
+  tot <- cg$totals
+  wai_t <- round(as.numeric(stats::time(fit$factor)), 5)
+  tot <- tot[round(tot$time, 5) %in% wai_t, ]      # drop the s pre-sample periods
+  wai <- as.numeric(fit$factor)[match(round(tot$time, 5), wai_t)]
+
+  slope <- ifelse(abs(tot$plugin) > 1e-12,
+                  (F_pub(tot$plugin) - F_pub(0)) / tot$plugin, F_slope0)
+  idx <- match(round(cc$time, 5), round(tot$time, 5))
+  cc <- cc[!is.na(idx), ]
+  idx <- idx[!is.na(idx)]
+  dates <- dec2week(tot$time)
+
+  contrib <- rbind(
+    data.frame(date = dates, component = "trend", value = F_pub(0),
+               stringsAsFactors = FALSE),
+    data.frame(date = dates[idx], component = cc$group,
+               value = cc$contribution * slope[idx], stringsAsFactors = FALSE),
+    data.frame(date = dates, component = "parameter_uncertainty",
+               value = wai - F_pub(tot$plugin), stringsAsFactors = FALSE)
+  )
+  contrib <- contrib[order(contrib$date, contrib$component), ]
+  rownames(contrib) <- NULL
+
+  # series: R-squared and loadings
+  r2 <- summary(fit)$r_squared
+  ld <- mfbdfm_table_loadings(fit)
+  series <- data.frame(
+    series     = keys,
+    name       = unname(name_of[keys]),
+    group      = unname(group_of[keys]),
+    frequency  = inv$freq,
+    r2         = r2$r_squared[match(keys, r2$series)],
+    loading    = ld$mean[match(keys, ld$series)],
+    loading_lo = ld$lower[match(keys, ld$series)],
+    loading_hi = ld$upper[match(keys, ld$series)],
+    stringsAsFactors = FALSE
+  )
+  series <- series[order(series$group, -series$r2), ]
+  rownames(series) <- NULL
+
+  # news: last week's fit against this week's data
+  news <- NULL
+  news_meta <- list(news_available = FALSE)
+  if (!is.null(news_fit_path)) {
+    old_fit <- load_fit(news_fit_path, "news_fit_path")
+    nw <- mfbdfm_news(old_fit, new_data = news_new_data$flows,
+                      stocks = news_new_data$stocks, by = "group",
+                      groups = group_of[old_fit$inventory$key])
+    G <- function(x) ((1 + x)^4 - 1) * 100
+    o <- nw$totals$nowcast_old
+    n <- nw$totals$nowcast_new
+    s <- if (abs(n - o) > 1e-12) (G(n) - G(o)) / (n - o) else 400 * (1 + o)^3
+    bc <- nw$by_component
+    news <- data.frame(component = bc$group, impact = bc$impact * s,
+                       stringsAsFactors = FALSE)
+    news <- news[order(-abs(news$impact)), ]
+    rownames(news) <- NULL
+    old_end <- utils::tail(as.numeric(stats::time(old_fit$factor)), 1)
+    news_meta <- list(
+      news_available   = TRUE,
+      news_period      = format(dec2week(nw$period)),
+      news_nowcast_old = round(G(o), digits),
+      news_nowcast_new = round(G(n), digits),
+      news_old_vintage = format(dec2week(old_end)),
+      news_new_obs     = nw$n_added
+    )
+  }
+
+  rnd <- function(d) {
+    for (v in names(d)) if (is.double(d[[v]])) d[[v]] <- round(d[[v]], digits)
+    d
+  }
+  contrib <- rnd(contrib)
+  series <- rnd(series)
+  if (!is.null(news)) news <- rnd(news)
+
+  meta <- c(list(
+    vintage_date       = as.character(if (is.null(vintage_date))
+                           max(contrib$date) else vintage_date),
+    run_timestamp      = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    mfbdfm_version     = as.character(utils::packageVersion("mfbdfm")),
+    contributions_unit = "percentage points of wai_qoq (annualised quarter-on-quarter growth, %)",
+    news_unit          = "percentage points of the annualised quarterly GDP nowcast",
+    loading_scale      = "standardised series",
+    components         = sort(unique(contrib$component))
+  ), news_meta)
+
+  if (!is.null(dir)) {
+    dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+    write_web_csv(contrib, file.path(dir, "wai_contributions.csv"))
+    write_web_csv(series, file.path(dir, "wai_series.csv"))
+    if (!is.null(news)) write_web_csv(news, file.path(dir, "wai_news.csv"))
+    writeLines(to_json(meta), file.path(dir, "wai_measures_meta.json"),
+               useBytes = TRUE)
+  }
+
+  invisible(list(contributions = contrib, series = series, news = news,
+                 meta = meta))
+}

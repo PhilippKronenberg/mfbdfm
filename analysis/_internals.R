@@ -55,6 +55,7 @@ mfbdfm_internals <- c(
   "get_next_target_vintage",
   # web-export.R: the WAI dashboard files
   "export_wai_web",
+  "export_wai_measures",
   "gdp_web_series"
 )
 
