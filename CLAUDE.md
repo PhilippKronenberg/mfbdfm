@@ -96,7 +96,7 @@ matters for the 1:1 test-file convention below):
 | `data-input.R` | [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md) + [`print.mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/print.mfbdfm_data.md) and the frequency-harmonisation helpers (#56) |
 | `validate.R` | `resolve_data_arg()`, `validate_model_inputs()`, `is_count()` — shared entry-point validation; no exports |
 | `memory.R` | [`dfm_memory()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md), [`dfm_workers()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_memory.md) — measured peak-memory bound and worker planning (#64) |
-| `web-export.R` | Internal [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md), [`gdp_web_series()`](https://philippkronenberg.github.io/mfbdfm/reference/gdp_web_series.md) — the CSV/JSON files behind the public WAI dashboard; written by `analysis/update_wai_web.R`, not package API (#102) |
+| `web-export.R` | Internal [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md), [`export_wai_measures()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_measures.md), [`gdp_web_series()`](https://philippkronenberg.github.io/mfbdfm/reference/gdp_web_series.md) — the CSV/JSON files behind the public WAI dashboard (the indicator, and its contributions/series/news measures on the published scale); written by `analysis/update_wai_web.R`, not package API (#102) |
 | `example-data.R` | [`mfbdfm_example_inputs()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_example_inputs.md) — the synthetic analytics `inputs` bundle used by both the reference examples and the tests |
 | `data.R` | Roxygen docs for the two shipped datasets (no functions) |
 | `globals.R` | [`utils::globalVariables()`](https://rdrr.io/r/utils/globalVariables.html) call only (no functions) |
@@ -548,13 +548,16 @@ constraint.
   [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md),
   …) were un-exported *in place*: they stayed in `R/` — so they stay
   covered by the 1:1 test files, which a move to `analysis/` would have
-  cost — but lost their `@export`. `analysis/_internals.R` binds all 18
-  once, rather than rewriting ~100 call sites as `mfbdfm:::fn()`; it is
-  sourced by both `_setup.R` preludes and by `0_test.R`, `2_backcast.R`
-  and `update_wai_web.R`, which use neither. Adding a name to that list
-  is a visible decision in a diff — which is the point. Note the
-  direction of the obligation: an internal carries no stability promise,
-  so changing one can break a script here without warning.
+  cost — but lost their `@export`. `analysis/_internals.R` binds them
+  once (the 18 from \#102, plus
+  [`export_wai_measures()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_measures.md)
+  since), rather than rewriting ~100 call sites as `mfbdfm:::fn()`; it
+  is sourced by both `_setup.R` preludes and by `0_test.R`,
+  `2_backcast.R` and `update_wai_web.R`, which use neither. Adding a
+  name to that list is a visible decision in a diff — which is the
+  point. Note the direction of the obligation: an internal carries no
+  stability promise, so changing one can break a script here without
+  warning.
 - **[`aggregate_predictor_to_quarterly()`](https://philippkronenberg.github.io/mfbdfm/reference/aggregate_predictor_to_quarterly.md)
   dispatches on the deparsed *name* of its `df` argument** (checks if it
   contains `"AR"`) — legacy behavior kept for compatibility with the

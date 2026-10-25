@@ -161,6 +161,24 @@
 
 ### Other changes
 
+- **The weekly website export now carries the WAI’s measures**, so the
+  dashboard can show what moves the indicator, not just the indicator. A
+  new internal
+  [`export_wai_measures()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_measures.md),
+  called by `analysis/update_wai_web.R` next to
+  [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md),
+  writes `wai_contributions.csv` (each group’s contribution, plus
+  `trend` and `parameter_uncertainty`), `wai_series.csv` (per-series
+  name, group, R-squared and loading with its 95% band), `wai_news.csv`
+  (the news since the previous run’s fit) and `wai_measures_meta.json`.
+  Everything is on the published scale. The annualisation is not linear,
+  so contributions and news use an exact additive split of it: per date
+  the contributions sum to `wai_qoq`, and the news impacts sum to the
+  nowcast revision. News reuses the fit the previous weekly run left in
+  `fits/web/`, so it costs no extra fitting. `update_wai_web.R` also
+  fits at the exact weekly grid date now rather than a rounded one
+  ([\#157](https://github.com/PhilippKronenberg/mfbdfm/issues/157)).
+
 - **[`cut_data()`](https://philippkronenberg.github.io/mfbdfm/reference/cut_data.md)
   and
   [`cut_data_real_time()`](https://philippkronenberg.github.io/mfbdfm/reference/cut_data_real_time.md)
