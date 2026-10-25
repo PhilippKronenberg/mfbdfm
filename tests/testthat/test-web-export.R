@@ -344,6 +344,19 @@ test_that("export_wai_measures() writes its files, and nothing without `dir`", {
                                    "wai_news.csv", "wai_measures_meta.json"))
   co <- utils::read.csv(file.path(d, "wai_contributions.csv"))
   expect_named(co, c("date", "component", "value"))
+
+  # the files are unquoted, so free text must not carry a comma: every row has
+  # exactly as many fields as the header
+  keys <- fx$new$fit$inventory$key
+  info <- data.frame(key = keys, name = paste0("Flights, airport ", seq_along(keys)),
+                     group = "Alternative, mobility")
+  d3 <- local_tempdir_base()
+  export_wai_measures(fx$new$path, dir = d3, series_info = info)
+  for (f in c("wai_series.csv", "wai_contributions.csv")) {
+    n_fields <- lengths(strsplit(readLines(file.path(d3, f)), ",", fixed = TRUE))
+    expect_true(all(n_fields == n_fields[1]), label = paste("field count in", f))
+  }
+  expect_false(any(grepl(",", utils::read.csv(file.path(d3, "wai_series.csv"))$name)))
   meta <- readLines(file.path(d, "wai_measures_meta.json"))
   expect_true(any(grepl("\"news_available\": true", meta, fixed = TRUE)))
 
