@@ -555,6 +555,14 @@ export_wai_measures <- function(fit_path, dir = NULL, series_info = NULL,
     name_of[!is.na(m)] <- series_info$name[m[!is.na(m)]]
     group_of[!is.na(m)] <- series_info$group[m[!is.na(m)]]
   }
+  # The dashboard's CSVs are unquoted by contract (write_web_csv(), and the
+  # front end splits on commas), so a comma inside a name or a group - which
+  # also becomes a contribution component - would shift every later column of
+  # its row: data_meta.csv has names such as "Total Flight Arrivals, Zurich
+  # Airport".
+  no_comma <- function(x) gsub("\\s*,\\s*", " - ", x)
+  name_of[] <- no_comma(name_of)
+  group_of[] <- no_comma(group_of)
 
   # contributions, on the published scale
   tgt <- inv[inv$key == fit$target, ]
