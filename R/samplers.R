@@ -225,13 +225,110 @@ sweep_context <- function(Ymat, target, n, t, t2, p, s, inventory, Gmat_prealloc
   N <- N[-1,] # diffuse (improper) prior distribution
   NtN <- t(N) %*% N
 
-  list(Gmat_prealloc = Gmat_prealloc, Llist = get_distributed_lags(inventory),
+  Llist <- get_distributed_lags(inventory)
+
+  list(Gmat_prealloc = Gmat_prealloc, Llist = Llist,
        inventory = inventory, target = target, n = n, t = t, t2 = t2, p = p, s = s,
        StV1S = StV1S, StV1SY = StV1SY, NtN = NtN, priors = priors, control = control,
+       target_obs = series_obs(Ymat, which(inventory$key == target), Llist, t, s),
        # tally of rho stationarity-screen fallbacks, reported once after the chain
        rho_tally = new_rho_tally(),
        stochastic_volatility = stochastic_volatility,
        serial_correlation = serial_correlation)
+
+}
+
+
+#' One series' observations and how they load on the factor
+#'
+#' @return A list with the observation rows `tau`, their values `y`, their gaps
+#'   `g` (the first counted from period 1), the series' index `ix`, and sparse
+#'   matrices mapping `f` to the aggregated factor: `B` at `tau`, `B1` at
+#'   period 1.
+#'
+#' @noRd
+series_obs <- function(Ymat, ix, Llist, t, s){
+
+  tau <- which(Ymat[, ix] != 0)
+  w <- vapply(Llist, function(m) diag(m)[ix], numeric(1))
+  lags <- which(w != 0) - 1L
+
+  row_of <- function(tx, rw){
+    list(i = rep(rw, length(lags)), j = tx + s - lags, x = w[lags + 1L])
+  }
+  rows <- Map(row_of, tau, seq_along(tau))
+  B <- sparseMatrix(i = unlist(lapply(rows, `[[`, "i")),
+                    j = unlist(lapply(rows, `[[`, "j")),
+                    x = unlist(lapply(rows, `[[`, "x")),
+                    dims = c(length(tau), t + s))
+  first <- row_of(1L, 1L)
+
+  list(ix = ix, tau = tau, y = Ymat[tau, ix], g = c(tau[1] - 1L, diff(tau)), B = B,
+       B1 = sparseMatrix(i = first$i, j = first$j, x = first$x, dims = c(1L, t + s)))
+
+}
+
+
+#' A series' likelihood at its observation dates, latent weeks integrated out
+#'
+#' An AR(1) error observed `g` periods apart satisfies
+#' `e[tau_j] | e[tau_{j-1}] ~ N(rho^g e[tau_{j-1}], sigma w)`, with
+#' `w = (1 - rho^(2g)) / (1 - rho^2)`. In terms of the fitted values `lambda * B f`
+#' that is linear in `f`. Period 1 has mean zero rather than the fitted value (see
+#' the first block of `Kmat` in [draw_augmented_data()]), so the first observation
+#' has mean `lambda (B[1,] - rho^g B1) f`, with `g` the distance from period 1 and
+#' `w` taken over `g + 1` periods. That reduces to mean zero if period 1 is itself
+#' observed.
+#'
+#' @return The regression `r = lambda A f + N(0, sigma diag(w))`.
+#'
+#' @noRd
+collapsed_regression <- function(obs, rho){
+
+  rg <- rho^obs$g
+  w <- skip_weights(rho, obs$g)
+  w[1] <- skip_weights(rho, obs$g[1] + 1L)
+
+  B_lag <- rbind(obs$B1, obs$B[-nrow(obs$B), , drop = FALSE])
+  A <- obs$B - Diagonal(x = rg) %*% B_lag
+  r <- obs$y - rg * c(0, obs$y[-length(obs$y)])
+
+  list(A = A, r = r, w = w)
+
+}
+
+
+#' `sum(rho^(2 * 0:(g-1)))`, stable for `rho` near zero
+#'
+#' @noRd
+skip_weights <- function(rho, g){
+
+  rr <- rho^2
+  if(rr < 1e-12) return(rep(1, length(g)))
+  (1 - rr^g)/(1 - rr)
+
+}
+
+
+#' Redraw one series' latent cells given the factor and its parameters
+#'
+#' Observed cells are held at their value by the same `1e-9` variance that
+#' [draw_augmented_data()] uses.
+#'
+#' @noRd
+#' @importFrom stats rnorm
+draw_series_latent <- function(obs, gf_ix, rho, sigma, t){
+
+  K <- Diagonal(n = t) + bandSparse(t, t, k = -1L, diagonals = list(rep(-rho, t - 1L)))
+  mask <- numeric(t)
+  mask[obs$tau] <- 1e9
+  yv <- numeric(t)
+  yv[obs$tau] <- obs$y * 1e9
+
+  P <- forceSymmetric(crossprod(K)/sigma + Diagonal(x = mask))
+  b <- as.numeric(crossprod(K, c(0, gf_ix))/sigma) + yv
+
+  as.numeric(solve(P, b) + solve(chol(P), rnorm(t)))
 
 }
 
@@ -269,7 +366,17 @@ gibbs_sweep <- function(state, ctx){
   Xvec_tilde <- t(Xmat_tilde)
   dim(Xvec_tilde) <- c(n*(t-1),1)
 
-  # 1. draw factors (conditional on model parameters)
+  # 1. draw factors (conditional on model parameters). The factor and the
+  # target's unobserved weeks are one grouped draw: f from the target's actual
+  # observations, with those weeks integrated out, and then those weeks given f.
+  # Conditioning f on them instead is what froze the nowcast: with sigma_target
+  # about 1e-3 each pins the other, for an autocorrelation time of about 4200.
+  obs <- ctx$target_obs
+  tx <- obs$ix
+  target_reg <- collapsed_regression(obs, diag(rho)[tx])
+  target_reg$lambda <- as.numeric(lambda)[tx]
+  target_reg$sigma <- diag(sigma)[tx]
+
   f <- draw_factors(Xvec_tilde = Xvec_tilde,
                     Gmat = Gmat,
                     n = n,
@@ -279,17 +386,24 @@ gibbs_sweep <- function(state, ctx){
                     t2 = t2,
                     phi = phi,
                     sigma = sigma,
-                    h = h)
+                    h = h,
+                    collapsed_ix = tx,
+                    collapsed = list(target_reg))
 
   # draw_factors() does not condition on the rows past t2, so they are redrawn
   # given the new f before anything below uses them.
   if(t2 < t){
     Xmat <- draw_horizon_rows(Xmat, Gmat = Gmat, f = f, rho = rho, sigma = sigma,
                               n = n, t = t, t2 = t2)
-    Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
-    Xvec_tilde <- t(Xmat_tilde)
-    dim(Xvec_tilde) <- c(n*(t-1),1)
   }
+
+  gf <- as.numeric(Gmat %*% f)
+  dim(gf) <- c(n, t - 1)
+  Xmat[, tx] <- draw_series_latent(obs, gf[tx,], diag(rho)[tx], diag(sigma)[tx], t)
+
+  Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
+  Xvec_tilde <- t(Xmat_tilde)
+  dim(Xvec_tilde) <- c(n*(t-1),1)
 
   # 2. draw the factor-innovation variance: a full stochastic volatility path,
   #    or - when it is switched off - a single constant variance, still
@@ -360,7 +474,8 @@ gibbs_sweep <- function(state, ctx){
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return_sample = TRUE){
+draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return_sample = TRUE,
+                         collapsed_ix = integer(), collapsed = list()){
 
   # See section 2.5 Estimation
   H <- Reduce("+",lapply(1:p, function(px){
@@ -376,11 +491,24 @@ draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return
 
   # define selection vector such that latent data in forecast horizon has no more impact on factor
   Svec <- c(rep(1,t2-1),rep(0,t-t2))
-  Svec_sigma_inv <- Diagonal(x = Svec) %x% solve(sigma)
+
+  # series in collapsed_ix enter through their own observations below instead
+  sigma_inv <- 1/diag(sigma)
+  sigma_inv[collapsed_ix] <- 0
+  Svec_sigma_inv <- Diagonal(x = Svec) %x% Diagonal(x = sigma_inv)
 
   # Calculate conditional posterior of the factors
-  F1 <- forceSymmetric(F0 + t(Gmat) %*% Svec_sigma_inv %*% Gmat)
-  f1 <- solve(F1, t(Gmat) %*% Svec_sigma_inv %*% Xvec_tilde)
+  F1 <- F0 + t(Gmat) %*% Svec_sigma_inv %*% Gmat
+  rhs <- t(Gmat) %*% Svec_sigma_inv %*% Xvec_tilde
+
+  for(reg in collapsed){
+    A_w <- reg$lambda * t(reg$A) %*% Diagonal(x = 1/(reg$sigma * reg$w))
+    F1 <- F1 + reg$lambda * A_w %*% reg$A
+    rhs <- rhs + A_w %*% reg$r
+  }
+
+  F1 <- forceSymmetric(F1)
+  f1 <- solve(F1, rhs)
 
   if(return_sample){
 

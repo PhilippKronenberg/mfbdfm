@@ -18,6 +18,13 @@
   redrawn after the factor. Both models, except the last, which is `ind_dfm()`
   only. `dev/geweke.R` adds a joint-distribution test of the sampler.
 
+* **`ind_dfm()` draws the factor and the target's latent weeks jointly** (#169).
+  The model does not change, but its latest-quarter nowcast was barely mixing:
+  the factor was conditioned on the target's imputed weekly values while those
+  were imputed from the factor, and under the tight anchoring prior each pinned
+  the other. The chain's autocorrelation time falls by about three orders of
+  magnitude at fixed parameters, at about the same cost per iteration.
+
 * **The export surface is narrower by 19 functions** (#102). 18 analysis-script
   helpers are now package internals, and `is_crisis_period_fcast()` has been
   folded into `is_crisis_period()`. The criterion applied was whether a user of
