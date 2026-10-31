@@ -33,6 +33,10 @@
   `rho`, which the chain now shows: a monthly `rho` near zero spends about half
   its draws on each side.
 
+* New `mfbdfm_exact()` computes the factor and the nowcast exactly over a thinned
+  set of the chain's parameter draws, instead of averaging sampled paths (#171).
+  A fit now stores 200 whole volatility paths in `$draws` for this.
+
 * **The export surface is narrower by 19 functions** (#102). 18 analysis-script
   helpers are now package internals, and `is_crisis_period_fcast()` has been
   folded into `is_crisis_period()`. The criterion applied was whether a user of

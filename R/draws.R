@@ -145,10 +145,18 @@ build_draws_ind <- function(par_save, flist, inventory, target, s, t,
                                       format_draw_time(stats::time(flist[[1]])))
   }
 
-  new_mfbdfm_draws(parameters = M, burn = B, nowcast = NC, factor = FD,
-                   blocks = blocks, model = "ind_dfm", target = target,
-                   length_sample = length_sample, burn_in = burn_in,
-                   thinning = thinning)
+  out <- new_mfbdfm_draws(parameters = M, burn = B, nowcast = NC, factor = FD,
+                          blocks = blocks, model = "ind_dfm", target = target,
+                          length_sample = length_sample, burn_in = burn_in,
+                          thinning = thinning)
+
+  # A thinned set of whole volatility paths, which is what mfbdfm_exact() needs on
+  # top of the parameter columns (#171). The columns above keep only summaries of h.
+  n_kept <- length(par_save$h)
+  out$h_rows <- unique(round(seq(1, n_kept, length.out = min(200L, n_kept))))
+  out$h_paths <- t(vapply(par_save$h[out$h_rows], as.numeric, numeric(t + s)))
+
+  out
 
 }
 

@@ -123,6 +123,7 @@ plots, \code{\link[=dfm_control]{dfm_control()}} for \code{keep_draws}, \code{\l
 Other model functions:
 \code{\link[=mfbdfm_contributions]{mfbdfm_contributions()}},
 \code{\link{mfbdfm_draws}},
+\code{\link[=mfbdfm_exact]{mfbdfm_exact()}},
 \code{\link[=mfbdfm_news]{mfbdfm_news()}}
 }
 \concept{model functions}

@@ -283,7 +283,8 @@ series_obs <- function(Ymat, ix, Llist, t, s){
 #' `w` taken over `g + 1` periods. That reduces to mean zero if period 1 is itself
 #' observed.
 #'
-#' @return The regression `r = lambda A f + N(0, sigma diag(w))`.
+#' @return A list with `A`, `r` and `w` of the regression of `r` on `lambda * A f`,
+#'   with errors of variance `sigma * w`.
 #'
 #' @noRd
 collapsed_regression <- function(obs, rho){
