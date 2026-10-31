@@ -46,7 +46,7 @@
 #'   components of `fit`, and `nowcast_between` (the conditional means, one row per
 #'   selected draw), `mcse_nowcast`, `n_draws` and `paths`.
 #'
-#' @seealso [ind_dfm()], [mfbdfm_contributions()].
+#' @seealso [ind_dfm()], [mfbdfm_quality()], [mfbdfm_contributions()].
 #'
 #' @examples
 #' \donttest{

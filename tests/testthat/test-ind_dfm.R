@@ -44,7 +44,7 @@ test_that("$internal carries p, t2 and the full volatility path", {
   s <- 2*(k - 1)
   t <- nrow(fit$data)
 
-  expect_named(fit$internal, c("p", "t2", "h_full"))
+  expect_named(fit$internal, c("p", "t2", "h_full", "rho_fallback"))
   expect_identical(fit$internal$p, 1)
   # no extend_to here, so every period of the panel held data
   expect_identical(fit$internal$t2, t)

@@ -689,7 +689,8 @@ ind_dfm <- function(flows = NULL,
   # pre-sample ones were being approximated by repeating its first value.
   # Additive, and deliberately under its own name rather than widening the
   # documented `pars` list.
-  out$internal <- list(p = p, t2 = t2, h_full = as.numeric(h_out))
+  out$internal <- list(p = p, t2 = t2, h_full = as.numeric(h_out),
+                       rho_fallback = par_save$rho_fallback)
 
   out$call <- match.call()
   class(out) <- "ind_dfm"

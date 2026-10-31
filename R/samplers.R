@@ -181,6 +181,7 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
 
   if(!is.null(pb)) close(pb)
   warn_rho_fallback(rho_tally, control)
+  par_save$rho_fallback <- rho_tally$n
 
   # a new, separately named element: everything downstream reads par_save by
   # name (ind_dfm()'s averages, pars_dist_ind()), so adding one cannot disturb

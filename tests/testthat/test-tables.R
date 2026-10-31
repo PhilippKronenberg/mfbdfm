@@ -350,7 +350,7 @@ test_that("summary() carries the tables and prints the same numbers", {
     # the printed numbers come from those tables, so a printed summary and a
     # tabulated one cannot disagree
     out <- utils::capture.output(print(s))
-    lam <- s$loadings_table$mean[!s$loadings_table$fixed][1]
+    lam <- s$loadings_table$loading_std[!s$loadings_table$fixed][1]
     expect_true(any(grepl(format(round(lam, 4), nsmall = 4), out, fixed = TRUE)))
 
     # the old fields stay for compatibility

@@ -30,9 +30,18 @@ frame is returned unrounded.}
 }
 \value{
 A data frame with columns \code{series}, \code{type} (flow or stock), \code{freq},
-\code{factor}, \code{mean}, \code{sd}, \code{lower}, \code{upper} and \code{fixed}; or a
+\code{factor}, \code{mean}, \code{sd}, \code{lower}, \code{upper}, \code{fixed}, \code{weight_sum},
+\code{loading_std}, \code{std_lower}, \code{std_upper} and \code{r_squared}; or a
 \code{"knitr_kable"} object when \code{format} is not \code{"data.frame"}. \code{sd}, \code{lower}
 and \code{upper} are \code{NA} for a fit made before \verb{$pars_dist} existed.
+
+\strong{Compare series with \code{loading_std} and \code{r_squared}, not \code{mean}.} A raw
+loading multiplies a weighted sum of factor values, and the weights sum to 12
+for a quarterly flow, 4 for a monthly flow and 1 for a weekly series or a
+stock, so raw loadings of different frequencies are not comparable.
+\code{loading_std = mean * weight_sum / weight_sum[target]} puts them on one scale,
+on which the target is 1 in \code{\link[=ind_dfm]{ind_dfm()}}. \code{r_squared} is the share of the
+series' variance the common component explains.
 }
 \description{
 The posterior mean, standard deviation and 95\% interval of every factor

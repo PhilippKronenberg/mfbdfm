@@ -303,13 +303,13 @@ plot_view_loadings <- function(x){
   # one common ordering across facets, taken from the first factor - a per-facet
   # ordering would put the same series in a different row of each panel
   first <- tab[tab$factor == flabs[1], ]
-  ord <- first$series[order(first$mean)]
+  ord <- first$series[order(first$loading_std)]
 
   df <- data.frame(series = factor(tab$series, levels = ord),
                    factor = factor(tab$factor, levels = flabs),
-                   loading = tab$mean,
-                   lower = tab$lower,
-                   upper = tab$upper,
+                   loading = tab$loading_std,
+                   lower = tab$std_lower,
+                   upper = tab$std_upper,
                    stringsAsFactors = FALSE)
 
   p <- ggplot(df, aes(x = .data$loading, y = .data$series)) +
@@ -329,7 +329,7 @@ plot_view_loadings <- function(x){
 
   p <- p +
     geom_point(colour = unname(pal["estimate"]), size = 2) +
-    labs(x = "loading", y = NULL,
+    labs(x = "loading standardised by aggregation weights, target = 1", y = NULL,
          title = "Factor loadings",
          subtitle = if(has_interval) "posterior mean and 95% interval"
                     else "posterior mean (this fit stores no interval)") +

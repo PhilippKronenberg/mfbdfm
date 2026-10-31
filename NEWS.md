@@ -37,6 +37,20 @@
   set of the chain's parameter draws, instead of averaging sampled paths (#171).
   A fit now stores 200 whole volatility paths in `$draws` for this.
 
+* New `mfbdfm_quality()` checks the mixing and precision of what is published, as
+  a gate before publishing (#172). `mfbdfm_diagnostics()` now reports `rho_obs` and
+  `innovation`, what the data identify for a low-frequency series, and no longer
+  judges a `rho` whose sign is not identified.
+
+* `summary()`, `plot(type = "loadings")` and the dashboard's series file report
+  R-squared and loadings standardised by their aggregation weights, with the target
+  at 1 (#172). Raw loadings do not compare across frequencies. They stay available
+  from `coef()` and `mfbdfm_table_loadings()`.
+
+* `mfbdfm_contributions()`, `mfbdfm_news()` and `logLik()` plug in `rho` and `sigma`
+  that reproduce the identified moments of a low-frequency series, not the mean of
+  a `rho` whose sign is not identified (#172).
+
 * **The export surface is narrower by 19 functions** (#102). 18 analysis-script
   helpers are now package internals, and `is_crisis_period_fcast()` has been
   folded into `is_crisis_period()`. The criterion applied was whether a user of

@@ -915,9 +915,13 @@ print.summary.mfbdfm_fit <- function(x, ...){
 
   # printed from the same tables mfbdfm_table_*() returns, so the two views of
   # a fit report the same numbers (#113)
-  cat("\nFactor loadings (posterior mean, 95% interval):\n")
+  # Standardised, not raw: raw loadings do not compare across frequencies. They
+  # remain available from coef() and mfbdfm_table_loadings().
+  cat("\nHow each series relates to the factor: R-squared, and the loading\n")
+  cat("standardised by its aggregation weights, target = 1 (95% interval):\n")
   print(summary_table_block(x$loadings_table,
-                            c("series", "factor", "mean", "sd", "lower", "upper"),
+                            c("series", "factor", "r_squared", "loading_std",
+                              "std_lower", "std_upper"),
                             drop_single_factor = TRUE))
 
   cat("\nMeasurement error variance (posterior mean, 95% interval):\n")

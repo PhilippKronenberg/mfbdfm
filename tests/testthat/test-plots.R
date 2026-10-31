@@ -201,7 +201,7 @@ test_that("the loadings view draws the posterior interval when it exists", {
   for (nm in names(fl)) {
     p <- plot(fl[[nm]], type = "loadings")
     tab <- mfbdfm_table_loadings(fl[[nm]])
-    expect_equal(sort(p$data$lower), sort(tab$lower))
+    expect_equal(sort(p$data$lower), sort(tab$std_lower))
     expect_match(p$labels$subtitle, "95% interval")
   }
 

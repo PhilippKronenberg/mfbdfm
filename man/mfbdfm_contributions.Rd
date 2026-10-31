@@ -167,6 +167,7 @@ Other model functions:
 \code{\link[=mfbdfm_diagnostics]{mfbdfm_diagnostics()}},
 \code{\link{mfbdfm_draws}},
 \code{\link[=mfbdfm_exact]{mfbdfm_exact()}},
-\code{\link[=mfbdfm_news]{mfbdfm_news()}}
+\code{\link[=mfbdfm_news]{mfbdfm_news()}},
+\code{\link[=mfbdfm_quality]{mfbdfm_quality()}}
 }
 \concept{model functions}

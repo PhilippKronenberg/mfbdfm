@@ -412,7 +412,7 @@ test_that("print and summary work and return invisibly", {
     expect_output(print(fit), "dynamic factor model")
     expect_false(withVisible(print(fit))$visible)
 
-    expect_output(print(summary(fit)), "Factor loadings")
+    expect_output(print(summary(fit)), "standardised by its aggregation weights")
     expect_output(print(summary(fit)), "residual RMSE")
 
     # plot() returns a ggplot VISIBLY (#112) - that is what makes it still

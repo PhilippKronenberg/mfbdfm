@@ -489,7 +489,9 @@ gdp_web_series <- function(vintage = "latest", base_date = as.Date("2019-10-01")
 #' standardised contribution (`T` the plug-in total), and
 #' `parameter_uncertainty = wai_qoq - F(T)`, the posterior-minus-plug-in
 #' residual [mfbdfm_contributions()] itself reports. Per date the components
-#' sum to `wai_qoq` exactly.
+#' sum to `wai_qoq` exactly. Despite its key, which the dashboard's data contract
+#' fixes, this is an unexplained remainder: it also holds any simulation noise in
+#' `wai_qoq`, and it is the difference of a nonlinear transformation's mean.
 #'
 #' **News (`wai_news.csv`).** [mfbdfm_news()] of the move from `news_fit_path`
 #' (last week's fit) to `news_new_data` (this week's data), aggregated to the
@@ -498,8 +500,9 @@ gdp_web_series <- function(vintage = "latest", base_date = as.Date("2019-10-01")
 #' revision. Written only when both arguments are given.
 #'
 #' **Series (`wai_series.csv`).** One row per input series: name and group,
-#' frequency, the R-squared from `summary()` and the posterior loading with its
-#' 95% band (standardised scale, so loadings are comparable across series).
+#' frequency, the R-squared from `summary()` and the loading standardised by its
+#' aggregation weights, target = 1, with its 95% band, as in
+#' [mfbdfm_table_loadings()]. Raw loadings do not compare across frequencies.
 #'
 #' @param fit_path Path to this week's fit `.Rda` (object `mod`), as for
 #'   [export_wai_web()].
@@ -605,9 +608,9 @@ export_wai_measures <- function(fit_path, dir = NULL, series_info = NULL,
     group      = unname(group_of[keys]),
     frequency  = inv$freq,
     r2         = r2$r_squared[match(keys, r2$series)],
-    loading    = ld$mean[match(keys, ld$series)],
-    loading_lo = ld$lower[match(keys, ld$series)],
-    loading_hi = ld$upper[match(keys, ld$series)],
+    loading    = ld$loading_std[match(keys, ld$series)],
+    loading_lo = ld$std_lower[match(keys, ld$series)],
+    loading_hi = ld$std_upper[match(keys, ld$series)],
     stringsAsFactors = FALSE
   )
   series <- series[order(series$group, -series$r2), ]

@@ -82,6 +82,12 @@ rather than computed from one chain and quietly meaningless.
 }
 
 \section{Constant chains are reported, not failed}{
+A low-frequency series observed an even number of periods apart identifies
+its weekly \code{rho} only through even powers, so \code{rho[...]} is reported and not
+judged. The rows \code{rho_obs[...]} (\code{rho^gap}, the error's autocorrelation from one
+observation to the next) and \code{innovation[...]} (its variance from one
+observation to the next) are what the data identify, and are judged as usual.
+
 A parameter that was never drawn has zero variance, and no convergence
 statistic is defined for it. Those rows carry \code{NA} statistics,
 \code{note = "constant"} and \code{ok = NA}, and are left out of the failure count.
@@ -124,6 +130,7 @@ Other model functions:
 \code{\link[=mfbdfm_contributions]{mfbdfm_contributions()}},
 \code{\link{mfbdfm_draws}},
 \code{\link[=mfbdfm_exact]{mfbdfm_exact()}},
-\code{\link[=mfbdfm_news]{mfbdfm_news()}}
+\code{\link[=mfbdfm_news]{mfbdfm_news()}},
+\code{\link[=mfbdfm_quality]{mfbdfm_quality()}}
 }
 \concept{model functions}

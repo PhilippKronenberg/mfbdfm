@@ -298,9 +298,18 @@ fit_scaling <- function(fit){
 #' @param caption Character or `NULL`, a caption for the rendered formats.
 #'
 #' @return A data frame with columns `series`, `type` (flow or stock), `freq`,
-#'   `factor`, `mean`, `sd`, `lower`, `upper` and `fixed`; or a
+#'   `factor`, `mean`, `sd`, `lower`, `upper`, `fixed`, `weight_sum`,
+#'   `loading_std`, `std_lower`, `std_upper` and `r_squared`; or a
 #'   `"knitr_kable"` object when `format` is not `"data.frame"`. `sd`, `lower`
 #'   and `upper` are `NA` for a fit made before `$pars_dist` existed.
+#'
+#'   **Compare series with `loading_std` and `r_squared`, not `mean`.** A raw
+#'   loading multiplies a weighted sum of factor values, and the weights sum to 12
+#'   for a quarterly flow, 4 for a monthly flow and 1 for a weekly series or a
+#'   stock, so raw loadings of different frequencies are not comparable.
+#'   `loading_std = mean * weight_sum / weight_sum[target]` puts them on one scale,
+#'   on which the target is 1 in [ind_dfm()]. `r_squared` is the share of the
+#'   series' variance the common component explains.
 #'
 #' @examples
 #' \donttest{
@@ -354,6 +363,20 @@ mfbdfm_table_loadings <- function(fit,
   # estimate that happened to come out at exactly 1
   out$fixed <- !inherits(fit, "fcast_dfm") & out$series == fit$target
 
+  # A raw loading multiplies a weighted sum of factor values, and those weights sum
+  # to different things by series, so raw loadings do not compare across
+  # frequencies. Standardised: loading times its weights' sum, relative to the
+  # target's. The target is then 1 in ind_dfm(). The interval scales with it.
+  w <- fit_weight_sums(inv)
+  scale_w <- rep(w/w[inv$key == fit$target], times = q)
+  out$weight_sum <- rep(w, times = q)
+  out$loading_std <- out$mean*scale_w
+  out$std_lower <- out$lower*scale_w
+  out$std_upper <- out$upper*scale_w
+
+  r2 <- fit_r_squared(fit)
+  out$r_squared <- if(is.null(r2)) NA_real_ else r2$r_squared[match(out$series, r2$series)]
+
   if(scale == "original"){
     s <- rep(fit_scaling(fit)$sd, times = q)
     for(col in c("mean", "sd", "lower", "upper")) out[[col]] <- out[[col]] * s
@@ -363,6 +386,17 @@ mfbdfm_table_loadings <- function(fit,
   rownames(out) <- NULL
 
   finish_table(out, format, digits, caption)
+
+}
+
+
+#' What each series' aggregation weights sum to
+#'
+#' @noRd
+fit_weight_sums <- function(inventory){
+
+  ll <- get_distributed_lags(inventory)
+  as.numeric(Reduce(`+`, lapply(ll, diag)))
 
 }
 

@@ -69,6 +69,15 @@ dfm_joint_precision <- function(object, Ymat = NULL){
   sigma_d <- as.numeric(pars$sigma)
   rho_d <- as.numeric(pars$rho)
 
+  # The posterior mean of a rho whose sign is not identified is close to zero
+  # whatever the data say. Plug in what they do identify instead.
+  plugin <- low_frequency_plugin(object$draws, inventory$key)
+  if(length(plugin$rho)){
+    m <- match(names(plugin$rho), inventory$key)
+    rho_d[m] <- plugin$rho
+    sigma_d[m] <- plugin$sigma
+  }
+
   if(is_fcast){
 
     q <- pars$q
@@ -138,6 +147,44 @@ dfm_joint_precision <- function(object, Ymat = NULL){
        n = n, t = t, q = q, p = p, s = s, k = k,
        lambda = lambda, phi = phi, sigma = sigma_d, rho = rho_d, h = h,
        Llist = Llist, inventory = inventory, Ymat = Ymat, is_fcast = is_fcast)
+
+}
+
+
+#' Plug-in `rho` and `sigma` for series whose `rho` has no identified sign
+#'
+#' `rho_plugin = mean(rho^g)^(1/g)`, the positive root, for which the posterior mean
+#' of the identified autocorrelation `rho^g` is reproduced exactly. `sigma` then
+#' reproduces the posterior mean of the identified innovation variance.
+#'
+#' @return A list of two vectors named by series, empty if `draws` is `NULL` or has
+#'   no such series, as for a fit made before these columns existed.
+#'
+#' @noRd
+low_frequency_plugin <- function(draws, keys){
+
+  empty <- list(rho = numeric(), sigma = numeric())
+  if(is.null(draws) || !length(draws$info$unidentified)) return(empty)
+
+  low <- sub("^rho\\[(.*)\\]$", "\\1", draws$info$unidentified)
+  low <- intersect(low, keys)
+  if(!length(low)) return(empty)
+
+  P <- draws$parameters
+  n_burn <- draws$info$n_burn_in
+  if(n_burn > 0) P <- P[-seq_len(n_burn), , drop = FALSE]
+
+  out <- vapply(low, function(k){
+    ro <- mean(P[, paste0("rho_obs[", k, "]")])
+    inn <- mean(P[, paste0("innovation[", k, "]")])
+    # the gap is recovered from the two columns of one draw
+    g <- round(log(abs(P[1, paste0("rho_obs[", k, "]")]))/log(abs(P[1, paste0("rho[", k, "]")])))
+    r <- ro^(1/g)
+    w <- if(r^2 < 1e-12) 1 else (1 - r^(2*g))/(1 - r^2)
+    c(r, inn/w)
+  }, numeric(2))
+
+  list(rho = stats::setNames(out[1,], low), sigma = stats::setNames(out[2,], low))
 
 }
 
