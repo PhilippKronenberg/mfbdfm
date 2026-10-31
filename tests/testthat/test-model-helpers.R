@@ -92,6 +92,40 @@ test_that("distributed lag and system matrices have the right dimensions", {
   expect_equal(dim(Zmat), c(n * (t - 1), n))
 })
 
+test_that("the loading regressor and the factor regressor describe one equation (#166)", {
+  # Z %*% lambda and G %*% f are the same fitted values, once written as linear
+  # in the loadings and once as linear in the factor. get_zmat() once had two
+  # lag indices swapped, which a check of its dimensions could not see.
+  dat <- make_synth_dat()
+  inv <- create_inventory(flows = dat$flows, stocks = dat$stocks)
+  n <- nrow(inv); t <- 60
+  s <- 2 * (max(inv$freq) / min(inv$freq) - 1)
+  Llist <- mfbdfm:::get_distributed_lags(inv)
+
+  set.seed(166)
+  rho <- Matrix::Diagonal(x = runif(n, -0.9, 0.9))
+  gmat <- function(lambda){
+    mfbdfm:::get_gmat(mfbdfm:::get_gmat_prealloc(n = n, q = 1, s = s, t = t),
+                      Llist = Llist, rho = rho, lambda = lambda, s = s, t = t, n = n)
+  }
+
+  f <- matrix(rnorm(t + s), t + s, 1)
+  lambda <- Matrix::Matrix(rnorm(n), n, 1)
+  Zmat <- mfbdfm:::get_zmat(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
+  expect_equal(as.numeric(Zmat %*% lambda), as.numeric(gmat(lambda) %*% f),
+               tolerance = 1e-12)
+
+  # the multi-factor form: the fitted values add up over the factors
+  f2 <- matrix(rnorm(2 * (t + s)), t + s, 2)
+  lambda2 <- matrix(rnorm(2 * n), n, 2)
+  Z2 <- mfbdfm:::get_zmat_fcast(f = f2, n = n, t = t, s = s, Llist = Llist, rho = rho)
+  by_factor <- lapply(1:2, function(k){
+    as.numeric(gmat(Matrix::Matrix(lambda2[, k], n, 1)) %*% f2[, k])
+  })
+  expect_equal(as.numeric(Z2 %*% as.vector(lambda2)), by_factor[[1]] + by_factor[[2]],
+               tolerance = 1e-12)
+})
+
 test_that("prepare_data(fill = NA) keeps the missingness mask", {
   dat <- make_synth_dat()
   inv <- create_inventory(flows = dat$flows, stocks = dat$stocks)

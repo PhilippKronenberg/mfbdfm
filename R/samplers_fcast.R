@@ -605,7 +605,8 @@ get_zmat_fcast <- function(f, n, t, s, Llist, rho){
     } else if(sx == s+1){
       aux <- -rho %*% Llist[[as.character(s)]]
     } else {
-      aux <- Llist[[as.character(sx-1)]] - rho %*% Llist[[as.character(sx)]]
+      # see get_zmat() on the order of these two indices (#166)
+      aux <- Llist[[as.character(sx)]] - rho %*% Llist[[as.character(sx-1)]]
     }
 
     f[seq(from = 2+s-sx, to = t+s-sx),] %x% aux

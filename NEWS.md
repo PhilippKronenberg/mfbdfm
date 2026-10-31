@@ -2,6 +2,15 @@
 
 ## Breaking changes
 
+* **Results of `ind_dfm()` and `fcast_dfm()` change: the loading draw used a
+  wrong regressor** (#166). `get_zmat()` and `get_zmat_fcast()` had two
+  distributed-lag indices swapped, so `lambda` was drawn from a regressor that
+  did not match the measurement equation. For a weekly series that regressor was
+  `f[t] + f[t-1]` instead of `f[t] - rho * f[t-1]`. The published code of
+  Kronenberg (2026) and Eckert et al. (2025) has the same error, so fits no
+  longer reproduce those papers' results. `dev/paper_replication/` in the
+  repository restores the old behaviour for replication.
+
 * **The export surface is narrower by 19 functions** (#102). 18 analysis-script
   helpers are now package internals, and `is_crisis_period_fcast()` has been
   folded into `is_crisis_period()`. The criterion applied was whether a user of

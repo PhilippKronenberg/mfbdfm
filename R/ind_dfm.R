@@ -199,16 +199,30 @@
 #' windowed from 2019 (three flows, two stocks), pairwise correlations across
 #' all ten pairs of seeds.
 #'
-#' \tabular{lll}{
-#'   **component** \tab **worst pair** \tab **best pair** \cr
-#'   `nowcast`     \tab 0.987         \tab 1.000         \cr
-#'   `factor`      \tab 0.950         \tab 0.988         \cr
-#'   `pars$lambda` \tab 0.994         \tab 1.000
+#' \tabular{llll}{
+#'   **component** \tab **worst pair** \tab **best pair** \tab **median** \cr
+#'   `nowcast`     \tab 0.996         \tab 1.000         \tab 0.999 \cr
+#'   `factor`      \tab 0.275         \tab 0.994         \tab 0.984 \cr
+#'   `pars$lambda` \tab -0.870        \tab 1.000         \tab 1.000
 #' }
 #'
-#' So the quarterly nowcast is reproducible to about three digits across seeds
-#' and the weekly factor to about two; raise `length_sample` if a tighter
-#' agreement is wanted. The same measurement for [fcast_dfm()] is in
+#' **The worst pairs are a second mode, not imprecision.** The anchoring pins the
+#' factor's 23-week aggregate to the target, but weekly movements that cancel
+#' within that window are free, so on a small panel the chain can settle where
+#' the financial series load with the opposite sign. It does not cross between
+#' the two within a fit: on this panel 4 of 12 seeds stayed in that mode through
+#' 2000 iterations and one through 3500, at a plug-in `logLik()` about 50 lower
+#' than the main mode. Among the four seeds in the main mode the `factor` agrees
+#' at 0.982 to 0.994 and `pars$lambda` at 0.9997 or better. On a 46-series panel
+#' all 9 seeds measured settled in one mode (weekly path correlation at least
+#' 0.991), which does not prove there is no other. If you fit a small panel,
+#' compare a few seeds and their `logLik()`.
+#'
+#' These correlations describe paths, and hide what matters most for a nowcast
+#' being published: the latest quarter mixes slowly, so its *level* differs
+#' visibly between seeds even at the default chain length. See
+#' `mfbdfm_diagnostics(fit, which = "all")`. The same measurement for
+#' [fcast_dfm()] is in
 #' `?fcast_dfm`, and its factors agree much less closely, for a reason
 #' specific to that model.
 #'

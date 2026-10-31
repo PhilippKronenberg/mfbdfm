@@ -255,12 +255,22 @@ Consequences worth knowing before changing anything in the samplers:
 - `samplers_fcast.R` **normalises h's level and spread away on every draw** (`h <- (h - Q1) * (0.01 / (Q3 - Q1))`, commented "necessary for identification") because only the *shape* of the volatility path is identified there. `samplers.R` has no such line — only a numerical clamp — because the level *is* identified by the anchoring. Do not "harmonise" these.
 - **Some priors are the identification, not tuning knobs.** In `ind_dfm`, the target's measurement variance (`c0 = t`, `d0 = t*1e-3`) and serial correlation (`R0 = 1e-9`) are what make the factor track GDP; relaxing them silently dissolves the anchoring. In `fcast_dfm`, the `lambda` prior must stay diffuse or it conflicts with the post-hoc rotation. `dfm_priors(type = ...)` therefore moves **tunable priors only**; changing a structural one requires an explicit argument that warns.
 
-## Where we knowingly differ from the published Eckert et al. (2025) results
+## Where we knowingly differ from the published results
 
 **Internal note, kept here deliberately and not in any package documentation.**
-It records a place where our code is correct and the published figures are not
+It records places where our code is correct and the published figures are not
 reproducible from it, so that nobody later "discovers" the discrepancy and
 tries to undo the fix.
+
+- **The papers used a wrong `get_zmat()` (#166, fixed). This affects both Kronenberg (2026) and Eckert et al. (2025).** The function builds the regressor of the loading draw from the quasi-differenced measurement equation. The coefficient on lag `j` of the factor must be `L[j] - rho*L[j-1]`, which is what `get_gmat()` has. The papers' code had `L[j-1] - rho*L[j]`.
+  - **Where it came from:** `wai_ind/code/lib/functions_model.R:833` has this line, so it is not a porting error.
+  - **How it was used:** only `draw_lambda()` uses the function, once per iteration (`samplers.R`, `samplers_fcast.R`). Every other block uses `get_gmat()`, so the conditionals were mutually inconsistent, and the chain's stationary distribution was not guaranteed to be the stated posterior.
+  - **What it did:** for a weekly series the regressor was `f[t] + f[t-1]` instead of `f[t] - rho*f[t-1]`, so weekly loadings were distorted by roughly `(1-rho)/2`. `lambda[target]` is overwritten by 1, so GDP's own loading was unaffected. It does not explain the sampler's slow mixing.
+  - **To replicate the old results:** in a session with the package loaded, from the package root, `source("dev/paper_replication/use_paper_zmat.R"); use_paper_zmat()`, then run the script as usual. `dev/paper_replication/README.md` has the details and the archived files. Checking the restoration is `source("dev/baseline.R"); baseline_check("dev/paper_replication/baseline_before_fix.rds")`, which must report `BASELINE MATCHES`.
+  - **The replication claims further down this section were measured before this fix.** They hold only with `use_paper_zmat()`, including the stored RMSFE and log score tables from `2_evaluation_fcast.R`.
+  - **Do not "restore" the old line** on the grounds that it reproduced the paper.
+  - **The fix moves the weekly WAI a lot and quarterly history little.** On the real 46-series panel at 2026.812: weekly path correlation with the old one 0.74, sd ratio 1.28, quarterly history within 0.37, latest weekly `wai_qoq` about 2.5 to 6.2, Q4 about 1.8 to 1.0. Raw loadings of the Swiss stock series rise about 30-fold, and their R² from about 0.03 to 0.38-0.49. The anchoring pins only the factor's 23-week aggregate, so weekly movements that cancel within it are free. Whether stock returns should be able to pull the weekly path this way is an open model question.
+  - **The small seed-test panel now has a second mode.** On `data_ch_dataset_test` from 2019, 4 of 12 seeds settle where the financial series load negatively (plug-in `logLik` about 50 lower), and the chain does not leave it. All 9 seeds on the real panel found one mode. The G5.9b tests therefore compare within the main mode.
 
 - **`phi` was transposed on unpacking (#66, fixed).** `list2theta_fcast()`
   packs each `q x q` VAR block column-major; `theta2list_fcast()` read the whole

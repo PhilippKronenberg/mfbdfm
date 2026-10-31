@@ -216,13 +216,15 @@ absolute value, and the loadings are permuted onto a common order with them.
 
 \tabular{lll}{
 \strong{component} \tab \strong{worst pair} \tab \strong{best pair} \cr
-\code{nowcast}     \tab 0.998         \tab 1.000         \cr
-\code{factor}      \tab 0.573         \tab 0.939         \cr
-\code{pars$lambda} \tab 0.634         \tab 0.996
+\code{nowcast}     \tab 0.981         \tab 1.000         \cr
+\code{factor}      \tab 0.454         \tab 0.998         \cr
+\code{pars$lambda} \tab 0.805         \tab 1.000
 }
 
-The nowcast is as reproducible as \code{\link[=ind_dfm]{ind_dfm()}}'s, and the factors and
-loadings are far less so. That is a property of the model, not a defect:
+The nowcast path is close to as reproducible as \code{\link[=ind_dfm]{ind_dfm()}}'s, and the
+factors and loadings are far less so. A path correlation hides the level of
+the latest quarter, which on this panel and chain length still differs
+clearly between seeds. That is a property of the model, not a defect:
 the chain samples an unidentified system and the rotation is resolved
 afterwards, and the post-hoc rotation does not reach uniqueness across runs.
 The nowcast is invariant to the rotation, which is why it is unaffected. Do

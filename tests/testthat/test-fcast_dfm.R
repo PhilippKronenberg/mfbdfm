@@ -306,18 +306,19 @@ test_that("fcast_dfm agrees across seeds to the documented tolerance (G5.9b)", {
   d <- fcast_seed_data()
   fits <- fcast_seed_fits(flows = d$flows, stocks = d$stocks, target = d$target)
 
-  # measured: 0.9982 to 1.0000
+  # measured: 0.9813 to 0.9999 (re-measured after #166)
   expect_gte(min(pairwise_cor(lapply(fits, function(x) as.numeric(x$nowcast)))),
-             0.99)
+             0.97)
 
   ij <- utils::combn(length(fits), 2)
 
-  # measured: 0.5732 to 0.9388, after matching factors by absolute correlation
+  # measured: 0.4538 to 0.9982, after matching factors by absolute correlation
+  # (re-measured after #166)
   fa <- apply(ij, 2, function(k)
     align_factors(fits[[k[1]]]$factor, fits[[k[2]]]$factor))
-  expect_gte(min(fa), 0.55)
+  expect_gte(min(fa), 0.40)
 
-  # measured: 0.6344 to 0.9962. The loadings are permuted onto a common order
+  # measured: 0.8047 to 1.0000. The loadings are permuted onto a common order
   # by the factor correlations first, since a permuted rotation permutes the
   # loading columns with it.
   la <- apply(ij, 2, function(k) {
