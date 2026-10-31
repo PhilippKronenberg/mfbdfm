@@ -226,8 +226,11 @@ sweep_context <- function(Ymat, target, n, t, t2, p, s, inventory, Gmat_prealloc
   NtN <- t(N) %*% N
 
   Llist <- get_distributed_lags(inventory)
+  low_ix <- which(inventory$freq < max(inventory$freq) & inventory$key != target)
 
   list(Gmat_prealloc = Gmat_prealloc, Llist = Llist,
+       low_ix = low_ix,
+       low_obs = lapply(low_ix, function(ix) series_obs(Ymat, ix, Llist, t, s)),
        inventory = inventory, target = target, n = n, t = t, t2 = t2, p = p, s = s,
        StV1S = StV1S, StV1SY = StV1SY, NtN = NtN, priors = priors, control = control,
        target_obs = series_obs(Ymat, which(inventory$key == target), Llist, t, s),
@@ -329,6 +332,104 @@ draw_series_latent <- function(obs, gf_ix, rho, sigma, t){
   b <- as.numeric(crossprod(K, c(0, gf_ix))/sigma) + yv
 
   as.numeric(solve(P, b) + solve(chol(P), rnorm(t)))
+
+}
+
+
+#' Draw a low-frequency series' rho, sigma and lambda, latent weeks integrated out
+#'
+#' In this order, each from the distribution with everything drawn before it
+#' integrated in and the latent weeks integrated out:
+#'
+#' 1. `rho | lambda, f, y`, with `sigma` integrated out analytically as well. One
+#'    dimension, so an independence Metropolis step whose proposal is a
+#'    histogram of the density on a grid: the grid only has to be good enough to
+#'    accept often, because the accept step makes the draw exact. It can cross
+#'    zero freely, where the conditional on imputed errors could not.
+#' 2. `sigma | rho, lambda, f, y`.
+#' 3. `lambda | rho, sigma, f, y`.
+#'
+#' See [collapsed_regression()] for the likelihood.
+#'
+#' @noRd
+#' @importFrom stats rgamma rnorm runif
+draw_low_frequency <- function(obs, f, lambda, rho, draw_rho, prior_sigma, prior_rho,
+                               prior_lambda, control, grid_size = 401L){
+
+  m <- length(obs$y)
+  c0 <- prior_sigma$c0
+  d0 <- prior_sigma$d0
+
+  # the errors at the observation dates, and what each one follows: period 1's
+  # is -lambda * B1 f, as period 1 has mean zero rather than the fitted value
+  fb <- as.numeric(obs$B %*% f)
+  fb1 <- as.numeric(obs$B1 %*% f)
+  e <- obs$y - lambda * fb
+  e0 <- c(-lambda * fb1, e[-m])
+
+  # sufficient statistics per distinct gap, so that the density costs one
+  # evaluation per gap and not one per observation
+  gaps <- obs$g
+  first <- seq_len(m) == 1L
+  key <- paste(gaps, first)
+  groups <- split(seq_len(m), key)
+  stats_g <- lapply(groups, function(idx){
+    list(g = gaps[idx[1]], w_g = gaps[idx[1]] + as.integer(first[idx[1]]), n = length(idx),
+         s11 = sum(e[idx]^2), s10 = sum(e[idx] * e0[idx]), s00 = sum(e0[idx]^2))
+  })
+
+  rss_of <- function(r){
+    rss <- numeric(length(r))
+    logw <- numeric(length(r))
+    rr <- r^2
+    for(st in stats_g){
+      rp <- r^st$g
+      w <- (1 - rr^st$w_g)/(1 - rr)
+      w[rr < 1e-12] <- 1
+      rss <- rss + (st$s11 - 2*rp*st$s10 + rp^2*st$s00)/w
+      logw <- logw + st$n*log(w)
+    }
+    list(rss = rss, logw = logw)
+  }
+
+  log_post <- function(r){
+    q <- rss_of(r)
+    -(r - prior_rho$r0)^2/(2*prior_rho$R0) - 0.5*q$logw - 0.5*(c0 + m)*log(d0 + q$rss)
+  }
+
+  if(draw_rho){
+
+    edges <- seq(-control$rho_max, control$rho_max, length.out = grid_size)
+    width <- edges[2] - edges[1]
+    lp <- log_post(edges)
+    dens <- exp(lp - max(lp))
+    mass <- (dens[-1] + dens[-grid_size])/2
+    mass <- mass/sum(mass)
+
+    cell <- sample.int(grid_size - 1L, 1L, prob = mass)
+    proposal <- edges[cell] + width*runif(1)
+
+    old_cell <- min(findInterval(rho, edges, all.inside = TRUE), grid_size - 1L)
+    log_alpha <- log_post(proposal) - log_post(rho) + log(mass[old_cell]) - log(mass[cell])
+
+    if(log(runif(1)) < log_alpha) rho <- proposal
+
+  }
+
+  rss <- rss_of(rho)$rss
+  sigma <- 1/rgamma(1, shape = (c0 + m)/2, rate = (d0 + rss)/2) + control$jitter
+  if(sigma > control$sigma_max) sigma <- control$sigma_max
+
+  # collapsed_regression(), on plain vectors: this runs once per series per sweep
+  rg <- rho^gaps
+  w <- skip_weights(rho, gaps + as.integer(first))
+  x <- fb - rg * c(fb1, fb[-m])
+  r <- obs$y - rg * c(0, obs$y[-m])
+  prec <- 1/prior_lambda$B0 + sum(x^2/w)/sigma
+  mu <- (prior_lambda$b0/prior_lambda$B0 + sum(x*r/w)/sigma)/prec
+  lambda <- mu + rnorm(1)/sqrt(prec)
+
+  list(lambda = lambda, sigma = sigma, rho = rho)
 
 }
 
@@ -461,7 +562,35 @@ gibbs_sweep <- function(state, ctx){
     rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
                     lambda = lambda, Llist = Llist, inventory = inventory, target = target,
                     prior_target = priors$rho_target, prior_other = priors$rho_other,
-                    control = control, tally = ctx$rho_tally)
+                    control = control, tally = ctx$rho_tally,
+                    skip = ctx$low_ix, rho_old = diag(rho))
+  }
+
+  # Low-frequency series: rho, sigma and lambda again, this time from the
+  # observations themselves, with their latent weeks integrated out. Given imputed
+  # weekly errors rho can only take tiny steps, because the data identify it
+  # through rho^4 alone. Nothing below uses this sweep's Xmat for these series, and
+  # the next sweep starts by redrawing it, so this is a grouped draw of these
+  # parameters and those weeks and needs no further step.
+  if(length(ctx$low_ix)){
+    lam <- as.numeric(lambda)
+    sig <- diag(sigma)
+    rh <- diag(rho)
+    fv <- as.numeric(f)
+    for(j in seq_along(ctx$low_ix)){
+      ix <- ctx$low_ix[j]
+      draw <- draw_low_frequency(ctx$low_obs[[j]], f = fv, lambda = lam[ix], rho = rh[ix],
+                                 draw_rho = ctx$serial_correlation,
+                                 prior_sigma = priors$sigma_other,
+                                 prior_rho = priors$rho_other,
+                                 prior_lambda = priors$lambda, control = control)
+      lam[ix] <- draw$lambda
+      sig[ix] <- draw$sigma
+      rh[ix] <- draw$rho
+    }
+    lambda <- Matrix(lam, n, 1)
+    sigma <- Diagonal(x = sig)
+    rho <- Diagonal(x = rh)
   }
 
   list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
@@ -803,7 +932,8 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, x1, inventory, target, sigma, 
 #' @importFrom stats rnorm
 draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
                     control,
-                     prior_target, prior_other, tally = NULL){
+                     prior_target, prior_other, tally = NULL,
+                     skip = integer(), rho_old = NULL){
 
   # See appendix A.4 Conditional distributions of Remaining Parameters: Autocorrelation of Measurement Errors
   # construct auxiliary matrix
@@ -840,6 +970,9 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
   Elead <- E[-1, , drop = FALSE]
 
   rho <- Diagonal(x = sapply(1:n, function(nx){
+
+    # drawn by draw_low_frequency() instead
+    if(nx %in% skip) return(rho_old[nx])
 
     if(nx == target_ix){
 

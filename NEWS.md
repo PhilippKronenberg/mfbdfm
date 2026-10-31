@@ -25,6 +25,14 @@
   the other. The chain's autocorrelation time falls by about three orders of
   magnitude at fixed parameters, at about the same cost per iteration.
 
+* **`ind_dfm()` draws `rho`, `sigma` and `lambda` of low-frequency series from
+  their observations, with the latent weeks integrated out** (#170). The model
+  does not change. The data identify such a series' weekly `rho` only through
+  `rho^4`, its sign not at all, and given imputed weekly errors the chain could
+  only cross that plateau in tiny steps. Its posterior is symmetric in the sign of
+  `rho`, which the chain now shows: a monthly `rho` near zero spends about half
+  its draws on each side.
+
 * **The export surface is narrower by 19 functions** (#102). 18 analysis-script
   helpers are now package internals, and `is_crisis_period_fcast()` has been
   folded into `is_crisis_period()`. The criterion applied was whether a user of
