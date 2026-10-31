@@ -83,29 +83,16 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   indicators = init("indicators",
                     replicate(t+s, sample(x = 1:7, size = 1, prob = rep(1/7,7))))
 
-  # precompute sparse structures that depend only on the fixed data/dimensions
-  # (Ymat, n, t, s), not on any sampled parameter, so they would otherwise be
-  # rebuilt identically on every one of the burn_in + length_sample*thinning
-  # iterations below
-  Smat <- Diagonal(x = sapply(1:t, function(tx) as.integer(Ymat[tx,] != 0)))
-  V1 <- solve(Diagonal(x = 1e-9, n = t*n))
-  StV1S <- t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Smat
-  Yvec <- t(Ymat)
-  dim(Yvec) <- c(n*t, 1)
-  StV1SY <- t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Yvec
-
-  N <- cbind(rbind(Matrix(0,1,t+s-1),
-                   kronecker(Diagonal(t+s-1), -1)),
-             Matrix(0, t+s,1)) + Diagonal(n = (t+s))
-  N <- N[-1,] # diffuse (improper) prior distribution
-  NtN <- t(N) %*% N
+  ctx <- sweep_context(Ymat = Ymat, target = target, n = n, t = t, t2 = t2, p = p, s = s,
+                       inventory = inventory, Gmat_prealloc = Gmat_prealloc,
+                       priors = priors, control = control,
+                       stochastic_volatility = stochastic_volatility,
+                       serial_correlation = serial_correlation)
+  rho_tally <- ctx$rho_tally
 
   # initialize progress bar; NULL when quiet, since the bar writes with cat()
   # and so cannot be silenced from outside the call (#118)
   pb <- if(verbose) txtProgressBar(style = 3) else NULL
-
-  # tally of rho stationarity-screen fallbacks, reported once after the chain
-  rho_tally <- new_rho_tally()
 
   # restore the caller's graphics state once, however this function exits,
   # instead of resetting it after every plotted iteration below
@@ -114,90 +101,18 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
     on.exit(par(oldpar), add = TRUE)
   }
 
+  state <- list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
+                omega = omega, Xmat = Xmat, indicators = indicators)
+
   # loop until sampling complete
   for(jx in 1:(burn_in + length_sample*thinning)){
 
     if(!is.null(pb)) setTxtProgressBar(pb, jx/(burn_in + length_sample * thinning))
 
-    Gmat <- get_gmat(Gmat_prealloc, Llist, rho, lambda, s, t, n)
-
-    # 0. augment data
-    Xmat <- draw_augmented_data(Gmat = Gmat, f = f, rho = rho, sigma = sigma, n = n, t = t,
-                                StV1S = StV1S, StV1SY = StV1SY, return_sample = TRUE)
-
-    # quasi-differenced data used identically by draw_factors/draw_lambda/draw_sigma
-    # below (Xmat and rho are unchanged across these three calls) - compute once
-    Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
-    Xvec_tilde <- t(Xmat_tilde)
-    dim(Xvec_tilde) <- c(n*(t-1),1)
-
-    # 1. draw factors (conditional on model parameters)
-    f <- draw_factors(Xvec_tilde = Xvec_tilde,
-                      Gmat = Gmat,
-                      n = n,
-                      p = p,
-                      s = s,
-                      t = t,
-                      t2 = t2,
-                      phi = phi,
-                      sigma = sigma,
-                      h = h)
-
-    # 2. draw the factor-innovation variance: a full stochastic volatility path,
-    #    or - when it is switched off - a single constant variance, still
-    #    estimated (the factor's scale is pinned by lambda[target] = 1, so the
-    #    variance is the free parameter the data determines; see CLAUDE.md,
-    #    "Scale identification"). Both write into `h` as log-sd, so everything
-    #    downstream (draw_factors, draw_phi) is unchanged.
-    if(stochastic_volatility){
-      h <- draw_volatility(f = f,
-                           phi = phi,
-                           n = n,
-                           p = p,
-                           s = s,
-                           t = t,
-                           omega = omega,
-                           indicators = indicators,
-                           h_old = h,
-                           NtN = NtN,
-                           control = control)
-    } else {
-      h <- draw_factor_variance(f = f, phi = phi, p = p, s = s, t = t,
-                                prior = priors$factor_var, control = control)
-    }
-
-    # 3. draw model parameters (conditional on factors and volatility)
-    Zmat <- get_zmat(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
-    lambda <- draw_lambda(Xvec_tilde = Xvec_tilde,
-                          Zmat = Zmat,
-                          sigma = sigma,
-                          n = n, t = t,
-                          inventory = inventory,
-                          target = target,
-                          prior = priors$lambda)
-
-
-    sigma <- draw_sigma(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
-                        inventory = inventory, target = target, sigma = sigma,
-                        prior_target = priors$sigma_target,
-                        prior_other = priors$sigma_other, control = control)
-    phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi, prior = priors$phi, control = control)
-
-    # omega (the variance of h's own innovations) and the mixture indicators
-    # exist solely to draw a volatility PATH; with a constant variance they are
-    # meaningless. Each conditional is kept in its original position in the
-    # sequence so that with the defaults the RNG is consumed exactly as before.
-    if(stochastic_volatility) omega <- draw_omega(h = h, t = t, s = s, p = p,
-                                                  prior = priors$omega, control = control)
-
-    if(serial_correlation){
-      rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
-                      lambda = lambda, Llist = Llist, inventory = inventory, target = target,
-                      prior_target = priors$rho_target, prior_other = priors$rho_other,
-                      control = control, tally = rho_tally)
-    }
-
-    if(stochastic_volatility) indicators = draw_indicators(h, f, phi, n, p, s, t, control)
+    state <- gibbs_sweep(state, ctx)
+    f <- state$f; lambda <- state$lambda; phi <- state$phi; sigma <- state$sigma
+    rho <- state$rho; h <- state$h; omega <- state$omega; Xmat <- state$Xmat
+    indicators <- state$indicators
 
     # 3. check convergence
     if(plots == TRUE){
@@ -283,6 +198,160 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                                indicators = indicators)
 
   return(par_save)
+
+}
+
+
+#' What does not change between sweeps
+#'
+#' Sparse structures that depend only on the fixed data and dimensions, not on
+#' any sampled parameter, so they are computed once rather than on every
+#' iteration.
+#'
+#' @noRd
+sweep_context <- function(Ymat, target, n, t, t2, p, s, inventory, Gmat_prealloc,
+                          priors, control, stochastic_volatility, serial_correlation){
+
+  Smat <- Diagonal(x = sapply(1:t, function(tx) as.integer(Ymat[tx,] != 0)))
+  V1 <- solve(Diagonal(x = 1e-9, n = t*n))
+  StV1S <- t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Smat
+  Yvec <- t(Ymat)
+  dim(Yvec) <- c(n*t, 1)
+  StV1SY <- t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Yvec
+
+  N <- cbind(rbind(Matrix(0,1,t+s-1),
+                   kronecker(Diagonal(t+s-1), -1)),
+             Matrix(0, t+s,1)) + Diagonal(n = (t+s))
+  N <- N[-1,] # diffuse (improper) prior distribution
+  NtN <- t(N) %*% N
+
+  list(Gmat_prealloc = Gmat_prealloc, Llist = get_distributed_lags(inventory),
+       inventory = inventory, target = target, n = n, t = t, t2 = t2, p = p, s = s,
+       StV1S = StV1S, StV1SY = StV1SY, NtN = NtN, priors = priors, control = control,
+       # tally of rho stationarity-screen fallbacks, reported once after the chain
+       rho_tally = new_rho_tally(),
+       stochastic_volatility = stochastic_volatility,
+       serial_correlation = serial_correlation)
+
+}
+
+
+#' One sweep of the Gibbs sampler
+#'
+#' A function of its own so that `dev/geweke.R` can test the sampler's actual
+#' sequence of draws rather than a copy of it.
+#'
+#' @param state The sampler's current state, in its own types: `f`, `lambda`,
+#'   `phi`, `sigma`, `rho`, `h`, `omega`, `Xmat`, `indicators`.
+#' @param ctx What does not change between sweeps; see [run_sampling()].
+#'
+#' @return `state`, updated.
+#'
+#' @noRd
+gibbs_sweep <- function(state, ctx){
+
+  f <- state$f; lambda <- state$lambda; phi <- state$phi; sigma <- state$sigma
+  rho <- state$rho; h <- state$h; omega <- state$omega; indicators <- state$indicators
+
+  n <- ctx$n; t <- ctx$t; t2 <- ctx$t2; p <- ctx$p; s <- ctx$s
+  Llist <- ctx$Llist; inventory <- ctx$inventory; target <- ctx$target
+  priors <- ctx$priors; control <- ctx$control
+
+  Gmat <- get_gmat(ctx$Gmat_prealloc, Llist, rho, lambda, s, t, n)
+
+  # 0. augment data
+  Xmat <- draw_augmented_data(Gmat = Gmat, f = f, rho = rho, sigma = sigma, n = n, t = t,
+                              StV1S = ctx$StV1S, StV1SY = ctx$StV1SY, return_sample = TRUE)
+
+  # quasi-differenced data used identically by draw_factors/draw_lambda/draw_sigma
+  # below (Xmat and rho are unchanged across these three calls) - compute once
+  Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
+  Xvec_tilde <- t(Xmat_tilde)
+  dim(Xvec_tilde) <- c(n*(t-1),1)
+
+  # 1. draw factors (conditional on model parameters)
+  f <- draw_factors(Xvec_tilde = Xvec_tilde,
+                    Gmat = Gmat,
+                    n = n,
+                    p = p,
+                    s = s,
+                    t = t,
+                    t2 = t2,
+                    phi = phi,
+                    sigma = sigma,
+                    h = h)
+
+  # draw_factors() does not condition on the rows past t2, so they are redrawn
+  # given the new f before anything below uses them.
+  if(t2 < t){
+    Xmat <- draw_horizon_rows(Xmat, Gmat = Gmat, f = f, rho = rho, sigma = sigma,
+                              n = n, t = t, t2 = t2)
+    Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
+    Xvec_tilde <- t(Xmat_tilde)
+    dim(Xvec_tilde) <- c(n*(t-1),1)
+  }
+
+  # 2. draw the factor-innovation variance: a full stochastic volatility path,
+  #    or - when it is switched off - a single constant variance, still
+  #    estimated (the factor's scale is pinned by lambda[target] = 1, so the
+  #    variance is the free parameter the data determines; see CLAUDE.md,
+  #    "Scale identification"). Both write into `h` as log-sd, so everything
+  #    downstream (draw_factors, draw_phi) is unchanged.
+  #
+  #    The indicators are drawn directly before h, from the current f, with
+  #    nothing drawn in between: they are the auxiliary variables of the
+  #    Kim-Shephard-Chib step, not a block of their own. Del Negro & Primiceri
+  #    (2015), Algorithm 2.
+  if(ctx$stochastic_volatility){
+    indicators <- draw_indicators(h, f, phi, n, p, s, t, control)
+    h <- draw_volatility(f = f,
+                         phi = phi,
+                         n = n,
+                         p = p,
+                         s = s,
+                         t = t,
+                         omega = omega,
+                         indicators = indicators,
+                         h_old = h,
+                         NtN = ctx$NtN,
+                         control = control)
+  } else {
+    h <- draw_factor_variance(f = f, phi = phi, p = p, s = s, t = t,
+                              prior = priors$factor_var, control = control)
+  }
+
+  # 3. draw model parameters (conditional on factors and volatility)
+  Zmat <- get_zmat(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
+  lambda <- draw_lambda(Xvec_tilde = Xvec_tilde,
+                        Zmat = Zmat,
+                        sigma = sigma,
+                        n = n, t = t,
+                        inventory = inventory,
+                        target = target,
+                        prior = priors$lambda)
+
+  # sigma conditions on the lambda just drawn
+  Gmat <- get_gmat(ctx$Gmat_prealloc, Llist, rho, lambda, s, t, n)
+  sigma <- draw_sigma(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
+                      x1 = Xmat[1,], inventory = inventory, target = target, sigma = sigma,
+                      prior_target = priors$sigma_target,
+                      prior_other = priors$sigma_other, control = control)
+  phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi, prior = priors$phi, control = control)
+
+  # omega (the variance of h's own innovations) exists solely to draw a
+  # volatility PATH; with a constant variance it is meaningless.
+  if(ctx$stochastic_volatility) omega <- draw_omega(h = h, t = t, s = s, p = p,
+                                                    prior = priors$omega, control = control)
+
+  if(ctx$serial_correlation){
+    rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
+                    lambda = lambda, Llist = Llist, inventory = inventory, target = target,
+                    prior_target = priors$rho_target, prior_other = priors$rho_other,
+                    control = control, tally = ctx$rho_tally)
+  }
+
+  list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
+       omega = omega, Xmat = Xmat, indicators = indicators)
 
 }
 
@@ -488,6 +557,31 @@ draw_augmented_data <- function(Gmat, f, rho, sigma, n, t, StV1S, StV1SY, return
 }
 
 
+#' Redraw the rows past the end of the data, given the factor
+#'
+#' With `extend_to`, [draw_factors()] drops these rows from the factor's
+#' conditional. Together with this draw that is one grouped draw of the factor
+#' and those rows, given the rest. Nothing is observed there, so it is a forward
+#' simulation of the measurement equation.
+#'
+#' @noRd
+#' @importFrom stats rnorm
+draw_horizon_rows <- function(Xmat, Gmat, f, rho, sigma, n, t, t2){
+
+  gf <- as.numeric(Gmat %*% f)
+  dim(gf) <- c(n, t - 1)
+  rd <- diag(rho)
+  sd_v <- sqrt(diag(sigma))
+
+  for(tx in (t2 + 1):t){
+    Xmat[tx,] <- gf[, tx - 1] + rd * Xmat[tx - 1,] + sd_v * rnorm(n)
+  }
+
+  Xmat
+
+}
+
+
 #' Draw the factor loadings
 #'
 #' @noRd
@@ -522,7 +616,7 @@ draw_lambda <- function(Xvec_tilde, Zmat, sigma, n, t, inventory, target, prior)
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma, control,
+draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, x1, inventory, target, sigma, control,
                        prior_target, prior_other){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Measurement Error Covariance Matrix
 
@@ -555,8 +649,10 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma, cont
 
     }
 
+    # t observations: the t-1 quasi-differenced rows and the first row, which
+    # has mean zero (see the first block of Kmat in draw_augmented_data())
     c1 <- c0 + t
-    d1 <- d0 + t(U[,ix]) %*% U[,ix]
+    d1 <- d0 + t(U[,ix]) %*% U[,ix] + x1[ix]^2
 
     # sample from inverse gamma distribution
     1/rgamma(n = 1,

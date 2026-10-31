@@ -128,6 +128,17 @@ baseline_write()    # regenerate, ONLY when a change is meant to alter results
   a new component would otherwise be skipped in silence.
 - For a change that must be bit-identical, `baseline_check()` is the fast first pass; the git-worktree comparison against the parent commit remains the thorough one for anything touching the numerics.
 
+## Verifying that the sampler targets the right posterior
+
+`dev/baseline.R` says that results did not move. It cannot say that they are right. `dev/geweke.R` can (#168): it compares the sampler's joint distribution of parameters, factor and data with the prior's, on a small panel, calling `gibbs_sweep()` itself.
+
+```r
+source("dev/geweke.R")
+geweke_run()   # about 15 minutes on 3 cores; look at z and at attr(., "max_abs_z")
+```
+
+Measured with 3 chains of 15,000 sweeps: corrected sampler max |z| 2.24 over 19 moments, none above 3. With the paper's `get_zmat()` swapped back in as a negative control, `lambda^2` comes out at 0.06 against the correct 1.00, z = -240. **Run it after any change to a conditional or to the order of draws.** It does not cover `h`, `omega`, `phi` or the factor variance, because `h`'s prior is improper and `draw_phi()` clips at zero: those are held nearly fixed. It covers only `ind_dfm()`.
+
 ## Pre-commit verification
 
 **Run `R CMD check` before every commit that touches package code** (`R/`, `tests/`, `DESCRIPTION`, `NAMESPACE`, `man/`, `vignettes/`) — not just before opening a PR. `devtools::check()` is fine for a quick local pass, but prefer the real `R CMD build .` then `R CMD check --no-manual <tarball>` sequence when in doubt, since `devtools::check()` and CI's `R CMD check` have diverged in this repo before (see the `.Rbuildignore` incident below). A clean local check on one commit does not guarantee the next commit is still clean — re-run it, don't assume. This is the same discipline as running the test suite after every substantive change; treat a passing `R CMD check` as a required gate before `git commit`, not an optional nicety saved for pre-merge.

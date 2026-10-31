@@ -11,6 +11,13 @@
   longer reproduce those papers' results. `dev/paper_replication/` in the
   repository restores the old behaviour for replication.
 
+* **Results change again: the order of the Gibbs draws is corrected** (#168).
+  The mixture indicators of the volatility step are drawn directly before `h`
+  (Del Negro & Primiceri 2015), `sigma` conditions on the `lambda` just drawn and
+  includes the first period, and under `extend_to` the rows past the data are
+  redrawn after the factor. Both models, except the last, which is `ind_dfm()`
+  only. `dev/geweke.R` adds a joint-distribution test of the sampler.
+
 * **The export surface is narrower by 19 functions** (#102). 18 analysis-script
   helpers are now package internals, and `is_crisis_period_fcast()` has been
   folded into `is_crisis_period()`. The criterion applied was whether a user of

@@ -115,9 +115,11 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
     f <- draw_factors_fcast(Xmat = Xmat, Gmat = Gmat, n = n, q = q, p = p, s = s, t = t,
                          lambda = lambda, phi = phi, sigma = sigma, h = h, rho = rho)
 
-    # 2. draw stochastic volatility
+    # 2. draw stochastic volatility. The indicators are drawn directly before h,
+    # from the current f: Del Negro & Primiceri (2015), Algorithm 2.
     if(stochastic_volatility){
 
+      indicators <- draw_indicators_fcast(h, f, phi, n, p, q, s, t, control)
       h <- draw_volatility_fcast(f = f, phi = phi, n = n, q = q, p = p, s = s, t = t,
                               omega = omega, indicators = indicators, Ymat = Ymat,
                               control = control)
@@ -130,17 +132,15 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
                              rho = rho, n = n, q = q, t = t, inventory = inventory,
                              prior = priors$lambda)
 
+    # sigma conditions on the lambda just drawn
+    Gmat <- get_gmat(Gmat_prealloc, Llist, rho, lambda, s, t, n)
     sigma <- draw_sigma_fcast(Xmat = Xmat, Ymat = Ymat, Gmat = Gmat, f = f, n = n, t = t,
                            inventory = inventory, rho = rho, sigma = sigma,
                            prior = priors$sigma, control = control)
     phi <- draw_phi_fcast(f = f, h = h, p = p, q = q, t = t, s = s, phi_old = phi)
 
-    # omega (the variance of h's own innovations) and the mixture indicators
-    # exist solely to draw the volatility PATH, so they are pointless when
-    # stochastic volatility is off - previously both were computed and thrown
-    # away in that case. Each conditional is kept in its original position in
-    # the sequence so that with stochastic_volatility = TRUE the RNG is
-    # consumed exactly as before.
+    # omega (the variance of h's own innovations) exists solely to draw the
+    # volatility PATH, so it is pointless when stochastic volatility is off.
     if(stochastic_volatility) omega <- draw_omega_fcast(h, t, p, s, omega_old = omega,
                                                         prior = priors$omega, control = control)
 
@@ -149,8 +149,6 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
                          lambda = lambda, Llist = Llist, inventory = inventory,
                          prior = priors$rho, control = control, tally = rho_tally)
     }
-
-    if(stochastic_volatility) indicators <- draw_indicators_fcast(h, f, phi, n, p, q, s, t, control)
 
     # 4. track a fixed random subset of the augmented data as a convergence check
     check_sample <- Xmat[checks]
@@ -413,8 +411,10 @@ draw_sigma_fcast <- function(Xmat, Ymat, Gmat, f, n, t, inventory, rho, sigma, p
     d0 <- prior$d0
 
     # posterior
+    # t observations: the t-1 quasi-differenced rows and the first row, which
+    # has mean zero, as in draw_sigma()
     c1 <- c0 + t
-    d1 <- d0 + t(U[,ix]) %*% U[,ix]
+    d1 <- d0 + t(U[,ix]) %*% U[,ix] + Xmat[1,ix]^2
 
     # sample from inverse gamma distribution
     1/rgamma(n = 1,
