@@ -60,6 +60,8 @@ analysis/Rda/results_*
 analysis/Rda/fit_*
 analysis/Rda/factor_vintages*
 analysis/Rda/insample*
+analysis/Rda/brent_diag/
+analysis/Rda/brent_eval/
 fits/
 outputs/
 

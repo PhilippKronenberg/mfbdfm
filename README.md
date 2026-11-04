@@ -361,6 +361,17 @@ provider, category, unit, frequency, flow/stock role):
 | `ch.ozd.e.wa.index.re.d11` | Switzerland, Export: Total, Real, SA, Index (1997=100) | FOCBS | Trade | Index | Monthly | Flow |
 | `ch.ozd.i.wa.index.re.d11` | Switzerland, Import: Total, Real, SA, Index (1997=100) | FOCBS | Trade | Index | Monthly | Flow |
 
+`data-raw/data_meta.csv` carries one further row that is **not** in the
+shipped datasets yet, because it is still being evaluated (issue #173):
+
+| Key | Name | Source | Category | Unit | Frequency | Type |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DCOILBRENTEU` | Crude Oil Price, Brent - Europe | U.S. EIA | Prices | USD per barrel | Weekly | Flow |
+
+It is fetched from FRED by `analysis/1_data_prep_dataset.R` and compared
+against the current panel by `analysis/brent_evaluation.R`; it only enters
+`data_ch_dataset`/`data_ch_dataset_test` if that comparison says it should.
+
 ## Documentation
 
 Full function reference, the vignette, and the change log are published

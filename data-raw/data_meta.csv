@@ -45,3 +45,4 @@
 "ch.ozd.e.wa.index.re.d11","Switzerland, Export: Total, Real, SA, Index (1997=100)","FOCBS","postgres","Trade","No","Index",,12,"Log Difference",1
 "ch.ozd.i.wa.index.re.d11","Switzerland, Import: Total, Real, SA, Index (1997=100)","FOCBS","postgres","Trade","No","Index",,12,"Log Difference",1
 "VIX","Volatility Index (VIX)","CBOE","macrobond","Financial","No","Index",,48,"None",0
+"DCOILBRENTEU","Crude Oil Price, Brent - Europe","U.S. EIA","FRED","Prices","No","USD per barrel",,48,"Log Difference",1

@@ -31,6 +31,10 @@
 # - Datastream daily equity block:
 #   FINANSW, INDUSSW, SWISSMI use a 7-day moving average on the daily index and are then
 #   aggregated to weekly levels.
+# - FRED Brent crude oil block:
+#   DCOILBRENTEU is fetched from FRED's plain CSV endpoint into data/dataset, then treated
+#   exactly like SWISSMI: duplicate dates averaged, a 7-day moving average on the daily
+#   USD-per-barrel level, then aggregation to weekly levels. See analysis/brent_oil.R.
 # - Trendecon / Google Trends block:
 #   trendecon and Arbeitsmarkt use daily MSTL adjustment with weekly and annual seasonality,
 #   then a 7-day moving average, then weekly aggregation.
@@ -94,6 +98,12 @@ library(dplyr)
 library(tsbox)
 library(tseries)
 library(mfbdfm)
+
+# Brent crude oil: fetching and harmonisation live in their own file, because the
+# evaluation scripts need the same series without the private raw data this
+# script reads. Defines BRENT_KEY, fetch_brent_daily() and
+# brent_daily_ma7_to_weekly().
+source("analysis/brent_oil.R")
 
 # Load variable metadata that controls source ordering, frequency, and transformation.
 metadata <- utils::read.csv(metadata_path) |>
@@ -755,7 +765,26 @@ vix_raw <- read_delim_auto(file.path(dataset_dir, "VIX.csv"))
 vix_daily <- aggregate_duplicate_dates(parse_date_multi(vix_raw[["Date"]]), vix_raw[["Indexvalue"]], fun = "mean")
 ts_vix <- list(VIX = daily_to_weekly(vix_daily$date, vix_daily$x))
 
-ts_ds_adj <- c(ts_ds_bonds, ts_ds_econ, ts_ds_smi, ts_vix)
+# 3c. FRED Brent crude oil spot price (DCOILBRENTEU):
+# the one source fetched over the network rather than supplied as a file. FRED's
+# documented CSV endpoint needs no key, writes the raw daily series into
+# dataset_dir like every other source, and the preprocessing is SWISSMI's: a
+# 7-day moving average on the daily USD-per-barrel level, then weekly
+# aggregation. Set MFBDFM_SKIP_BRENT_FETCH=true to reuse the file on disk (for
+# a re-run without network access, or to pin a vintage).
+brent_path <- file.path(dataset_dir, BRENT_RAW_FILE)
+if (!tolower(Sys.getenv("MFBDFM_SKIP_BRENT_FETCH", "")) %in% c("1", "true", "yes")) {
+  fetch_brent_daily(dataset_dir, overwrite = TRUE, quiet = TRUE)
+} else if (!file.exists(brent_path)) {
+  stop("MFBDFM_SKIP_BRENT_FETCH is set but ", brent_path, " is not there.",
+       call. = FALSE)
+}
+brent_daily <- read_brent_daily(brent_path)
+ts_brent <- list(DCOILBRENTEU = brent_daily_ma7_to_weekly(brent_daily$date,
+                                                          brent_daily$value))
+names(ts_brent) <- BRENT_KEY
+
+ts_ds_adj <- c(ts_ds_bonds, ts_ds_econ, ts_ds_smi, ts_vix, ts_brent)
 
 # 4. Trendecon and Google Trends:
 # apply the agreed daily MSTL-plus-MA7 preprocessing and aggregate to weekly.
