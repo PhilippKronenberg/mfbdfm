@@ -37,10 +37,9 @@ fit_dims <- function(object){
 #'     The R-squared is `1 - Var(residual)/Var(observed)` over the periods where
 #'     that series was observed, with the fitted value taken to be the **common
 #'     component** -- loadings times factors, temporally aggregated -- so it
-#'     measures what the factor explains and not the idiosyncratic AR part. It
-#'     is therefore not `1 - Var(residuals(fit))/Var(observed)`: `fitted()`
-#'     returns the augmented dataset, whose observed entries are pinned to the
-#'     observed values by the sampler. For [ind_dfm()] the target's R-squared is
+#'     measures what the factor explains and not the idiosyncratic AR part:
+#'     it is `1 - Var(residuals(fit))/Var(observed)` per series. For
+#'     [ind_dfm()] the target's R-squared is
 #'     ~1 by construction, since its loading is fixed to 1 and its measurement
 #'     error shrunk towards zero to identify the factor. Read the **ranking**
 #'     across the other series rather than the level: the common component is
@@ -56,11 +55,15 @@ fit_dims <- function(object){
 #'     `object$pars`, and their posterior spread in `object$pars_dist`; for a
 #'     table with uncertainty see [mfbdfm_table_loadings()] and
 #'     [mfbdfm_table_parameters()].}
-#'   \item{`fitted()`}{The augmented dataset: observed values where a series
-#'     was observed, the model's latent estimate where it was not. On the
-#'     standardized scale the model works in by default; `scale = "original"`
-#'     puts every column back in its own units.}
-#'   \item{`residuals()`}{Observed minus fitted. **Unobserved periods are
+#'   \item{`fitted()`}{The **common component**: loadings times factors,
+#'     temporally aggregated, at the posterior mean parameters -- the part of
+#'     each series the factor explains, for every period. On the standardized
+#'     scale the model works in by default; `scale = "original"` puts every
+#'     column back in its own units. Before mfbdfm 0.2.0 this returned the
+#'     augmented dataset, whose observed entries the sampler pins to the data,
+#'     so `fitted()` was the data itself; that is still in `$data_augmented`.}
+#'   \item{`residuals()`}{Observed minus the common component, i.e. the
+#'     idiosyncratic part (AR error plus noise). **Unobserved periods are
 #'     `NA`, not zero** -- the prepared data encodes a missing observation as
 #'     `0`, so differencing directly would report a spurious residual wherever
 #'     a series was not observed, which in a mixed-frequency model is most of
@@ -113,11 +116,7 @@ fit_dims <- function(object){
 #'
 #' The common component is loadings times factors, temporally aggregated --
 #' the part of each series the factor explains, the same quantity the
-#' R-squared in `summary()` is built on. `"residuals"` and `"fit"` use it
-#' rather than `fitted()`/`residuals()` deliberately: `fitted()` is the
-#' augmented dataset, whose observed entries the sampler pins to the data, so
-#' a residual against it is sampling noise of order `1e-5` and an
-#' observed-versus-fitted plot of it is the data drawn twice. Both views need
+#' R-squared in `summary()` is built on, and what `fitted()` returns. Both views need
 #' `$factor_std` on an [ind_dfm()] fit, and error on a fit saved before it
 #' existed.
 #'
@@ -346,10 +345,30 @@ fitted.fcast_dfm <- function(object, scale = c("standardized", "original"), ...)
   fit_fitted(object, scale)
 }
 
+#' The common component, or an error naming what is missing
+#'
+#' `fitted()` used to return `$data_augmented`, whose observed entries the
+#' sampler pins to the data, so `fitted()` was the data and `residuals()` were
+#' ~1e-5 sampling noise. A fit saved before `factor_std` existed has no common
+#' component, and gets an error rather than that.
+#'
+#' @noRd
+fit_common_or_stop <- function(object){
+
+  cc <- fit_common_component(object)
+  if(is.null(cc)){
+    stop("this fit object predates `factor_std`, which fitted() and residuals() need for the ",
+         "common component; refit it with the current mfbdfm. The augmented data are in ",
+         "`$data_augmented`.", call. = FALSE)
+  }
+  cc
+
+}
+
 #' @noRd
 fit_fitted <- function(object, scale){
 
-  out <- object$data_augmented
+  out <- fit_common_or_stop(object)
   if(match_scale(scale) == "standardized") return(out)
 
   # prepare_data() standardizes as (x - mean)/sd, so the inverse puts both the
@@ -380,9 +399,12 @@ residuals.fcast_dfm <- function(object, scale = c("standardized", "original"), .
 fit_residuals <- function(object, scale = "standardized"){
 
   obs <- object$data
-  fit <- object$data_augmented
+  fit <- fit_common_or_stop(object)
 
-  res <- obs - fit
+  # element-wise on the matrices: `-` on two multi-column ts would rename the
+  # columns "obs.<key>"
+  res <- obs
+  res[] <- unclass(as.matrix(obs)) - unclass(as.matrix(fit))
   # 0 encodes "not observed" in the prepared data; a residual there is
   # meaningless rather than zero
   res[obs == 0] <- NA_real_
@@ -435,10 +457,10 @@ fit_factor_state <- function(object){
 #' The common component: loadings x factors, temporally aggregated
 #'
 #' The model's fit to series `i` that the factor(s) alone explain, excluding the
-#' idiosyncratic AR component. Deliberately not `fitted()`: that returns the
-#' augmented dataset, whose observed entries are pinned to the observed values
-#' by a 1e-9 measurement prior, so residuals against it are sampling noise of
-#' order 1e-5 and every R-squared computed from them would be ~1.
+#' idiosyncratic AR component. This is what `fitted()` returns. The augmented
+#' dataset is not a fit: its observed entries are pinned to the observed values
+#' by a 1e-9 measurement prior, so residuals against it would be sampling noise
+#' of order 1e-5 and every R-squared computed from them ~1.
 #'
 #' Mirrors the `Xfit` accumulation in `draw_rho()` exactly: row `tx` of series
 #' `i` is `sum_sx w[i, sx] * lambda[i, ] %*% f[tx + s - sx, ]`.
@@ -829,7 +851,8 @@ summary.fcast_dfm <- function(object, ...) fit_summary(object, "fcast_dfm")
 fit_summary <- function(object, model){
 
   d <- fit_dims(object)
-  res <- fit_residuals(object)
+  # NA for a fit object without a common component, rather than no summary
+  res <- tryCatch(fit_residuals(object), error = function(e) NA_real_)
 
   structure(list(model = model,
                  call = object$call,

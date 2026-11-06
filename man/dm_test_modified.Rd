@@ -4,7 +4,13 @@
 \alias{dm_test_modified}
 \title{Modified Diebold-Mariano test}
 \usage{
-dm_test_modified(e1, e2, h = 1, power = 2, alternative = "greater")
+dm_test_modified(
+  e1,
+  e2,
+  h = 1,
+  power = 2,
+  alternative = c("greater", "less", "two.sided")
+)
 }
 \arguments{
 \item{e1, e2}{Numeric vectors of forecast errors of the two models.}
@@ -13,7 +19,8 @@ dm_test_modified(e1, e2, h = 1, power = 2, alternative = "greater")
 
 \item{power}{Loss function power (2 = squared error, 1 = absolute).}
 
-\item{alternative}{One of \code{"greater"}, \code{"less"}, \code{"two.sided"}.}
+\item{alternative}{One of \code{"greater"} (the second model is more accurate),
+\code{"less"}, \code{"two.sided"}.}
 }
 \value{
 The p-value.
@@ -22,8 +29,25 @@ The p-value.
 Diebold-Mariano test of equal predictive accuracy with the
 Harvey-Leybourne-Newbold (1997) small-sample correction.
 }
+\details{
+The loss differential's long-run variance includes its autocovariances up
+to lag \code{h - 1}, the statistic is multiplied by the HLN factor
+\verb{sqrt((n + 1 - 2h + h(h - 1)/n) / n)}, and the p-value comes from a
+t-distribution with \code{n - 1} degrees of freedom, as in Harvey, Leybourne and
+Newbold (1997). This equals \code{forecast::dm.test()}.
+
+Earlier versions divided by the factor instead, took the p-value from the
+normal distribution and left the autocovariances out, so their p-values
+were too small: with 18 errors and \code{mean(d) / sqrt(var(d) / 18) = 2}, 0.040
+two-sided instead of 0.062.
+}
 \examples{
 set.seed(1)
 dm_test_modified(rnorm(40) + 0.3, rnorm(40))
 
+}
+\references{
+Harvey, D., Leybourne, S. and Newbold, P. (1997). Testing the
+equality of prediction mean squared errors. \emph{International Journal of
+Forecasting}, 13(2), 281-291.
 }

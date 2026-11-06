@@ -210,8 +210,8 @@ summary(fit)
 
 The standard extractors all work. `coef()` returns the loadings,
 `as.data.frame()` gives a tidy frame of the factor and its band, and
-`fitted()`/`residuals()` return the augmented dataset and its residuals
-with missing observations masked. For tables with posterior uncertainty,
+`fitted()` returns the common component -- loadings times factor -- and
+`residuals()` the data minus it, with missing observations masked. For tables with posterior uncertainty,
 ready for a report, see `mfbdfm_table_loadings()`,
 `mfbdfm_table_parameters()` and `mfbdfm_table_nowcast()`:
 

@@ -315,7 +315,8 @@ test_that("fitted() and residuals() convert to the original scale", {
     # default is unchanged
     expect_identical(fitted(fit), fitted(fit, scale = "standardized"))
     expect_identical(residuals(fit), residuals(fit, scale = "standardized"))
-    expect_identical(fitted(fit), fit$data_augmented)
+    # the common component, not the augmented data the sampler pins to the data
+    expect_identical(fitted(fit), fit_common_component(fit))
 
     f0 <- as.matrix(fitted(fit))
     f1 <- fitted(fit, scale = "original")

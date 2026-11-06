@@ -93,10 +93,9 @@ so a printed summary and a tabulated one report the same numbers.
 The R-squared is \code{1 - Var(residual)/Var(observed)} over the periods where
 that series was observed, with the fitted value taken to be the \strong{common
 component} -- loadings times factors, temporally aggregated -- so it
-measures what the factor explains and not the idiosyncratic AR part. It
-is therefore not \code{1 - Var(residuals(fit))/Var(observed)}: \code{fitted()}
-returns the augmented dataset, whose observed entries are pinned to the
-observed values by the sampler. For \code{\link[=ind_dfm]{ind_dfm()}} the target's R-squared is
+measures what the factor explains and not the idiosyncratic AR part:
+it is \code{1 - Var(residuals(fit))/Var(observed)} per series. For
+\code{\link[=ind_dfm]{ind_dfm()}} the target's R-squared is
 ~1 by construction, since its loading is fixed to 1 and its measurement
 error shrunk towards zero to identify the factor. Read the \strong{ranking}
 across the other series rather than the level: the common component is
@@ -112,11 +111,15 @@ other parameter blocks (\code{phi}, \code{sigma}, \code{rho}, \code{h}) remain i
 \code{object$pars}, and their posterior spread in \code{object$pars_dist}; for a
 table with uncertainty see \code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}} and
 \code{\link[=mfbdfm_table_parameters]{mfbdfm_table_parameters()}}.}
-\item{\code{fitted()}}{The augmented dataset: observed values where a series
-was observed, the model's latent estimate where it was not. On the
-standardized scale the model works in by default; \code{scale = "original"}
-puts every column back in its own units.}
-\item{\code{residuals()}}{Observed minus fitted. \strong{Unobserved periods are
+\item{\code{fitted()}}{The \strong{common component}: loadings times factors,
+temporally aggregated, at the posterior mean parameters -- the part of
+each series the factor explains, for every period. On the standardized
+scale the model works in by default; \code{scale = "original"} puts every
+column back in its own units. Before mfbdfm 0.2.0 this returned the
+augmented dataset, whose observed entries the sampler pins to the data,
+so \code{fitted()} was the data itself; that is still in \verb{$data_augmented}.}
+\item{\code{residuals()}}{Observed minus the common component, i.e. the
+idiosyncratic part (AR error plus noise). \strong{Unobserved periods are
 \code{NA}, not zero} -- the prepared data encodes a missing observation as
 \code{0}, so differencing directly would report a spurious residual wherever
 a series was not observed, which in a mixed-frequency model is most of
@@ -170,11 +173,7 @@ panel per series, on the standardized scale.}
 
 The common component is loadings times factors, temporally aggregated --
 the part of each series the factor explains, the same quantity the
-R-squared in \code{summary()} is built on. \code{"residuals"} and \code{"fit"} use it
-rather than \code{fitted()}/\code{residuals()} deliberately: \code{fitted()} is the
-augmented dataset, whose observed entries the sampler pins to the data, so
-a residual against it is sampling noise of order \code{1e-5} and an
-observed-versus-fitted plot of it is the data drawn twice. Both views need
+R-squared in \code{summary()} is built on, and what \code{fitted()} returns. Both views need
 \verb{$factor_std} on an \code{\link[=ind_dfm]{ind_dfm()}} fit, and error on a fit saved before it
 existed.
 

@@ -1,31 +1,36 @@
-test_that("dm_test_modified reproduces its documented formula exactly", {
+test_that("dm_test_modified reproduces the HLN formula at h = 1 exactly", {
   set.seed(11); e1 <- rnorm(60) + 0.3
   set.seed(12); e2 <- rnorm(60)
 
   for (pw in c(1, 2)) {
     d <- abs(e1)^pw - abs(e2)^pw
     n <- length(d)
-    stat <- (mean(d) / sqrt(var(d) / n)) / sqrt((n - 1) / n) # HLN factor at h = 1
+    # The factor multiplies, and the reference distribution is t(n - 1).
+    stat <- mean(d) / sqrt(mean((d - mean(d))^2) / n) * sqrt((n - 1) / n)
     expect_equal(dm_test_modified(e1, e2, h = 1, power = pw, alternative = "greater"),
-                 1 - pnorm(stat), tolerance = 1e-12)
+                 pt(stat, n - 1, lower.tail = FALSE), tolerance = 1e-12)
     expect_equal(dm_test_modified(e1, e2, h = 1, power = pw, alternative = "two.sided"),
-                 2 * min(pnorm(stat), 1 - pnorm(stat)), tolerance = 1e-12)
+                 2 * pt(-abs(stat), n - 1), tolerance = 1e-12)
   }
 })
 
-test_that("dm_test_modified is consistent with forecast::dm.test", {
-  # Not identical by construction: this implementation uses the normal
-  # approximation and var(); forecast::dm.test uses the t-distribution and
-  # an autocovariance-based long-run variance. They must agree closely.
+test_that("dm_test_modified equals forecast::dm.test, including h > 1", {
   skip_if_not_installed("forecast")
   set.seed(11); e1 <- rnorm(60) + 0.3
-  set.seed(12); e2 <- rnorm(60)
+  set.seed(12); e2 <- as.numeric(stats::filter(rnorm(60), 0.6, "recursive"))
 
-  for (pw in c(1, 2)) {
-    ours <- dm_test_modified(e1, e2, h = 1, power = pw, alternative = "greater")
-    ref <- forecast::dm.test(e1, e2, alternative = "greater", h = 1, power = pw)
-    expect_equal(ours, unname(ref$p.value), tolerance = 2e-2)
+  for (h in 1:3) for (pw in c(1, 2)) for (alt in c("greater", "less", "two.sided")) {
+    ours <- dm_test_modified(e1, e2, h = h, power = pw, alternative = alt)
+    ref <- forecast::dm.test(e1, e2, alternative = alt, h = h, power = pw)
+    expect_equal(ours, unname(ref$p.value), tolerance = 1e-10)
   }
+})
+
+test_that("dm_test_modified rejects bad arguments, naming them", {
+  expect_error(dm_test_modified(1:5, 2:6, alternative = "bigger"), "should be one of")
+  expect_error(dm_test_modified(1:5, 2:6, h = 0), "`h`")
+  expect_error(dm_test_modified(1:5, 2:6, h = 5), "smaller than the number")
+  expect_error(dm_test_modified(c(1, NA), c(NA, 1)), "at least two")
 })
 
 test_that("in-sample fit tables and relative errors are consistent", {

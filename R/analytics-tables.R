@@ -5,40 +5,59 @@
 #' Diebold-Mariano test of equal predictive accuracy with the
 #' Harvey-Leybourne-Newbold (1997) small-sample correction.
 #'
+#' The loss differential's long-run variance includes its autocovariances up
+#' to lag `h - 1`, the statistic is multiplied by the HLN factor
+#' `sqrt((n + 1 - 2h + h(h - 1)/n) / n)`, and the p-value comes from a
+#' t-distribution with `n - 1` degrees of freedom, as in Harvey, Leybourne and
+#' Newbold (1997). This equals `forecast::dm.test()`.
+#'
+#' Earlier versions divided by the factor instead, took the p-value from the
+#' normal distribution and left the autocovariances out, so their p-values
+#' were too small: with 18 errors and `mean(d) / sqrt(var(d) / 18) = 2`, 0.040
+#' two-sided instead of 0.062.
+#'
 #' @param e1,e2 Numeric vectors of forecast errors of the two models.
 #' @param h Forecast horizon.
 #' @param power Loss function power (2 = squared error, 1 = absolute).
-#' @param alternative One of `"greater"`, `"less"`, `"two.sided"`.
+#' @param alternative One of `"greater"` (the second model is more accurate),
+#'   `"less"`, `"two.sided"`.
 #'
 #' @return The p-value.
+#'
+#' @references Harvey, D., Leybourne, S. and Newbold, P. (1997). Testing the
+#'   equality of prediction mean squared errors. *International Journal of
+#'   Forecasting*, 13(2), 281-291.
 #'
 #' @examples
 #' set.seed(1)
 #' dm_test_modified(rnorm(40) + 0.3, rnorm(40))
 #'
-#' @importFrom stats na.omit var pnorm
+#' @importFrom stats na.omit pt
 #' @export
-dm_test_modified <- function(e1, e2, h = 1, power = 2, alternative = "greater") {
-  d <- (abs(e1)^power - abs(e2)^power)  # loss differential
-  d <- na.omit(d)
+dm_test_modified <- function(e1, e2, h = 1, power = 2,
+                             alternative = c("greater", "less", "two.sided")) {
+  alternative <- match.arg(alternative)
+  if (!is.numeric(h) || length(h) != 1L || h < 1 || h != round(h)) {
+    stop("`h` must be a positive whole number, not ", deparse(h), call. = FALSE)
+  }
+  d <- as.numeric(na.omit(abs(e1)^power - abs(e2)^power))  # loss differential
   n <- length(d)
-  d_bar <- mean(d)
-  gamma_0 <- var(d)
+  if (n < 2L) stop("`e1` and `e2` need at least two non-missing errors in common", call. = FALSE)
+  if (h >= n) stop("`h` must be smaller than the number of errors (", n, ")", call. = FALSE)
 
-  # t-statistic (standard)
-  DM_stat <- d_bar / sqrt(gamma_0 / n)
+  # Autocovariances divided by n, up to lag h - 1.
+  centred <- d - mean(d)
+  gamma <- vapply(0:(h - 1), function(k) sum(centred[(k + 1):n] * centred[1:(n - k)]) / n, numeric(1))
+  long_run_var <- (gamma[1] + 2 * sum(gamma[-1])) / n
+  if (!(long_run_var > 0)) return(NA_real_)
 
-  # Harvey-Leybourne-Newbold correction (1997)
-  HLN_factor <- sqrt((n + 1 - 2 * h + h * (h - 1) / n) / n)
-  DM_modified <- DM_stat / HLN_factor
+  hln <- sqrt((n + 1 - 2 * h + h * (h - 1) / n) / n)
+  stat <- mean(d) / sqrt(long_run_var) * hln
 
-  # One-sided p-value
-  pval <- switch(alternative,
-                 "greater" = 1 - pnorm(DM_modified),
-                 "less"    = pnorm(DM_modified),
-                 "two.sided" = 2 * min(pnorm(DM_modified), 1 - pnorm(DM_modified)))
-
-  return(pval)
+  switch(alternative,
+         greater = pt(stat, n - 1, lower.tail = FALSE),
+         less = pt(stat, n - 1),
+         two.sided = 2 * pt(-abs(stat), n - 1))
 }
 
 

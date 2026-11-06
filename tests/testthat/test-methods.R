@@ -142,26 +142,23 @@ test_that("fitted values and nowcasts come back on the input scale (BS7.4)", {
   # out in standard deviations - RMSE 3.52 against 0.021 - because nothing
   # downstream checks units. The check is cheap, so it is in the default suite.
   #
-  # Compare at each series' OWN observation frequency, not on the prepared
-  # weekly grid: the augmented high-frequency states a quarterly flow
-  # aggregates from are 1/k of its scale by construction, so a column-wise
-  # comparison would be testing the aggregation, not the units.
+  # Compare at each series' OWN observation frequency, where the prepared data
+  # holds an observation. fitted() is the common component and residuals() the
+  # rest, so on the original scale the two must add up to the data as supplied.
   for (nm in names(fl)) {
     fit <- fl[[nm]]
     f1 <- as.matrix(fitted(fit, scale = "original"))
+    r1 <- as.matrix(residuals(fit, scale = "original"))
     obs <- as.matrix(fit$data)
 
     for (j in seq_len(ncol(obs))) {
       key <- fit$inventory$key[j]
       raw <- as.numeric(fit$data_raw[[key]])
       # 0 encodes "not observed" in the prepared data
-      got <- f1[obs[, j] != 0, j]
+      got <- (f1 + r1)[obs[, j] != 0, j]
 
       expect_equal(length(got), length(raw))
-      # not exact - the sampler draws the latent states the observation is an
-      # aggregate of - but within 1e-3 of the series' own sd. Measured at these
-      # chain lengths: 2e-5 of sd, for every series of both fits.
-      expect_lt(max(abs(got - raw)), 1e-3 * stats::sd(raw))
+      expect_equal(got, raw, tolerance = 1e-8)
     }
 
     # the nowcast is the target series' own scale, at the target's frequency
@@ -270,6 +267,21 @@ test_that("R-squared is reported as absent for a fit that predates it", {
   s <- summary(fit)
   expect_null(s$r_squared)
   expect_output(print(s), "residual RMSE")   # the rest still prints
+
+  # without a common component there is no fit to return; the augmented data
+  # would be the data itself, so fitted() says so rather than returning it
+  expect_error(fitted(fit), "predates")
+  expect_error(residuals(fit), "predates")
+})
+
+test_that("fitted() is the common component and residuals() the rest", {
+  fit <- synth_r2_fit()
+  # `driven` is exactly 1.5 f, so the common component reproduces it; `noise`
+  # loads on nothing, so its residual is the series itself where observed
+  expect_equal(as.numeric(fitted(fit)[, "driven"]), as.numeric(fit$data[, "driven"]))
+  expect_equal(as.numeric(fitted(fit)[, "noise"]), rep(0, 200))
+  obs <- as.numeric(fit$data[, "noise"])
+  expect_equal(as.numeric(residuals(fit)[, "noise"]), ifelse(obs == 0, NA_real_, obs))
 })
 
 test_that("ind_dfm's target R-squared is ~1 by construction (#99)", {
