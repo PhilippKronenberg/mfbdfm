@@ -145,3 +145,19 @@ test_that("the target's latent weeks are drawn from their exact conditional (#16
   expect_true(all(abs(rowMeans(draws[un, ]) - mean_exact) < 5 * sqrt(var_exact / 4000)))
   expect_true(all(abs(apply(draws[un, ], 1, var) / var_exact - 1) < 5 * sqrt(2 / 4000)))
 })
+
+
+test_that("a rho prior narrower than the grid is honoured, whatever the start (#170)", {
+
+  # The proposal was a histogram on a fixed grid. A prior narrower than a cell
+  # fell between the points, and the starting value sat in a cell of zero mass,
+  # so every step back had probability zero and rho never moved.
+  set.seed(3)
+  fit <- suppressMessages(suppressWarnings(
+    ind_dfm(mfbdfm_example_data, length_sample = 10, burn_in = 5, plots = FALSE,
+            priors = dfm_priors("ind_dfm", rho_other = list(r0 = 0, R0 = 1e-9)))))
+
+  low <- fit$inventory$freq < 48 & fit$inventory$key != fit$target
+  expect_true(any(low))
+  expect_lt(max(abs(fit$pars$rho[low])), 1e-3)
+})

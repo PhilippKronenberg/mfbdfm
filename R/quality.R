@@ -167,7 +167,14 @@ mfbdfm_quality <- function(fit, exact = NULL, unexplained = NULL,
     gap <- max(abs(as.numeric(fit$nowcast)[seq_len(n_obs)] - as.numeric(target)[seq_len(n_obs)]))
     add("anchor", gap, anchor_max, judge(gap <= anchor_max))
 
-    if(!is.null(fit$internal$rho_fallback)){
+    # per series, as documented: a panel average would let one series fall back
+    # on every draw while 46 others never do. A fit made before the count per
+    # series existed falls back to the average.
+    by <- fit$internal$rho_fallback_by_series
+    if(length(by)){
+      share <- max(by)/nrow(NC)
+      add("rho_fallback", share, fallback_max, judge(share <= fallback_max))
+    } else if(!is.null(fit$internal$rho_fallback)){
       share <- fit$internal$rho_fallback/(nrow(NC)*nrow(fit$inventory))
       add("rho_fallback", share, fallback_max, judge(share <= fallback_max))
     }

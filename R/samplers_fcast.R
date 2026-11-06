@@ -93,7 +93,7 @@ run_sampling_fcast <- function(Ymat, q, n, t, p, s, length_sample, burn_in, thin
   pb <- if(verbose) txtProgressBar(style = 3) else NULL
 
   # tally of rho stationarity-screen fallbacks, reported once after the chain
-  rho_tally <- new_rho_tally()
+  rho_tally <- new_rho_tally(inventory$key)
 
   # restore the caller's graphics state once, however this function exits
   if(plots == TRUE){
@@ -467,7 +467,7 @@ draw_rho_fcast <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, pr
       # run_sampling_fcast() reports the total once the chain is done (#118).
       if(count > control$rho_max_tries){
         rho_i <- control$rho_fallback
-        if(!is.null(tally)) tally$n <- tally$n + 1L
+        count_rho_fallback(tally, nx)
       }
       check <- abs(rho_i) < control$rho_max
 

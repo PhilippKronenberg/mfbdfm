@@ -44,7 +44,9 @@
 #' @return An object of class `"mfbdfm_exact"`, a list with `factor`, `factor_var`,
 #'   `index`, `nowcast` and `nowcast_var`, on the scales and date axes of the same
 #'   components of `fit`, and `nowcast_between` (the conditional means, one row per
-#'   selected draw), `mcse_nowcast`, `n_draws` and `paths`.
+#'   selected draw), `nowcast_within` (the conditional variances, same shape, which
+#'   with `nowcast_between` give the nowcast's predictive density as a mixture of
+#'   normals), `mcse_nowcast`, `n_draws` and `paths`.
 #'
 #' @seealso [ind_dfm()], [mfbdfm_quality()], [mfbdfm_contributions()].
 #'
@@ -116,6 +118,7 @@ mfbdfm_exact <- function(fit, n_draws = 100, paths = 20, seed = NULL){
   K <- length(picks)
   nc_mean <- matrix(NA_real_, K, n_nc)
   nc_var <- numeric(n_nc)
+  nc_within_i <- matrix(0, K, n_nc)
   f_sum <- numeric(n_f); f_sq <- numeric(n_f)
   i_sum <- numeric(n_f)
 
@@ -143,7 +146,9 @@ mfbdfm_exact <- function(fit, n_draws = 100, paths = 20, seed = NULL){
       dev <- as.numeric(solve(ch, solve(ch, rnorm(length(m)), system = "Lt"), system = "Pt"))
       for(sgn in c(-1, 1)){
         z[J$ix_lat] <- m + sgn*dev
-        nc_var <- nc_var + (target_x(z) - nc_m)^2
+        nc_dev2 <- (target_x(z) - nc_m)^2
+        nc_var <- nc_var + nc_dev2
+        nc_within_i[i,] <- nc_within_i[i,] + nc_dev2/paths
         r <- z[(s + 1):(t + s)][seq_len(n_f)]*sd_t + mean_t/k
         f_i <- ((1 + r)^fq - 1)*100
         f_sum <- f_sum + f_i
@@ -167,6 +172,7 @@ mfbdfm_exact <- function(fit, n_draws = 100, paths = 20, seed = NULL){
                  nowcast = like(colMeans(nc_mean), fit$nowcast),
                  nowcast_var = like(nc_within + nc_between, fit$nowcast),
                  nowcast_between = nc_mean,
+                 nowcast_within = nc_within_i,
                  mcse_nowcast = like(sqrt(nc_between/K), fit$nowcast),
                  n_draws = K, paths = paths),
             class = "mfbdfm_exact")

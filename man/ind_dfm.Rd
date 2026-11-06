@@ -344,30 +344,23 @@ all ten pairs of seeds.
 
 \tabular{llll}{
 \strong{component} \tab \strong{worst pair} \tab \strong{best pair} \tab \strong{median} \cr
-\code{nowcast}     \tab 0.996         \tab 1.000         \tab 0.999 \cr
-\code{factor}      \tab 0.275         \tab 0.994         \tab 0.984 \cr
-\code{pars$lambda} \tab -0.870        \tab 1.000         \tab 1.000
+\code{nowcast}     \tab 0.9999        \tab 1.000         \tab 1.000 \cr
+\code{factor}      \tab 0.998         \tab 0.999         \tab 0.999 \cr
+\code{pars$lambda} \tab 0.9996        \tab 1.000         \tab 0.9999
 }
 
-\strong{The worst pairs are a second mode, not imprecision.} The anchoring pins the
-factor's 23-week aggregate to the target, but weekly movements that cancel
-within that window are free, so on a small panel the chain can settle where
-the financial series load with the opposite sign. It does not cross between
-the two within a fit: on this panel 4 of 12 seeds stayed in that mode through
-2000 iterations and one through 3500, at a plug-in \code{logLik()} about 50 lower
-than the main mode. Among the four seeds in the main mode the \code{factor} agrees
-at 0.982 to 0.994 and \code{pars$lambda} at 0.9997 or better. On a 46-series panel
-all 9 seeds measured settled in one mode (weekly path correlation at least
-0.991), which does not prove there is no other. If you fit a small panel,
-compare a few seeds and their \code{logLik()}.
+The anchoring pins the factor's 23-week aggregate to the target, but weekly
+movements that cancel within that window are free, so a panel could in
+principle have more than one mode. None was seen on this panel: at 2000 draws,
+12 of 12 seeds gave the financial series the same sign, though their plug-in
+\code{logLik()} still ranged from -1061 to -1032. That does not prove there is no
+other mode. If you fit a small panel, compare a few seeds.
 
-These correlations describe paths, and hide what matters most for a nowcast
-being published: the latest quarter mixes slowly, so its \emph{level} differs
-visibly between seeds even at the default chain length. See
-\code{mfbdfm_diagnostics(fit, which = "all")}. The same measurement for
-\code{\link[=fcast_dfm]{fcast_dfm()}} is in
-\code{?fcast_dfm}, and its factors agree much less closely, for a reason
-specific to that model.
+These correlations describe paths, not the Monte Carlo error of a number being
+published. For that use \code{\link[=mfbdfm_exact]{mfbdfm_exact()}}, which removes the error from the
+imputed data, and \code{\link[=mfbdfm_quality]{mfbdfm_quality()}}, which reports what is left. The same
+measurement for \code{\link[=fcast_dfm]{fcast_dfm()}} is in \code{?fcast_dfm}, and its factors agree much
+less closely, for a reason specific to that model.
 
 Perturbing the inputs by noise of \code{.Machine$double.eps} scale, with the seed
 held fixed, moved the nowcast by 1.5e-16 at most -- the perturbation

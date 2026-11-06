@@ -29,7 +29,9 @@ random stream is restored afterwards.}
 An object of class \code{"mfbdfm_exact"}, a list with \code{factor}, \code{factor_var},
 \code{index}, \code{nowcast} and \code{nowcast_var}, on the scales and date axes of the same
 components of \code{fit}, and \code{nowcast_between} (the conditional means, one row per
-selected draw), \code{mcse_nowcast}, \code{n_draws} and \code{paths}.
+selected draw), \code{nowcast_within} (the conditional variances, same shape, which
+with \code{nowcast_between} give the nowcast's predictive density as a mixture of
+normals), \code{mcse_nowcast}, \code{n_draws} and \code{paths}.
 }
 \description{
 Replaces the sampled factor and nowcast paths in a posterior average by exact

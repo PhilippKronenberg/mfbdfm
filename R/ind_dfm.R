@@ -201,30 +201,23 @@
 #'
 #' \tabular{llll}{
 #'   **component** \tab **worst pair** \tab **best pair** \tab **median** \cr
-#'   `nowcast`     \tab 0.996         \tab 1.000         \tab 0.999 \cr
-#'   `factor`      \tab 0.275         \tab 0.994         \tab 0.984 \cr
-#'   `pars$lambda` \tab -0.870        \tab 1.000         \tab 1.000
+#'   `nowcast`     \tab 0.9999        \tab 1.000         \tab 1.000 \cr
+#'   `factor`      \tab 0.998         \tab 0.999         \tab 0.999 \cr
+#'   `pars$lambda` \tab 0.9996        \tab 1.000         \tab 0.9999
 #' }
 #'
-#' **The worst pairs are a second mode, not imprecision.** The anchoring pins the
-#' factor's 23-week aggregate to the target, but weekly movements that cancel
-#' within that window are free, so on a small panel the chain can settle where
-#' the financial series load with the opposite sign. It does not cross between
-#' the two within a fit: on this panel 4 of 12 seeds stayed in that mode through
-#' 2000 iterations and one through 3500, at a plug-in `logLik()` about 50 lower
-#' than the main mode. Among the four seeds in the main mode the `factor` agrees
-#' at 0.982 to 0.994 and `pars$lambda` at 0.9997 or better. On a 46-series panel
-#' all 9 seeds measured settled in one mode (weekly path correlation at least
-#' 0.991), which does not prove there is no other. If you fit a small panel,
-#' compare a few seeds and their `logLik()`.
+#' The anchoring pins the factor's 23-week aggregate to the target, but weekly
+#' movements that cancel within that window are free, so a panel could in
+#' principle have more than one mode. None was seen on this panel: at 2000 draws,
+#' 12 of 12 seeds gave the financial series the same sign, though their plug-in
+#' `logLik()` still ranged from -1061 to -1032. That does not prove there is no
+#' other mode. If you fit a small panel, compare a few seeds.
 #'
-#' These correlations describe paths, and hide what matters most for a nowcast
-#' being published: the latest quarter mixes slowly, so its *level* differs
-#' visibly between seeds even at the default chain length. See
-#' `mfbdfm_diagnostics(fit, which = "all")`. The same measurement for
-#' [fcast_dfm()] is in
-#' `?fcast_dfm`, and its factors agree much less closely, for a reason
-#' specific to that model.
+#' These correlations describe paths, not the Monte Carlo error of a number being
+#' published. For that use [mfbdfm_exact()], which removes the error from the
+#' imputed data, and [mfbdfm_quality()], which reports what is left. The same
+#' measurement for [fcast_dfm()] is in `?fcast_dfm`, and its factors agree much
+#' less closely, for a reason specific to that model.
 #'
 #' Perturbing the inputs by noise of `.Machine$double.eps` scale, with the seed
 #' held fixed, moved the nowcast by 1.5e-16 at most -- the perturbation
@@ -514,7 +507,7 @@ ind_dfm <- function(flows = NULL,
   omega_out <- Reduce("+", par_save$omega)/length(par_save$omega)
   phi_out <- Reduce("+", par_save$phi)/length(par_save$phi)
   rho_out <- Reduce("+", par_save$rho)/length(par_save$rho)
-  Xmat_out <- Reduce("+", par_save$Xmat)/length(par_save$Xmat)
+  Xmat_out <- par_save$Xmat_sum/par_save$Xmat_n
   rho_var <- apply(do.call(cbind,par_save$rho),1,var)
 
   # extract nowcasts
@@ -690,7 +683,8 @@ ind_dfm <- function(flows = NULL,
   # Additive, and deliberately under its own name rather than widening the
   # documented `pars` list.
   out$internal <- list(p = p, t2 = t2, h_full = as.numeric(h_out),
-                       rho_fallback = par_save$rho_fallback)
+                       rho_fallback = par_save$rho_fallback,
+                       rho_fallback_by_series = par_save$rho_fallback_by_series)
 
   out$call <- match.call()
   class(out) <- "ind_dfm"

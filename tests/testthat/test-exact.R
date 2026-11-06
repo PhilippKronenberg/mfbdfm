@@ -83,6 +83,15 @@ test_that("its conditional mean and variance are those of the joint Gaussian", {
   expect_lt(abs(as.numeric(ex$nowcast_var[m])/var_exact - 1), 5*sqrt(2/1000))
 })
 
+test_that("the per-draw variances add up to the total variance", {
+  fit <- exact_fit()
+  ex <- mfbdfm_exact(fit, n_draws = 3, paths = 4, seed = 4)
+  expect_identical(dim(ex$nowcast_within), dim(ex$nowcast_between))
+  expect_true(all(ex$nowcast_within >= 0))
+  total <- colMeans(ex$nowcast_within) + apply(ex$nowcast_between, 2, stats::var)
+  expect_equal(as.numeric(ex$nowcast_var), total)
+})
+
 test_that("fit_with_exact() replaces only the estimates", {
   fit <- exact_fit()
   ex <- mfbdfm_exact(fit, n_draws = 2, paths = 2, seed = 3)

@@ -344,3 +344,20 @@ test_that("the rho fallback is counted once per substitution, not per draw", {
   expect_warning(warn_rho_fallback(tally, dfm_control("ind_dfm")),
                  "1 time ")
 })
+
+test_that("the rho fallback is counted per series and named in the warning", {
+  tally <- new_rho_tally(c("a", "b", "c"))
+  count_rho_fallback(tally, 2)
+  count_rho_fallback(tally, 2)
+  count_rho_fallback(tally, 3)
+  expect_identical(tally$n, 3L)
+  expect_identical(tally$by_series, c(a = 0L, b = 2L, c = 1L))
+  expect_warning(warn_rho_fallback(tally, dfm_control("ind_dfm")), "By series: b \\(2\\), c \\(1\\)")
+
+  # without keys only the total is kept, and a NULL tally is a no-op
+  plain <- new_rho_tally()
+  count_rho_fallback(plain, 1)
+  expect_identical(plain$n, 1L)
+  expect_null(plain$by_series)
+  expect_null(count_rho_fallback(NULL, 1))
+})

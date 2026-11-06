@@ -37,7 +37,12 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                    "sigma" = vector(mode = "list", length = length_sample),
                    "omega" = vector(mode = "list", length = length_sample),
                    "rho" = vector(mode = "list", length = length_sample),
-                   "Xmat" = vector(mode = "list", length = length_sample),
+                   # the augmented data enter the output only as their mean, so a
+                   # running sum is kept instead of every draw: one t x n matrix,
+                   # not length_sample of them (7 GB at 10,000 draws on the WAI
+                   # panel). Summed in draw order, it equals Reduce("+") exactly.
+                   "Xmat_sum" = NULL,
+                   "Xmat_n" = 0L,
                    "ncast" = vector(mode = "list", length = length_sample))
 
   # burn-in parameter draws, kept only on request (#110). Parameters only: the
@@ -164,7 +169,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
       par_save$omega[[(jx - burn_in)/thinning]] <- omega
       par_save$sigma[[(jx - burn_in)/thinning]] <- diag(sigma)
       par_save$rho[[(jx - burn_in)/thinning]] <- diag(rho)
-      par_save$Xmat[[(jx - burn_in)/thinning]] <- Xmat
+      par_save$Xmat_sum <- if(is.null(par_save$Xmat_sum)) Xmat else par_save$Xmat_sum + Xmat
+      par_save$Xmat_n <- par_save$Xmat_n + 1L
       par_save$ncast[[(jx - burn_in)/thinning]] <- get_nowcast(Xmat_full = ts(Xmat,
                                                                      start = time(Ymat)[1],
                                                                      frequency = frequency(Ymat)),
@@ -182,6 +188,7 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   if(!is.null(pb)) close(pb)
   warn_rho_fallback(rho_tally, control)
   par_save$rho_fallback <- rho_tally$n
+  par_save$rho_fallback_by_series <- rho_tally$by_series
 
   # a new, separately named element: everything downstream reads par_save by
   # name (ind_dfm()'s averages, pars_dist_ind()), so adding one cannot disturb
@@ -236,7 +243,7 @@ sweep_context <- function(Ymat, target, n, t, t2, p, s, inventory, Gmat_prealloc
        StV1S = StV1S, StV1SY = StV1SY, NtN = NtN, priors = priors, control = control,
        target_obs = series_obs(Ymat, which(inventory$key == target), Llist, t, s),
        # tally of rho stationarity-screen fallbacks, reported once after the chain
-       rho_tally = new_rho_tally(),
+       rho_tally = new_rho_tally(inventory$key),
        stochastic_volatility = stochastic_volatility,
        serial_correlation = serial_correlation)
 
@@ -401,18 +408,29 @@ draw_low_frequency <- function(obs, f, lambda, rho, draw_rho, prior_sigma, prior
 
   if(draw_rho){
 
+    # A prior narrower than a cell would fall between the grid points, so it gets
+    # points of its own. Every cell keeps a floor of mass: a cell the density has
+    # underflowed in could never be left again, as the step back would have
+    # probability zero, and the chain would stay at its starting value.
     edges <- seq(-control$rho_max, control$rho_max, length.out = grid_size)
-    width <- edges[2] - edges[1]
+    prior_sd <- sqrt(prior_rho$R0)
+    if(prior_sd < edges[2] - edges[1]){
+      near <- prior_rho$r0 + prior_sd*seq(-8, 8, length.out = 65L)
+      edges <- sort(unique(c(edges, near[abs(near) < control$rho_max])))
+    }
+    width <- diff(edges)
     lp <- log_post(edges)
     dens <- exp(lp - max(lp))
-    mass <- (dens[-1] + dens[-grid_size])/2
+    mass <- width*(dens[-1] + dens[-length(edges)])/2
     mass <- mass/sum(mass)
+    mass <- 0.999*mass + 0.001*width/sum(width)
 
-    cell <- sample.int(grid_size - 1L, 1L, prob = mass)
-    proposal <- edges[cell] + width*runif(1)
+    cell <- sample.int(length(mass), 1L, prob = mass)
+    proposal <- edges[cell] + width[cell]*runif(1)
 
-    old_cell <- min(findInterval(rho, edges, all.inside = TRUE), grid_size - 1L)
-    log_alpha <- log_post(proposal) - log_post(rho) + log(mass[old_cell]) - log(mass[cell])
+    old_cell <- findInterval(rho, edges, all.inside = TRUE)
+    log_alpha <- log_post(proposal) - log_post(rho) +
+      log(mass[old_cell]/width[old_cell]) - log(mass[cell]/width[cell])
 
     if(log(runif(1)) < log_alpha) rho <- proposal
 
@@ -1017,7 +1035,7 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
         # Counted, not warned about here: this runs inside the per-iteration
         # loop, so a warning would fire once per series per draw. run_sampling()
         # reports the total once the chain is done (#118).
-        if(!is.null(tally)) tally$n <- tally$n + 1L
+        count_rho_fallback(tally, nx)
       }
       check = abs(rho_i) < control$rho_max
 
