@@ -124,8 +124,10 @@
 #'
 #' `rho_max` bounds the measurement-error autocorrelation. A draw outside it is
 #' redrawn up to `rho_max_tries` times, after which `rho_fallback` is used. The
-#' others cap or reject a draw for numerical stability: `phi_sum_max` and
-#' `sigma_max` in [ind_dfm()], `omega_max` in [fcast_dfm()].
+#' others cap or reject a draw for numerical stability: `phi_sum_max` in
+#' [ind_dfm()], `omega_max` in [fcast_dfm()]. The measurement-error variance is
+#' not capped: `sigma_max` was removed in #176, as a clipped draw is not a draw
+#' from its conditional.
 #'
 #' # Retaining draws
 #'
@@ -214,7 +216,7 @@
 #'   failure to converge becomes an **error** rather than a warning. A single
 #'   switch for "run it the way the paper specifies". Ignored by [ind_dfm()].
 #' @param ... Named overrides for individual settings, e.g.
-#'   `rotation_criterion = "sum"` or `sigma_max = 10`. Naming a setting the
+#'   `rotation_criterion = "sum"` or `rho_max_tries = 20`. Naming a setting the
 #'   chosen model does not have is an error, so a typo surfaces immediately.
 #'
 #' @return An object of class `"dfm_control"`: a named list of settings plus
@@ -228,7 +230,7 @@
 #'
 #' # or one setting at a time
 #' dfm_control("fcast_dfm", rotation_criterion = "sum", rotation_tol = 1e-10)
-#' dfm_control("ind_dfm", sigma_max = 10)
+#' dfm_control("ind_dfm", rho_max_tries = 20)
 #'
 #' # silence the messages and the progress bar
 #' dfm_control("ind_dfm", verbose = FALSE)
@@ -280,6 +282,11 @@ dfm_control <- function(model = c("ind_dfm", "fcast_dfm"),
     if(is.null(names(overrides)) || any(!nzchar(names(overrides)))){
       stop("Overrides in `...` must all be named, e.g. ",
            "`dfm_control(\"fcast_dfm\", rotation_tol = 1e-10)`.", call. = FALSE)
+    }
+    if("sigma_max" %in% names(overrides) && model == "ind_dfm"){
+      stop("`sigma_max` was removed (#176): the measurement-error variance is no ",
+           "longer capped, as a clipped draw is not a draw from its conditional ",
+           "distribution. Drop the setting.", call. = FALSE)
     }
     unknown <- setdiff(names(overrides), names(out))
     if(length(unknown)){
@@ -343,7 +350,6 @@ control_defaults <- function(model){
   if(model == "ind_dfm"){
     c(shared,
       list(phi_sum_max = 0.9,     # draw_phi rejects and keeps the previous draw
-           sigma_max = 5,         # draw_sigma cap
            # ind_dfm only; see ?dfm_control for why fcast_dfm cannot have it
            keep_burn_in = FALSE))
   } else {
@@ -405,7 +411,6 @@ validate_control <- function(ctrl){
   pos_num("jitter")
   pos_num("sv_offset")
   pos_num("phi_sum_max")
-  pos_num("sigma_max")
   pos_num("omega_max")
   pos_num("rotation_tol")
   pos_num("rotation_init_tol")
@@ -482,6 +487,13 @@ resolve_control <- function(control, model){
     if(!identical(control$model, model)){
       stop("`control` was built for ", control$model, "() but passed to ",
            model, "(). Use dfm_control(\"", model, "\", ...).", call. = FALSE)
+    }
+    # an object built before #176, e.g. one stored in an older fit
+    if(!is.null(control$sigma_max)){
+      warning("`control` carries `sigma_max`, which was removed (#176): the ",
+              "measurement-error variance is no longer capped. The setting is ignored.",
+              call. = FALSE)
+      control$sigma_max <- NULL
     }
     validate_control(control)
     return(control)

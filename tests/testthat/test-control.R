@@ -21,7 +21,7 @@ test_that("defaults are exactly the literals that were hard-coded", {
 
   # ind_dfm only
   expect_identical(ind$phi_sum_max, 0.9)
-  expect_identical(ind$sigma_max, 5)
+  expect_null(ind$sigma_max)          # removed in #176
   expect_null(ind$omega_max)
   expect_null(ind$rotation_criterion)
 
@@ -74,7 +74,7 @@ test_that("invalid settings are refused, naming the argument", {
   expect_error(dfm_control("fcast_dfm", rotation_on_failure = "shout"),
                "\"warning\", \"error\" or \"ignore\"")
   expect_error(dfm_control("ind_dfm", rho_max = 2), "must be a single number")
-  expect_error(dfm_control("ind_dfm", sigma_max = -1), "must be a single number")
+  expect_error(dfm_control("ind_dfm", sigma_max = 5), "was removed")
   expect_error(dfm_control("ind_dfm", rho_max_tries = 2.5), "whole number")
   expect_error(dfm_control("ind_dfm", jitter = 0), "must be a single number")
 
@@ -103,7 +103,7 @@ test_that("rho_fallback must be inside rho_max, or the redraw loop cannot exit",
 test_that("resolve_control() accepts an object, a list or NULL", {
 
   expect_identical(resolve_control(NULL, "ind_dfm"), dfm_control("ind_dfm"))
-  expect_identical(resolve_control(list(sigma_max = 10), "ind_dfm")$sigma_max, 10)
+  expect_identical(resolve_control(list(rho_max_tries = 20), "ind_dfm")$rho_max_tries, 20)
   expect_identical(resolve_control(dfm_control("ind_dfm"), "ind_dfm"),
                    dfm_control("ind_dfm"))
 
@@ -111,6 +111,14 @@ test_that("resolve_control() accepts an object, a list or NULL", {
   expect_error(resolve_control(dfm_control("fcast_dfm"), "ind_dfm"),
                "was built for fcast_dfm")
   expect_error(resolve_control(42, "ind_dfm"), "must be a `dfm_control` object")
+})
+
+
+test_that("a control object carrying the removed sigma_max is accepted with a warning (#176)", {
+
+  old <- dfm_control("ind_dfm"); old$sigma_max <- 5
+  expect_warning(res <- resolve_control(old, "ind_dfm"), "was removed")
+  expect_null(res$sigma_max)
 })
 
 
@@ -148,7 +156,7 @@ test_that("both entry points accept control, and the default changes nothing", {
 
 test_that("a bound that actually binds changes the result", {
 
-  # a knob nobody can move is not a knob: force sigma_max low enough to bite and
+  # a knob nobody can move is not a knob: force rho_max low enough to bite and
   # confirm the fit differs from the default run at the same seed
   data(data_ch_dataset_test)
   target <- "ch.seco.gdp.real.gdp.ssa"
@@ -162,11 +170,11 @@ test_that("a bound that actually binds changes the result", {
             length_sample = 10, burn_in = 4, control = ctrl)
   }
   base <- run(NULL)
-  tight <- run(dfm_control("ind_dfm", sigma_max = 0.05))
+  tight <- suppressWarnings(run(dfm_control("ind_dfm", rho_max = 0.1, rho_fallback = 0.05)))
 
-  expect_false(isTRUE(all.equal(as.numeric(base$pars$sigma),
-                                as.numeric(tight$pars$sigma))))
-  expect_lte(max(tight$pars$sigma), 0.05 + 1e-8)
+  expect_false(isTRUE(all.equal(as.numeric(base$pars$rho),
+                                as.numeric(tight$pars$rho))))
+  expect_lt(max(abs(tight$pars$rho)), 0.1)
 })
 
 
@@ -178,10 +186,10 @@ test_that("print.dfm_control() marks non-defaults and flags the weak criterion",
   expect_match(out, "rotation_criterion")
   expect_match(out, "weaker than the published rule")
 
-  out2 <- paste(utils::capture.output(print(dfm_control("ind_dfm", sigma_max = 10))),
+  out2 <- paste(utils::capture.output(print(dfm_control("ind_dfm", rho_max_tries = 20))),
                 collapse = "\n")
-  expect_match(out2, "sigma_max")
-  expect_match(out2, "default 5")           # the changed value is marked
+  expect_match(out2, "rho_max_tries")
+  expect_match(out2, "default 10")          # the changed value is marked
 
   out3 <- paste(utils::capture.output(print(dfm_control("fcast_dfm", strict = TRUE))),
                 collapse = "\n")
