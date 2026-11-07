@@ -48,10 +48,10 @@ geweke_setup <- function(t = GEWEKE_T){
        Llist = mfbdfm:::get_distributed_lags(inventory),
        Gmat_prealloc = mfbdfm:::get_gmat_prealloc(n = n, q = 1, s = s, t = t),
        priors = geweke_priors(),
-       # no cap on sigma: draw_sigma() clips at sigma_max (5), which this prior's
-       # tail exceeds, and the clipped chain has another stationary distribution.
-       # With the cap, seed 2026 gave sigma_wk z = -5.5; without it, -1.6.
-       control = dfm_control("ind_dfm", sigma_max = 1e12),
+       # sigma is no longer capped (#176). With the old cap at 5, which this prior's
+       # tail exceeds, the clipped chain had another stationary distribution:
+       # seed 2026 gave sigma_wk z = -5.5, and -1.6 without it.
+       control = dfm_control("ind_dfm"),
        # weekly series every week, the monthly ones every fourth
        observed = cbind(rep(TRUE, t), seq_len(t) %% 4L == 0L, seq_len(t) %% 4L == 0L))
 }

@@ -2,6 +2,14 @@
 
 ## Breaking changes
 
+* **`dfm_control("ind_dfm")` no longer has `sigma_max`** (#176). The
+  measurement-error variance draws were clipped at 5, so wherever the cap bound
+  the chain did not target the stated posterior: the Geweke test gave
+  `sigma_wk` z = -5.5 with the cap and -1.6 without it. Passing `sigma_max` is
+  now an error, and a stored control object that carries it is accepted with a
+  warning. The baseline fits never reached the cap, so their results are
+  unchanged.
+
 * **Results of `ind_dfm()` and `fcast_dfm()` change: the loading draw used a
   wrong regressor** (#166). `get_zmat()` and `get_zmat_fcast()` had two
   distributed-lag indices swapped, so `lambda` was drawn from a regressor that

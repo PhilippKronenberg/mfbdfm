@@ -437,8 +437,8 @@ draw_low_frequency <- function(obs, f, lambda, rho, draw_rho, prior_sigma, prior
   }
 
   rss <- rss_of(rho)$rss
+  # not capped (#176): a clipped draw is not a draw from this conditional
   sigma <- 1/rgamma(1, shape = (c0 + m)/2, rate = (d0 + rss)/2) + control$jitter
-  if(sigma > control$sigma_max) sigma <- control$sigma_max
 
   # collapsed_regression(), on plain vectors: this runs once per series per sweep
   rg <- rho^gaps
@@ -938,9 +938,8 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, x1, inventory, target, sigma, 
 
   }))
 
-  # numerical stability in beginning; bound from dfm_control()
-  diag(sigma)[which(diag(sigma) > control$sigma_max)] <- control$sigma_max
-
+  # Not capped (#176). It was clipped at a sigma_max of 5, so the chain did not
+  # target the stated posterior wherever the cap bound; the Geweke test showed it.
   return(sigma)
 
 }

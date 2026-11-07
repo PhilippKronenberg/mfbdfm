@@ -17,7 +17,7 @@ failure to converge becomes an \strong{error} rather than a warning. A single
 switch for "run it the way the paper specifies". Ignored by \code{\link[=ind_dfm]{ind_dfm()}}.}
 
 \item{...}{Named overrides for individual settings, e.g.
-\code{rotation_criterion = "sum"} or \code{sigma_max = 10}. Naming a setting the
+\code{rotation_criterion = "sum"} or \code{rho_max_tries = 20}. Naming a setting the
 chosen model does not have is an error, so a typo surfaces immediately.}
 }
 \value{
@@ -146,8 +146,10 @@ should stop and complain rather than run forever.
 \section{Stability bounds}{
 \code{rho_max} bounds the measurement-error autocorrelation. A draw outside it is
 redrawn up to \code{rho_max_tries} times, after which \code{rho_fallback} is used. The
-others cap or reject a draw for numerical stability: \code{phi_sum_max} and
-\code{sigma_max} in \code{\link[=ind_dfm]{ind_dfm()}}, \code{omega_max} in \code{\link[=fcast_dfm]{fcast_dfm()}}.
+others cap or reject a draw for numerical stability: \code{phi_sum_max} in
+\code{\link[=ind_dfm]{ind_dfm()}}, \code{omega_max} in \code{\link[=fcast_dfm]{fcast_dfm()}}. The measurement-error variance is
+not capped: \code{sigma_max} was removed in #176, as a clipped draw is not a draw
+from its conditional.
 }
 
 \section{Retaining draws}{
@@ -236,7 +238,7 @@ dfm_control("fcast_dfm", strict = TRUE)
 
 # or one setting at a time
 dfm_control("fcast_dfm", rotation_criterion = "sum", rotation_tol = 1e-10)
-dfm_control("ind_dfm", sigma_max = 10)
+dfm_control("ind_dfm", rho_max_tries = 20)
 
 # silence the messages and the progress bar
 dfm_control("ind_dfm", verbose = FALSE)
