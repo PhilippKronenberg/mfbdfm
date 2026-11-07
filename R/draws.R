@@ -38,7 +38,36 @@ draws_block_names <- function(block, labels){
 #' @noRd
 new_mfbdfm_draws <- function(parameters, burn = NULL, nowcast = NULL,
                              factor = NULL, blocks, model, target,
-                             length_sample, burn_in, thinning){
+                             length_sample, burn_in, thinning, low_gap = NULL){
+
+  # What the data identify for a low-frequency series, next to what the sampler
+  # draws: its error's autocorrelation and innovation variance from one
+  # observation to the next. See low_frequency_gaps().
+  unidentified <- character()
+  if(length(low_gap)){
+    keys <- names(low_gap)
+    add_identified <- function(m){
+      if(is.null(m)) return(NULL)
+      r <- m[, paste0("rho[", keys, "]"), drop = FALSE]
+      v <- m[, paste0("sigma[", keys, "]"), drop = FALSE]
+      gaps <- matrix(low_gap, nrow(m), length(keys), byrow = TRUE)
+      rr <- r^2
+      w <- (1 - rr^gaps)/(1 - rr)
+      w[rr < 1e-12] <- 1
+      ro <- r^gaps
+      vo <- v*w
+      colnames(ro) <- paste0("rho_obs[", keys, "]")
+      colnames(vo) <- paste0("innovation[", keys, "]")
+      cbind(m, ro, vo)
+    }
+    parameters <- add_identified(parameters)
+    burn <- add_identified(burn)
+    extra <- c(rep("rho_obs", length(keys)), rep("innovation", length(keys)))
+    names(extra) <- c(paste0("rho_obs[", keys, "]"), paste0("innovation[", keys, "]"))
+    blocks <- c(blocks, extra)
+    # an even gap reveals only even powers of rho, so rho's sign has no meaning
+    unidentified <- paste0("rho[", keys[low_gap %% 2 == 0], "]")
+  }
 
   # the sampler's own iteration number for each retained row, so a trace plot
   # has a meaningful x axis and the burn-in phase can be shaded rather than
@@ -59,6 +88,7 @@ new_mfbdfm_draws <- function(parameters, burn = NULL, nowcast = NULL,
                  info = list(model = model,
                              target = target,
                              blocks = blocks,
+                             unidentified = unidentified,
                              length_sample = length_sample,
                              burn_in = burn_in,
                              thinning = thinning,
@@ -66,6 +96,21 @@ new_mfbdfm_draws <- function(parameters, burn = NULL, nowcast = NULL,
                              iteration = it_pars,
                              iteration_kept = it_kept)),
             class = "mfbdfm_draws")
+
+}
+
+
+#' How many periods apart each low-frequency series is observed
+#'
+#' @return A numeric vector named by series, `max(freq) / freq`, without the
+#'   series in `exclude`.
+#'
+#' @noRd
+low_frequency_gaps <- function(inventory, exclude = character()){
+
+  fq <- max(inventory$freq)
+  low <- inventory$freq < fq & !(inventory$key %in% exclude)
+  stats::setNames(fq/inventory$freq[low], inventory$key[low])
 
 }
 
@@ -145,10 +190,25 @@ build_draws_ind <- function(par_save, flist, inventory, target, s, t,
                                       format_draw_time(stats::time(flist[[1]])))
   }
 
-  new_mfbdfm_draws(parameters = M, burn = B, nowcast = NC, factor = FD,
-                   blocks = blocks, model = "ind_dfm", target = target,
-                   length_sample = length_sample, burn_in = burn_in,
-                   thinning = thinning)
+  out <- new_mfbdfm_draws(parameters = M, burn = B, nowcast = NC, factor = FD,
+                          blocks = blocks, model = "ind_dfm", target = target,
+                          length_sample = length_sample, burn_in = burn_in,
+                          thinning = thinning,
+                          low_gap = low_frequency_gaps(inventory, exclude = target))
+
+  # A thinned set of whole volatility paths, which is what mfbdfm_exact() needs on
+  # top of the parameter columns (#171). The columns above keep only summaries of h.
+  n_kept <- length(par_save$h)
+  out$h_rows <- unique(round(seq(1, n_kept, length.out = min(200L, n_kept))))
+  out$h_paths <- t(vapply(par_save$h[out$h_rows], as.numeric, numeric(t + s)))
+
+  # the latest weeks of the published factor, whatever keep_factor_draws says: the
+  # mixing of what is actually published has to be checkable (#172)
+  n_f <- length(flist[[1]])
+  recent <- seq(max(1L, n_f - 12L), n_f)
+  out$factor_recent <- t(vapply(flist, function(fx) as.numeric(fx)[recent], numeric(length(recent))))
+
+  out
 
 }
 
@@ -217,7 +277,8 @@ build_draws_fcast <- function(rlist, omega_draws, f_draws, nowcast_draws,
                            "[", rep(ftime, times = q), "]")
   }
 
-  new_mfbdfm_draws(parameters = M, burn = NULL, nowcast = NC, factor = FD,
+  new_mfbdfm_draws(low_gap = low_frequency_gaps(inventory),
+                   parameters = M, burn = NULL, nowcast = NC, factor = FD,
                    blocks = blocks, model = "fcast_dfm", target = target,
                    length_sample = length_sample, burn_in = burn_in,
                    thinning = thinning)

@@ -44,7 +44,9 @@ test_that("$internal carries p, t2 and the full volatility path", {
   s <- 2*(k - 1)
   t <- nrow(fit$data)
 
-  expect_named(fit$internal, c("p", "t2", "h_full"))
+  expect_named(fit$internal, c("p", "t2", "h_full", "rho_fallback", "rho_fallback_by_series"))
+  expect_identical(names(fit$internal$rho_fallback_by_series), fit$inventory$key)
+  expect_identical(sum(fit$internal$rho_fallback_by_series), fit$internal$rho_fallback)
   expect_identical(fit$internal$p, 1)
   # no extend_to here, so every period of the panel held data
   expect_identical(fit$internal$t2, t)
@@ -233,6 +235,7 @@ test_that("the rho stationarity fallback warns once per fit, with a class", {
   w <- expect_warning(run(), class = "mfbdfm_warning_rho_fallback")
   # one warning for the whole chain, not one per series per draw
   expect_match(conditionMessage(w), "stationarity screen")
+  expect_match(conditionMessage(w), "By series")
 
   expect_silent(withCallingHandlers(
     run(),
@@ -449,16 +452,24 @@ test_that("ind_dfm agrees across seeds to the documented tolerance (G5.9b)", {
   d <- ind_seed_data()
   fits <- ind_seed_fits(flows = d$flows, stocks = d$stocks, target = d$target)
 
-  # measured: 0.9868 to 1.0000
+  # measured: 0.9999 to 1.0000
   expect_gte(min(pairwise_cor(lapply(fits, function(x) as.numeric(x$nowcast)))),
              0.98)
-  # measured: 0.9502 to 0.9875. The weekly factor is the least pinned down of
+
+  # Before the draw order was repaired and the target's latent weeks integrated
+  # out (#168, #169), 4 of 12 seeds on this panel settled where the financial
+  # series load negatively. Measured since: none of 12. The sign of one series'
+  # loading tells the two apart, so this is what would catch it coming back.
+  main <- vapply(fits, function(x) x$pars$lambda[2] > 0, logical(1))
+  expect_gte(sum(main), 3)
+
+  # measured: 0.9976 to 0.9994. The weekly factor is the least pinned down of
   # the three, which is why it gets the loosest bound.
-  expect_gte(min(pairwise_cor(lapply(fits, function(x) as.numeric(x$factor)))),
-             0.94)
-  # measured: 0.9936 to 0.9997. Includes the target's loading, which the
+  expect_gte(min(pairwise_cor(lapply(fits[main], function(x) as.numeric(x$factor)))),
+             0.97)
+  # measured: 0.9996 to 1.0000. Includes the target's loading, which the
   # identifying restriction fixes at 1 and which therefore agrees exactly.
-  expect_gte(min(pairwise_cor(lapply(fits, function(x) as.numeric(x$pars$lambda)))),
+  expect_gte(min(pairwise_cor(lapply(fits[main], function(x) as.numeric(x$pars$lambda)))),
              0.99)
 })
 

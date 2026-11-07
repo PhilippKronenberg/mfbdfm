@@ -56,6 +56,12 @@
 #'
 #' # Constant chains are reported, not failed
 #'
+#' A low-frequency series observed an even number of periods apart identifies
+#' its weekly `rho` only through even powers, so `rho[...]` is reported and not
+#' judged. The rows `rho_obs[...]` (`rho^gap`, the error's autocorrelation from one
+#' observation to the next) and `innovation[...]` (its variance from one
+#' observation to the next) are what the data identify, and are judged as usual.
+#'
 #' A parameter that was never drawn has zero variance, and no convergence
 #' statistic is defined for it. Those rows carry `NA` statistics,
 #' `note = "constant"` and `ok = NA`, and are left out of the failure count.
@@ -152,6 +158,12 @@ mfbdfm_diagnostics <- function(x, which = "parameters", heidel = FALSE,
   }
 
   out$note <- vapply(stats_of, function(z) z$note, character(1))
+
+  # A statistic on rho itself says nothing here: its sign is not identified, so a
+  # chain that visits both sides looks slow and one that stays on one side looks
+  # healthy. The row is kept and not judged; `rho_obs[...]` is what to read.
+  unid <- out$parameter %in% draws$info$unidentified & !nzchar(out$note)
+  out$note[unid] <- "sign not identified: see rho_obs"
 
   flagged <- (!is.na(out$geweke_z) & abs(out$geweke_z) > geweke_crit) |
     (!is.na(out$ess) & out$ess < ess_min)

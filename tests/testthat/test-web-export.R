@@ -335,13 +335,34 @@ test_that("news impacts add up to the revision on the published scale", {
 })
 
 
+test_that("each group's series add up to the group's contribution", {
+  fx <- measures_fixture()
+  keys <- fx$new$fit$inventory$key
+  grp <- ifelse(seq_along(keys) %% 2 == 0, "A", "B")
+  info <- data.frame(key = keys, name = keys, group = grp, stringsAsFactors = FALSE)
+  since <- "2000-01-01"
+  out <- export_wai_measures(fx$new$path, series_info = info, digits = 10, series_since = since)
+  cs <- out$contributions_series
+  expect_named(cs, c("date", "series", "value"))
+  expect_gte(min(cs$date), as.Date(since))
+  expect_setequal(cs$series, keys)
+
+  cs$group <- grp[match(cs$series, keys)]
+  by_group <- stats::aggregate(value ~ date + group, cs, sum)
+  co <- out$contributions[out$contributions$component %in% c("A", "B"), ]
+  m <- merge(by_group, co, by.x = c("date", "group"), by.y = c("date", "component"))
+  expect_equal(nrow(m), nrow(by_group))
+  expect_equal(m$value.x, m$value.y, tolerance = 1e-7)
+})
+
 test_that("export_wai_measures() writes its files, and nothing without `dir`", {
   fx <- measures_fixture()
   d <- local_tempdir_base()
   export_wai_measures(fx$new$path, dir = d, news_fit_path = fx$old$path,
                       news_new_data = fx$new_data)
-  expect_setequal(list.files(d), c("wai_contributions.csv", "wai_series.csv",
-                                   "wai_news.csv", "wai_measures_meta.json"))
+  expect_setequal(list.files(d), c("wai_contributions.csv", "wai_contributions_series.csv",
+                                   "wai_series.csv", "wai_news.csv",
+                                   "wai_measures_meta.json"))
   co <- utils::read.csv(file.path(d, "wai_contributions.csv"))
   expect_named(co, c("date", "component", "value"))
 

@@ -256,7 +256,9 @@ get_zmat <- function(f, n, t, s, Llist, rho){
     } else if(sx == s+1){
       a <- -rd * diag(Llist[[as.character(s)]])
     } else {
-      a <- diag(Llist[[as.character(sx-1)]]) - rd * diag(Llist[[as.character(sx)]])
+      # The coefficient on lag sx of the quasi-differenced measurement equation,
+      # as in get_gmat(). The paper's code had the two indices swapped (#166).
+      a <- diag(Llist[[as.character(sx)]]) - rd * diag(Llist[[as.character(sx-1)]])
     }
 
     term <- outer(fv[seq(from = 2+s-sx, to = t+s-sx)], a)

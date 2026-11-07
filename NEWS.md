@@ -2,6 +2,79 @@
 
 ## Breaking changes
 
+* **Results of `ind_dfm()` and `fcast_dfm()` change: the loading draw used a
+  wrong regressor** (#166). `get_zmat()` and `get_zmat_fcast()` had two
+  distributed-lag indices swapped, so `lambda` was drawn from a regressor that
+  did not match the measurement equation. For a weekly series that regressor was
+  `f[t] + f[t-1]` instead of `f[t] - rho * f[t-1]`. The published code of
+  Kronenberg (2026) and Eckert et al. (2025) has the same error, so fits no
+  longer reproduce those papers' results. `dev/paper_replication/` in the
+  repository restores the old behaviour for replication.
+
+* **Results change again: the order of the Gibbs draws is corrected** (#168).
+  The mixture indicators of the volatility step are drawn directly before `h`
+  (Del Negro & Primiceri 2015), `sigma` conditions on the `lambda` just drawn and
+  includes the first period, and under `extend_to` the rows past the data are
+  redrawn after the factor. Both models, except the last, which is `ind_dfm()`
+  only. `dev/geweke.R` adds a joint-distribution test of the sampler.
+
+* **`ind_dfm()` draws the factor and the target's latent weeks jointly** (#169).
+  The model does not change, but its latest-quarter nowcast was barely mixing:
+  the factor was conditioned on the target's imputed weekly values while those
+  were imputed from the factor, and under the tight anchoring prior each pinned
+  the other. The chain's autocorrelation time falls by about three orders of
+  magnitude at fixed parameters, at about the same cost per iteration.
+
+* **`ind_dfm()` draws `rho`, `sigma` and `lambda` of low-frequency series from
+  their observations, with the latent weeks integrated out** (#170). The model
+  does not change. The data identify such a series' weekly `rho` only through
+  `rho^4`, its sign not at all, and given imputed weekly errors the chain could
+  only cross that plateau in tiny steps. Its posterior is symmetric in the sign of
+  `rho`, which the chain now shows: a monthly `rho` near zero spends about half
+  its draws on each side.
+
+* New `mfbdfm_exact()` computes the factor and the nowcast exactly over a thinned
+  set of the chain's parameter draws, instead of averaging sampled paths (#171).
+  A fit now stores 200 whole volatility paths in `$draws` for this.
+
+* New `mfbdfm_quality()` checks the mixing and precision of what is published, as
+  a gate before publishing (#172). `mfbdfm_diagnostics()` now reports `rho_obs` and
+  `innovation`, what the data identify for a low-frequency series, and no longer
+  judges a `rho` whose sign is not identified.
+
+* `summary()`, `plot(type = "loadings")` and the dashboard's series file report
+  R-squared and loadings standardised by their aggregation weights, with the target
+  at 1 (#172). Raw loadings do not compare across frequencies. They stay available
+  from `coef()` and `mfbdfm_table_loadings()`.
+
+* `mfbdfm_contributions()`, `mfbdfm_news()` and `logLik()` plug in `rho` and `sigma`
+  that reproduce the identified moments of a low-frequency series, not the mean of
+  a `rho` whose sign is not identified (#172).
+
+* **`fitted()` returns the common component, and `residuals()` the data minus
+  it**, for both fit classes. They returned the augmented dataset and the data
+  minus that, but the sampler pins the augmented data's observed entries to the
+  data, so `fitted()` was the data itself and every residual was sampling noise
+  of order 1e-5. The augmented data remain in `$data_augmented`. A fit saved
+  before `$factor_std` existed has no common component, and `fitted()` and
+  `residuals()` now error on it rather than return the data.
+
+* **`dm_test_modified()` gives larger, correct p-values.** It divided the
+  statistic by the Harvey-Leybourne-Newbold factor instead of multiplying,
+  used the normal instead of the t(n-1) distribution, and ignored the
+  autocovariances that `h > 1` requires. With 18 errors and a statistic of 2.0
+  the two-sided p-value was 0.040 and is now 0.062. It now equals
+  `forecast::dm.test()`, and validates `alternative` and `h`.
+
+* `ind_dfm()` keeps a running sum of the augmented data instead of every draw
+  of it, which is all it used them for. Results are bit-identical, and a
+  10,000-draw fit on a 47-series weekly panel needs about 6 GB less memory.
+
+* The `rho` fallback is counted per series. The warning names the series that
+  fell back, `fit$internal$rho_fallback_by_series` holds the counts, and
+  `mfbdfm_quality()`'s `rho_fallback` check now applies its limit per series,
+  as documented, rather than to the panel average.
+
 * **The export surface is narrower by 19 functions** (#102). 18 analysis-script
   helpers are now package internals, and `is_crisis_period_fcast()` has been
   folded into `is_crisis_period()`. The criterion applied was whether a user of

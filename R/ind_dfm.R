@@ -199,18 +199,25 @@
 #' windowed from 2019 (three flows, two stocks), pairwise correlations across
 #' all ten pairs of seeds.
 #'
-#' \tabular{lll}{
-#'   **component** \tab **worst pair** \tab **best pair** \cr
-#'   `nowcast`     \tab 0.987         \tab 1.000         \cr
-#'   `factor`      \tab 0.950         \tab 0.988         \cr
-#'   `pars$lambda` \tab 0.994         \tab 1.000
+#' \tabular{llll}{
+#'   **component** \tab **worst pair** \tab **best pair** \tab **median** \cr
+#'   `nowcast`     \tab 0.9999        \tab 1.000         \tab 1.000 \cr
+#'   `factor`      \tab 0.998         \tab 0.999         \tab 0.999 \cr
+#'   `pars$lambda` \tab 0.9996        \tab 1.000         \tab 0.9999
 #' }
 #'
-#' So the quarterly nowcast is reproducible to about three digits across seeds
-#' and the weekly factor to about two; raise `length_sample` if a tighter
-#' agreement is wanted. The same measurement for [fcast_dfm()] is in
-#' `?fcast_dfm`, and its factors agree much less closely, for a reason
-#' specific to that model.
+#' The anchoring pins the factor's 23-week aggregate to the target, but weekly
+#' movements that cancel within that window are free, so a panel could in
+#' principle have more than one mode. None was seen on this panel: at 2000 draws,
+#' 12 of 12 seeds gave the financial series the same sign, though their plug-in
+#' `logLik()` still ranged from -1061 to -1032. That does not prove there is no
+#' other mode. If you fit a small panel, compare a few seeds.
+#'
+#' These correlations describe paths, not the Monte Carlo error of a number being
+#' published. For that use [mfbdfm_exact()], which removes the error from the
+#' imputed data, and [mfbdfm_quality()], which reports what is left. The same
+#' measurement for [fcast_dfm()] is in `?fcast_dfm`, and its factors agree much
+#' less closely, for a reason specific to that model.
 #'
 #' Perturbing the inputs by noise of `.Machine$double.eps` scale, with the seed
 #' held fixed, moved the nowcast by 1.5e-16 at most -- the perturbation
@@ -500,7 +507,7 @@ ind_dfm <- function(flows = NULL,
   omega_out <- Reduce("+", par_save$omega)/length(par_save$omega)
   phi_out <- Reduce("+", par_save$phi)/length(par_save$phi)
   rho_out <- Reduce("+", par_save$rho)/length(par_save$rho)
-  Xmat_out <- Reduce("+", par_save$Xmat)/length(par_save$Xmat)
+  Xmat_out <- par_save$Xmat_sum/par_save$Xmat_n
   rho_var <- apply(do.call(cbind,par_save$rho),1,var)
 
   # extract nowcasts
@@ -675,7 +682,9 @@ ind_dfm <- function(flows = NULL,
   # pre-sample ones were being approximated by repeating its first value.
   # Additive, and deliberately under its own name rather than widening the
   # documented `pars` list.
-  out$internal <- list(p = p, t2 = t2, h_full = as.numeric(h_out))
+  out$internal <- list(p = p, t2 = t2, h_full = as.numeric(h_out),
+                       rho_fallback = par_save$rho_fallback,
+                       rho_fallback_by_series = par_save$rho_fallback_by_series)
 
   out$call <- match.call()
   class(out) <- "ind_dfm"

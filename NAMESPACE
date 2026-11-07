@@ -31,7 +31,9 @@ S3method(print,mfbdfm_contributions)
 S3method(print,mfbdfm_data)
 S3method(print,mfbdfm_diagnostics)
 S3method(print,mfbdfm_draws)
+S3method(print,mfbdfm_exact)
 S3method(print,mfbdfm_news)
+S3method(print,mfbdfm_quality)
 S3method(print,select_factors)
 S3method(print,summary.mfbdfm_fit)
 S3method(residuals,fcast_dfm)
@@ -69,10 +71,12 @@ export(is_crisis_period)
 export(mfbdfm_contributions)
 export(mfbdfm_data)
 export(mfbdfm_diagnostics)
+export(mfbdfm_exact)
 export(mfbdfm_example_inputs)
 export(mfbdfm_kable)
 export(mfbdfm_news)
 export(mfbdfm_nowcast)
+export(mfbdfm_quality)
 export(mfbdfm_table_loadings)
 export(mfbdfm_table_nowcast)
 export(mfbdfm_table_parameters)
@@ -213,6 +217,7 @@ importFrom(stats,
   plot.ts,
   pnorm,
   predict,
+  pt,
   qnorm,
   quantile,
   rbeta,
@@ -224,6 +229,7 @@ importFrom(stats,
   setNames,
   time,
   ts,
+  tsp,
   var,
   varimax,
   window

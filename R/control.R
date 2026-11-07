@@ -636,11 +636,20 @@ warn_rho_fallback <- function(tally, control){
   n_fallback <- tally$n
   if(!is.numeric(n_fallback) || n_fallback < 1) return(invisible(NULL))
 
+  by <- tally$by_series
+  where <- if(length(by) && any(by > 0)){
+    hit <- sort(by[by > 0], decreasing = TRUE)
+    shown <- utils::head(hit, 5)
+    paste0(" By series: ", paste0(names(shown), " (", shown, ")", collapse = ", "),
+           if(length(hit) > length(shown)) paste0(" and ", length(hit) - length(shown), " more") else "",
+           ".")
+  } else ""
+
   mfbdfm_warn(
     paste0("The measurement-error autocorrelation hit the stationarity screen ",
            n_fallback, " time", if(n_fallback > 1) "s" else "", " during ",
            "sampling and was set to `rho_fallback` (", control$rho_fallback,
-           ") instead of drawn. Those draws are not from the posterior; if the ",
+           ") instead of drawn.", where, " Those draws are not from the posterior; if the ",
            "count is large relative to the number of iterations, treat `rho` ",
            "as unreliable. Raise `rho_max_tries` or `rho_max` in ",
            "dfm_control() to screen less aggressively."),
@@ -652,13 +661,28 @@ warn_rho_fallback <- function(tally, control){
 #' A fresh tally environment for the rho fallback counter
 #'
 #' An environment rather than a counter in the sampler's own frame because the
-#' increment happens inside the `sapply()` closure in `draw_rho()`.
+#' increment happens inside the `sapply()` closure in `draw_rho()`. With `keys`
+#' it also counts per series, so a fallback rate can be traced to the series
+#' that causes it rather than averaged over the panel.
 #'
 #' @noRd
-new_rho_tally <- function(){
+new_rho_tally <- function(keys = NULL){
 
   e <- new.env(parent = emptyenv())
   e$n <- 0L
+  e$by_series <- if(is.null(keys)) NULL else stats::setNames(integer(length(keys)), keys)
   e
+
+}
+
+#' Count one fallback, for series `ix`
+#'
+#' @noRd
+count_rho_fallback <- function(tally, ix){
+
+  if(is.null(tally)) return(invisible(NULL))
+  tally$n <- tally$n + 1L
+  if(!is.null(tally$by_series)) tally$by_series[ix] <- tally$by_series[ix] + 1L
+  invisible(NULL)
 
 }

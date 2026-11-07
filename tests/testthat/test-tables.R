@@ -315,7 +315,8 @@ test_that("fitted() and residuals() convert to the original scale", {
     # default is unchanged
     expect_identical(fitted(fit), fitted(fit, scale = "standardized"))
     expect_identical(residuals(fit), residuals(fit, scale = "standardized"))
-    expect_identical(fitted(fit), fit$data_augmented)
+    # the common component, not the augmented data the sampler pins to the data
+    expect_identical(fitted(fit), fit_common_component(fit))
 
     f0 <- as.matrix(fitted(fit))
     f1 <- fitted(fit, scale = "original")
@@ -350,7 +351,7 @@ test_that("summary() carries the tables and prints the same numbers", {
     # the printed numbers come from those tables, so a printed summary and a
     # tabulated one cannot disagree
     out <- utils::capture.output(print(s))
-    lam <- s$loadings_table$mean[!s$loadings_table$fixed][1]
+    lam <- s$loadings_table$loading_std[!s$loadings_table$fixed][1]
     expect_true(any(grepl(format(round(lam, 4), nsmall = 4), out, fixed = TRUE)))
 
     # the old fields stay for compatibility

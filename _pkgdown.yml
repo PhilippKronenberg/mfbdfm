@@ -48,6 +48,8 @@ reference:
   contents:
   - mfbdfm_draws
   - mfbdfm_diagnostics
+  - mfbdfm_exact
+  - mfbdfm_quality
 
 - title: Tables from a fitted model
   desc: >

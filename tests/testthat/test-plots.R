@@ -169,7 +169,7 @@ test_that("the fit view separates observed from the common component", {
 })
 
 
-test_that("residuals and fit are built on the common component, not fitted()", {
+test_that("residuals and fit are built on the common component, as residuals() is", {
   fl <- plot_fits()
 
   for (nm in names(fl)) {
@@ -180,9 +180,10 @@ test_that("residuals and fit are built on the common component, not fitted()", {
 
     res <- plot(fit, type = "residuals")$data
     expect_equal(res$value, as.numeric(obs - unclass(as.matrix(cc))))
+    expect_equal(res$value, as.numeric(unclass(as.matrix(residuals(fit)))))
 
-    # against fitted() the residuals would be sampling noise; against the
-    # common component a non-target series must leave something unexplained
+    # against the augmented data the residuals would be sampling noise; against
+    # the common component a non-target series must leave something unexplained
     other <- setdiff(fit$inventory$key, fit$target)[1]
     expect_gt(max(abs(res$value[res$series == other]), na.rm = TRUE), 1e-3)
   }
@@ -201,7 +202,7 @@ test_that("the loadings view draws the posterior interval when it exists", {
   for (nm in names(fl)) {
     p <- plot(fl[[nm]], type = "loadings")
     tab <- mfbdfm_table_loadings(fl[[nm]])
-    expect_equal(sort(p$data$lower), sort(tab$lower))
+    expect_equal(sort(p$data$lower), sort(tab$std_lower))
     expect_match(p$labels$subtitle, "95% interval")
   }
 

@@ -11,7 +11,8 @@ export_wai_measures(
   news_fit_path = NULL,
   news_new_data = NULL,
   digits = 4,
-  vintage_date = NULL
+  vintage_date = NULL,
+  series_since = "2019-01-01"
 )
 }
 \arguments{
@@ -32,10 +33,14 @@ data, prepared exactly as this week's fit's was.}
 \item{digits}{Decimal places of the published values.}
 
 \item{vintage_date}{Optional vintage date recorded in the metadata.}
+
+\item{series_since}{First date of \code{wai_contributions_series.csv}. The indicators
+only arrive around 2019, so earlier rows would be most of the file and show
+almost nothing.}
 }
 \value{
-Invisibly, a list with \code{contributions}, \code{series}, \code{news} (or \code{NULL})
-and \code{meta}.
+Invisibly, a list with \code{contributions}, \code{contributions_series}, \code{series},
+\code{news} (or \code{NULL}) and \code{meta}.
 }
 \description{
 Companion to \code{\link[=export_wai_web]{export_wai_web()}}: from the same weekly fit, write the three
@@ -54,7 +59,13 @@ zero), each group's share of \code{F(T) - F(0)} in proportion to its
 standardised contribution (\code{T} the plug-in total), and
 \code{parameter_uncertainty = wai_qoq - F(T)}, the posterior-minus-plug-in
 residual \code{\link[=mfbdfm_contributions]{mfbdfm_contributions()}} itself reports. Per date the components
-sum to \code{wai_qoq} exactly.
+sum to \code{wai_qoq} exactly. Despite its key, which the dashboard's data contract
+fixes, this is an unexplained remainder: it also holds any simulation noise in
+\code{wai_qoq}, and it is the difference of a nonlinear transformation's mean.
+
+\strong{Contributions per series (\code{wai_contributions_series.csv}).} The same split
+with one component per input series, \verb{date,series,value}. A group's series add
+up to that group's row of \code{wai_contributions.csv}.
 
 \strong{News (\code{wai_news.csv}).} \code{\link[=mfbdfm_news]{mfbdfm_news()}} of the move from \code{news_fit_path}
 (last week's fit) to \code{news_new_data} (this week's data), aggregated to the
@@ -63,8 +74,9 @@ groups and mapped onto annualised quarterly growth the same way: shares of
 revision. Written only when both arguments are given.
 
 \strong{Series (\code{wai_series.csv}).} One row per input series: name and group,
-frequency, the R-squared from \code{summary()} and the posterior loading with its
-95\% band (standardised scale, so loadings are comparable across series).
+frequency, the R-squared from \code{summary()} and the loading standardised by its
+aggregation weights, target = 1, with its 95\% band, as in
+\code{\link[=mfbdfm_table_loadings]{mfbdfm_table_loadings()}}. Raw loadings do not compare across frequencies.
 }
 \seealso{
 \code{\link[=export_wai_web]{export_wai_web()}}, \code{\link[=mfbdfm_contributions]{mfbdfm_contributions()}}, \code{\link[=mfbdfm_news]{mfbdfm_news()}}.

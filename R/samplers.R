@@ -37,7 +37,12 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                    "sigma" = vector(mode = "list", length = length_sample),
                    "omega" = vector(mode = "list", length = length_sample),
                    "rho" = vector(mode = "list", length = length_sample),
-                   "Xmat" = vector(mode = "list", length = length_sample),
+                   # the augmented data enter the output only as their mean, so a
+                   # running sum is kept instead of every draw: one t x n matrix,
+                   # not length_sample of them (7 GB at 10,000 draws on the WAI
+                   # panel). Summed in draw order, it equals Reduce("+") exactly.
+                   "Xmat_sum" = NULL,
+                   "Xmat_n" = 0L,
                    "ncast" = vector(mode = "list", length = length_sample))
 
   # burn-in parameter draws, kept only on request (#110). Parameters only: the
@@ -83,29 +88,16 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   indicators = init("indicators",
                     replicate(t+s, sample(x = 1:7, size = 1, prob = rep(1/7,7))))
 
-  # precompute sparse structures that depend only on the fixed data/dimensions
-  # (Ymat, n, t, s), not on any sampled parameter, so they would otherwise be
-  # rebuilt identically on every one of the burn_in + length_sample*thinning
-  # iterations below
-  Smat <- Diagonal(x = sapply(1:t, function(tx) as.integer(Ymat[tx,] != 0)))
-  V1 <- solve(Diagonal(x = 1e-9, n = t*n))
-  StV1S <- t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Smat
-  Yvec <- t(Ymat)
-  dim(Yvec) <- c(n*t, 1)
-  StV1SY <- t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Yvec
-
-  N <- cbind(rbind(Matrix(0,1,t+s-1),
-                   kronecker(Diagonal(t+s-1), -1)),
-             Matrix(0, t+s,1)) + Diagonal(n = (t+s))
-  N <- N[-1,] # diffuse (improper) prior distribution
-  NtN <- t(N) %*% N
+  ctx <- sweep_context(Ymat = Ymat, target = target, n = n, t = t, t2 = t2, p = p, s = s,
+                       inventory = inventory, Gmat_prealloc = Gmat_prealloc,
+                       priors = priors, control = control,
+                       stochastic_volatility = stochastic_volatility,
+                       serial_correlation = serial_correlation)
+  rho_tally <- ctx$rho_tally
 
   # initialize progress bar; NULL when quiet, since the bar writes with cat()
   # and so cannot be silenced from outside the call (#118)
   pb <- if(verbose) txtProgressBar(style = 3) else NULL
-
-  # tally of rho stationarity-screen fallbacks, reported once after the chain
-  rho_tally <- new_rho_tally()
 
   # restore the caller's graphics state once, however this function exits,
   # instead of resetting it after every plotted iteration below
@@ -114,90 +106,18 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
     on.exit(par(oldpar), add = TRUE)
   }
 
+  state <- list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
+                omega = omega, Xmat = Xmat, indicators = indicators)
+
   # loop until sampling complete
   for(jx in 1:(burn_in + length_sample*thinning)){
 
     if(!is.null(pb)) setTxtProgressBar(pb, jx/(burn_in + length_sample * thinning))
 
-    Gmat <- get_gmat(Gmat_prealloc, Llist, rho, lambda, s, t, n)
-
-    # 0. augment data
-    Xmat <- draw_augmented_data(Gmat = Gmat, f = f, rho = rho, sigma = sigma, n = n, t = t,
-                                StV1S = StV1S, StV1SY = StV1SY, return_sample = TRUE)
-
-    # quasi-differenced data used identically by draw_factors/draw_lambda/draw_sigma
-    # below (Xmat and rho are unchanged across these three calls) - compute once
-    Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
-    Xvec_tilde <- t(Xmat_tilde)
-    dim(Xvec_tilde) <- c(n*(t-1),1)
-
-    # 1. draw factors (conditional on model parameters)
-    f <- draw_factors(Xvec_tilde = Xvec_tilde,
-                      Gmat = Gmat,
-                      n = n,
-                      p = p,
-                      s = s,
-                      t = t,
-                      t2 = t2,
-                      phi = phi,
-                      sigma = sigma,
-                      h = h)
-
-    # 2. draw the factor-innovation variance: a full stochastic volatility path,
-    #    or - when it is switched off - a single constant variance, still
-    #    estimated (the factor's scale is pinned by lambda[target] = 1, so the
-    #    variance is the free parameter the data determines; see CLAUDE.md,
-    #    "Scale identification"). Both write into `h` as log-sd, so everything
-    #    downstream (draw_factors, draw_phi) is unchanged.
-    if(stochastic_volatility){
-      h <- draw_volatility(f = f,
-                           phi = phi,
-                           n = n,
-                           p = p,
-                           s = s,
-                           t = t,
-                           omega = omega,
-                           indicators = indicators,
-                           h_old = h,
-                           NtN = NtN,
-                           control = control)
-    } else {
-      h <- draw_factor_variance(f = f, phi = phi, p = p, s = s, t = t,
-                                prior = priors$factor_var, control = control)
-    }
-
-    # 3. draw model parameters (conditional on factors and volatility)
-    Zmat <- get_zmat(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
-    lambda <- draw_lambda(Xvec_tilde = Xvec_tilde,
-                          Zmat = Zmat,
-                          sigma = sigma,
-                          n = n, t = t,
-                          inventory = inventory,
-                          target = target,
-                          prior = priors$lambda)
-
-
-    sigma <- draw_sigma(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
-                        inventory = inventory, target = target, sigma = sigma,
-                        prior_target = priors$sigma_target,
-                        prior_other = priors$sigma_other, control = control)
-    phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi, prior = priors$phi, control = control)
-
-    # omega (the variance of h's own innovations) and the mixture indicators
-    # exist solely to draw a volatility PATH; with a constant variance they are
-    # meaningless. Each conditional is kept in its original position in the
-    # sequence so that with the defaults the RNG is consumed exactly as before.
-    if(stochastic_volatility) omega <- draw_omega(h = h, t = t, s = s, p = p,
-                                                  prior = priors$omega, control = control)
-
-    if(serial_correlation){
-      rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
-                      lambda = lambda, Llist = Llist, inventory = inventory, target = target,
-                      prior_target = priors$rho_target, prior_other = priors$rho_other,
-                      control = control, tally = rho_tally)
-    }
-
-    if(stochastic_volatility) indicators = draw_indicators(h, f, phi, n, p, s, t, control)
+    state <- gibbs_sweep(state, ctx)
+    f <- state$f; lambda <- state$lambda; phi <- state$phi; sigma <- state$sigma
+    rho <- state$rho; h <- state$h; omega <- state$omega; Xmat <- state$Xmat
+    indicators <- state$indicators
 
     # 3. check convergence
     if(plots == TRUE){
@@ -249,7 +169,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
       par_save$omega[[(jx - burn_in)/thinning]] <- omega
       par_save$sigma[[(jx - burn_in)/thinning]] <- diag(sigma)
       par_save$rho[[(jx - burn_in)/thinning]] <- diag(rho)
-      par_save$Xmat[[(jx - burn_in)/thinning]] <- Xmat
+      par_save$Xmat_sum <- if(is.null(par_save$Xmat_sum)) Xmat else par_save$Xmat_sum + Xmat
+      par_save$Xmat_n <- par_save$Xmat_n + 1L
       par_save$ncast[[(jx - burn_in)/thinning]] <- get_nowcast(Xmat_full = ts(Xmat,
                                                                      start = time(Ymat)[1],
                                                                      frequency = frequency(Ymat)),
@@ -266,6 +187,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
 
   if(!is.null(pb)) close(pb)
   warn_rho_fallback(rho_tally, control)
+  par_save$rho_fallback <- rho_tally$n
+  par_save$rho_fallback_by_series <- rho_tally$by_series
 
   # a new, separately named element: everything downstream reads par_save by
   # name (ind_dfm()'s averages, pars_dist_ind()), so adding one cannot disturb
@@ -287,11 +210,421 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
 }
 
 
+#' What does not change between sweeps
+#'
+#' Sparse structures that depend only on the fixed data and dimensions, not on
+#' any sampled parameter, so they are computed once rather than on every
+#' iteration.
+#'
+#' @noRd
+sweep_context <- function(Ymat, target, n, t, t2, p, s, inventory, Gmat_prealloc,
+                          priors, control, stochastic_volatility, serial_correlation){
+
+  Smat <- Diagonal(x = sapply(1:t, function(tx) as.integer(Ymat[tx,] != 0)))
+  V1 <- solve(Diagonal(x = 1e-9, n = t*n))
+  StV1S <- t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Smat
+  Yvec <- t(Ymat)
+  dim(Yvec) <- c(n*t, 1)
+  StV1SY <- t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Yvec
+
+  N <- cbind(rbind(Matrix(0,1,t+s-1),
+                   kronecker(Diagonal(t+s-1), -1)),
+             Matrix(0, t+s,1)) + Diagonal(n = (t+s))
+  N <- N[-1,] # diffuse (improper) prior distribution
+  NtN <- t(N) %*% N
+
+  Llist <- get_distributed_lags(inventory)
+  low_ix <- which(inventory$freq < max(inventory$freq) & inventory$key != target)
+
+  list(Gmat_prealloc = Gmat_prealloc, Llist = Llist,
+       low_ix = low_ix,
+       low_obs = lapply(low_ix, function(ix) series_obs(Ymat, ix, Llist, t, s)),
+       inventory = inventory, target = target, n = n, t = t, t2 = t2, p = p, s = s,
+       StV1S = StV1S, StV1SY = StV1SY, NtN = NtN, priors = priors, control = control,
+       target_obs = series_obs(Ymat, which(inventory$key == target), Llist, t, s),
+       # tally of rho stationarity-screen fallbacks, reported once after the chain
+       rho_tally = new_rho_tally(inventory$key),
+       stochastic_volatility = stochastic_volatility,
+       serial_correlation = serial_correlation)
+
+}
+
+
+#' One series' observations and how they load on the factor
+#'
+#' @return A list with the observation rows `tau`, their values `y`, their gaps
+#'   `g` (the first counted from period 1), the series' index `ix`, and sparse
+#'   matrices mapping `f` to the aggregated factor: `B` at `tau`, `B1` at
+#'   period 1.
+#'
+#' @noRd
+series_obs <- function(Ymat, ix, Llist, t, s){
+
+  tau <- which(Ymat[, ix] != 0)
+  w <- vapply(Llist, function(m) diag(m)[ix], numeric(1))
+  lags <- which(w != 0) - 1L
+
+  row_of <- function(tx, rw){
+    list(i = rep(rw, length(lags)), j = tx + s - lags, x = w[lags + 1L])
+  }
+  rows <- Map(row_of, tau, seq_along(tau))
+  B <- sparseMatrix(i = unlist(lapply(rows, `[[`, "i")),
+                    j = unlist(lapply(rows, `[[`, "j")),
+                    x = unlist(lapply(rows, `[[`, "x")),
+                    dims = c(length(tau), t + s))
+  first <- row_of(1L, 1L)
+
+  list(ix = ix, tau = tau, y = Ymat[tau, ix], g = c(tau[1] - 1L, diff(tau)), B = B,
+       B1 = sparseMatrix(i = first$i, j = first$j, x = first$x, dims = c(1L, t + s)))
+
+}
+
+
+#' A series' likelihood at its observation dates, latent weeks integrated out
+#'
+#' An AR(1) error observed `g` periods apart satisfies
+#' `e[tau_j] | e[tau_{j-1}] ~ N(rho^g e[tau_{j-1}], sigma w)`, with
+#' `w = (1 - rho^(2g)) / (1 - rho^2)`. In terms of the fitted values `lambda * B f`
+#' that is linear in `f`. Period 1 has mean zero rather than the fitted value (see
+#' the first block of `Kmat` in [draw_augmented_data()]), so the first observation
+#' has mean `lambda (B[1,] - rho^g B1) f`, with `g` the distance from period 1 and
+#' `w` taken over `g + 1` periods. That reduces to mean zero if period 1 is itself
+#' observed.
+#'
+#' @return A list with `A`, `r` and `w` of the regression of `r` on `lambda * A f`,
+#'   with errors of variance `sigma * w`.
+#'
+#' @noRd
+collapsed_regression <- function(obs, rho){
+
+  rg <- rho^obs$g
+  w <- skip_weights(rho, obs$g)
+  w[1] <- skip_weights(rho, obs$g[1] + 1L)
+
+  B_lag <- rbind(obs$B1, obs$B[-nrow(obs$B), , drop = FALSE])
+  A <- obs$B - Diagonal(x = rg) %*% B_lag
+  r <- obs$y - rg * c(0, obs$y[-length(obs$y)])
+
+  list(A = A, r = r, w = w)
+
+}
+
+
+#' `sum(rho^(2 * 0:(g-1)))`, stable for `rho` near zero
+#'
+#' @noRd
+skip_weights <- function(rho, g){
+
+  rr <- rho^2
+  if(rr < 1e-12) return(rep(1, length(g)))
+  (1 - rr^g)/(1 - rr)
+
+}
+
+
+#' Redraw one series' latent cells given the factor and its parameters
+#'
+#' Observed cells are held at their value by the same `1e-9` variance that
+#' [draw_augmented_data()] uses.
+#'
+#' @noRd
+#' @importFrom stats rnorm
+draw_series_latent <- function(obs, gf_ix, rho, sigma, t){
+
+  K <- Diagonal(n = t) + bandSparse(t, t, k = -1L, diagonals = list(rep(-rho, t - 1L)))
+  mask <- numeric(t)
+  mask[obs$tau] <- 1e9
+  yv <- numeric(t)
+  yv[obs$tau] <- obs$y * 1e9
+
+  P <- forceSymmetric(crossprod(K)/sigma + Diagonal(x = mask))
+  b <- as.numeric(crossprod(K, c(0, gf_ix))/sigma) + yv
+
+  as.numeric(solve(P, b) + solve(chol(P), rnorm(t)))
+
+}
+
+
+#' Draw a low-frequency series' rho, sigma and lambda, latent weeks integrated out
+#'
+#' In this order, each from the distribution with everything drawn before it
+#' integrated in and the latent weeks integrated out:
+#'
+#' 1. `rho | lambda, f, y`, with `sigma` integrated out analytically as well. One
+#'    dimension, so an independence Metropolis step whose proposal is a
+#'    histogram of the density on a grid: the grid only has to be good enough to
+#'    accept often, because the accept step makes the draw exact. It can cross
+#'    zero freely, where the conditional on imputed errors could not.
+#' 2. `sigma | rho, lambda, f, y`.
+#' 3. `lambda | rho, sigma, f, y`.
+#'
+#' See [collapsed_regression()] for the likelihood.
+#'
+#' @noRd
+#' @importFrom stats rgamma rnorm runif
+draw_low_frequency <- function(obs, f, lambda, rho, draw_rho, prior_sigma, prior_rho,
+                               prior_lambda, control, grid_size = 401L){
+
+  m <- length(obs$y)
+  c0 <- prior_sigma$c0
+  d0 <- prior_sigma$d0
+
+  # the errors at the observation dates, and what each one follows: period 1's
+  # is -lambda * B1 f, as period 1 has mean zero rather than the fitted value
+  fb <- as.numeric(obs$B %*% f)
+  fb1 <- as.numeric(obs$B1 %*% f)
+  e <- obs$y - lambda * fb
+  e0 <- c(-lambda * fb1, e[-m])
+
+  # sufficient statistics per distinct gap, so that the density costs one
+  # evaluation per gap and not one per observation
+  gaps <- obs$g
+  first <- seq_len(m) == 1L
+  key <- paste(gaps, first)
+  groups <- split(seq_len(m), key)
+  stats_g <- lapply(groups, function(idx){
+    list(g = gaps[idx[1]], w_g = gaps[idx[1]] + as.integer(first[idx[1]]), n = length(idx),
+         s11 = sum(e[idx]^2), s10 = sum(e[idx] * e0[idx]), s00 = sum(e0[idx]^2))
+  })
+
+  rss_of <- function(r){
+    rss <- numeric(length(r))
+    logw <- numeric(length(r))
+    rr <- r^2
+    for(st in stats_g){
+      rp <- r^st$g
+      w <- (1 - rr^st$w_g)/(1 - rr)
+      w[rr < 1e-12] <- 1
+      rss <- rss + (st$s11 - 2*rp*st$s10 + rp^2*st$s00)/w
+      logw <- logw + st$n*log(w)
+    }
+    list(rss = rss, logw = logw)
+  }
+
+  log_post <- function(r){
+    q <- rss_of(r)
+    -(r - prior_rho$r0)^2/(2*prior_rho$R0) - 0.5*q$logw - 0.5*(c0 + m)*log(d0 + q$rss)
+  }
+
+  if(draw_rho){
+
+    # A prior narrower than a cell would fall between the grid points, so it gets
+    # points of its own. Every cell keeps a floor of mass: a cell the density has
+    # underflowed in could never be left again, as the step back would have
+    # probability zero, and the chain would stay at its starting value.
+    edges <- seq(-control$rho_max, control$rho_max, length.out = grid_size)
+    prior_sd <- sqrt(prior_rho$R0)
+    if(prior_sd < edges[2] - edges[1]){
+      near <- prior_rho$r0 + prior_sd*seq(-8, 8, length.out = 65L)
+      edges <- sort(unique(c(edges, near[abs(near) < control$rho_max])))
+    }
+    width <- diff(edges)
+    lp <- log_post(edges)
+    dens <- exp(lp - max(lp))
+    mass <- width*(dens[-1] + dens[-length(edges)])/2
+    mass <- mass/sum(mass)
+    mass <- 0.999*mass + 0.001*width/sum(width)
+
+    cell <- sample.int(length(mass), 1L, prob = mass)
+    proposal <- edges[cell] + width[cell]*runif(1)
+
+    old_cell <- findInterval(rho, edges, all.inside = TRUE)
+    log_alpha <- log_post(proposal) - log_post(rho) +
+      log(mass[old_cell]/width[old_cell]) - log(mass[cell]/width[cell])
+
+    if(log(runif(1)) < log_alpha) rho <- proposal
+
+  }
+
+  rss <- rss_of(rho)$rss
+  sigma <- 1/rgamma(1, shape = (c0 + m)/2, rate = (d0 + rss)/2) + control$jitter
+  if(sigma > control$sigma_max) sigma <- control$sigma_max
+
+  # collapsed_regression(), on plain vectors: this runs once per series per sweep
+  rg <- rho^gaps
+  w <- skip_weights(rho, gaps + as.integer(first))
+  x <- fb - rg * c(fb1, fb[-m])
+  r <- obs$y - rg * c(0, obs$y[-m])
+  prec <- 1/prior_lambda$B0 + sum(x^2/w)/sigma
+  mu <- (prior_lambda$b0/prior_lambda$B0 + sum(x*r/w)/sigma)/prec
+  lambda <- mu + rnorm(1)/sqrt(prec)
+
+  list(lambda = lambda, sigma = sigma, rho = rho)
+
+}
+
+
+#' One sweep of the Gibbs sampler
+#'
+#' A function of its own so that `dev/geweke.R` can test the sampler's actual
+#' sequence of draws rather than a copy of it.
+#'
+#' @param state The sampler's current state, in its own types: `f`, `lambda`,
+#'   `phi`, `sigma`, `rho`, `h`, `omega`, `Xmat`, `indicators`.
+#' @param ctx What does not change between sweeps; see [run_sampling()].
+#'
+#' @return `state`, updated.
+#'
+#' @noRd
+gibbs_sweep <- function(state, ctx){
+
+  f <- state$f; lambda <- state$lambda; phi <- state$phi; sigma <- state$sigma
+  rho <- state$rho; h <- state$h; omega <- state$omega; indicators <- state$indicators
+
+  n <- ctx$n; t <- ctx$t; t2 <- ctx$t2; p <- ctx$p; s <- ctx$s
+  Llist <- ctx$Llist; inventory <- ctx$inventory; target <- ctx$target
+  priors <- ctx$priors; control <- ctx$control
+
+  Gmat <- get_gmat(ctx$Gmat_prealloc, Llist, rho, lambda, s, t, n)
+
+  # 0. augment data
+  Xmat <- draw_augmented_data(Gmat = Gmat, f = f, rho = rho, sigma = sigma, n = n, t = t,
+                              StV1S = ctx$StV1S, StV1SY = ctx$StV1SY, return_sample = TRUE)
+
+  # quasi-differenced data used identically by draw_factors/draw_lambda/draw_sigma
+  # below (Xmat and rho are unchanged across these three calls) - compute once
+  Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
+  Xvec_tilde <- t(Xmat_tilde)
+  dim(Xvec_tilde) <- c(n*(t-1),1)
+
+  # 1. draw factors (conditional on model parameters). The factor and the
+  # target's unobserved weeks are one grouped draw: f from the target's actual
+  # observations, with those weeks integrated out, and then those weeks given f.
+  # Conditioning f on them instead is what froze the nowcast: with sigma_target
+  # about 1e-3 each pins the other, for an autocorrelation time of about 4200.
+  obs <- ctx$target_obs
+  tx <- obs$ix
+  target_reg <- collapsed_regression(obs, diag(rho)[tx])
+  target_reg$lambda <- as.numeric(lambda)[tx]
+  target_reg$sigma <- diag(sigma)[tx]
+
+  f <- draw_factors(Xvec_tilde = Xvec_tilde,
+                    Gmat = Gmat,
+                    n = n,
+                    p = p,
+                    s = s,
+                    t = t,
+                    t2 = t2,
+                    phi = phi,
+                    sigma = sigma,
+                    h = h,
+                    collapsed_ix = tx,
+                    collapsed = list(target_reg))
+
+  # draw_factors() does not condition on the rows past t2, so they are redrawn
+  # given the new f before anything below uses them.
+  if(t2 < t){
+    Xmat <- draw_horizon_rows(Xmat, Gmat = Gmat, f = f, rho = rho, sigma = sigma,
+                              n = n, t = t, t2 = t2)
+  }
+
+  gf <- as.numeric(Gmat %*% f)
+  dim(gf) <- c(n, t - 1)
+  Xmat[, tx] <- draw_series_latent(obs, gf[tx,], diag(rho)[tx], diag(sigma)[tx], t)
+
+  Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
+  Xvec_tilde <- t(Xmat_tilde)
+  dim(Xvec_tilde) <- c(n*(t-1),1)
+
+  # 2. draw the factor-innovation variance: a full stochastic volatility path,
+  #    or - when it is switched off - a single constant variance, still
+  #    estimated (the factor's scale is pinned by lambda[target] = 1, so the
+  #    variance is the free parameter the data determines; see CLAUDE.md,
+  #    "Scale identification"). Both write into `h` as log-sd, so everything
+  #    downstream (draw_factors, draw_phi) is unchanged.
+  #
+  #    The indicators are drawn directly before h, from the current f, with
+  #    nothing drawn in between: they are the auxiliary variables of the
+  #    Kim-Shephard-Chib step, not a block of their own. Del Negro & Primiceri
+  #    (2015), Algorithm 2.
+  if(ctx$stochastic_volatility){
+    indicators <- draw_indicators(h, f, phi, n, p, s, t, control)
+    h <- draw_volatility(f = f,
+                         phi = phi,
+                         n = n,
+                         p = p,
+                         s = s,
+                         t = t,
+                         omega = omega,
+                         indicators = indicators,
+                         h_old = h,
+                         NtN = ctx$NtN,
+                         control = control)
+  } else {
+    h <- draw_factor_variance(f = f, phi = phi, p = p, s = s, t = t,
+                              prior = priors$factor_var, control = control)
+  }
+
+  # 3. draw model parameters (conditional on factors and volatility)
+  Zmat <- get_zmat(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
+  lambda <- draw_lambda(Xvec_tilde = Xvec_tilde,
+                        Zmat = Zmat,
+                        sigma = sigma,
+                        n = n, t = t,
+                        inventory = inventory,
+                        target = target,
+                        prior = priors$lambda)
+
+  # sigma conditions on the lambda just drawn
+  Gmat <- get_gmat(ctx$Gmat_prealloc, Llist, rho, lambda, s, t, n)
+  sigma <- draw_sigma(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
+                      x1 = Xmat[1,], inventory = inventory, target = target, sigma = sigma,
+                      prior_target = priors$sigma_target,
+                      prior_other = priors$sigma_other, control = control)
+  phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi, prior = priors$phi, control = control)
+
+  # omega (the variance of h's own innovations) exists solely to draw a
+  # volatility PATH; with a constant variance it is meaningless.
+  if(ctx$stochastic_volatility) omega <- draw_omega(h = h, t = t, s = s, p = p,
+                                                    prior = priors$omega, control = control)
+
+  if(ctx$serial_correlation){
+    rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
+                    lambda = lambda, Llist = Llist, inventory = inventory, target = target,
+                    prior_target = priors$rho_target, prior_other = priors$rho_other,
+                    control = control, tally = ctx$rho_tally,
+                    skip = ctx$low_ix, rho_old = diag(rho))
+  }
+
+  # Low-frequency series: rho, sigma and lambda again, this time from the
+  # observations themselves, with their latent weeks integrated out. Given imputed
+  # weekly errors rho can only take tiny steps, because the data identify it
+  # through rho^4 alone. Nothing below uses this sweep's Xmat for these series, and
+  # the next sweep starts by redrawing it, so this is a grouped draw of these
+  # parameters and those weeks and needs no further step.
+  if(length(ctx$low_ix)){
+    lam <- as.numeric(lambda)
+    sig <- diag(sigma)
+    rh <- diag(rho)
+    fv <- as.numeric(f)
+    for(j in seq_along(ctx$low_ix)){
+      ix <- ctx$low_ix[j]
+      draw <- draw_low_frequency(ctx$low_obs[[j]], f = fv, lambda = lam[ix], rho = rh[ix],
+                                 draw_rho = ctx$serial_correlation,
+                                 prior_sigma = priors$sigma_other,
+                                 prior_rho = priors$rho_other,
+                                 prior_lambda = priors$lambda, control = control)
+      lam[ix] <- draw$lambda
+      sig[ix] <- draw$sigma
+      rh[ix] <- draw$rho
+    }
+    lambda <- Matrix(lam, n, 1)
+    sigma <- Diagonal(x = sig)
+    rho <- Diagonal(x = rh)
+  }
+
+  list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
+       omega = omega, Xmat = Xmat, indicators = indicators)
+
+}
+
+
 #' Draw the latent factor conditional on model parameters
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return_sample = TRUE){
+draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return_sample = TRUE,
+                         collapsed_ix = integer(), collapsed = list()){
 
   # See section 2.5 Estimation
   H <- Reduce("+",lapply(1:p, function(px){
@@ -307,11 +640,24 @@ draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return
 
   # define selection vector such that latent data in forecast horizon has no more impact on factor
   Svec <- c(rep(1,t2-1),rep(0,t-t2))
-  Svec_sigma_inv <- Diagonal(x = Svec) %x% solve(sigma)
+
+  # series in collapsed_ix enter through their own observations below instead
+  sigma_inv <- 1/diag(sigma)
+  sigma_inv[collapsed_ix] <- 0
+  Svec_sigma_inv <- Diagonal(x = Svec) %x% Diagonal(x = sigma_inv)
 
   # Calculate conditional posterior of the factors
-  F1 <- forceSymmetric(F0 + t(Gmat) %*% Svec_sigma_inv %*% Gmat)
-  f1 <- solve(F1, t(Gmat) %*% Svec_sigma_inv %*% Xvec_tilde)
+  F1 <- F0 + t(Gmat) %*% Svec_sigma_inv %*% Gmat
+  rhs <- t(Gmat) %*% Svec_sigma_inv %*% Xvec_tilde
+
+  for(reg in collapsed){
+    A_w <- reg$lambda * t(reg$A) %*% Diagonal(x = 1/(reg$sigma * reg$w))
+    F1 <- F1 + reg$lambda * A_w %*% reg$A
+    rhs <- rhs + A_w %*% reg$r
+  }
+
+  F1 <- forceSymmetric(F1)
+  f1 <- solve(F1, rhs)
 
   if(return_sample){
 
@@ -488,6 +834,31 @@ draw_augmented_data <- function(Gmat, f, rho, sigma, n, t, StV1S, StV1SY, return
 }
 
 
+#' Redraw the rows past the end of the data, given the factor
+#'
+#' With `extend_to`, [draw_factors()] drops these rows from the factor's
+#' conditional. Together with this draw that is one grouped draw of the factor
+#' and those rows, given the rest. Nothing is observed there, so it is a forward
+#' simulation of the measurement equation.
+#'
+#' @noRd
+#' @importFrom stats rnorm
+draw_horizon_rows <- function(Xmat, Gmat, f, rho, sigma, n, t, t2){
+
+  gf <- as.numeric(Gmat %*% f)
+  dim(gf) <- c(n, t - 1)
+  rd <- diag(rho)
+  sd_v <- sqrt(diag(sigma))
+
+  for(tx in (t2 + 1):t){
+    Xmat[tx,] <- gf[, tx - 1] + rd * Xmat[tx - 1,] + sd_v * rnorm(n)
+  }
+
+  Xmat
+
+}
+
+
 #' Draw the factor loadings
 #'
 #' @noRd
@@ -522,7 +893,7 @@ draw_lambda <- function(Xvec_tilde, Zmat, sigma, n, t, inventory, target, prior)
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma, control,
+draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, x1, inventory, target, sigma, control,
                        prior_target, prior_other){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Measurement Error Covariance Matrix
 
@@ -555,8 +926,10 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma, cont
 
     }
 
+    # t observations: the t-1 quasi-differenced rows and the first row, which
+    # has mean zero (see the first block of Kmat in draw_augmented_data())
     c1 <- c0 + t
-    d1 <- d0 + t(U[,ix]) %*% U[,ix]
+    d1 <- d0 + t(U[,ix]) %*% U[,ix] + x1[ix]^2
 
     # sample from inverse gamma distribution
     1/rgamma(n = 1,
@@ -579,7 +952,8 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, inventory, target, sigma, cont
 #' @importFrom stats rnorm
 draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
                     control,
-                     prior_target, prior_other, tally = NULL){
+                     prior_target, prior_other, tally = NULL,
+                     skip = integer(), rho_old = NULL){
 
   # See appendix A.4 Conditional distributions of Remaining Parameters: Autocorrelation of Measurement Errors
   # construct auxiliary matrix
@@ -616,6 +990,9 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
   Elead <- E[-1, , drop = FALSE]
 
   rho <- Diagonal(x = sapply(1:n, function(nx){
+
+    # drawn by draw_low_frequency() instead
+    if(nx %in% skip) return(rho_old[nx])
 
     if(nx == target_ix){
 
@@ -658,7 +1035,7 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
         # Counted, not warned about here: this runs inside the per-iteration
         # loop, so a warning would fire once per series per draw. run_sampling()
         # reports the total once the chain is done (#118).
-        if(!is.null(tally)) tally$n <- tally$n + 1L
+        count_rho_fallback(tally, nx)
       }
       check = abs(rho_i) < control$rho_max
 

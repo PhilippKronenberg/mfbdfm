@@ -489,7 +489,13 @@ gdp_web_series <- function(vintage = "latest", base_date = as.Date("2019-10-01")
 #' standardised contribution (`T` the plug-in total), and
 #' `parameter_uncertainty = wai_qoq - F(T)`, the posterior-minus-plug-in
 #' residual [mfbdfm_contributions()] itself reports. Per date the components
-#' sum to `wai_qoq` exactly.
+#' sum to `wai_qoq` exactly. Despite its key, which the dashboard's data contract
+#' fixes, this is an unexplained remainder: it also holds any simulation noise in
+#' `wai_qoq`, and it is the difference of a nonlinear transformation's mean.
+#'
+#' **Contributions per series (`wai_contributions_series.csv`).** The same split
+#' with one component per input series, `date,series,value`. A group's series add
+#' up to that group's row of `wai_contributions.csv`.
 #'
 #' **News (`wai_news.csv`).** [mfbdfm_news()] of the move from `news_fit_path`
 #' (last week's fit) to `news_new_data` (this week's data), aggregated to the
@@ -498,8 +504,9 @@ gdp_web_series <- function(vintage = "latest", base_date = as.Date("2019-10-01")
 #' revision. Written only when both arguments are given.
 #'
 #' **Series (`wai_series.csv`).** One row per input series: name and group,
-#' frequency, the R-squared from `summary()` and the posterior loading with its
-#' 95% band (standardised scale, so loadings are comparable across series).
+#' frequency, the R-squared from `summary()` and the loading standardised by its
+#' aggregation weights, target = 1, with its 95% band, as in
+#' [mfbdfm_table_loadings()]. Raw loadings do not compare across frequencies.
 #'
 #' @param fit_path Path to this week's fit `.Rda` (object `mod`), as for
 #'   [export_wai_web()].
@@ -512,14 +519,18 @@ gdp_web_series <- function(vintage = "latest", base_date = as.Date("2019-10-01")
 #'   data, prepared exactly as this week's fit's was.
 #' @param digits Decimal places of the published values.
 #' @param vintage_date Optional vintage date recorded in the metadata.
+#' @param series_since First date of `wai_contributions_series.csv`. The indicators
+#'   only arrive around 2019, so earlier rows would be most of the file and show
+#'   almost nothing.
 #'
-#' @return Invisibly, a list with `contributions`, `series`, `news` (or `NULL`)
-#'   and `meta`.
+#' @return Invisibly, a list with `contributions`, `contributions_series`, `series`,
+#'   `news` (or `NULL`) and `meta`.
 #' @seealso [export_wai_web()], [mfbdfm_contributions()], [mfbdfm_news()].
 #' @keywords internal
 export_wai_measures <- function(fit_path, dir = NULL, series_info = NULL,
                                 news_fit_path = NULL, news_new_data = NULL,
-                                digits = 4, vintage_date = NULL) {
+                                digits = 4, vintage_date = NULL,
+                                series_since = "2019-01-01") {
 
   load_fit <- function(p, arg) {
     if (!is.character(p) || length(p) != 1L || !file.exists(p)) {
@@ -596,6 +607,19 @@ export_wai_measures <- function(fit_path, dir = NULL, series_info = NULL,
   contrib <- contrib[order(contrib$date, contrib$component), ]
   rownames(contrib) <- NULL
 
+  # the same contributions per series, with the same slope, so that they add up
+  # to their group's
+  cs <- mfbdfm_contributions(fit, by = "series")$contributions
+  idx_s <- match(round(cs$time, 5), round(tot$time, 5))
+  cs <- cs[!is.na(idx_s), ]
+  idx_s <- idx_s[!is.na(idx_s)]
+  contrib_series <- data.frame(date = dates[idx_s], series = cs$series,
+                               value = cs$contribution * slope[idx_s],
+                               stringsAsFactors = FALSE)
+  contrib_series <- contrib_series[contrib_series$date >= as.Date(series_since), ]
+  contrib_series <- contrib_series[order(contrib_series$date, contrib_series$series), ]
+  rownames(contrib_series) <- NULL
+
   # series: R-squared and loadings
   r2 <- summary(fit)$r_squared
   ld <- mfbdfm_table_loadings(fit)
@@ -605,9 +629,9 @@ export_wai_measures <- function(fit_path, dir = NULL, series_info = NULL,
     group      = unname(group_of[keys]),
     frequency  = inv$freq,
     r2         = r2$r_squared[match(keys, r2$series)],
-    loading    = ld$mean[match(keys, ld$series)],
-    loading_lo = ld$lower[match(keys, ld$series)],
-    loading_hi = ld$upper[match(keys, ld$series)],
+    loading    = ld$loading_std[match(keys, ld$series)],
+    loading_lo = ld$std_lower[match(keys, ld$series)],
+    loading_hi = ld$std_upper[match(keys, ld$series)],
     stringsAsFactors = FALSE
   )
   series <- series[order(series$group, -series$r2), ]
@@ -646,6 +670,7 @@ export_wai_measures <- function(fit_path, dir = NULL, series_info = NULL,
     d
   }
   contrib <- rnd(contrib)
+  contrib_series <- rnd(contrib_series)
   series <- rnd(series)
   if (!is.null(news)) news <- rnd(news)
 
@@ -663,12 +688,13 @@ export_wai_measures <- function(fit_path, dir = NULL, series_info = NULL,
   if (!is.null(dir)) {
     dir.create(dir, recursive = TRUE, showWarnings = FALSE)
     write_web_csv(contrib, file.path(dir, "wai_contributions.csv"))
+    write_web_csv(contrib_series, file.path(dir, "wai_contributions_series.csv"))
     write_web_csv(series, file.path(dir, "wai_series.csv"))
     if (!is.null(news)) write_web_csv(news, file.path(dir, "wai_news.csv"))
     writeLines(to_json(meta), file.path(dir, "wai_measures_meta.json"),
                useBytes = TRUE)
   }
 
-  invisible(list(contributions = contrib, series = series, news = news,
-                 meta = meta))
+  invisible(list(contributions = contrib, contributions_series = contrib_series,
+                 series = series, news = news, meta = meta))
 }
