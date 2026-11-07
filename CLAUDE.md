@@ -136,10 +136,10 @@ baseline_write()    # regenerate, ONLY when a change is meant to alter results
 
 ```r
 source("dev/geweke.R")
-geweke_run()   # about 15 minutes on 3 cores; look at z and at attr(., "max_abs_z")
+geweke_run()   # about 15 minutes on 4 cores; look at z and at attr(., "max_abs_z")
 ```
 
-Measured with 3 chains of 15,000 sweeps: corrected sampler max |z| 2.24 over 19 moments, none above 3. With the paper's `get_zmat()` swapped back in as a negative control, `lambda^2` comes out at 0.06 against the correct 1.00, z = -240. **Run it after any change to a conditional or to the order of draws.** It does not cover `h`, `omega`, `phi` or the factor variance, because `h`'s prior is improper and `draw_phi()` clips at zero: those are held nearly fixed. It covers only `ind_dfm()`.
+Measured with 3 chains of 15,000 sweeps: corrected sampler max |z| 2.24 over 19 moments, none above 3. With the default 4 chains of 20,000 sweeps on the code of #172 (2026-11-07), seeds 2026 and 7: max |z| 1.78 and 1.97. **The test runs with `sigma_max` lifted**, because `draw_sigma()`'s cap at 5 lies inside this prior's tail and changes the chain's stationary distribution: with the cap, seed 2026 gave `sigma_wk` z = -5.5. That is the cap, not a wrong conditional; on a standardized panel σ near 5 should be rare. With the paper's `get_zmat()` swapped back in as a negative control, `lambda^2` comes out at 0.06 against the correct 1.00, z = -240. **Run it after any change to a conditional or to the order of draws.** It does not cover `h`, `omega`, `phi` or the factor variance, because `h`'s prior is improper and `draw_phi()` clips at zero: those are held nearly fixed. It covers only `ind_dfm()`.
 
 ## Pre-commit verification
 
