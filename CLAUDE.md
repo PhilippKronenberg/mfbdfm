@@ -75,7 +75,7 @@ matters for the 1:1 test-file convention below):
 | File | Contents |
 |----|----|
 | `ind_dfm.R` | [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md) — exported entry point, single-factor Kronenberg (2026) model |
-| `samplers.R` | Internal Gibbs samplers for [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md) (`run_sampling`, `draw_*`); no exports |
+| `samplers.R` | Internal Gibbs samplers for [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md) (`run_sampling`, `gibbs_sweep`, `draw_*`); no exports. The target’s latent weeks are integrated out of the factor draw (#169), and a low-frequency series’ `rho`, `sigma` and `lambda` are drawn with its latent weeks integrated out (#170). Neither applies to [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md) |
 | `fcast_dfm.R` | [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md) — exported entry point, multi-factor Eckert et al. (2025) model |
 | `samplers_fcast.R` | Internal multi-factor samplers (`run_sampling_fcast`, `draw_*_fcast`); no exports |
 | `rotation_fcast.R` | Post-hoc rotation/identification for [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md) (`run_rotation_fcast`, `run_identification_fcast`, `get_d_fcast`, `create_h_fcast`, …); no exports |
@@ -91,6 +91,8 @@ matters for the 1:1 test-file convention below):
 | `methods.R` | S3 methods for both fit classes (`print`/`summary`/`plot`/`coef`/`fitted`/`residuals`/`as.data.frame`), documented under `ind_dfm_methods` and `fcast_dfm_methods` |
 | `contributions.R` | [`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md) + its `print`/`as.data.frame`/`plot` methods, and the internal `dfm_joint_precision()` / `dfm_state_weights()` / `dfm_h_path()` / `dfm_resolve_groups()` that [`logLik()`](https://rdrr.io/r/stats/logLik.html) and [`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md) also build on (#109) |
 | `news.R` | [`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md) + its `print`/`as.data.frame`/`plot` methods — the Banbura-Modugno news decomposition of a nowcast revision between two data vintages; internal `dfm_target_plugin()`, `dfm_news_panels()` (#101). Builds on `contributions.R`’s joint precision rather than its own |
+| `exact.R` | [`mfbdfm_exact()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_exact.md) + its print method, internal `fit_with_exact()` — the [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md) nowcast and its variance solved exactly over stored parameter draws (#171) |
+| `quality.R` | [`mfbdfm_quality()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_quality.md) — the publication gate: rank-normalised ESS, split R-hat, Monte Carlo error, anchor, fallback and chain-vs-exact checks (#172) |
 | `priors.R` | [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md) + [`print.dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_priors.md); structural vs tunable priors |
 | `control.R` | [`dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_control.md) + [`print.dfm_control()`](https://philippkronenberg.github.io/mfbdfm/reference/print.dfm_control.md) — optional numerical/algorithmic knobs (#46) |
 | `data-input.R` | [`mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_data.md) + [`print.mfbdfm_data()`](https://philippkronenberg.github.io/mfbdfm/reference/print.mfbdfm_data.md) and the frequency-harmonisation helpers (#56) |
@@ -248,6 +250,34 @@ deliberate 1e-7 relative perturbation to a single prior in testing.
 - For a change that must be bit-identical, `baseline_check()` is the
   fast first pass; the git-worktree comparison against the parent commit
   remains the thorough one for anything touching the numerics.
+
+## Verifying that the sampler targets the right posterior
+
+`dev/baseline.R` says that results did not move. It cannot say that they
+are right. `dev/geweke.R` can (#168): it compares the sampler’s joint
+distribution of parameters, factor and data with the prior’s, on a small
+panel, calling `gibbs_sweep()` itself.
+
+``` r
+
+source("dev/geweke.R")
+geweke_run()   # about 15 minutes on 4 cores; look at z and at attr(., "max_abs_z")
+```
+
+Measured with 3 chains of 15,000 sweeps: corrected sampler max \|z\|
+2.24 over 19 moments, none above 3. With the default 4 chains of 20,000
+sweeps on the code of \#172 (2026-11-07), seeds 2026 and 7: max \|z\|
+1.78 and 1.97. **The test runs with `sigma_max` lifted**, because
+`draw_sigma()`’s cap at 5 lies inside this prior’s tail and changes the
+chain’s stationary distribution: with the cap, seed 2026 gave `sigma_wk`
+z = -5.5. That is the cap, not a wrong conditional; on a standardized
+panel σ near 5 should be rare. With the paper’s `get_zmat()` swapped
+back in as a negative control, `lambda^2` comes out at 0.06 against the
+correct 1.00, z = -240. **Run it after any change to a conditional or to
+the order of draws.** It does not cover `h`, `omega`, `phi` or the
+factor variance, because `h`’s prior is improper and `draw_phi()` clips
+at zero: those are held nearly fixed. It covers only
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md).
 
 ## Pre-commit verification
 
@@ -583,9 +613,9 @@ constraint.
   platform.
 - testthat edition 3. **One test file per `R/` source file**
   (`tests/testthat/test-<name>.R` mirroring `R/<name>.R`), except
-  `samplers.R`, `samplers_fcast.R`, `globals.R`, `mfbdfm-package.R`
-  which have no exported/testable content and intentionally have no
-  dedicated file (state this explicitly if asked, don’t silently skip).
+  `samplers_fcast.R`, `globals.R`, `mfbdfm-package.R` which have no
+  exported/testable content and intentionally have no dedicated file
+  (state this explicitly if asked, don’t silently skip).
 - Shared synthetic fixtures live in `tests/testthat/helper-synthetic.R`
   (`make_synth_dat()`, `make_synth_vintages()`, `make_synth_inputs()`),
   auto-sourced by testthat for every file — this is how the 1:1 file
@@ -706,12 +736,75 @@ Consequences worth knowing before changing anything in the samplers:
   only**; changing a structural one requires an explicit argument that
   warns.
 
-## Where we knowingly differ from the published Eckert et al. (2025) results
+## Where we knowingly differ from the published results
 
 **Internal note, kept here deliberately and not in any package
-documentation.** It records a place where our code is correct and the
+documentation.** It records places where our code is correct and the
 published figures are not reproducible from it, so that nobody later
 “discovers” the discrepancy and tries to undo the fix.
+
+- **The papers used a wrong `get_zmat()` (#166, fixed). This affects
+  both Kronenberg (2026) and Eckert et al. (2025).** The function builds
+  the regressor of the loading draw from the quasi-differenced
+  measurement equation. The coefficient on lag `j` of the factor must be
+  `L[j] - rho*L[j-1]`, which is what `get_gmat()` has. The papers’ code
+  had `L[j-1] - rho*L[j]`.
+
+  - **Where it came from:** `wai_ind/code/lib/functions_model.R:833` has
+    this line, so it is not a porting error.
+  - **How it was used:** only `draw_lambda()` uses the function, once
+    per iteration (`samplers.R`, `samplers_fcast.R`). Every other block
+    uses `get_gmat()`, so the conditionals were mutually inconsistent,
+    and the chain’s stationary distribution was not guaranteed to be the
+    stated posterior.
+  - **What it did:** for a weekly series the regressor was
+    `f[t] + f[t-1]` instead of `f[t] - rho*f[t-1]`, so weekly loadings
+    were distorted by roughly `(1-rho)/2`. `lambda[target]` is
+    overwritten by 1, so GDP’s own loading was unaffected. It does not
+    explain the sampler’s slow mixing.
+  - **To replicate the old results:** install commit `ac9c2a6` into a
+    separate library and run the script against it.
+    `dev/paper_replication/README.md` has the commands;
+    `baseline_check()` from that source tree reports `BASELINE MATCHES`
+    (verified 2026-10-31). **`use_paper_zmat()` on the current code does
+    not replicate them**, because \#168, \#169 and \#170 changed the
+    sampler too. It reports `BASELINE DIFFERS`, and is kept as the
+    negative control for `dev/geweke.R`.
+  - **The replication claims further down this section were measured
+    before this fix.** They hold only at `ac9c2a6`, including the stored
+    RMSFE and log score tables from `2_evaluation_fcast.R`.
+  - **Do not “restore” the old line** on the grounds that it reproduced
+    the paper.
+  - **The fix moves the weekly WAI a lot and quarterly history little.**
+    On the real 46-series panel at 2026.812: weekly path correlation
+    with the old one 0.74, sd ratio 1.28, quarterly history within 0.37,
+    latest weekly `wai_qoq` about 2.5 to 6.2, Q4 about 1.8 to 1.0 (this
+    fix alone; with \#169 and \#170 the latest week is about 7.9 and Q4
+    about 0.9). Raw loadings of the Swiss stock series rise about
+    30-fold, and their R² from about 0.03 to 0.32-0.38. The anchoring
+    pins only the factor’s 23-week aggregate, so weekly movements that
+    cancel within it are free. Whether stock returns should be able to
+    pull the weekly path this way is an open model question.
+  - **This fix alone gave the small seed-test panel a second sign; \#168
+    and \#169 removed it.** On `data_ch_dataset_test` from 2019, seeds 1
+    to 12 at 2000 draws: 4 settle where the financial series load
+    negatively at `17bdd8e` (plug-in `logLik` about 50 lower), 2 at
+    `1a0df78` (draw order), 0 at `f3781a0` (the target’s latent weeks
+    integrated out), and 0 with the final code, where `logLik` still
+    ranges from -1061 to -1032. So this looks like a place the old
+    sampler got stuck in, not a second mode of the posterior, but no
+    chain has been started there on the new code to confirm it. All 9
+    seeds on the real panel found one sign. The G5.9b tests still check
+    the sign, to catch it coming back.
+
+- **`daily_to_weekly()` in `analysis/1_data_prep_dataset.R` misdates
+  series with gaps. Not fixed there.** A week without a row is left out,
+  and a `ts` has no dates, so every later week moves one step earlier.
+  wai-webapp’s copy is fixed (wai-webapp \#78). There, `traffic_PW` and
+  `traffic_LW` were 2 weeks out of place from December 2020,
+  `oev_freq_hardbruecke` 3 from December 2023 and `oev_freq_hb` 2 from
+  April 2020. Whether the papers’ datasets carry this has not been
+  checked.
 
 - **`phi` was transposed on unpacking (#66, fixed).**
   `list2theta_fcast()` packs each `q x q` VAR block column-major;

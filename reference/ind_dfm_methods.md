@@ -138,11 +138,8 @@ invisibly.
   periods where that series was observed, with the fitted value taken to
   be the **common component** – loadings times factors, temporally
   aggregated – so it measures what the factor explains and not the
-  idiosyncratic AR part. It is therefore not
-  `1 - Var(residuals(fit))/Var(observed)`:
-  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) returns the
-  augmented dataset, whose observed entries are pinned to the observed
-  values by the sampler. For
+  idiosyncratic AR part: it is `1 - Var(residuals(fit))/Var(observed)`
+  per series. For
   [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
   the target's R-squared is ~1 by construction, since its loading is
   fixed to 1 and its measurement error shrunk towards zero to identify
@@ -172,14 +169,19 @@ invisibly.
 
 - [`fitted()`](https://rdrr.io/r/stats/fitted.values.html):
 
-  The augmented dataset: observed values where a series was observed,
-  the model's latent estimate where it was not. On the standardized
-  scale the model works in by default; `scale = "original"` puts every
-  column back in its own units.
+  The **common component**: loadings times factors, temporally
+  aggregated, at the posterior mean parameters – the part of each series
+  the factor explains, for every period. On the standardized scale the
+  model works in by default; `scale = "original"` puts every column back
+  in its own units. Before mfbdfm 0.2.0 this returned the augmented
+  dataset, whose observed entries the sampler pins to the data, so
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) was the data
+  itself; that is still in `$data_augmented`.
 
 - [`residuals()`](https://rdrr.io/r/stats/residuals.html):
 
-  Observed minus fitted. **Unobserved periods are `NA`, not zero** – the
+  Observed minus the common component, i.e. the idiosyncratic part (AR
+  error plus noise). **Unobserved periods are `NA`, not zero** – the
   prepared data encodes a missing observation as `0`, so differencing
   directly would report a spurious residual wherever a series was not
   observed, which in a mixed-frequency model is most of the matrix for
@@ -271,13 +273,8 @@ package style:
 The common component is loadings times factors, temporally aggregated –
 the part of each series the factor explains, the same quantity the
 R-squared in [`summary()`](https://rdrr.io/r/base/summary.html) is built
-on. `"residuals"` and `"fit"` use it rather than
-[`fitted()`](https://rdrr.io/r/stats/fitted.values.html)/[`residuals()`](https://rdrr.io/r/stats/residuals.html)
-deliberately: [`fitted()`](https://rdrr.io/r/stats/fitted.values.html)
-is the augmented dataset, whose observed entries the sampler pins to the
-data, so a residual against it is sampling noise of order `1e-5` and an
-observed-versus-fitted plot of it is the data drawn twice. Both views
-need `$factor_std` on an
+on, and what [`fitted()`](https://rdrr.io/r/stats/fitted.values.html)
+returns. Both views need `$factor_std` on an
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
 fit, and error on a fit saved before it existed.
 
@@ -351,7 +348,59 @@ data(mfbdfm_example_data)
 fit <- ind_dfm(mfbdfm_example_data, length_sample = 20, burn_in = 5)
 #> preallocating..
 #> simulating posterior distribution..
-#>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%
+#> 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |===                                                                   |   4%
+  |                                                                            
+  |======                                                                |   8%
+  |                                                                            
+  |========                                                              |  12%
+  |                                                                            
+  |===========                                                           |  16%
+  |                                                                            
+  |==============                                                        |  20%
+  |                                                                            
+  |=================                                                     |  24%
+  |                                                                            
+  |====================                                                  |  28%
+  |                                                                            
+  |======================                                                |  32%
+  |                                                                            
+  |=========================                                             |  36%
+  |                                                                            
+  |============================                                          |  40%
+  |                                                                            
+  |===============================                                       |  44%
+  |                                                                            
+  |==================================                                    |  48%
+  |                                                                            
+  |====================================                                  |  52%
+  |                                                                            
+  |=======================================                               |  56%
+  |                                                                            
+  |==========================================                            |  60%
+  |                                                                            
+  |=============================================                         |  64%
+  |                                                                            
+  |================================================                      |  68%
+  |                                                                            
+  |==================================================                    |  72%
+  |                                                                            
+  |=====================================================                 |  76%
+  |                                                                            
+  |========================================================              |  80%
+  |                                                                            
+  |===========================================================           |  84%
+  |                                                                            
+  |==============================================================        |  88%
+  |                                                                            
+  |================================================================      |  92%
+  |                                                                            
+  |===================================================================   |  96%
+  |                                                                            
+  |======================================================================| 100%
 #> processing output..
 fit
 #> Single-factor mixed-frequency dynamic factor model (Kronenberg 2026)
@@ -371,7 +420,7 @@ fit
 #>     2025.250      0.00123
 #>     2025.500     -0.00440
 #>     2025.750      0.00151
-#>     2026.000      0.00182
+#>     2026.000     -0.00033
 #> 
 #> Priors for ind_dfm()  [type: default]
 #> 
@@ -410,28 +459,28 @@ fit
 #> Draws: $draws, mfbdfm_diagnostics()
 coef(fit)
 #> ch.fso.rtt.ind.r.noga0801.sa     ch.ozd.e.wa.index.re.d11 
-#>                    0.1152140                    0.6717300 
+#>                    0.7702058                    0.6862985 
 #>                      SWISSMI                   traffic_PW 
-#>                   -0.1045631                    0.5322540 
+#>                    1.2874590                    3.8963240 
 #>              electricity_out     ch.seco.gdp.real.gdp.ssa 
-#>                    0.1623314                    1.0000000 
+#>                    0.4111092                    1.0000000 
 #>                    SWPMIPROQ                 Arbeitsmarkt 
-#>                    0.8613749                    0.1227184 
+#>                    0.8095488                    5.0886111 
 head(as.data.frame(fit))
-#>       time     factor factor_lower factor_upper
-#> 1 2015.000 -2.1234387    -5.296458     1.049580
-#> 2 2015.021 -2.5350488    -8.704527     3.634429
-#> 3 2015.042 -2.2571539    -8.024603     3.510295
-#> 4 2015.062 -1.8548251    -7.001492     3.291842
-#> 5 2015.083 -0.2675197    -7.405483     6.870443
-#> 6 2015.104  0.8339920    -4.034132     5.702116
+#>       time      factor factor_lower factor_upper
+#> 1 2015.000 -1.16619692    -6.014258     3.681864
+#> 2 2015.021 -1.79938603    -6.461056     2.862284
+#> 3 2015.042 -0.95974513    -6.355752     4.436262
+#> 4 2015.062 -3.62610152    -9.112986     1.860783
+#> 5 2015.083 -2.83169104   -10.109623     4.446241
+#> 6 2015.104 -0.08234503    -7.083711     6.919021
 logLik(fit)
-#> 'log Lik.' -3127.622 (df=25)
+#> 'log Lik.' -3018.808 (df=25)
 AIC(fit)              # approximate here - see "What logLik() means"
-#> [1] 6305.244
+#> [1] 6087.616
 mfbdfm_nowcast(fit, last = TRUE)
-#>   time     nowcast          sd       lower       upper
-#> 1 2026 0.001822563 0.003008001 -0.00407301 0.007718136
+#>   time       nowcast        sd       lower      upper
+#> 1 2026 -0.0003309698 0.0071933 -0.01442958 0.01376764
 
 plot(fit)                                  # the factor, with a 95% band
 

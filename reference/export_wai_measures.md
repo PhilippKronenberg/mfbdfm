@@ -17,7 +17,8 @@ export_wai_measures(
   news_fit_path = NULL,
   news_new_data = NULL,
   digits = 4,
-  vintage_date = NULL
+  vintage_date = NULL,
+  series_since = "2019-01-01"
 )
 ```
 
@@ -55,10 +56,16 @@ export_wai_measures(
 
   Optional vintage date recorded in the metadata.
 
+- series_since:
+
+  First date of `wai_contributions_series.csv`. The indicators only
+  arrive around 2019, so earlier rows would be most of the file and show
+  almost nothing.
+
 ## Value
 
-Invisibly, a list with `contributions`, `series`, `news` (or `NULL`) and
-`meta`.
+Invisibly, a list with `contributions`, `contributions_series`,
+`series`, `news` (or `NULL`) and `meta`.
 
 ## Details
 
@@ -75,6 +82,13 @@ share of `F(T) - F(0)` in proportion to its standardised contribution
 the posterior-minus-plug-in residual
 [`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md)
 itself reports. Per date the components sum to `wai_qoq` exactly.
+Despite its key, which the dashboard's data contract fixes, this is an
+unexplained remainder: it also holds any simulation noise in `wai_qoq`,
+and it is the difference of a nonlinear transformation's mean.
+
+**Contributions per series (`wai_contributions_series.csv`).** The same
+split with one component per input series, `date,series,value`. A
+group's series add up to that group's row of `wai_contributions.csv`.
 
 **News (`wai_news.csv`).**
 [`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
@@ -86,9 +100,11 @@ Written only when both arguments are given.
 
 **Series (`wai_series.csv`).** One row per input series: name and group,
 frequency, the R-squared from
-[`summary()`](https://rdrr.io/r/base/summary.html) and the posterior
-loading with its 95% band (standardised scale, so loadings are
-comparable across series).
+[`summary()`](https://rdrr.io/r/base/summary.html) and the loading
+standardised by its aggregation weights, target = 1, with its 95% band,
+as in
+[`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md).
+Raw loadings do not compare across frequencies.
 
 ## See also
 

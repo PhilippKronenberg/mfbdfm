@@ -52,9 +52,20 @@ mfbdfm_table_loadings(
 ## Value
 
 A data frame with columns `series`, `type` (flow or stock), `freq`,
-`factor`, `mean`, `sd`, `lower`, `upper` and `fixed`; or a
+`factor`, `mean`, `sd`, `lower`, `upper`, `fixed`, `weight_sum`,
+`loading_std`, `std_lower`, `std_upper` and `r_squared`; or a
 `"knitr_kable"` object when `format` is not `"data.frame"`. `sd`,
 `lower` and `upper` are `NA` for a fit made before `$pars_dist` existed.
+
+**Compare series with `loading_std` and `r_squared`, not `mean`.** A raw
+loading multiplies a weighted sum of factor values, and the weights sum
+to 12 for a quarterly flow, 4 for a monthly flow and 1 for a weekly
+series or a stock, so raw loadings of different frequencies are not
+comparable. `loading_std = mean * weight_sum / weight_sum[target]` puts
+them on one scale, on which the target is 1 in
+[`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md).
+`r_squared` is the share of the series' variance the common component
+explains.
 
 ## Scale
 
@@ -123,38 +134,95 @@ fit <- ind_dfm(flows = lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
                target = target, length_sample = 20, burn_in = 5)
 #> preallocating..
 #> simulating posterior distribution..
-#>   |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%
+#> 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |===                                                                   |   4%
+  |                                                                            
+  |======                                                                |   8%
+  |                                                                            
+  |========                                                              |  12%
+  |                                                                            
+  |===========                                                           |  16%
+  |                                                                            
+  |==============                                                        |  20%
+  |                                                                            
+  |=================                                                     |  24%
+  |                                                                            
+  |====================                                                  |  28%
+  |                                                                            
+  |======================                                                |  32%
+  |                                                                            
+  |=========================                                             |  36%
+  |                                                                            
+  |============================                                          |  40%
+  |                                                                            
+  |===============================                                       |  44%
+  |                                                                            
+  |==================================                                    |  48%
+  |                                                                            
+  |====================================                                  |  52%
+  |                                                                            
+  |=======================================                               |  56%
+  |                                                                            
+  |==========================================                            |  60%
+  |                                                                            
+  |=============================================                         |  64%
+  |                                                                            
+  |================================================                      |  68%
+  |                                                                            
+  |==================================================                    |  72%
+  |                                                                            
+  |=====================================================                 |  76%
+  |                                                                            
+  |========================================================              |  80%
+  |                                                                            
+  |===========================================================           |  84%
+  |                                                                            
+  |==============================================================        |  88%
+  |                                                                            
+  |================================================================      |  92%
+  |                                                                            
+  |===================================================================   |  96%
+  |                                                                            
+  |======================================================================| 100%
 #> processing output..
 mfbdfm_table_loadings(fit)
-#>                     series  type freq  factor      mean        sd       lower
-#> 1 ch.seco.gdp.real.gdp.ssa  flow    4 factor1 1.0000000 0.0000000  1.00000000
-#> 2                  SWISSMI  flow   48 factor1 0.4162289 0.4708109 -0.33766472
-#> 3                SWCONPRCE stock   12 factor1 0.4048938 0.8463779 -0.77656100
-#> 4                SWPROPRCE stock   12 factor1 1.1901925 0.5948794  0.07909828
-#>      upper fixed
-#> 1 1.000000  TRUE
-#> 2 1.090126 FALSE
-#> 3 2.391210 FALSE
-#> 4 2.061474 FALSE
+#>                     series  type freq  factor      mean        sd      lower
+#> 1 ch.seco.gdp.real.gdp.ssa  flow    4 factor1 1.0000000 0.0000000  1.0000000
+#> 2                  SWISSMI  flow   48 factor1 0.1325924 0.6720110 -0.9625887
+#> 3                SWCONPRCE stock   12 factor1 0.6002307 0.7783230 -0.9389970
+#> 4                SWPROPRCE stock   12 factor1 0.7839288 0.6976146 -0.3505126
+#>      upper fixed weight_sum loading_std   std_lower std_upper   r_squared
+#> 1 1.000000  TRUE         12  1.00000000  1.00000000 1.0000000 0.998520033
+#> 2 1.217861 FALSE          1  0.01104937 -0.08021573 0.1014884 0.001035428
+#> 3 1.785766 FALSE          1  0.05001923 -0.07824975 0.1488138 0.013732355
+#> 4 1.790473 FALSE          1  0.06532740 -0.02920938 0.1492061 0.051330571
 mfbdfm_table_loadings(fit, scale = "original")
-#>                     series  type freq  factor         mean          sd
-#> 1 ch.seco.gdp.real.gdp.ssa  flow    4 factor1 0.0069821027 0.000000000
-#> 2                  SWISSMI  flow   48 factor1 0.0059233213 0.006700074
-#> 3                SWCONPRCE stock   12 factor1 0.0006139831 0.001283452
-#> 4                SWPROPRCE stock   12 factor1 0.0032154423 0.001607135
-#>           lower       upper fixed
-#> 1  0.0069821027 0.006982103  TRUE
-#> 2 -0.0048052804 0.015513502 FALSE
-#> 3 -0.0011775811 0.003626043 FALSE
-#> 4  0.0002136931 0.005569311 FALSE
+#>                     series  type freq  factor        mean          sd
+#> 1 ch.seco.gdp.real.gdp.ssa  flow    4 factor1 0.006982103 0.000000000
+#> 2                  SWISSMI  flow   48 factor1 0.001886912 0.009563336
+#> 3                SWCONPRCE stock   12 factor1 0.000910193 0.001180253
+#> 4                SWPROPRCE stock   12 factor1 0.002117874 0.001884686
+#>           lower       upper fixed weight_sum loading_std   std_lower std_upper
+#> 1  0.0069821027 0.006982103  TRUE         12  1.00000000  1.00000000 1.0000000
+#> 2 -0.0136985252 0.017331283 FALSE          1  0.01104937 -0.08021573 0.1014884
+#> 3 -0.0014239000 0.002707945 FALSE          1  0.05001923 -0.07824975 0.1488138
+#> 4 -0.0009469502 0.004837170 FALSE          1  0.06532740 -0.02920938 0.1492061
+#>     r_squared
+#> 1 0.998520033
+#> 2 0.001035428
+#> 3 0.013732355
+#> 4 0.051330571
 mfbdfm_table_loadings(fit, format = "markdown")
 #> 
 #> 
-#> |series                   |type  | freq|factor  |   mean|     sd|   lower|  upper|fixed |
-#> |:------------------------|:-----|----:|:-------|------:|------:|-------:|------:|:-----|
-#> |ch.seco.gdp.real.gdp.ssa |flow  |    4|factor1 | 1.0000| 0.0000|  1.0000| 1.0000|TRUE  |
-#> |SWISSMI                  |flow  |   48|factor1 | 0.4162| 0.4708| -0.3377| 1.0901|FALSE |
-#> |SWCONPRCE                |stock |   12|factor1 | 0.4049| 0.8464| -0.7766| 2.3912|FALSE |
-#> |SWPROPRCE                |stock |   12|factor1 | 1.1902| 0.5949|  0.0791| 2.0615|FALSE |
+#> |series                   |type  | freq|factor  |   mean|     sd|   lower|  upper|fixed | weight_sum| loading_std| std_lower| std_upper| r_squared|
+#> |:------------------------|:-----|----:|:-------|------:|------:|-------:|------:|:-----|----------:|-----------:|---------:|---------:|---------:|
+#> |ch.seco.gdp.real.gdp.ssa |flow  |    4|factor1 | 1.0000| 0.0000|  1.0000| 1.0000|TRUE  |         12|      1.0000|    1.0000|    1.0000|    0.9985|
+#> |SWISSMI                  |flow  |   48|factor1 | 0.1326| 0.6720| -0.9626| 1.2179|FALSE |          1|      0.0110|   -0.0802|    0.1015|    0.0010|
+#> |SWCONPRCE                |stock |   12|factor1 | 0.6002| 0.7783| -0.9390| 1.7858|FALSE |          1|      0.0500|   -0.0782|    0.1488|    0.0137|
+#> |SWPROPRCE                |stock |   12|factor1 | 0.7839| 0.6976| -0.3505| 1.7905|FALSE |          1|      0.0653|   -0.0292|    0.1492|    0.0513|
 # }
 ```

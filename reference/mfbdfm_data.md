@@ -317,9 +317,9 @@ d <- mfbdfm_data(
   data.frame(series = c("weekly", "monthly"), type = c("flow", "stock")))
 #> Aggregated to the 48-week grid the models use (by mean): ‘weekly’ (52 -> 48).
 d$meta
-#>    series  type frequency n_obs        ac1      df_t frequency_in
-#> 1 monthly stock        12    36 -0.1072168 -6.292181           NA
-#> 2  weekly  flow        48   146  0.2238059 -9.311767           52
+#>    series  type frequency n_obs       ac1      df_t frequency_in
+#> 1 monthly stock        12    36 0.2041141 -4.763240           NA
+#> 2  weekly  flow        48   146 0.2473907 -9.288293           52
 
 # a flow handed over in levels is named by print(), not silently accepted
 set.seed(1)

@@ -549,6 +549,13 @@ that go with both.
   [`print(`*`<mfbdfm_diagnostics>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
   [`plot(`*`<mfbdfm_diagnostics>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_diagnostics.md)
   : MCMC convergence diagnostics for a fitted model
+- [`mfbdfm_exact()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_exact.md)
+  [`print(`*`<mfbdfm_exact>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_exact.md)
+  : Exact estimate of the factor and the nowcast over stored parameter
+  draws
+- [`mfbdfm_quality()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_quality.md)
+  [`print(`*`<mfbdfm_quality>`*`)`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_quality.md)
+  : Quality checks on a fit's published quantities
 
 ## Tables from a fitted model
 

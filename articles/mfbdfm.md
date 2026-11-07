@@ -244,7 +244,7 @@ fit
 #>     2025.250      0.00123
 #>     2025.500     -0.00440
 #>     2025.750      0.00151
-#>     2026.000      0.01136
+#>     2026.000      0.00000
 #> 
 #> Priors for ind_dfm()  [type: default]
 #> 
@@ -303,43 +303,44 @@ summary(fit)
 #>   periods (t): 541
 #>   target     : ch.seco.gdp.real.gdp.ssa
 #> 
-#> Factor loadings (posterior mean, 95% interval):
-#>                         series   mean     sd   lower  upper
-#> 1 ch.fso.rtt.ind.r.noga0801.sa 0.3244 0.1963 -0.0673 0.7037
-#> 2     ch.ozd.e.wa.index.re.d11 0.6120 0.1560  0.3256 0.9395
-#> 3                      SWISSMI 0.2065 0.1702 -0.1216 0.5389
-#> 4                   traffic_PW 0.9686 0.1856  0.6047 1.3338
-#> 5              electricity_out 0.1815 0.1677 -0.1481 0.5135
-#> 6     ch.seco.gdp.real.gdp.ssa 1.0000 0.0000  1.0000 1.0000
-#> 7                    SWPMIPROQ 0.7955 0.2203  0.3715 1.2365
-#> 8                 Arbeitsmarkt 0.5126 0.1244  0.2705 0.7544
+#> How each series relates to the factor: R-squared, and the loading
+#> standardised by its aggregation weights, target = 1 (95% interval):
+#>                         series r_squared loading_std std_lower std_upper
+#> 1 ch.fso.rtt.ind.r.noga0801.sa    0.1412      0.2298    0.1204    0.3347
+#> 2     ch.ozd.e.wa.index.re.d11    0.1130      0.2031    0.0956    0.3113
+#> 3                      SWISSMI    0.0478      0.0976    0.0433    0.1513
+#> 4                   traffic_PW    0.3557      0.2636    0.2104    0.3131
+#> 5              electricity_out    0.0029      0.0260   -0.0132    0.0659
+#> 6     ch.seco.gdp.real.gdp.ssa    1.0000      1.0000    1.0000    1.0000
+#> 7                    SWPMIPROQ    0.0553      0.0672    0.0153    0.1173
+#> 8                 Arbeitsmarkt    0.6019      0.4236    0.3690    0.4699
 #> 
 #> Measurement error variance (posterior mean, 95% interval):
 #>                         series   mean     sd  lower  upper
-#> 1 ch.fso.rtt.ind.r.noga0801.sa 0.8751 0.1174 0.6720 1.1330
-#> 2     ch.ozd.e.wa.index.re.d11 0.8116 0.1039 0.6219 1.0258
-#> 3                      SWISSMI 0.8326 0.0511 0.7412 0.9444
-#> 4                   traffic_PW 0.7195 0.0445 0.6364 0.8095
-#> 5              electricity_out 0.9736 0.0638 0.8582 1.1036
+#> 1 ch.fso.rtt.ind.r.noga0801.sa 0.8105 0.1132 0.6097 1.0633
+#> 2     ch.ozd.e.wa.index.re.d11 0.8458 0.1090 0.6565 1.0663
+#> 3                      SWISSMI 0.8149 0.0502 0.7220 0.9189
+#> 4                   traffic_PW 0.6181 0.0415 0.5415 0.7050
+#> 5              electricity_out 0.9786 0.0597 0.8687 1.1091
 #> 6     ch.seco.gdp.real.gdp.ssa 0.0010 0.0001 0.0009 0.0011
-#> 7                    SWPMIPROQ 0.0855 0.0116 0.0664 0.1117
-#> 8                 Arbeitsmarkt 0.3106 0.0196 0.2741 0.3523
+#> 7                    SWPMIPROQ 0.0844 0.0108 0.0659 0.1074
+#> 8                 Arbeitsmarkt 0.0946 0.0216 0.0604 0.1480
 #>   (the measurement error sd is the square root of `mean`)
 #> 
 #> Fit to observed data:
 #>   observed values: 2582
-#>   residual RMSE  : 6.915e-07 (standardized scale)
+#>   residual RMSE  : 0.8689 (standardized scale)
 #> 
 #> R-squared of the common component, by series:
 #>   series                                  freq  n_obs R-squared
 #>   ch.seco.gdp.real.gdp.ssa                   4     44     1.000
-#>   ch.ozd.e.wa.index.re.d11                  12    131     0.137
-#>   traffic_PW                                48    532     0.116
-#>   Arbeitsmarkt                              48    541     0.065
-#>   ch.fso.rtt.ind.r.noga0801.sa              12    133     0.057
-#>   SWPMIPROQ                                 12    134     0.052
-#>   SWISSMI                                   48    538     0.008
-#>   electricity_out                           48    529     0.002
+#>   Arbeitsmarkt                              48    541     0.602
+#>   traffic_PW                                48    532     0.356
+#>   ch.fso.rtt.ind.r.noga0801.sa              12    133     0.141
+#>   ch.ozd.e.wa.index.re.d11                  12    131     0.113
+#>   SWPMIPROQ                                 12    134     0.055
+#>   SWISSMI                                   48    538     0.048
+#>   electricity_out                           48    529     0.003
 #>   Note: the target's loading is fixed to 1 and its measurement error
 #>   shrunk towards zero to identify the factor, so its R-squared is ~1
 #>   by construction rather than as a finding.
@@ -378,9 +379,11 @@ The standard extractors all work.
 [`coef()`](https://rdrr.io/r/stats/coef.html) returns the loadings,
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) gives a
 tidy frame of the factor and its band, and
-[`fitted()`](https://rdrr.io/r/stats/fitted.values.html)/[`residuals()`](https://rdrr.io/r/stats/residuals.html)
-return the augmented dataset and its residuals with missing observations
-masked. For tables with posterior uncertainty, ready for a report, see
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) returns the
+common component – loadings times factor – and
+[`residuals()`](https://rdrr.io/r/stats/residuals.html) the data minus
+it, with missing observations masked. For tables with posterior
+uncertainty, ready for a report, see
 [`mfbdfm_table_loadings()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_loadings.md),
 [`mfbdfm_table_parameters()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_table_parameters.md)
 and
@@ -390,19 +393,19 @@ and
 
 round(coef(fit), 3)
 #> ch.fso.rtt.ind.r.noga0801.sa     ch.ozd.e.wa.index.re.d11 
-#>                        0.324                        0.612 
+#>                        0.689                        0.609 
 #>                      SWISSMI                   traffic_PW 
-#>                        0.206                        0.969 
+#>                        1.171                        3.163 
 #>              electricity_out     ch.seco.gdp.real.gdp.ssa 
-#>                        0.181                        1.000 
+#>                        0.312                        1.000 
 #>                    SWPMIPROQ                 Arbeitsmarkt 
-#>                        0.795                        0.513
+#>                        0.806                        5.083
 
 head(as.data.frame(fit), 3)
-#>       time    factor factor_lower factor_upper
-#> 1 2015.000 -1.297848    -6.845525     4.249828
-#> 2 2015.021 -1.719795    -7.520727     4.081138
-#> 3 2015.042 -1.535142    -7.630262     4.559978
+#>       time     factor factor_lower factor_upper
+#> 1 2015.000 -0.6171402    -9.755179     8.520899
+#> 2 2015.021 -1.7470337   -10.122775     6.628707
+#> 3 2015.042  0.2825515    -7.649945     8.215048
 ```
 
 ## Looking at the fit
@@ -493,16 +496,16 @@ real-time query:
 ``` r
 
 tail(mfbdfm_nowcast(fit))
-#>       time      nowcast           sd        lower        upper
-#> 40 2024.75  0.005175413 4.624780e-07  0.005174507  0.005176320
-#> 41 2025.00  0.007858623 4.646870e-07  0.007857713  0.007859534
-#> 42 2025.25  0.001230718 4.541081e-07  0.001229828  0.001231608
-#> 43 2025.50 -0.004400680 4.662971e-07 -0.004401594 -0.004399767
-#> 44 2025.75  0.001506242 4.633840e-07  0.001505333  0.001507150
-#> 45 2026.00  0.011359580 3.461420e-03  0.004575323  0.018143838
+#>       time       nowcast           sd        lower        upper
+#> 40 2024.75  5.175434e-03 4.524946e-07  0.005174547  0.005176320
+#> 41 2025.00  7.858584e-03 4.702765e-07  0.007857663  0.007859506
+#> 42 2025.25  1.230718e-03 4.547081e-07  0.001229827  0.001231609
+#> 43 2025.50 -4.400677e-03 4.618041e-07 -0.004401582 -0.004399772
+#> 44 2025.75  1.506260e-03 4.653005e-07  0.001505348  0.001507172
+#> 45 2026.00  4.241236e-06 8.389498e-03 -0.016438872  0.016447354
 mfbdfm_nowcast(fit, last = TRUE)
-#>   time    nowcast         sd       lower      upper
-#> 1 2026 0.01135958 0.00346142 0.004575323 0.01814384
+#>   time      nowcast          sd       lower      upper
+#> 1 2026 4.241236e-06 0.008389498 -0.01643887 0.01644735
 ```
 
 The band comes from `fit$nowcast_var`, the posterior variance of each
@@ -530,7 +533,7 @@ round(tail(fit$index), 2)
 #> Start = c(2026, 8) 
 #> End = c(2026, 13) 
 #> Frequency = 48 
-#> [1] 122.16 122.27 122.38 122.49 122.58 122.66
+#> [1] 119.91 119.90 120.17 120.62 120.93 121.16
 ```
 
 ## Which release moved the nowcast?
@@ -575,21 +578,21 @@ nw
 #>   revised           : 0
 #>   by                : series
 #> 
-#>   nowcast, old vintage         0.0039
-#>     + news                     0.0001
+#>   nowcast, old vintage        -0.0041
+#>     + news                     0.0033
 #>     + data revisions           0.0000
-#>   nowcast, new vintage         0.0039
+#>   nowcast, new vintage        -0.0008
 #>     parameter revision            not computed (supply `new_fit`)
 #> 
 #> Impact on the nowcast, by series:
 #> 
-#>   traffic_PW                                    0.00032
-#>   electricity_out                               0.00023
-#>   ch.fso.rtt.ind.r.noga0801.sa                 -0.00023
-#>   ch.ozd.e.wa.index.re.d11                     -0.00012
-#>   SWPMIPROQ                                    -0.00012
-#>   SWISSMI                                      -0.00007
-#>   Arbeitsmarkt                                  0.00005
+#>   traffic_PW                                    0.00421
+#>   SWISSMI                                      -0.00066
+#>   ch.fso.rtt.ind.r.noga0801.sa                 -0.00050
+#>   electricity_out                               0.00040
+#>   SWPMIPROQ                                    -0.00015
+#>   ch.ozd.e.wa.index.re.d11                     -0.00008
+#>   Arbeitsmarkt                                  0.00003
 #> 
 #> The nowcasts above plug in the posterior mean parameters rather than
 #> averaging over them (the fit's own nowcast does not reach this period). See ?mfbdfm_news.
@@ -616,13 +619,13 @@ data.frame(series = substr(rel$series, 1, 16),
            gain = signif(rel$gain, 3),
            impact = signif(rel$impact, 3),
            row.names = NULL)
-#>             series     time  actual  forecast    news     gain    impact
-#> 1 ch.fso.rtt.ind.r 2026.000 -0.0202  0.000490 -0.0207  0.01580 -0.000327
-#> 2       traffic_PW 2026.021  0.0477 -0.020800  0.0685  0.00319  0.000219
-#> 3  electricity_out 2025.979  0.0584  0.000142  0.0583  0.00339  0.000198
-#> 4  electricity_out 2025.938 -0.0535  0.009710 -0.0632  0.00277 -0.000175
-#> 5 ch.ozd.e.wa.inde 2025.667  0.0192 -0.002450  0.0217 -0.00693 -0.000150
-#> 6  electricity_out 2025.958  0.0444 -0.001440  0.0458  0.00312  0.000143
+#>             series     time   actual  forecast    news   gain    impact
+#> 1       traffic_PW 2026.062  0.00439 -0.062800  0.0672 0.0320  0.002150
+#> 2       traffic_PW 2026.021  0.04770 -0.017100  0.0647 0.0227  0.001470
+#> 3       traffic_PW 2026.042 -0.00226 -0.058900  0.0566 0.0232  0.001310
+#> 4          SWISSMI 2026.188 -0.03770  0.000980 -0.0386 0.0218 -0.000842
+#> 5 ch.fso.rtt.ind.r 2026.000 -0.02020 -0.000424 -0.0197 0.0417 -0.000823
+#> 6       traffic_PW 2026.000 -0.03570 -0.002210 -0.0334 0.0218 -0.000729
 ```
 
 Note that `gain` is on each series’ own scale — the weight of a one-unit
@@ -639,7 +642,7 @@ weighting each release on its own:
 ``` r
 
 sum(d$impact[d$term %in% c("news", "revision")]) - nw$totals$total
-#> [1] 0
+#> [1] -4.336809e-19
 ```
 
 And a release that lands exactly where the model expected it moves
@@ -671,10 +674,10 @@ which needs a fit on the new vintage:
 ``` r
 
 mfbdfm_news(fit_old, mfbdfm_example_data, new_fit = fit)$totals
-#>   nowcast_old revision         news        total     parameter nowcast_new
-#> 1 0.003864279        0 6.724228e-05 6.724228e-05 -3.900851e-06 0.003931521
+#>    nowcast_old revision        news       total    parameter   nowcast_new
+#> 1 -0.004053058        0 0.003252385 0.003252385 0.0001720517 -0.0008006726
 #>   posterior_old posterior_new
-#> 1            NA    0.01135958
+#> 1            NA  4.241236e-06
 ```
 
 For a 45-series panel the per-observation table is too fine to read;
@@ -768,7 +771,7 @@ package and needs no configuration:
 
 vintages <- get_real_time_gdp_vintages("quarterly")
 dim(vintages)
-#> [1] 144 105
+#> [1] 145 106
 ```
 
 [`cut_data_real_time()`](https://philippkronenberg.github.io/mfbdfm/reference/cut_data_real_time.md)
@@ -813,9 +816,9 @@ is flat by construction:
 ``` r
 
 signif(range(exp(2 * fit$pars$h)), 3)
-#> [1] 0.00144 0.01120
+#> [1] 0.00276 0.01280
 signif(range(exp(2 * fit_const$pars$h)), 3)
-#> [1] 0.0536 0.0536
+#> [1] 0.0195 0.0195
 ```
 
 Note that switching it off does **not** fix the variance at a value in
@@ -837,13 +840,13 @@ common factor:
 
 round(stats::setNames(as.numeric(fit$pars$rho), fit$inventory$key), 3)
 #> ch.fso.rtt.ind.r.noga0801.sa     ch.ozd.e.wa.index.re.d11 
-#>                       -0.061                        0.047 
+#>                       -0.003                       -0.008 
 #>                      SWISSMI                   traffic_PW 
-#>                        0.402                        0.429 
+#>                        0.387                        0.276 
 #>              electricity_out     ch.seco.gdp.real.gdp.ssa 
 #>                       -0.125                        0.000 
 #>                    SWPMIPROQ                 Arbeitsmarkt 
-#>                        0.954                        0.818
+#>                       -0.014                        0.893
 ```
 
 `serial_correlation = FALSE` holds all of them at (effectively) zero.
@@ -998,7 +1001,7 @@ errors <- stats::ts.intersect(
 )
 colMeans(errors^2)
 #>          wai           ar 
-#> 1.116141e-16 2.028477e-04
+#> 9.053891e-17 2.028477e-04
 ```
 
 A

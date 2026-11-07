@@ -48,7 +48,7 @@ rel$rel_rmse
 #>   Frequency Series `RMSE_rel_-4` `RMSE_rel_-3` `RMSE_rel_-2` `RMSE_rel_-1`
 #>   <fct>     <fct>  <chr>         <chr>         <chr>         <chr>        
 #> 1 QoQ       WAI    1.00          1.00          1.00          1.00         
-#> 2 QoQ       AR     0.93          1.28          0.90          1.78***      
+#> 2 QoQ       AR     0.93          1.28          0.90          1.78**       
 #> # ℹ 1 more variable: RMSE_rel_0 <chr>
 #> 
 ```
