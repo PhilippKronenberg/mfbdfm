@@ -512,7 +512,7 @@ to the news), <code><a href="cut_data_real_time.html">cut_data_real_time()</a></
 <span class="r-in"><span><span class="co"># the impacts add up to the revision, by construction</span></span></span>
 <span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">nw</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">impact</span><span class="op">[</span><span class="va">d</span><span class="op">$</span><span class="va">term</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"news"</span>, <span class="st">"revision"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span> <span class="op">-</span> <span class="va">nw</span><span class="op">$</span><span class="va">totals</span><span class="op">$</span><span class="va">total</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 8.673617e-19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] -8.673617e-19</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

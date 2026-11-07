@@ -78,7 +78,7 @@ switch for "run it the way the paper specifies". Ignored by <code><a href="ind_d
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Named overrides for individual settings, e.g.
-<code>rotation_criterion = "sum"</code> or <code>sigma_max = 10</code>. Naming a setting the
+<code>rotation_criterion = "sum"</code> or <code>rho_max_tries = 20</code>. Naming a setting the
 chosen model does not have is an error, so a typo surfaces immediately.</p></dd>
 
 </dl></div>
@@ -191,8 +191,10 @@ should stop and complain rather than run forever.</p>
     <h2 id="stability-bounds">Stability bounds<a class="anchor" aria-label="anchor" href="#stability-bounds"></a></h2>
     <p><code>rho_max</code> bounds the measurement-error autocorrelation. A draw outside it is
 redrawn up to <code>rho_max_tries</code> times, after which <code>rho_fallback</code> is used. The
-others cap or reject a draw for numerical stability: <code>phi_sum_max</code> and
-<code>sigma_max</code> in <code><a href="ind_dfm.html">ind_dfm()</a></code>, <code>omega_max</code> in <code><a href="fcast_dfm.html">fcast_dfm()</a></code>.</p>
+others cap or reject a draw for numerical stability: <code>phi_sum_max</code> in
+<code><a href="ind_dfm.html">ind_dfm()</a></code>, <code>omega_max</code> in <code><a href="fcast_dfm.html">fcast_dfm()</a></code>. The measurement-error variance is
+not capped: <code>sigma_max</code> was removed in #176, as a clipped draw is not a draw
+from its conditional.</p>
     </div>
     <div class="section level2">
     <h2 id="retaining-draws">Retaining draws<a class="anchor" aria-label="anchor" href="#retaining-draws"></a></h2>
@@ -365,11 +367,11 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_init_tol        1e-09     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_init_max_iter   100       </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rotation_on_failure      "warning" </span>
-<span class="r-in"><span><span class="fu">dfm_control</span><span class="op">(</span><span class="st">"ind_dfm"</span>, sigma_max <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">dfm_control</span><span class="op">(</span><span class="st">"ind_dfm"</span>, rho_max_tries <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Control settings for ind_dfm()</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max                  0.99      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max_tries            10        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   rho_max_tries            20          (default 10)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rho_fallback             0.98      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   jitter                   1e-09     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   sv_offset                0.001     </span>
@@ -379,7 +381,6 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                10          (default 5)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             FALSE     </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># silence the messages and the progress bar</span></span></span>
@@ -397,7 +398,6 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                5         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             FALSE     </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># keep the factor-path draws too, and the burn-in, for trace plots</span></span></span>
@@ -415,7 +415,6 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                5         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             TRUE        (default FALSE)</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># a reproducible fit, and one started from an explicit factor path</span></span></span>
@@ -433,7 +432,6 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     2026        (default NULL)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                5         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             FALSE     </span>
 <span class="r-in"><span><span class="fu">dfm_control</span><span class="op">(</span><span class="st">"ind_dfm"</span>, starting_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>phi <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Control settings for ind_dfm()</span>
@@ -449,7 +447,6 @@ Tracking economic activity with alternative high-frequency data.
 <span class="r-out co"><span class="r-pr">#&gt;</span>   seed                     NULL      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   starting_values          &lt;phi&gt;       (default NULL)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi_sum_max              0.9       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   sigma_max                5         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   keep_burn_in             FALSE     </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

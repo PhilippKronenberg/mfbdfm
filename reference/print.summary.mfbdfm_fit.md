@@ -163,7 +163,6 @@ summary(fit)          # dispatches here
 #>   seed                     NULL      
 #>   starting_values          NULL      
 #>   phi_sum_max              0.9       
-#>   sigma_max                5         
 #>   keep_burn_in             FALSE     
 #> 
 #>   (the specification above is stored with the fit, as $priors and $control)

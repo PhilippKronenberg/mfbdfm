@@ -492,6 +492,6 @@ head(as.data.frame(nw))
 # the impacts add up to the revision, by construction
 d <- as.data.frame(nw)
 sum(d$impact[d$term %in% c("news", "revision")]) - nw$totals$total
-#> [1] 8.673617e-19
+#> [1] -8.673617e-19
 # }
 ```

@@ -31,8 +31,8 @@ dfm_control(model = c("ind_dfm", "fcast_dfm"), strict = FALSE, ...)
 - ...:
 
   Named overrides for individual settings, e.g.
-  `rotation_criterion = "sum"` or `sigma_max = 10`. Naming a setting the
-  chosen model does not have is an error, so a typo surfaces
+  `rotation_criterion = "sum"` or `rho_max_tries = 20`. Naming a setting
+  the chosen model does not have is an error, so a typo surfaces
   immediately.
 
 ## Value
@@ -171,10 +171,12 @@ forever.
 `rho_max` bounds the measurement-error autocorrelation. A draw outside
 it is redrawn up to `rho_max_tries` times, after which `rho_fallback` is
 used. The others cap or reject a draw for numerical stability:
-`phi_sum_max` and `sigma_max` in
+`phi_sum_max` in
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
 `omega_max` in
 [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md).
+The measurement-error variance is not capped: `sigma_max` was removed in
+\#176, as a clipped draw is not a draw from its conditional.
 
 ## Retaining draws
 
@@ -379,11 +381,11 @@ dfm_control("fcast_dfm", rotation_criterion = "sum", rotation_tol = 1e-10)
 #>   rotation_init_tol        1e-09     
 #>   rotation_init_max_iter   100       
 #>   rotation_on_failure      "warning" 
-dfm_control("ind_dfm", sigma_max = 10)
+dfm_control("ind_dfm", rho_max_tries = 20)
 #> Control settings for ind_dfm()
 #> 
 #>   rho_max                  0.99      
-#>   rho_max_tries            10        
+#>   rho_max_tries            20          (default 10)
 #>   rho_fallback             0.98      
 #>   jitter                   1e-09     
 #>   sv_offset                0.001     
@@ -393,7 +395,6 @@ dfm_control("ind_dfm", sigma_max = 10)
 #>   seed                     NULL      
 #>   starting_values          NULL      
 #>   phi_sum_max              0.9       
-#>   sigma_max                10          (default 5)
 #>   keep_burn_in             FALSE     
 
 # silence the messages and the progress bar
@@ -411,7 +412,6 @@ dfm_control("ind_dfm", verbose = FALSE)
 #>   seed                     NULL      
 #>   starting_values          NULL      
 #>   phi_sum_max              0.9       
-#>   sigma_max                5         
 #>   keep_burn_in             FALSE     
 
 # keep the factor-path draws too, and the burn-in, for trace plots
@@ -429,7 +429,6 @@ dfm_control("ind_dfm", keep_factor_draws = TRUE, keep_burn_in = TRUE)
 #>   seed                     NULL      
 #>   starting_values          NULL      
 #>   phi_sum_max              0.9       
-#>   sigma_max                5         
 #>   keep_burn_in             TRUE        (default FALSE)
 
 # a reproducible fit, and one started from an explicit factor path
@@ -447,7 +446,6 @@ dfm_control("ind_dfm", seed = 2026)
 #>   seed                     2026        (default NULL)
 #>   starting_values          NULL      
 #>   phi_sum_max              0.9       
-#>   sigma_max                5         
 #>   keep_burn_in             FALSE     
 dfm_control("ind_dfm", starting_values = list(phi = 0.5))
 #> Control settings for ind_dfm()
@@ -463,6 +461,5 @@ dfm_control("ind_dfm", starting_values = list(phi = 0.5))
 #>   seed                     NULL      
 #>   starting_values          <phi>       (default NULL)
 #>   phi_sum_max              0.9       
-#>   sigma_max                5         
 #>   keep_burn_in             FALSE     
 ```

@@ -4,6 +4,15 @@
 
 ### Breaking changes
 
+- **`dfm_control("ind_dfm")` no longer has `sigma_max`**
+  ([\#176](https://github.com/PhilippKronenberg/mfbdfm/issues/176)). The
+  measurement-error variance draws were clipped at 5, so wherever the
+  cap bound the chain did not target the stated posterior: the Geweke
+  test gave `sigma_wk` z = -5.5 with the cap and -1.6 without it.
+  Passing `sigma_max` is now an error, and a stored control object that
+  carries it is accepted with a warning. The baseline fits never reached
+  the cap, so their results are unchanged.
+
 - **Results of
   [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
   and
