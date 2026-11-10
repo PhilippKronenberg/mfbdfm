@@ -49,7 +49,8 @@ last publication and investigate, rather than lowering the bar.
 \details{
 For the latest unobserved nowcast (annualised percentage points), and for an
 \code{\link[=ind_dfm]{ind_dfm()}} fit also for the latest weekly factor value and the mean of the
-latest 13 weeks:
+latest 13 weeks. With \code{extend_to}, "latest" means the latest \emph{observed} week
+and the latest quarter in \code{fit$nowcast}, not the forecast beyond them:
 
 \describe{
 \item{\code{ess}}{Rank-normalised effective sample size, at least \code{ess_min}.}

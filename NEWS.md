@@ -128,6 +128,31 @@
 
 ## New features
 
+* **The dashboard export can carry a forecast that completes the running quarter.**
+  `run_wai_adj()` gains `extend_to`, passed to `ind_dfm()`, and keeps the
+  factor and its variance up to that date instead of cutting them at `date`. The
+  nowcast still ends at the quarter after the last published GDP, which the
+  padding now guarantees is there even before the data covers all of it. `export_wai_web()` writes the
+  forecast weeks to a new `wai_forecast.csv` and never into `wai_data.csv`,
+  whose last row stays the latest week with data. In `wai_data.csv` the running
+  quarter's `wai_qoq_q` is the quarter **to date**; in `wai_forecast.csv` each
+  quarter's value sits on its last week and covers the whole quarter.
+  `wai_meta.json` gains `weeks_observed`, `weeks_per_quarter`, `forecast_end`
+  and `forecast_columns`. On a padded fit, `export_wai_measures()` keeps the
+  contributions to the observed weeks and pins the news to the published
+  nowcast's quarter, and `mfbdfm_quality()` grades the latest observed week and
+  the published nowcast rather than the forecast. A fit without `extend_to` is
+  exported exactly as before.
+
+* **`export_wai_measures()` writes the news for every quarter without published
+  GDP that the old fit covers**: on a padded fit, the quarter just ended and the
+  running one. `wai_news.csv` becomes long, `period,component,impact`, one block
+  per quarter, each the revision of that quarter's GDP nowcast (growth over the
+  whole quarter). `wai_measures_meta.json` keeps `news_period`,
+  `news_nowcast_old` and `news_nowcast_new` for the first quarter and adds
+  `news_periods`, `news_nowcasts_old` and `news_nowcasts_new` for all of them.
+  An old fit that is not padded gives one quarter, as before.
+
 * **`mfbdfm_news()` decomposes a nowcast revision into the news in each newly
   released observation** (#101), after Bańbura and Modugno (2014). Between the
   vintage a fit was estimated on and a newer one it reports, per release, the

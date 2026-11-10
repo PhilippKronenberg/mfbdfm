@@ -46,8 +46,10 @@ keeps the file small.}
 metadata. Defaults to the last observation date.}
 }
 \value{
-Invisibly, a list with elements \code{data} (the wide data frame) and
-\code{meta} (the metadata list). Writes files only when \code{dir} is given.
+Invisibly, a list with elements \code{data} (the wide data frame of
+observed weeks), \code{forecast} (the forecast weeks, a data frame with no rows
+when the fit has no forecast) and \code{meta} (the metadata list). Writes files
+only when \code{dir} is given.
 }
 \description{
 Turns a fitted WAI model into the two files the public dashboard consumes:
@@ -92,6 +94,23 @@ rate. The level bounds that \code{\link[=extract_wai_data]{extract_wai_data()}} 
 are the index scaled by a \emph{single} period of growth at each bound, not a
 compounded level interval, so publishing them next to \code{wai_index} would
 present something that looks like a level confidence band and is not one.
+
+\strong{The forecast goes to its own file, \code{wai_forecast.csv}.} A fit made with
+\code{extend_to} (see \code{\link[=run_wai_adj]{run_wai_adj()}}) carries the factor past the last observed
+week. Those weeks are written to \code{wai_forecast.csv} with the same columns as
+\code{wai_data.csv} minus the GDP ones, and never into \code{wai_data.csv}, which stays
+the record of estimates from data: its last row is the latest week with data,
+as people who download it rely on. Without a forecast the file is not
+written.
+
+The quarterly columns differ between the two files on purpose. In
+\code{wai_data.csv} the running quarter's \code{wai_qoq_q} sits on the latest week and
+averages only the weeks observed so far: the quarter \strong{to date}. In
+\code{wai_forecast.csv} it sits on the quarter's last week and averages the
+observed and the forecast weeks together: the \strong{whole quarter}, as GDP will
+measure it. \code{wai_meta.json} records \code{weeks_observed} (the running quarter's
+observed weeks), \code{weeks_per_quarter} and \code{forecast_end}, so the page can say
+which is which.
 
 Missing values are written as the empty string rather than \code{NA} or \code{NaN}, so
 that the front end's parser does not have to know R's spelling of missing.

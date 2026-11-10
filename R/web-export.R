@@ -43,6 +43,23 @@
 #' compounded level interval, so publishing them next to `wai_index` would
 #' present something that looks like a level confidence band and is not one.
 #'
+#' **The forecast goes to its own file, `wai_forecast.csv`.** A fit made with
+#' `extend_to` (see [run_wai_adj()]) carries the factor past the last observed
+#' week. Those weeks are written to `wai_forecast.csv` with the same columns as
+#' `wai_data.csv` minus the GDP ones, and never into `wai_data.csv`, which stays
+#' the record of estimates from data: its last row is the latest week with data,
+#' as people who download it rely on. Without a forecast the file is not
+#' written.
+#'
+#' The quarterly columns differ between the two files on purpose. In
+#' `wai_data.csv` the running quarter's `wai_qoq_q` sits on the latest week and
+#' averages only the weeks observed so far: the quarter **to date**. In
+#' `wai_forecast.csv` it sits on the quarter's last week and averages the
+#' observed and the forecast weeks together: the **whole quarter**, as GDP will
+#' measure it. `wai_meta.json` records `weeks_observed` (the running quarter's
+#' observed weeks), `weeks_per_quarter` and `forecast_end`, so the page can say
+#' which is which.
+#'
 #' Missing values are written as the empty string rather than `NA` or `NaN`, so
 #' that the front end's parser does not have to know R's spelling of missing.
 #' Numbers use `.` as the decimal separator and no thousands separator, rows are
@@ -74,8 +91,10 @@
 #' @param vintage_date Optional evaluation/vintage date recorded in the
 #'   metadata. Defaults to the last observation date.
 #'
-#' @return Invisibly, a list with elements `data` (the wide data frame) and
-#'   `meta` (the metadata list). Writes files only when `dir` is given.
+#' @return Invisibly, a list with elements `data` (the wide data frame of
+#'   observed weeks), `forecast` (the forecast weeks, a data frame with no rows
+#'   when the fit has no forecast) and `meta` (the metadata list). Writes files
+#'   only when `dir` is given.
 #'
 #' @seealso [extract_wai_data()], which produces the underlying tables.
 #'
@@ -110,6 +129,9 @@ export_wai_web <- function(fit_path, dir = NULL, gdp = NULL, digits = 4,
   }
 
   tabs <- extract_wai_data(fit_path)
+  fit_env <- new.env()
+  load(fit_path, envir = fit_env)
+  obs_end_date <- dec2week(fit_observed_end(fit_env$mod))
 
   qoq <- tabs$tab_gr_full
   lv <- tabs$tab_gr_lv_full
@@ -126,9 +148,19 @@ export_wai_web <- function(fit_path, dir = NULL, gdp = NULL, digits = 4,
   dat$wai_yoy <- round(match_on_date(yoy$time, yoy$value, dat$date), digits)
   dat$wai_index <- round(match_on_date(lv$time, lv$value, dat$date), digits)
 
-  quarterly <- wai_quarterly_flow(dat$date, dat$wai_index)
-  dat$wai_qoq_q <- round(quarterly$qoq, digits)
-  dat$wai_yoy_q <- round(quarterly$yoy, digits)
+  # The quarterly flow twice: over the observed weeks only, which is what
+  # wai_data.csv has always published (the running quarter to date), and over
+  # observed and forecast weeks together, which completes the quarter(s) the
+  # forecast reaches into.
+  is_fc <- dat$date > obs_end_date
+  quarterly <- wai_quarterly_flow(dat$date[!is_fc], dat$wai_index[!is_fc])
+  quarterly_full <- wai_quarterly_flow(dat$date, dat$wai_index)
+  dat$wai_qoq_q <- NA_real_
+  dat$wai_yoy_q <- NA_real_
+  dat$wai_qoq_q[!is_fc] <- round(quarterly$qoq, digits)
+  dat$wai_yoy_q[!is_fc] <- round(quarterly$yoy, digits)
+  dat$wai_qoq_q[is_fc] <- round(quarterly_full$qoq[is_fc], digits)
+  dat$wai_yoy_q[is_fc] <- round(quarterly_full$yoy[is_fc], digits)
 
   if (!is.null(gdp)) {
     if (!"time" %in% names(gdp)) {
@@ -150,6 +182,12 @@ export_wai_web <- function(fit_path, dir = NULL, gdp = NULL, digits = 4,
   dat <- dat[order(dat$date), , drop = FALSE]
   rownames(dat) <- NULL
 
+  fc <- dat[dat$date > obs_end_date,
+            setdiff(names(dat), grep("^gdp_", names(dat), value = TRUE)),
+            drop = FALSE]
+  rownames(fc) <- NULL
+  dat <- dat[dat$date <= obs_end_date, , drop = FALSE]
+
   last_obs <- max(dat$date)
   meta <- list(
     vintage_date   = as.character(if (is.null(vintage_date)) last_obs else vintage_date),
@@ -161,16 +199,97 @@ export_wai_web <- function(fit_path, dir = NULL, gdp = NULL, digits = 4,
     latest_wai_yoy = unname(dat$wai_yoy[nrow(dat)]),
     latest_index   = unname(dat$wai_index[nrow(dat)]),
     mfbdfm_version = as.character(utils::packageVersion("mfbdfm")),
-    columns        = names(dat)
+    columns        = names(dat),
+    weeks_per_quarter = WEEKS_PER_QUARTER,
+    weeks_observed = weeks_in_quarter(dat$date, last_obs),
+    forecast_end   = if (nrow(fc)) as.character(max(fc$date)) else NULL,
+    forecast_columns = if (nrow(fc)) names(fc) else NULL
   )
 
   if (!is.null(dir)) {
     dir.create(dir, recursive = TRUE, showWarnings = FALSE)
     write_web_csv(dat, file.path(dir, "wai_data.csv"))
+    if (nrow(fc)) write_web_csv(fc, file.path(dir, "wai_forecast.csv"))
     writeLines(to_json(meta), file.path(dir, "wai_meta.json"), useBytes = TRUE)
   }
 
-  invisible(list(data = dat, meta = meta))
+  invisible(list(data = dat, forecast = fc, meta = meta))
+}
+
+
+# The weekly grid of dec2week(): the 7th, 14th, 21st and 28th of each month.
+WEEKS_PER_QUARTER <- 12L
+
+
+#' The last period of a fit that holds data
+#'
+#' A fit padded with `extend_to` runs past its data; `fit$internal$t2` counts the
+#' periods that held data before the padding. Also bounded by the factor's end,
+#' which [run_wai_adj()] may have cut earlier. A fit without `internal` predates
+#' the padding bookkeeping and ends at its data.
+#'
+#' @param fit An `ind_dfm` fit.
+#' @return Decimal time of the last observed period.
+#' @noRd
+fit_observed_end <- function(fit) {
+  f_end <- as.numeric(utils::tail(stats::time(fit$factor), 1))
+  t2 <- fit$internal$t2
+  if (is.null(t2) || is.null(fit$data)) return(f_end)
+  min(f_end, as.numeric(stats::time(fit$data))[t2])
+}
+
+
+#' How many weeks of `date`'s quarter there are in `dates`, up to `date`
+#'
+#' @noRd
+weeks_in_quarter <- function(dates, date) {
+  qkey <- function(d) as.numeric(format(d, "%Y")) * 4 +
+    (as.numeric(format(d, "%m")) - 1L) %/% 3L
+  sum(qkey(dates) == qkey(date) & dates <= date)
+}
+
+
+#' The quarter the news decomposition is about
+#'
+#' On a fit padded with `extend_to`, the last quarter of the published nowcast,
+#' which is the quarter [run_wai_adj()] keeps: the one after the last published
+#' GDP. Left to its default, [mfbdfm_news()] takes the last target period the old
+#' panel does not observe, and on a padded fit that is the forecast quarter at
+#' the end of the padding. `NULL` - [mfbdfm_news()]'s own default, exactly as
+#' before - for a fit that is not padded or carries no nowcast.
+#'
+#' @noRd
+news_target_period <- function(fit) {
+  nc <- fit$nowcast
+  t2 <- fit$internal$t2
+  padded <- !is.null(t2) && !is.null(fit$data) && t2 < nrow(fit$data)
+  if (!padded || is.null(nc) || !length(nc)) return(NULL)
+  as.numeric(utils::tail(stats::time(nc), 1))
+}
+
+
+#' The quarters the news decomposition is about
+#'
+#' The quarter of [news_target_period()], then each following quarter up to the
+#' one the new fit's latest observed week falls in, as far as the old fit's
+#' padded panel reaches: today the quarter just ended and the running one. A
+#' list, because `NULL` (one period, [mfbdfm_news()]'s default) is a valid
+#' entry for a fit that is not padded.
+#'
+#' @param old_fit The fit the news starts from.
+#' @param new_fit The fit of the new vintage, for its latest observed week.
+#' @noRd
+news_target_periods <- function(old_fit, new_fit) {
+  first <- news_target_period(old_fit)
+  if (is.null(first)) return(list(NULL))
+  # the start of the quarter the new data's latest week falls in
+  running <- floor(round(fit_observed_end(new_fit) * 4, 6)) / 4
+  # the last quarter whose every week lies in the old fit's (padded) panel
+  panel_end <- as.numeric(utils::tail(stats::time(old_fit$data), 1))
+  covered <- floor(round((panel_end + 1 / 48) * 4, 6)) / 4 - 0.25
+  last <- min(running, covered)
+  if (last < first) return(list(first))
+  as.list(seq(first, last, by = 0.25))
 }
 
 
@@ -501,7 +620,15 @@ gdp_web_series <- function(vintage = "latest", base_date = as.Date("2019-10-01")
 #' (last week's fit) to `news_new_data` (this week's data), aggregated to the
 #' groups and mapped onto annualised quarterly growth the same way: shares of
 #' `G(new) - G(old)`, `G(x) = ((1 + x)^4 - 1) * 100`, which sum exactly to the
-#' revision. Written only when both arguments are given.
+#' revision. Written only when both arguments are given. Long, one block per
+#' quarter: `period,component,impact`, where `period` is the first week of the
+#' quarter. Each block is the revision of that quarter's GDP nowcast, growth over
+#' the whole quarter. On an old fit padded with `extend_to` there is a block for
+#' every quarter from the first without published GDP to the running one, as far
+#' as the old fit reaches; otherwise one block, [mfbdfm_news()]'s default. The
+#' metadata keeps `news_period`, `news_nowcast_old` and `news_nowcast_new` for the
+#' first quarter and adds `news_periods`, `news_nowcasts_old` and
+#' `news_nowcasts_new` for all of them, in order.
 #'
 #' **Series (`wai_series.csv`).** One row per input series: name and group,
 #' frequency, the R-squared from `summary()` and the loading standardised by its
@@ -586,7 +713,10 @@ export_wai_measures <- function(fit_path, dir = NULL, series_info = NULL,
   cc <- cg$contributions
   tot <- cg$totals
   wai_t <- round(as.numeric(stats::time(fit$factor)), 5)
-  tot <- tot[round(tot$time, 5) %in% wai_t, ]      # drop the s pre-sample periods
+  # drop the s pre-sample periods, and any forecast periods past the data: the
+  # contributions are of data to the estimate, and published for observed weeks
+  wai_t <- wai_t[wai_t <= round(fit_observed_end(fit), 5)]
+  tot <- tot[round(tot$time, 5) %in% wai_t, ]
   wai <- as.numeric(fit$factor)[match(round(tot$time, 5), wai_t)]
 
   slope <- ifelse(abs(tot$plugin) > 1e-12,
@@ -637,31 +767,46 @@ export_wai_measures <- function(fit_path, dir = NULL, series_info = NULL,
   series <- series[order(series$group, -series$r2), ]
   rownames(series) <- NULL
 
-  # news: last week's fit against this week's data
+  # news: last week's fit against this week's data, for every quarter whose GDP
+  # is not yet published and that the old fit covers - on a fit padded with
+  # `extend_to`, the quarter just ended and the running one. Each is the revision
+  # of that quarter's GDP nowcast: growth over the whole quarter, not a week.
   news <- NULL
   news_meta <- list(news_available = FALSE)
   if (!is.null(news_fit_path)) {
     old_fit <- load_fit(news_fit_path, "news_fit_path")
-    nw <- mfbdfm_news(old_fit, new_data = news_new_data$flows,
-                      stocks = news_new_data$stocks, by = "group",
-                      groups = group_of[old_fit$inventory$key])
     G <- function(x) ((1 + x)^4 - 1) * 100
-    o <- nw$totals$nowcast_old
-    n <- nw$totals$nowcast_new
-    s <- if (abs(n - o) > 1e-12) (G(n) - G(o)) / (n - o) else 400 * (1 + o)^3
-    bc <- nw$by_component
-    news <- data.frame(component = bc$group, impact = bc$impact * s,
-                       stringsAsFactors = FALSE)
-    news <- news[order(-abs(news$impact)), ]
+    one_period <- function(period) {
+      nw <- mfbdfm_news(old_fit, new_data = news_new_data$flows,
+                        stocks = news_new_data$stocks, by = "group",
+                        groups = group_of[old_fit$inventory$key],
+                        period = period)
+      o <- nw$totals$nowcast_old
+      n <- nw$totals$nowcast_new
+      s <- if (abs(n - o) > 1e-12) (G(n) - G(o)) / (n - o) else 400 * (1 + o)^3
+      bc <- nw$by_component
+      d <- data.frame(period = format(dec2week(nw$period)), component = bc$group,
+                      impact = bc$impact * s, stringsAsFactors = FALSE)
+      list(rows = d[order(-abs(d$impact)), ], period = format(dec2week(nw$period)),
+           old = G(o), new = G(n), n_added = nw$n_added)
+    }
+    res <- lapply(news_target_periods(old_fit, fit), one_period)
+    news <- do.call(rbind, lapply(res, `[[`, "rows"))
     rownames(news) <- NULL
-    old_end <- utils::tail(as.numeric(stats::time(old_fit$factor)), 1)
+    old_end <- fit_observed_end(old_fit)
+    first <- res[[1]]
     news_meta <- list(
       news_available   = TRUE,
-      news_period      = format(dec2week(nw$period)),
-      news_nowcast_old = round(G(o), digits),
-      news_nowcast_new = round(G(n), digits),
+      # the first quarter, as before: the published nowcast's
+      news_period      = first$period,
+      news_nowcast_old = round(first$old, digits),
+      news_nowcast_new = round(first$new, digits),
       news_old_vintage = format(dec2week(old_end)),
-      news_new_obs     = nw$n_added
+      news_new_obs     = first$n_added,
+      # every quarter, in order
+      news_periods      = vapply(res, `[[`, "", "period"),
+      news_nowcasts_old = round(vapply(res, `[[`, 0, "old"), digits),
+      news_nowcasts_new = round(vapply(res, `[[`, 0, "new"), digits)
     )
   }
 

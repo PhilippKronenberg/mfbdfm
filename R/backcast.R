@@ -17,6 +17,14 @@
 #' @param output_dir Directory to save the fit to, or `NULL` (default) to
 #'   skip saving. When given, the fit is saved as
 #'   `file.path(output_dir, dataset_used, "fit_<date>.Rda")`.
+#' @param extend_to Numeric (decimal time) or `NULL` (default). Passed to
+#'   [ind_dfm()], which pads the panel to this date so the factor is forecast
+#'   past the data. When given, the factor and its variance are kept up to
+#'   `extend_to` instead of being cut at `date`, and `fit$internal$t2` records
+#'   where the observed data ends. The nowcast is cut, as without it, at the
+#'   quarter after the last published GDP; the padding only guarantees that
+#'   quarter is there, which without it happens only once the data covers the
+#'   whole quarter.
 #'
 #' @return Invisibly, a list with elements `nowcast` and `nowcast_var`.
 #'
@@ -67,6 +75,14 @@ run_ar <- function(flows, stocks, target, date, dataset_used, stochastic_volatil
 #' @param output_dir Directory to save the fit to, or `NULL` (default) to
 #'   skip saving. When given, the fit is saved as
 #'   `file.path(output_dir, dataset_used, "fit_<date>.Rda")`.
+#' @param extend_to Numeric (decimal time) or `NULL` (default). Passed to
+#'   [ind_dfm()], which pads the panel to this date so the factor is forecast
+#'   past the data. When given, the factor and its variance are kept up to
+#'   `extend_to` instead of being cut at `date`, and `fit$internal$t2` records
+#'   where the observed data ends. The nowcast is cut, as without it, at the
+#'   quarter after the last published GDP; the padding only guarantees that
+#'   quarter is there, which without it happens only once the data covers the
+#'   whole quarter.
 #'
 #' @details
 #' Every modelling argument is passed straight through to [ind_dfm()], and the
@@ -105,7 +121,13 @@ run_wai_adj <- function(flows, stocks, target, date, dataset_used,
                         p = 1,
                         length_sample = 5000, burn_in = 1000, thinning = 1,
                         stochastic_volatility = TRUE, serial_correlation = TRUE,
-                        output_dir = NULL){
+                        output_dir = NULL, extend_to = NULL){
+
+  if(!is.null(extend_to) &&
+     (!is.numeric(extend_to) || length(extend_to) != 1L || !is.finite(extend_to))){
+    stop("`extend_to` must be NULL or a single finite decimal time, not ",
+         deparse(extend_to), ".", call. = FALSE)
+  }
 
   mod <- ind_dfm(flows = flows,
                  stocks = stocks,
@@ -115,6 +137,7 @@ run_wai_adj <- function(flows, stocks, target, date, dataset_used,
                  thinning = thinning,
                  p = p,
                  plots = FALSE,
+                 extend_to = extend_to,
                  stochastic_volatility = stochastic_volatility,
                  serial_correlation = serial_correlation)
 
@@ -124,8 +147,10 @@ run_wai_adj <- function(flows, stocks, target, date, dataset_used,
   # run_fcast(), per the parity rule - the two wrappers should not differ in
   # how noisy they are.
   target_end <- as.numeric(tail(time(flows[[target]]), 1)) + 0.25
-  mod$factor <- trim_to(mod$factor, date)
-  mod$factor_var <- trim_to(mod$factor_var, date)
+  # With `extend_to` the factor runs on past `date` as a forecast, and is kept.
+  factor_end <- if(is.null(extend_to)) date else max(date, extend_to)
+  mod$factor <- trim_to(mod$factor, factor_end)
+  mod$factor_var <- trim_to(mod$factor_var, factor_end)
   mod$nowcast <- trim_to(mod$nowcast, target_end)
   mod$nowcast_var <- trim_to(mod$nowcast_var, target_end)
 

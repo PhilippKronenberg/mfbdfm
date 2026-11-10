@@ -655,7 +655,8 @@ ind_dfm <- function(flows = NULL,
                                  control = control,
                                  length_sample = length_sample,
                                  burn_in = burn_in,
-                                 thinning = thinning)
+                                 thinning = thinning,
+                                 t2 = t2)
   }
 
   # the prior and control specification the fit ran under (#119, BS5.2). The
