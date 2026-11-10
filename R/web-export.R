@@ -268,6 +268,31 @@ news_target_period <- function(fit) {
 }
 
 
+#' The quarters the news decomposition is about
+#'
+#' The quarter of [news_target_period()], then each following quarter up to the
+#' one the new fit's latest observed week falls in, as far as the old fit's
+#' padded panel reaches: today the quarter just ended and the running one. A
+#' list, because `NULL` (one period, [mfbdfm_news()]'s default) is a valid
+#' entry for a fit that is not padded.
+#'
+#' @param old_fit The fit the news starts from.
+#' @param new_fit The fit of the new vintage, for its latest observed week.
+#' @noRd
+news_target_periods <- function(old_fit, new_fit) {
+  first <- news_target_period(old_fit)
+  if (is.null(first)) return(list(NULL))
+  # the start of the quarter the new data's latest week falls in
+  running <- floor(round(fit_observed_end(new_fit) * 4, 6)) / 4
+  # the last quarter whose every week lies in the old fit's (padded) panel
+  panel_end <- as.numeric(utils::tail(stats::time(old_fit$data), 1))
+  covered <- floor(round((panel_end + 1 / 48) * 4, 6)) / 4 - 0.25
+  last <- min(running, covered)
+  if (last < first) return(list(first))
+  as.list(seq(first, last, by = 0.25))
+}
+
+
 #' Aggregate the weekly level index to quarterly growth the way GDP is measured
 #'
 #' GDP is a FLOW: the quarter's average activity, not its closing level. So the
@@ -595,7 +620,15 @@ gdp_web_series <- function(vintage = "latest", base_date = as.Date("2019-10-01")
 #' (last week's fit) to `news_new_data` (this week's data), aggregated to the
 #' groups and mapped onto annualised quarterly growth the same way: shares of
 #' `G(new) - G(old)`, `G(x) = ((1 + x)^4 - 1) * 100`, which sum exactly to the
-#' revision. Written only when both arguments are given.
+#' revision. Written only when both arguments are given. Long, one block per
+#' quarter: `period,component,impact`, where `period` is the first week of the
+#' quarter. Each block is the revision of that quarter's GDP nowcast, growth over
+#' the whole quarter. On an old fit padded with `extend_to` there is a block for
+#' every quarter from the first without published GDP to the running one, as far
+#' as the old fit reaches; otherwise one block, [mfbdfm_news()]'s default. The
+#' metadata keeps `news_period`, `news_nowcast_old` and `news_nowcast_new` for the
+#' first quarter and adds `news_periods`, `news_nowcasts_old` and
+#' `news_nowcasts_new` for all of them, in order.
 #'
 #' **Series (`wai_series.csv`).** One row per input series: name and group,
 #' frequency, the R-squared from `summary()` and the loading standardised by its
@@ -734,32 +767,46 @@ export_wai_measures <- function(fit_path, dir = NULL, series_info = NULL,
   series <- series[order(series$group, -series$r2), ]
   rownames(series) <- NULL
 
-  # news: last week's fit against this week's data
+  # news: last week's fit against this week's data, for every quarter whose GDP
+  # is not yet published and that the old fit covers - on a fit padded with
+  # `extend_to`, the quarter just ended and the running one. Each is the revision
+  # of that quarter's GDP nowcast: growth over the whole quarter, not a week.
   news <- NULL
   news_meta <- list(news_available = FALSE)
   if (!is.null(news_fit_path)) {
     old_fit <- load_fit(news_fit_path, "news_fit_path")
-    nw <- mfbdfm_news(old_fit, new_data = news_new_data$flows,
-                      stocks = news_new_data$stocks, by = "group",
-                      groups = group_of[old_fit$inventory$key],
-                      period = news_target_period(old_fit))
     G <- function(x) ((1 + x)^4 - 1) * 100
-    o <- nw$totals$nowcast_old
-    n <- nw$totals$nowcast_new
-    s <- if (abs(n - o) > 1e-12) (G(n) - G(o)) / (n - o) else 400 * (1 + o)^3
-    bc <- nw$by_component
-    news <- data.frame(component = bc$group, impact = bc$impact * s,
-                       stringsAsFactors = FALSE)
-    news <- news[order(-abs(news$impact)), ]
+    one_period <- function(period) {
+      nw <- mfbdfm_news(old_fit, new_data = news_new_data$flows,
+                        stocks = news_new_data$stocks, by = "group",
+                        groups = group_of[old_fit$inventory$key],
+                        period = period)
+      o <- nw$totals$nowcast_old
+      n <- nw$totals$nowcast_new
+      s <- if (abs(n - o) > 1e-12) (G(n) - G(o)) / (n - o) else 400 * (1 + o)^3
+      bc <- nw$by_component
+      d <- data.frame(period = format(dec2week(nw$period)), component = bc$group,
+                      impact = bc$impact * s, stringsAsFactors = FALSE)
+      list(rows = d[order(-abs(d$impact)), ], period = format(dec2week(nw$period)),
+           old = G(o), new = G(n), n_added = nw$n_added)
+    }
+    res <- lapply(news_target_periods(old_fit, fit), one_period)
+    news <- do.call(rbind, lapply(res, `[[`, "rows"))
     rownames(news) <- NULL
     old_end <- fit_observed_end(old_fit)
+    first <- res[[1]]
     news_meta <- list(
       news_available   = TRUE,
-      news_period      = format(dec2week(nw$period)),
-      news_nowcast_old = round(G(o), digits),
-      news_nowcast_new = round(G(n), digits),
+      # the first quarter, as before: the published nowcast's
+      news_period      = first$period,
+      news_nowcast_old = round(first$old, digits),
+      news_nowcast_new = round(first$new, digits),
       news_old_vintage = format(dec2week(old_end)),
-      news_new_obs     = nw$n_added
+      news_new_obs     = first$n_added,
+      # every quarter, in order
+      news_periods      = vapply(res, `[[`, "", "period"),
+      news_nowcasts_old = round(vapply(res, `[[`, 0, "old"), digits),
+      news_nowcasts_new = round(vapply(res, `[[`, 0, "new"), digits)
     )
   }
 

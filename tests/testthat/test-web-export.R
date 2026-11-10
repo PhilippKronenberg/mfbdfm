@@ -324,8 +324,11 @@ test_that("news impacts add up to the revision on the published scale", {
   fx <- measures_fixture()
   out <- export_wai_measures(fx$new$path, news_fit_path = fx$old$path,
                              news_new_data = fx$new_data, digits = 10)
-  expect_named(out$news, c("component", "impact"))
+  expect_named(out$news, c("period", "component", "impact"))
   m <- out$meta
+  # an unpadded old fit: one quarter, the one news_period names
+  expect_equal(unique(out$news$period), m$news_period)
+  expect_equal(m$news_periods, m$news_period)
   expect_true(m$news_available)
   expect_gt(m$news_new_obs, 0)
   expect_equal(sum(out$news$impact), m$news_nowcast_new - m$news_nowcast_old,
@@ -447,4 +450,21 @@ test_that("news is about the published nowcast's quarter, not the padding's end"
   expect_null(news_target_period(list(nowcast = nc)))
   padded$nowcast <- NULL
   expect_null(news_target_period(padded))
+})
+
+
+test_that("news covers every unpublished quarter the padded old fit reaches", {
+  tt <- function(start, end) stats::ts(matrix(0, round((end - start) * 48) + 1, 1),
+                                       start = start, frequency = 48)
+  old <- list(nowcast = stats::ts(1:8, start = 2024, frequency = 4),   # ends 2025Q4
+              data = tt(2024, 2026.25 - 1 / 48), internal = list(t2 = 90L))
+  new_in <- function(end) list(factor = tt(2024, end), data = tt(2024, end))
+  # mid-2026Q1: the quarter just ended and the running one
+  expect_equal(news_target_periods(old, new_in(2026 + 5 / 48)), list(2025.75, 2026))
+  # still in 2025Q4: that quarter only
+  expect_equal(news_target_periods(old, new_in(2025.75 + 6 / 48)), list(2025.75))
+  # past what the old fit's padding reaches: stop at its last whole quarter
+  expect_equal(news_target_periods(old, new_in(2026.25 + 2 / 48)), list(2025.75, 2026))
+  # not padded: one entry, mfbdfm_news()'s default
+  expect_equal(news_target_periods(list(nowcast = old$nowcast), new_in(2026)), list(NULL))
 })

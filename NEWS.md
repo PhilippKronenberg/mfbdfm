@@ -144,6 +144,15 @@
   the published nowcast rather than the forecast. A fit without `extend_to` is
   exported exactly as before.
 
+* **`export_wai_measures()` writes the news for every quarter without published
+  GDP that the old fit covers**: on a padded fit, the quarter just ended and the
+  running one. `wai_news.csv` becomes long, `period,component,impact`, one block
+  per quarter, each the revision of that quarter's GDP nowcast (growth over the
+  whole quarter). `wai_measures_meta.json` keeps `news_period`,
+  `news_nowcast_old` and `news_nowcast_new` for the first quarter and adds
+  `news_periods`, `news_nowcasts_old` and `news_nowcasts_new` for all of them.
+  An old fit that is not padded gives one quarter, as before.
+
 * **`mfbdfm_news()` decomposes a nowcast revision into the news in each newly
   released observation** (#101), after Bańbura and Modugno (2014). Between the
   vintage a fit was estimated on and a newer one it reports, per release, the
