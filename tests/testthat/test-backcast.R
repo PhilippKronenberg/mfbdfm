@@ -248,3 +248,44 @@ test_that("run_fcast(on_error) turns a failed vintage into a warning (BS2.15)", 
 
   expect_error(call_it(on_error = "nonsense"))
 })
+
+
+test_that("run_wai_adj(extend_to) forecasts the factor and keeps the nowcast's quarter", {
+  data(data_ch_dataset_test)
+  target <- "ch.seco.gdp.real.gdp.ssa"
+  flows <- lapply(data_ch_dataset_test$flows[c(target, "SWISSMI")],
+                  stats::window, start = 2021)
+  stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
+  last_week <- max(vapply(c(flows, stocks), function(x) max(stats::time(x)), 0))
+  ext <- ceiling(last_week * 4 + 1e-9) / 4 + 0.25 - 1 / 48
+
+  expect_error(run_wai_adj(flows = flows, stocks = stocks, target = target,
+                           date = last_week, dataset_used = "x",
+                           extend_to = "2027"), "`extend_to`")
+
+  run <- function(...) {
+    set.seed(5)
+    suppressMessages(run_wai_adj(flows = flows, stocks = stocks, target = target,
+                                 date = last_week, dataset_used = "x",
+                                 length_sample = 10, burn_in = 4, ...))
+  }
+  plain <- run()
+  padded <- run(extend_to = ext)
+
+  expect_equal(as.numeric(utils::tail(stats::time(padded$factor), 1)), ext,
+               tolerance = 1e-6)
+  expect_equal(length(padded$factor_var), length(padded$factor))
+  expect_equal(as.numeric(stats::time(padded$data))[padded$internal$t2],
+               as.numeric(utils::tail(stats::time(plain$factor), 1)), tolerance = 1e-6)
+  # the published nowcast ends at the quarter after the last published GDP,
+  # whether or not the data covers that quarter yet
+  last_gdp <- as.numeric(utils::tail(stats::time(stats::na.omit(flows[[target]])), 1))
+  expect_equal(as.numeric(utils::tail(stats::time(padded$nowcast), 1)),
+               last_gdp + 0.25, tolerance = 1e-6)
+  expect_equal(stats::start(padded$nowcast), stats::start(plain$nowcast))
+
+  # the quality gate's "latest weeks" are the latest observed ones
+  t2 <- padded$internal$t2
+  expect_equal(mean(padded$draws$factor_recent[, 13]),
+               as.numeric(padded$factor)[t2], tolerance = 1e-8)
+})

@@ -129,7 +129,7 @@ low_frequency_gaps <- function(inventory, exclude = character()){
 #' @noRd
 build_draws_ind <- function(par_save, flist, inventory, target, s, t,
                             stochastic_volatility, control,
-                            length_sample, burn_in, thinning){
+                            length_sample, burn_in, thinning, t2 = t){
 
   keys <- inventory$key
   n <- length(keys)
@@ -203,8 +203,10 @@ build_draws_ind <- function(par_save, flist, inventory, target, s, t,
   out$h_paths <- t(vapply(par_save$h[out$h_rows], as.numeric, numeric(t + s)))
 
   # the latest weeks of the published factor, whatever keep_factor_draws says: the
-  # mixing of what is actually published has to be checkable (#172)
-  n_f <- length(flist[[1]])
+  # mixing of what is actually published has to be checkable (#172). The latest
+  # OBSERVED weeks: with `extend_to` the panel runs on past the data, and the last
+  # rows are then a forecast, which is not what the quality gate grades.
+  n_f <- min(length(flist[[1]]), t2)
   recent <- seq(max(1L, n_f - 12L), n_f)
   out$factor_recent <- t(vapply(flist, function(fx) as.numeric(fx)[recent], numeric(length(recent))))
 

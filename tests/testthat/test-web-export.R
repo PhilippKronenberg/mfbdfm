@@ -66,7 +66,7 @@ test_that("export_wai_web() adds gdp_qoq on the last week of each quarter", {
 test_that("export_wai_web() writes nothing unless `dir` is given", {
   d <- local_tempdir_base()
   web <- export_wai_web(synth_fit_file())
-  expect_named(web, c("data", "meta"))
+  expect_named(web, c("data", "forecast", "meta"))
   expect_length(list.files(d, recursive = TRUE), 0L)
 })
 
@@ -384,4 +384,67 @@ test_that("export_wai_measures() writes its files, and nothing without `dir`", {
   d2 <- local_tempdir_base()
   export_wai_measures(fx$new$path)
   expect_length(list.files(d2), 0)
+})
+
+
+test_that("a padded fit's forecast goes to its own table, not into `data`", {
+  # data to the 7th of February 1991, forecast to the end of the next quarter
+  obs_end <- 1991 + 4 / 48
+  f <- synth_fit_file(start = 1990, end = 1991.5 - 1 / 48, observed_end = obs_end)
+  d <- local_tempdir_base()
+  web <- export_wai_web(f, dir = d)
+
+  # wai_data.csv keeps its contract: its last row is the latest week with data
+  expect_equal(max(web$data$date), dec2week(obs_end))
+  expect_equal(min(web$forecast$date), dec2week(obs_end + 1 / 48))
+  expect_equal(max(web$forecast$date), as.Date("1991-06-28"))
+  expect_named(web$forecast, c("date", "wai_qoq", "wai_qoq_lo", "wai_qoq_hi",
+                               "wai_yoy", "wai_index", "wai_qoq_q", "wai_yoy_q"))
+  expect_true(file.exists(file.path(d, "wai_forecast.csv")))
+
+  # the running quarter twice: to date on the latest week (5 of its 12 weeks),
+  # and whole on its last week, averaging observed and forecast weeks together
+  idx <- c(web$data$wai_index, web$forecast$wai_index)
+  dts <- c(web$data$date, web$forecast$date)
+  qmean <- function(a, b, upto = as.Date("9999-01-01"))
+    mean(idx[dts >= as.Date(a) & dts <= as.Date(b) & dts <= upto])
+  ann <- function(x) (x^4 - 1) * 100
+  to_date <- ann(qmean("1991-01-01", "1991-03-31", dec2week(obs_end)) /
+                   qmean("1990-10-01", "1990-12-31"))
+  whole <- ann(qmean("1991-01-01", "1991-03-31") / qmean("1990-10-01", "1990-12-31"))
+  expect_equal(web$data$wai_qoq_q[nrow(web$data)], round(to_date, 4))
+  expect_equal(web$forecast$wai_qoq_q[web$forecast$date == as.Date("1991-03-28")],
+               round(whole, 4))
+  # and the next quarter on its own last week, nowhere else
+  expect_equal(sum(!is.na(web$forecast$wai_qoq_q)), 2L)
+
+  expect_equal(web$meta$weeks_observed, 5L)
+  expect_equal(web$meta$weeks_per_quarter, 12L)
+  expect_equal(web$meta$forecast_end, "1991-06-28")
+  expect_equal(web$meta$n_obs, nrow(web$data))
+})
+
+
+test_that("a fit without a forecast writes no forecast file", {
+  d <- local_tempdir_base()
+  web <- export_wai_web(synth_fit_file(start = 1990, end = 1992), dir = d)
+  expect_equal(nrow(web$forecast), 0L)
+  expect_false(file.exists(file.path(d, "wai_forecast.csv")))
+  expect_null(web$meta$forecast_end)
+  meta <- jsonlite::fromJSON(file.path(d, "wai_meta.json"))
+  expect_null(meta$forecast_end)
+  expect_equal(meta$weeks_per_quarter, 12L)
+})
+
+
+test_that("news is about the published nowcast's quarter, not the padding's end", {
+  nc <- stats::ts(1:8, start = 2024, frequency = 4)
+  padded <- list(nowcast = nc, data = matrix(0, 30, 2), internal = list(t2 = 20L))
+  expect_equal(news_target_period(padded), 2025.75)
+  # not padded: mfbdfm_news()'s own default, as before
+  expect_null(news_target_period(list(nowcast = nc, data = matrix(0, 20, 2),
+                                      internal = list(t2 = 20L))))
+  expect_null(news_target_period(list(nowcast = nc)))
+  padded$nowcast <- NULL
+  expect_null(news_target_period(padded))
 })

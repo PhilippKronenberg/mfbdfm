@@ -49,7 +49,8 @@ rhat_split <- function(x){
 #' @details
 #' For the latest unobserved nowcast (annualised percentage points), and for an
 #' [ind_dfm()] fit also for the latest weekly factor value and the mean of the
-#' latest 13 weeks:
+#' latest 13 weeks. With `extend_to`, "latest" means the latest *observed* week
+#' and the latest quarter in `fit$nowcast`, not the forecast beyond them:
 #'
 #' \describe{
 #'   \item{`ess`}{Rank-normalised effective sample size, at least `ess_min`.}
@@ -149,9 +150,14 @@ mfbdfm_quality <- function(fit, exact = NULL, unexplained = NULL,
     add(paste0(label, ": rhat"), r, rhat_max, judge(r <= rhat_max))
   }
 
-  # the latest quarter the chain actually has to estimate
+  # the latest quarter the chain actually has to estimate. Only among the quarters
+  # the fit publishes: a fit padded with `extend_to` also carries draws for the
+  # quarters beyond, and `run_wai_adj()` trims those off `fit$nowcast`, so
+  # grading them would grade a forecast and compare it with an exact estimate of
+  # a different quarter.
   NC <- d$nowcast
   latent <- which(apply(NC, 2, stats::sd)*400 > 1e-3)
+  latent <- latent[latent <= length(fit$nowcast)]
   nc_col <- if(length(latent)) max(latent) else NA_integer_
   if(!is.na(nc_col)) chain_checks("latest nowcast", NC[, nc_col]*400)
 

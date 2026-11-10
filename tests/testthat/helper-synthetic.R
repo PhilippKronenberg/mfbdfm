@@ -151,13 +151,19 @@ horizon_rmse <- function(errors, h, column = "error") {
 # export_wai_web() read. Only `factor` and `factor_var` are consulted, so the
 # fixture carries just those two - the point is the weekly time base and the
 # fitted window, not a plausible MCMC result.
-synth_fit_file <- function(start = 1990, end = 2024, seed = 7) {
+# `observed_end` (decimal time) mimics a fit padded with `extend_to`: the factor
+# runs to `end`, and `data`/`internal$t2` say the data stopped at `observed_end`.
+synth_fit_file <- function(start = 1990, end = 2024, seed = 7, observed_end = NULL) {
   set.seed(seed)
   n <- length(seq(start, end, 1/48))
   mod <- list(
     factor     = stats::ts(rnorm(n, 1, 2), start = start, frequency = 48),
     factor_var = stats::ts(runif(n, 0.2, 0.5), start = start, frequency = 48)
   )
+  if (!is.null(observed_end)) {
+    mod$data <- stats::ts(matrix(0, n, 1), start = start, frequency = 48)
+    mod$internal <- list(t2 = round((observed_end - start) * 48) + 1L)
+  }
   path <- tempfile(fileext = ".Rda")
   save(mod, file = path)
   path

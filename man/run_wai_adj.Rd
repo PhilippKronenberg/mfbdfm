@@ -16,7 +16,8 @@ run_wai_adj(
   thinning = 1,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
-  output_dir = NULL
+  output_dir = NULL,
+  extend_to = NULL
 )
 }
 \arguments{
@@ -54,6 +55,15 @@ are drawn. If \code{FALSE} they are held at (effectively) zero.}
 \item{output_dir}{Directory to save the fit to, or \code{NULL} (default) to
 skip saving. When given, the fit is saved as
 \code{file.path(output_dir, dataset_used, "fit_<date>.Rda")}.}
+
+\item{extend_to}{Numeric (decimal time) or \code{NULL} (default). Passed to
+\code{\link[=ind_dfm]{ind_dfm()}}, which pads the panel to this date so the factor is forecast
+past the data. When given, the factor and its variance are kept up to
+\code{extend_to} instead of being cut at \code{date}, and \code{fit$internal$t2} records
+where the observed data ends. The nowcast is cut, as without it, at the
+quarter after the last published GDP; the padding only guarantees that
+quarter is there, which without it happens only once the data covers the
+whole quarter.}
 }
 \value{
 Invisibly, the windowed \code{ind_dfm} fit object.
