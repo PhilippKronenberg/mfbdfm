@@ -257,7 +257,8 @@ test_that("run_wai_adj(extend_to) forecasts the factor and keeps the nowcast's q
                   stats::window, start = 2021)
   stocks <- lapply(data_ch_dataset_test$stocks[1:2], stats::window, start = 2021)
   last_week <- max(vapply(c(flows, stocks), function(x) max(stats::time(x)), 0))
-  ext <- ceiling(last_week * 4 + 1e-9) / 4 + 0.25 - 1 / 48
+  # to the end of the quarter the next week falls in, as the pipeline does
+  ext <- ceiling((last_week + 1 / 48) * 4 + 1e-9) / 4 - 1 / 48
 
   expect_error(run_wai_adj(flows = flows, stocks = stocks, target = target,
                            date = last_week, dataset_used = "x",

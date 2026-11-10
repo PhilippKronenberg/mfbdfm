@@ -150,8 +150,8 @@ export_wai_web <- function(fit_path, dir = NULL, gdp = NULL, digits = 4,
 
   # The quarterly flow twice: over the observed weeks only, which is what
   # wai_data.csv has always published (the running quarter to date), and over
-  # observed and forecast weeks together, which completes the running quarter
-  # and the next one.
+  # observed and forecast weeks together, which completes the quarter(s) the
+  # forecast reaches into.
   is_fc <- dat$date > obs_end_date
   quarterly <- wai_quarterly_flow(dat$date[!is_fc], dat$wai_index[!is_fc])
   quarterly_full <- wai_quarterly_flow(dat$date, dat$wai_index)

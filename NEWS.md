@@ -128,7 +128,7 @@
 
 ## New features
 
-* **The dashboard export can carry a forecast to the end of the next quarter.**
+* **The dashboard export can carry a forecast that completes the running quarter.**
   `run_wai_adj()` gains `extend_to`, passed to `ind_dfm()`, and keeps the
   factor and its variance up to that date instead of cutting them at `date`. The
   nowcast still ends at the quarter after the last published GDP, which the
