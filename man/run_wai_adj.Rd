@@ -60,7 +60,12 @@ so a single observation far from what the factor implies is down-weighted
 instead of setting the series' loading (Antolin-Diaz, Drechsel and
 Petrella 2024). \code{nu} is \code{priors$kappa$nu}, 5 by default; see
 \code{\link[=dfm_priors]{dfm_priors()}}. The posterior mean of \code{kappa} is returned as \verb{$kappa}.
-Default \code{FALSE}, the published model.}
+Default \code{FALSE}, the published model. Compare it with the Gaussian fit
+before relying on it: when the loadings are identified mainly by one
+large common episode, such as the COVID-19 recession, the errors can
+explain that episode as an outlier in each series separately. The
+loadings then shrink towards zero and the factor loses its tie to the
+indicators. On the Swiss WAI panel this made the backcast markedly worse.}
 
 \item{output_dir}{Directory to save the fit to, or \code{NULL} (default) to
 skip saving. When given, the fit is saved as

@@ -256,7 +256,12 @@
 #'   instead of setting the series' loading (Antolin-Diaz, Drechsel and
 #'   Petrella 2024). `nu` is `priors$kappa$nu`, 5 by default; see
 #'   [dfm_priors()]. The posterior mean of `kappa` is returned as `$kappa`.
-#'   Default `FALSE`, the published model.
+#'   Default `FALSE`, the published model. Compare it with the Gaussian fit
+#'   before relying on it: when the loadings are identified mainly by one
+#'   large common episode, such as the COVID-19 recession, the errors can
+#'   explain that episode as an outlier in each series separately. The
+#'   loadings then shrink towards zero and the factor loses its tie to the
+#'   indicators. On the Swiss WAI panel this made the backcast markedly worse.
 #' @param priors Prior specification from [dfm_priors()]. The default
 #'   reproduces the published priors exactly. Note that two of them -- the
 #'   target's measurement-error variance and serial correlation -- carry the

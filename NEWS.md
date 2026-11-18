@@ -140,7 +140,11 @@
   weight `1/kappa` in their plug-in precision. The default `FALSE` is the
   published model and its results are unchanged (`baseline_check()`).
   `fcast_dfm()` has the argument too, and `TRUE` is an error there for now.
-  `run_wai_adj()` passes it through.
+  `run_wai_adj()` passes it through. **This is an opt-in option, not a recommended
+  default.** On the WAI panel's pseudo-real-time backcast (18 dates, 2022–2026),
+  it raised the RMSE against the first release by a factor of 1.87. The errors
+  absorbed the COVID-19 swings as outliers in each series separately, and the
+  loadings, which that episode largely identifies, shrank towards zero.
 
 * **The dashboard export can carry a forecast that completes the running quarter.**
   `run_wai_adj()` gains `extend_to`, passed to `ind_dfm()`, and keeps the
