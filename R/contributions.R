@@ -121,7 +121,21 @@ dfm_joint_precision <- function(object, Ymat = NULL){
                       kronecker(Diagonal(t-1), -rho)),
                 Matrix(0, t*n, n)) + Diagonal(n = n*t)
   Gext <- rbind(Matrix(0, n, q*(t+s)), Gmat)
-  Sinv <- Diagonal(n = t) %x% Diagonal(x = 1/sigma_d)
+  # With fat tails (#180) each cell's precision is weight/sigma, the weight being
+  # the posterior mean of 1/kappa. A vintage longer than the fit gets weight 1,
+  # the prior mean, in its extra periods.
+  kw <- if(!is_fcast) object$internal$kappa_weight else NULL
+  if(is.null(kw)){
+    Sinv <- Diagonal(n = t) %x% Diagonal(x = 1/sigma_d)
+    logdet_S <- -t * sum(log(sigma_d))
+  } else {
+    wt <- matrix(1, t, n)
+    m <- min(t, nrow(kw))
+    wt[seq_len(m), ] <- kw[seq_len(m), ]
+    sv <- as.numeric(t(wt) / sigma_d)
+    Sinv <- Diagonal(x = sv)
+    logdet_S <- sum(log(sv))
+  }
 
   # joint precision of z = (f, x)
   GtS <- t(Gext) %*% Sinv
@@ -132,7 +146,7 @@ dfm_joint_precision <- function(object, Ymat = NULL){
 
   # det(H) = det(K) = 1, so the joint determinant is available in closed form
   # rather than from a factorization of the full q*(t+s) + n*t matrix
-  logdet_Q <- -2 * q * sum(h) - t * sum(log(sigma_d))
+  logdet_Q <- -2 * q * sum(h) + logdet_S
 
   # x is stacked period-major, so entry (period i, series j) sits at (i-1)*n + j
   yv <- as.numeric(t(as.matrix(Ymat)))

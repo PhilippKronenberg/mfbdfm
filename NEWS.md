@@ -128,6 +128,24 @@
 
 ## New features
 
+* **`ind_dfm(fat_tails = TRUE)`: Student-t measurement errors** (#180). Every
+  series except `target` gets a variance multiplier `kappa ~ IG(nu/2, nu/2)` per
+  observation, drawn from the data, so an observation far from what the factor
+  implies is down-weighted instead of setting the series' loading (Antolín-Díaz,
+  Drechsel and Petrella 2024). Weekly series have one multiplier per week;
+  low-frequency series have one per observation period, drawn with their latent
+  weeks integrated out as in #170. `nu` is `dfm_priors()`'s new `kappa = list(nu
+  = 5)`. The fit returns the posterior mean multipliers as `$kappa`, and
+  `mfbdfm_contributions()`, `mfbdfm_news()` and `logLik()` use the posterior mean
+  weight `1/kappa` in their plug-in precision. The default `FALSE` is the
+  published model and its results are unchanged (`baseline_check()`).
+  `fcast_dfm()` has the argument too, and `TRUE` is an error there for now.
+  `run_wai_adj()` passes it through. **This is an opt-in option, not a recommended
+  default.** On the WAI panel's pseudo-real-time backcast (18 dates, 2022–2026),
+  it raised the RMSE against the first release by a factor of 1.87. The errors
+  absorbed the COVID-19 swings as outliers in each series separately, and the
+  loadings, which that episode largely identifies, shrank towards zero.
+
 * **The dashboard export can carry a forecast that completes the running quarter.**
   `run_wai_adj()` gains `extend_to`, passed to `ind_dfm()`, and keeps the
   factor and its variance up to that date instead of cutting them at `date`. The

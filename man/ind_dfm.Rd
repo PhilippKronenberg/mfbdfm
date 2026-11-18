@@ -16,6 +16,7 @@ ind_dfm(
   extend_to = NULL,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
+  fat_tails = FALSE,
   priors = dfm_priors("ind_dfm"),
   control = NULL
 )
@@ -56,6 +57,20 @@ it is a single constant variance, \strong{still estimated} rather than fixed
 \item{serial_correlation}{Logical. If \code{TRUE} (default) the measurement
 errors are allowed to be serially correlated and their autocorrelations
 are drawn. If \code{FALSE} they are held at (effectively) zero.}
+
+\item{fat_tails}{Logical. If \code{TRUE}, the measurement errors of every series
+except \code{target} are Student-t rather than Gaussian: each innovation gets
+its own variance multiplier \code{kappa ~ IG(nu/2, nu/2)}, drawn from the data,
+so a single observation far from what the factor implies is down-weighted
+instead of setting the series' loading (Antolin-Diaz, Drechsel and
+Petrella 2024). \code{nu} is \code{priors$kappa$nu}, 5 by default; see
+\code{\link[=dfm_priors]{dfm_priors()}}. The posterior mean of \code{kappa} is returned as \verb{$kappa}.
+Default \code{FALSE}, the published model. Compare it with the Gaussian fit
+before relying on it: when the loadings are identified mainly by one
+large common episode, such as the COVID-19 recession, the errors can
+explain that episode as an outlier in each series separately. The
+loadings then shrink towards zero and the factor loses its tie to the
+indicators. On the Swiss WAI panel this made the backcast markedly worse.}
 
 \item{priors}{Prior specification from \code{\link[=dfm_priors]{dfm_priors()}}. The default
 reproduces the published priors exactly. Note that two of them -- the
@@ -133,6 +148,10 @@ posterior mean volatility path over all \code{t+s} periods, where \code{pars$h}
 covers the \code{t} in-sample ones only). Read by \code{\link[=mfbdfm_news]{mfbdfm_news()}} and
 \code{\link[=mfbdfm_contributions]{mfbdfm_contributions()}}; not part of the API, and present on
 \code{\link[=fcast_dfm]{fcast_dfm()}} fits too so the two agree.}
+\item{kappa}{Only with \code{fat_tails = TRUE}: \code{ts} matrix, periods by
+series, of the posterior mean of each observation's variance multiplier.
+Well above 1 marks an observation the model treated as an outlier for
+that series; the target's column is 1.}
 \item{call}{The matched call.}
 }
 }

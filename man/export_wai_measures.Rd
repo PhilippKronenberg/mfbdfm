@@ -71,7 +71,15 @@ up to that group's row of \code{wai_contributions.csv}.
 (last week's fit) to \code{news_new_data} (this week's data), aggregated to the
 groups and mapped onto annualised quarterly growth the same way: shares of
 \code{G(new) - G(old)}, \code{G(x) = ((1 + x)^4 - 1) * 100}, which sum exactly to the
-revision. Written only when both arguments are given.
+revision. Written only when both arguments are given. Long, one block per
+quarter: \verb{period,component,impact}, where \code{period} is the first week of the
+quarter. Each block is the revision of that quarter's GDP nowcast, growth over
+the whole quarter. On an old fit padded with \code{extend_to} there is a block for
+every quarter from the first without published GDP to the running one, as far
+as the old fit reaches; otherwise one block, \code{\link[=mfbdfm_news]{mfbdfm_news()}}'s default. The
+metadata keeps \code{news_period}, \code{news_nowcast_old} and \code{news_nowcast_new} for the
+first quarter and adds \code{news_periods}, \code{news_nowcasts_old} and
+\code{news_nowcasts_new} for all of them, in order.
 
 \strong{Series (\code{wai_series.csv}).} One row per input series: name and group,
 frequency, the R-squared from \code{summary()} and the loading standardised by its
