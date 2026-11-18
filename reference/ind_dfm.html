@@ -71,6 +71,7 @@ weekly GDP nowcasts are derived.</p>
 <span>  extend_to <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  stochastic_volatility <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  serial_correlation <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  fat_tails <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  priors <span class="op">=</span> <span class="fu"><a href="dfm_priors.html">dfm_priors</a></span><span class="op">(</span><span class="st">"ind_dfm"</span><span class="op">)</span>,</span>
 <span>  control <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -136,6 +137,22 @@ it is a single constant variance, <strong>still estimated</strong> rather than f
 <dd><p>Logical. If <code>TRUE</code> (default) the measurement
 errors are allowed to be serially correlated and their autocorrelations
 are drawn. If <code>FALSE</code> they are held at (effectively) zero.</p></dd>
+
+
+<dt id="arg-fat-tails">fat_tails<a class="anchor" aria-label="anchor" href="#arg-fat-tails"></a></dt>
+<dd><p>Logical. If <code>TRUE</code>, the measurement errors of every series
+except <code>target</code> are Student-t rather than Gaussian: each innovation gets
+its own variance multiplier <code>kappa ~ IG(nu/2, nu/2)</code>, drawn from the data,
+so a single observation far from what the factor implies is down-weighted
+instead of setting the series' loading (Antolin-Diaz, Drechsel and
+Petrella 2024). <code>nu</code> is <code>priors$kappa$nu</code>, 5 by default; see
+<code><a href="dfm_priors.html">dfm_priors()</a></code>. The posterior mean of <code>kappa</code> is returned as <code>$kappa</code>.
+Default <code>FALSE</code>, the published model. Compare it with the Gaussian fit
+before relying on it: when the loadings are identified mainly by one
+large common episode, such as the COVID-19 recession, the errors can
+explain that episode as an outlier in each series separately. The
+loadings then shrink towards zero and the factor loses its tie to the
+indicators. On the Swiss WAI panel this made the backcast markedly worse.</p></dd>
 
 
 <dt id="arg-priors">priors<a class="anchor" aria-label="anchor" href="#arg-priors"></a></dt>
@@ -254,6 +271,12 @@ posterior mean volatility path over all <code>t+s</code> periods, where <code>pa
 covers the <code>t</code> in-sample ones only). Read by <code><a href="mfbdfm_news.html">mfbdfm_news()</a></code> and
 <code><a href="mfbdfm_contributions.html">mfbdfm_contributions()</a></code>; not part of the API, and present on
 <code><a href="fcast_dfm.html">fcast_dfm()</a></code> fits too so the two agree.</p></dd>
+
+<dt>kappa</dt>
+<dd><p>Only with <code>fat_tails = TRUE</code>: <code>ts</code> matrix, periods by
+series, of the posterior mean of each observation's variance multiplier.
+Well above 1 marks an observation the model treated as an outlier for
+that series; the target's column is 1.</p></dd>
 
 <dt>call</dt>
 <dd><p>The matched call.</p></dd>

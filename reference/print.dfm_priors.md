@@ -39,6 +39,7 @@ dfm_priors("ind_dfm")
 #>   phi           a0 = 0, A0 = <from data>
 #>   omega         k0 = <from data>, l0 = <from data>
 #>   factor_var    c0 = 3, d0 = 0.01
+#>   kappa         nu = 5
 #> 
 #> <from data> entries follow the model's published rule in terms of t or p.
 ```

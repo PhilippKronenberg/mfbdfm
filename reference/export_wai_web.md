@@ -68,8 +68,10 @@ export_wai_web(
 
 ## Value
 
-Invisibly, a list with elements `data` (the wide data frame) and `meta`
-(the metadata list). Writes files only when `dir` is given.
+Invisibly, a list with elements `data` (the wide data frame of observed
+weeks), `forecast` (the forecast weeks, a data frame with no rows when
+the fit has no forecast) and `meta` (the metadata list). Writes files
+only when `dir` is given.
 
 ## Details
 
@@ -126,6 +128,25 @@ returns in `tab_gr_lv_full` are the index scaled by a *single* period of
 growth at each bound, not a compounded level interval, so publishing
 them next to `wai_index` would present something that looks like a level
 confidence band and is not one.
+
+**The forecast goes to its own file, `wai_forecast.csv`.** A fit made
+with `extend_to` (see
+[`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md))
+carries the factor past the last observed week. Those weeks are written
+to `wai_forecast.csv` with the same columns as `wai_data.csv` minus the
+GDP ones, and never into `wai_data.csv`, which stays the record of
+estimates from data: its last row is the latest week with data, as
+people who download it rely on. Without a forecast the file is not
+written.
+
+The quarterly columns differ between the two files on purpose. In
+`wai_data.csv` the running quarter's `wai_qoq_q` sits on the latest week
+and averages only the weeks observed so far: the quarter **to date**. In
+`wai_forecast.csv` it sits on the quarter's last week and averages the
+observed and the forecast weeks together: the **whole quarter**, as GDP
+will measure it. `wai_meta.json` records `weeks_observed` (the running
+quarter's observed weeks), `weeks_per_quarter` and `forecast_end`, so
+the page can say which is which.
 
 Missing values are written as the empty string rather than `NA` or
 `NaN`, so that the front end's parser does not have to know R's spelling

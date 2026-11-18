@@ -108,7 +108,8 @@ is <code>TRUE</code> only if no row has <code>pass</code> of <code>FALSE</code>.
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>For the latest unobserved nowcast (annualised percentage points), and for an
 <code><a href="ind_dfm.html">ind_dfm()</a></code> fit also for the latest weekly factor value and the mean of the
-latest 13 weeks:</p>
+latest 13 weeks. With <code>extend_to</code>, "latest" means the latest <em>observed</em> week
+and the latest quarter in <code>fit$nowcast</code>, not the forecast beyond them:</p>
 <dl><dt><code>ess</code></dt>
 <dd><p>Rank-normalised effective sample size, at least <code>ess_min</code>.</p></dd>
 

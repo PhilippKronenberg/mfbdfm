@@ -197,6 +197,71 @@
 
 ### New features
 
+- **`ind_dfm(fat_tails = TRUE)`: Student-t measurement errors**
+  ([\#180](https://github.com/PhilippKronenberg/mfbdfm/issues/180)).
+  Every series except `target` gets a variance multiplier
+  `kappa ~ IG(nu/2, nu/2)` per observation, drawn from the data, so an
+  observation far from what the factor implies is down-weighted instead
+  of setting the series’ loading (Antolín-Díaz, Drechsel and Petrella
+  2024). Weekly series have one multiplier per week; low-frequency
+  series have one per observation period, drawn with their latent weeks
+  integrated out as in
+  [\#170](https://github.com/PhilippKronenberg/mfbdfm/issues/170). `nu`
+  is
+  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md)’s
+  new `kappa = list(nu = 5)`. The fit returns the posterior mean
+  multipliers as `$kappa`, and
+  [`mfbdfm_contributions()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_contributions.md),
+  [`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
+  and [`logLik()`](https://rdrr.io/r/stats/logLik.html) use the
+  posterior mean weight `1/kappa` in their plug-in precision. The
+  default `FALSE` is the published model and its results are unchanged
+  (`baseline_check()`).
+  [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
+  has the argument too, and `TRUE` is an error there for now.
+  [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
+  passes it through. **This is an opt-in option, not a recommended
+  default.** On the WAI panel’s pseudo-real-time backcast (18 dates,
+  2022–2026), it raised the RMSE against the first release by a factor
+  of 1.87. The errors absorbed the COVID-19 swings as outliers in each
+  series separately, and the loadings, which that episode largely
+  identifies, shrank towards zero.
+
+- **The dashboard export can carry a forecast that completes the running
+  quarter.**
+  [`run_wai_adj()`](https://philippkronenberg.github.io/mfbdfm/reference/run_wai_adj.md)
+  gains `extend_to`, passed to
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+  and keeps the factor and its variance up to that date instead of
+  cutting them at `date`. The nowcast still ends at the quarter after
+  the last published GDP, which the padding now guarantees is there even
+  before the data covers all of it.
+  [`export_wai_web()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_web.md)
+  writes the forecast weeks to a new `wai_forecast.csv` and never into
+  `wai_data.csv`, whose last row stays the latest week with data. In
+  `wai_data.csv` the running quarter’s `wai_qoq_q` is the quarter **to
+  date**; in `wai_forecast.csv` each quarter’s value sits on its last
+  week and covers the whole quarter. `wai_meta.json` gains
+  `weeks_observed`, `weeks_per_quarter`, `forecast_end` and
+  `forecast_columns`. On a padded fit,
+  [`export_wai_measures()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_measures.md)
+  keeps the contributions to the observed weeks and pins the news to the
+  published nowcast’s quarter, and
+  [`mfbdfm_quality()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_quality.md)
+  grades the latest observed week and the published nowcast rather than
+  the forecast. A fit without `extend_to` is exported exactly as before.
+
+- **[`export_wai_measures()`](https://philippkronenberg.github.io/mfbdfm/reference/export_wai_measures.md)
+  writes the news for every quarter without published GDP that the old
+  fit covers**: on a padded fit, the quarter just ended and the running
+  one. `wai_news.csv` becomes long, `period,component,impact`, one block
+  per quarter, each the revision of that quarter’s GDP nowcast (growth
+  over the whole quarter). `wai_measures_meta.json` keeps `news_period`,
+  `news_nowcast_old` and `news_nowcast_new` for the first quarter and
+  adds `news_periods`, `news_nowcasts_old` and `news_nowcasts_new` for
+  all of them. An old fit that is not padded gives one quarter, as
+  before.
+
 - **[`mfbdfm_news()`](https://philippkronenberg.github.io/mfbdfm/reference/mfbdfm_news.md)
   decomposes a nowcast revision into the news in each newly released
   observation**

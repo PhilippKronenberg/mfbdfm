@@ -68,7 +68,8 @@ For the latest unobserved nowcast (annualised percentage points), and
 for an
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md)
 fit also for the latest weekly factor value and the mean of the latest
-13 weeks:
+13 weeks. With `extend_to`, "latest" means the latest *observed* week
+and the latest quarter in `fit$nowcast`, not the forecast beyond them:
 
 - `ess`:
 

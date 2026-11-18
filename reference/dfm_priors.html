@@ -128,6 +128,14 @@ size in pseudo-observations, <code>d0</code> is the sum of squares they carry, a
 <code>d0 / c0</code> is roughly the prior's guess at the variance.</p>
     </div>
     <div class="section level2">
+    <h2 id="fat-tailed-measurement-errors">Fat-tailed measurement errors<a class="anchor" aria-label="anchor" href="#fat-tailed-measurement-errors"></a></h2>
+    <p>With <code>ind_dfm(fat_tails = TRUE)</code>, <code>kappa = list(nu = 5)</code> sets the degrees of
+freedom of the Student-t measurement errors of the non-target series: each
+innovation's variance is <code>sigma * kappa</code>, <code>kappa ~ IG(nu/2, nu/2)</code>. Smaller
+<code>nu</code> means heavier tails; the Gaussian model is <code>fat_tails = FALSE</code>. It is not
+moved by <code>type</code>.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="ind_dfm.html">ind_dfm()</a></code>, <code><a href="fcast_dfm.html">fcast_dfm()</a></code></p>
 <p>Other model specification:
@@ -148,6 +156,7 @@ size in pseudo-observations, <code>d0</code> is the sum of squares they carry, a
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi           a0 = 0, A0 = &lt;from data&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   omega         k0 = &lt;from data&gt;, l0 = &lt;from data&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   factor_var    c0 = 3, d0 = 0.01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   kappa         nu = 5</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;from data&gt; entries follow the model's published rule in terms of t or p.</span>
 <span class="r-in"><span></span></span>
@@ -163,6 +172,7 @@ size in pseudo-observations, <code>d0</code> is the sum of squares they carry, a
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phi           a0 = 0, A0 = 1000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   omega         k0 = 3, l0 = 1e-09</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   factor_var    c0 = 3, d0 = 1e-09</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   kappa         nu = 5</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;from data&gt; entries follow the model's published rule in terms of t or p.</span>
 <span class="r-in"><span></span></span>

@@ -69,6 +69,7 @@ nowcasts are derived for every input series.</p>
 <span>  extend <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  stochastic_volatility <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  serial_correlation <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  fat_tails <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  ncores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  priors <span class="op">=</span> <span class="fu"><a href="dfm_priors.html">dfm_priors</a></span><span class="op">(</span><span class="st">"fcast_dfm"</span><span class="op">)</span>,</span>
 <span>  control <span class="op">=</span> <span class="cn">NULL</span></span>
@@ -138,6 +139,11 @@ factor state equation.</p></dd>
 <dt id="arg-serial-correlation">serial_correlation<a class="anchor" aria-label="anchor" href="#arg-serial-correlation"></a></dt>
 <dd><p>Logical, model serial correlation in the
 measurement errors. If <code>FALSE</code>, the autocorrelations are fixed near zero.</p></dd>
+
+
+<dt id="arg-fat-tails">fat_tails<a class="anchor" aria-label="anchor" href="#arg-fat-tails"></a></dt>
+<dd><p>Logical. Student-t measurement errors, as in <code><a href="ind_dfm.html">ind_dfm()</a></code>.
+Not implemented for this model yet: <code>TRUE</code> is an error. Default <code>FALSE</code>.</p></dd>
 
 
 <dt id="arg-ncores">ncores<a class="anchor" aria-label="anchor" href="#arg-ncores"></a></dt>

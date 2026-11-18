@@ -22,6 +22,7 @@ ind_dfm(
   extend_to = NULL,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
+  fat_tails = FALSE,
   priors = dfm_priors("ind_dfm"),
   control = NULL
 )
@@ -89,6 +90,25 @@ ind_dfm(
   Logical. If `TRUE` (default) the measurement errors are allowed to be
   serially correlated and their autocorrelations are drawn. If `FALSE`
   they are held at (effectively) zero.
+
+- fat_tails:
+
+  Logical. If `TRUE`, the measurement errors of every series except
+  `target` are Student-t rather than Gaussian: each innovation gets its
+  own variance multiplier `kappa ~ IG(nu/2, nu/2)`, drawn from the data,
+  so a single observation far from what the factor implies is
+  down-weighted instead of setting the series' loading (Antolin-Diaz,
+  Drechsel and Petrella 2024). `nu` is `priors$kappa$nu`, 5 by default;
+  see
+  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md).
+  The posterior mean of `kappa` is returned as `$kappa`. Default
+  `FALSE`, the published model. Compare it with the Gaussian fit before
+  relying on it: when the loadings are identified mainly by one large
+  common episode, such as the COVID-19 recession, the errors can explain
+  that episode as an outlier in each series separately. The loadings
+  then shrink towards zero and the factor loses its tie to the
+  indicators. On the Swiss WAI panel this made the backcast markedly
+  worse.
 
 - priors:
 
@@ -250,6 +270,13 @@ An object of class `"ind_dfm"`: a list with components
   not part of the API, and present on
   [`fcast_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/fcast_dfm.md)
   fits too so the two agree.
+
+- kappa:
+
+  Only with `fat_tails = TRUE`: `ts` matrix, periods by series, of the
+  posterior mean of each observation's variance multiplier. Well above 1
+  marks an observation the model treated as an outlier for that series;
+  the target's column is 1.
 
 - call:
 

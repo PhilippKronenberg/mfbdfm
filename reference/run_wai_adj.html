@@ -62,7 +62,9 @@ evaluation date.</p>
 <span>  thinning <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  stochastic_volatility <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  serial_correlation <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  output_dir <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  fat_tails <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  extend_to <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -123,10 +125,37 @@ errors are allowed to be serially correlated and their autocorrelations
 are drawn. If <code>FALSE</code> they are held at (effectively) zero.</p></dd>
 
 
+<dt id="arg-fat-tails">fat_tails<a class="anchor" aria-label="anchor" href="#arg-fat-tails"></a></dt>
+<dd><p>Logical. If <code>TRUE</code>, the measurement errors of every series
+except <code>target</code> are Student-t rather than Gaussian: each innovation gets
+its own variance multiplier <code>kappa ~ IG(nu/2, nu/2)</code>, drawn from the data,
+so a single observation far from what the factor implies is down-weighted
+instead of setting the series' loading (Antolin-Diaz, Drechsel and
+Petrella 2024). <code>nu</code> is <code>priors$kappa$nu</code>, 5 by default; see
+<code><a href="dfm_priors.html">dfm_priors()</a></code>. The posterior mean of <code>kappa</code> is returned as <code>$kappa</code>.
+Default <code>FALSE</code>, the published model. Compare it with the Gaussian fit
+before relying on it: when the loadings are identified mainly by one
+large common episode, such as the COVID-19 recession, the errors can
+explain that episode as an outlier in each series separately. The
+loadings then shrink towards zero and the factor loses its tie to the
+indicators. On the Swiss WAI panel this made the backcast markedly worse.</p></dd>
+
+
 <dt id="arg-output-dir">output_dir<a class="anchor" aria-label="anchor" href="#arg-output-dir"></a></dt>
 <dd><p>Directory to save the fit to, or <code>NULL</code> (default) to
 skip saving. When given, the fit is saved as
 <code>file.path(output_dir, dataset_used, "fit_&lt;date&gt;.Rda")</code>.</p></dd>
+
+
+<dt id="arg-extend-to">extend_to<a class="anchor" aria-label="anchor" href="#arg-extend-to"></a></dt>
+<dd><p>Numeric (decimal time) or <code>NULL</code> (default). Passed to
+<code><a href="ind_dfm.html">ind_dfm()</a></code>, which pads the panel to this date so the factor is forecast
+past the data. When given, the factor and its variance are kept up to
+<code>extend_to</code> instead of being cut at <code>date</code>, and <code>fit$internal$t2</code> records
+where the observed data ends. The nowcast is cut, as without it, at the
+quarter after the last published GDP; the padding only guarantees that
+quarter is there, which without it happens only once the data covers the
+whole quarter.</p></dd>
 
 </dl></div>
     <div class="section level2">

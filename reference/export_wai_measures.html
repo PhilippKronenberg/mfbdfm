@@ -134,7 +134,15 @@ up to that group's row of <code>wai_contributions.csv</code>.</p>
 (last week's fit) to <code>news_new_data</code> (this week's data), aggregated to the
 groups and mapped onto annualised quarterly growth the same way: shares of
 <code>G(new) - G(old)</code>, <code>G(x) = ((1 + x)^4 - 1) * 100</code>, which sum exactly to the
-revision. Written only when both arguments are given.</p>
+revision. Written only when both arguments are given. Long, one block per
+quarter: <code>period,component,impact</code>, where <code>period</code> is the first week of the
+quarter. Each block is the revision of that quarter's GDP nowcast, growth over
+the whole quarter. On an old fit padded with <code>extend_to</code> there is a block for
+every quarter from the first without published GDP to the running one, as far
+as the old fit reaches; otherwise one block, <code><a href="mfbdfm_news.html">mfbdfm_news()</a></code>'s default. The
+metadata keeps <code>news_period</code>, <code>news_nowcast_old</code> and <code>news_nowcast_new</code> for the
+first quarter and adds <code>news_periods</code>, <code>news_nowcasts_old</code> and
+<code>news_nowcasts_new</code> for all of them, in order.</p>
 <p><strong>Series (<code>wai_series.csv</code>).</strong> One row per input series: name and group,
 frequency, the R-squared from <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> and the loading standardised by its
 aggregation weights, target = 1, with its 95% band, as in

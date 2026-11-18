@@ -20,7 +20,9 @@ run_wai_adj(
   thinning = 1,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
-  output_dir = NULL
+  fat_tails = FALSE,
+  output_dir = NULL,
+  extend_to = NULL
 )
 ```
 
@@ -78,11 +80,42 @@ run_wai_adj(
   serially correlated and their autocorrelations are drawn. If `FALSE`
   they are held at (effectively) zero.
 
+- fat_tails:
+
+  Logical. If `TRUE`, the measurement errors of every series except
+  `target` are Student-t rather than Gaussian: each innovation gets its
+  own variance multiplier `kappa ~ IG(nu/2, nu/2)`, drawn from the data,
+  so a single observation far from what the factor implies is
+  down-weighted instead of setting the series' loading (Antolin-Diaz,
+  Drechsel and Petrella 2024). `nu` is `priors$kappa$nu`, 5 by default;
+  see
+  [`dfm_priors()`](https://philippkronenberg.github.io/mfbdfm/reference/dfm_priors.md).
+  The posterior mean of `kappa` is returned as `$kappa`. Default
+  `FALSE`, the published model. Compare it with the Gaussian fit before
+  relying on it: when the loadings are identified mainly by one large
+  common episode, such as the COVID-19 recession, the errors can explain
+  that episode as an outlier in each series separately. The loadings
+  then shrink towards zero and the factor loses its tie to the
+  indicators. On the Swiss WAI panel this made the backcast markedly
+  worse.
+
 - output_dir:
 
   Directory to save the fit to, or `NULL` (default) to skip saving. When
   given, the fit is saved as
   `file.path(output_dir, dataset_used, "fit_<date>.Rda")`.
+
+- extend_to:
+
+  Numeric (decimal time) or `NULL` (default). Passed to
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
+  which pads the panel to this date so the factor is forecast past the
+  data. When given, the factor and its variance are kept up to
+  `extend_to` instead of being cut at `date`, and `fit$internal$t2`
+  records where the observed data ends. The nowcast is cut, as without
+  it, at the quarter after the last published GDP; the padding only
+  guarantees that quarter is there, which without it happens only once
+  the data covers the whole quarter.
 
 ## Value
 

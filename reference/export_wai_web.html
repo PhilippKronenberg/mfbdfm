@@ -108,8 +108,10 @@ metadata. Defaults to the last observation date.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Invisibly, a list with elements <code>data</code> (the wide data frame) and
-<code>meta</code> (the metadata list). Writes files only when <code>dir</code> is given.</p>
+    <p>Invisibly, a list with elements <code>data</code> (the wide data frame of
+observed weeks), <code>forecast</code> (the forecast weeks, a data frame with no rows
+when the fit has no forecast) and <code>meta</code> (the metadata list). Writes files
+only when <code>dir</code> is given.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -156,6 +158,21 @@ rate. The level bounds that <code><a href="extract_wai_data.html">extract_wai_da
 are the index scaled by a <em>single</em> period of growth at each bound, not a
 compounded level interval, so publishing them next to <code>wai_index</code> would
 present something that looks like a level confidence band and is not one.</p>
+<p><strong>The forecast goes to its own file, <code>wai_forecast.csv</code>.</strong> A fit made with
+<code>extend_to</code> (see <code><a href="run_wai_adj.html">run_wai_adj()</a></code>) carries the factor past the last observed
+week. Those weeks are written to <code>wai_forecast.csv</code> with the same columns as
+<code>wai_data.csv</code> minus the GDP ones, and never into <code>wai_data.csv</code>, which stays
+the record of estimates from data: its last row is the latest week with data,
+as people who download it rely on. Without a forecast the file is not
+written.</p>
+<p>The quarterly columns differ between the two files on purpose. In
+<code>wai_data.csv</code> the running quarter's <code>wai_qoq_q</code> sits on the latest week and
+averages only the weeks observed so far: the quarter <strong>to date</strong>. In
+<code>wai_forecast.csv</code> it sits on the quarter's last week and averages the
+observed and the forecast weeks together: the <strong>whole quarter</strong>, as GDP will
+measure it. <code>wai_meta.json</code> records <code>weeks_observed</code> (the running quarter's
+observed weeks), <code>weeks_per_quarter</code> and <code>forecast_end</code>, so the page can say
+which is which.</p>
 <p>Missing values are written as the empty string rather than <code>NA</code> or <code>NaN</code>, so
 that the front end's parser does not have to know R's spelling of missing.
 Numbers use <code>.</code> as the decimal separator and no thousands separator, rows are

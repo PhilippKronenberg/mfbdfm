@@ -86,6 +86,14 @@ is `c1 = c0 + t` and `d1 = d0 + sum(residuals^2)`. So `c0` is a prior
 sample size in pseudo-observations, `d0` is the sum of squares they
 carry, and `d0 / c0` is roughly the prior's guess at the variance.
 
+## Fat-tailed measurement errors
+
+With `ind_dfm(fat_tails = TRUE)`, `kappa = list(nu = 5)` sets the
+degrees of freedom of the Student-t measurement errors of the non-target
+series: each innovation's variance is `sigma * kappa`,
+`kappa ~ IG(nu/2, nu/2)`. Smaller `nu` means heavier tails; the Gaussian
+model is `fat_tails = FALSE`. It is not moved by `type`.
+
 ## See also
 
 [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md),
@@ -109,6 +117,7 @@ dfm_priors("ind_dfm")
 #>   phi           a0 = 0, A0 = <from data>
 #>   omega         k0 = <from data>, l0 = <from data>
 #>   factor_var    c0 = 3, d0 = 0.01
+#>   kappa         nu = 5
 #> 
 #> <from data> entries follow the model's published rule in terms of t or p.
 
@@ -124,6 +133,7 @@ dfm_priors("ind_dfm", type = "uninformative")
 #>   phi           a0 = 0, A0 = 1000
 #>   omega         k0 = 3, l0 = 1e-09
 #>   factor_var    c0 = 3, d0 = 1e-09
+#>   kappa         nu = 5
 #> 
 #> <from data> entries follow the model's published rule in terms of t or p.
 

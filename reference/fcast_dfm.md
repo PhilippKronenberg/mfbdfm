@@ -22,6 +22,7 @@ fcast_dfm(
   extend = NULL,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
+  fat_tails = FALSE,
   ncores = NULL,
   priors = dfm_priors("fcast_dfm"),
   control = NULL
@@ -90,6 +91,13 @@ fcast_dfm(
 
   Logical, model serial correlation in the measurement errors. If
   `FALSE`, the autocorrelations are fixed near zero.
+
+- fat_tails:
+
+  Logical. Student-t measurement errors, as in
+  [`ind_dfm()`](https://philippkronenberg.github.io/mfbdfm/reference/ind_dfm.md).
+  Not implemented for this model yet: `TRUE` is an error. Default
+  `FALSE`.
 
 - ncores:
 
