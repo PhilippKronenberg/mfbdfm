@@ -635,3 +635,37 @@ test_that("a fit cannot be continued onto a different specification", {
                          control = ctl(starting_values = leg1)),
                "stochastic_volatility")
 })
+
+test_that("ind_dfm(fat_tails = TRUE) returns the multipliers and is seed-deterministic (#180)", {
+  run <- function(seed) suppressMessages(ind_dfm(
+    mfbdfm_example_data, length_sample = 20, burn_in = 5, fat_tails = TRUE,
+    control = dfm_control("ind_dfm", verbose = FALSE, seed = seed)))
+  a <- run(7); b <- run(7)
+  expect_identical(a$nowcast, b$nowcast)
+  expect_identical(a$kappa, b$kappa)
+  expect_s3_class(a$kappa, "ts")
+  expect_equal(dim(a$kappa), dim(a$data))
+  expect_equal(colnames(a$kappa), as.character(a$inventory$key))
+  expect_true(all(a$kappa[, a$target] == 1))
+  expect_true(all(is.finite(a$kappa)) && all(a$kappa > 0))
+  expect_equal(dim(a$internal$kappa_weight), dim(a$data))
+  expect_equal(a$priors$kappa$nu, 5)
+  expect_true(all(is.finite(a$nowcast)))
+  expect_no_error(mfbdfm_contributions(a))
+})
+
+test_that("without fat tails the fit carries no kappa (#180)", {
+  fit <- suppressMessages(ind_dfm(mfbdfm_example_data, length_sample = 10, burn_in = 2,
+                                  control = dfm_control("ind_dfm", verbose = FALSE, seed = 1)))
+  expect_null(fit$kappa)
+  expect_null(fit$internal$kappa_weight)
+  expect_null(fit$priors$kappa)
+})
+
+test_that("fat_tails is validated, and fcast_dfm() says it does not have it yet (#180)", {
+  expect_error(ind_dfm(mfbdfm_example_data, fat_tails = NA), "`fat_tails` must be TRUE or FALSE")
+  expect_error(ind_dfm(mfbdfm_example_data, fat_tails = TRUE,
+                       priors = dfm_priors("ind_dfm", kappa = list(nu = -1))),
+               "single positive finite number")
+  expect_error(fcast_dfm(mfbdfm_example_data, fat_tails = TRUE), "ind_dfm() only so far", fixed = TRUE)
+})

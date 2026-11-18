@@ -161,3 +161,46 @@ test_that("a rho prior narrower than the grid is honoured, whatever the start (#
   expect_true(any(low))
   expect_lt(max(abs(fit$pars$rho[low])), 1e-3)
 })
+
+test_that("draw_low_frequency() with every kappa at 1 is the Gaussian draw (#180)", {
+  inv <- data.frame(key = c("wk", "mo"), type = c("flow", "stock"), freq = c(48, 12),
+                    stringsAsFactors = FALSE)
+  t <- 40L; s <- 6L; ix <- 2L
+  Llist <- mfbdfm:::get_distributed_lags(inv)
+  set.seed(180)
+  f <- as.numeric(stats::arima.sim(list(ar = 0.6), t + s, sd = 0.5))
+  tau <- seq(4, t, by = 4)
+  Y <- matrix(0, t, 2); Y[, 1] <- 1; Y[tau, ix] <- rnorm(length(tau))
+  obs <- mfbdfm:::series_obs(Y, ix, Llist, t, s)
+  args <- list(obs, f = f, lambda = 0.8, rho = 0.3, draw_rho = TRUE,
+               prior_sigma = list(c0 = 6, d0 = 2), prior_rho = list(r0 = 0, R0 = 0.5),
+               prior_lambda = list(b0 = 0, B0 = 1), control = dfm_control("ind_dfm"))
+  set.seed(1); g <- do.call(mfbdfm:::draw_low_frequency, args)
+  set.seed(1); k <- do.call(mfbdfm:::draw_low_frequency,
+                            c(args, list(kappa = rep(1, length(tau)), nu = 5)))
+  expect_equal(k[c("lambda", "sigma", "rho")], g[c("lambda", "sigma", "rho")])
+  expect_length(k$kappa, length(tau))
+  expect_true(all(k$kappa > 0))
+})
+
+test_that("draw_kappa() draws from the conjugate inverse-gamma, and only the series asked (#180)", {
+  n <- 2L; t <- 4001L; nu <- 5; sig <- 0.5
+  set.seed(181)
+  u <- c(0.1, 2)                                   # a small and a large residual
+  X <- rbind(rep(u, length.out = t - 1), 0)           # series 1 alternates small, large
+  kappa <- matrix(7, t, n)
+  out <- mfbdfm:::draw_kappa(Xvec_tilde = as.numeric(X), Gmat = Matrix::Matrix(0, n*(t - 1), 1),
+                             f = matrix(0, 1, 1), n = n, t = t, x1 = c(0.1, 0.1),
+                             sigma = Matrix::Diagonal(x = c(sig, 1)), kappa = kappa,
+                             ix = 1L, nu = nu)
+  expect_equal(out[, 2], rep(7, t))                # not asked: untouched
+  r <- X[1, ]                                      # series 1's residuals, weeks 2..t
+  w <- 1/out[-1, 1]
+  for(v in unique(r)){
+    sel <- r == v
+    # E[1/kappa] = shape/rate = (nu + 1)/(nu + v^2/sigma)
+    expect_equal(mean(w[sel]), (nu + 1)/(nu + v^2/sig), tolerance = 0.05)
+  }
+  # an outlier gets a smaller weight than an ordinary observation
+  expect_lt(mean(w[r == max(r)]), mean(w[r == min(r)]))
+})

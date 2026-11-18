@@ -17,6 +17,7 @@ fcast_dfm(
   extend = NULL,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
+  fat_tails = FALSE,
   ncores = NULL,
   priors = dfm_priors("fcast_dfm"),
   control = NULL
@@ -59,6 +60,9 @@ factor state equation.}
 
 \item{serial_correlation}{Logical, model serial correlation in the
 measurement errors. If \code{FALSE}, the autocorrelations are fixed near zero.}
+
+\item{fat_tails}{Logical. Student-t measurement errors, as in \code{\link[=ind_dfm]{ind_dfm()}}.
+Not implemented for this model yet: \code{TRUE} is an error. Default \code{FALSE}.}
 
 \item{ncores}{Integer or \code{NULL}. Number of cores for the rotation step,
 which is run in parallel via \pkg{doParallel} when supplied.}

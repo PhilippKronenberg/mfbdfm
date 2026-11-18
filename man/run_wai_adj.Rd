@@ -16,6 +16,7 @@ run_wai_adj(
   thinning = 1,
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
+  fat_tails = FALSE,
   output_dir = NULL,
   extend_to = NULL
 )
@@ -51,6 +52,15 @@ it is a single constant variance, \strong{still estimated} rather than fixed
 \item{serial_correlation}{Logical. If \code{TRUE} (default) the measurement
 errors are allowed to be serially correlated and their autocorrelations
 are drawn. If \code{FALSE} they are held at (effectively) zero.}
+
+\item{fat_tails}{Logical. If \code{TRUE}, the measurement errors of every series
+except \code{target} are Student-t rather than Gaussian: each innovation gets
+its own variance multiplier \code{kappa ~ IG(nu/2, nu/2)}, drawn from the data,
+so a single observation far from what the factor implies is down-weighted
+instead of setting the series' loading (Antolin-Diaz, Drechsel and
+Petrella 2024). \code{nu} is \code{priors$kappa$nu}, 5 by default; see
+\code{\link[=dfm_priors]{dfm_priors()}}. The posterior mean of \code{kappa} is returned as \verb{$kappa}.
+Default \code{FALSE}, the published model.}
 
 \item{output_dir}{Directory to save the fit to, or \code{NULL} (default) to
 skip saving. When given, the fit is saved as

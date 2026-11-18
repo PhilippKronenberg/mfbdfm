@@ -20,6 +20,7 @@ NMIX_SD   <- sqrt(NMIX_VAR)
 run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, thinning,
                          inventory, plots,Gmat_prealloc, fdat,
                          stochastic_volatility = TRUE, serial_correlation = TRUE,
+                         fat_tails = FALSE,
                          priors = dfm_priors("ind_dfm"),
                          control = dfm_control("ind_dfm"),
                          verbose = TRUE,
@@ -43,6 +44,9 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                    # panel). Summed in draw order, it equals Reduce("+") exactly.
                    "Xmat_sum" = NULL,
                    "Xmat_n" = 0L,
+                   # posterior mean of the fat-tail multipliers, as a running
+                   # sum like Xmat's; NULL when fat_tails = FALSE (#180)
+                   "kappa_sum" = NULL,
                    "ncast" = vector(mode = "list", length = length_sample))
 
   # burn-in parameter draws, kept only on request (#110). Parameters only: the
@@ -87,12 +91,16 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   Xmat = init("Xmat", matrix(rnorm(t*n), t, n))
   indicators = init("indicators",
                     replicate(t+s, sample(x = 1:7, size = 1, prob = rep(1/7,7))))
+  # the fat-tail multipliers start at 1, which consumes no random numbers, so a
+  # chain with fat_tails = FALSE draws exactly the stream it always did (#180)
+  kappa <- if(fat_tails) init("kappa", matrix(1, t, n)) else NULL
 
   ctx <- sweep_context(Ymat = Ymat, target = target, n = n, t = t, t2 = t2, p = p, s = s,
                        inventory = inventory, Gmat_prealloc = Gmat_prealloc,
                        priors = priors, control = control,
                        stochastic_volatility = stochastic_volatility,
-                       serial_correlation = serial_correlation)
+                       serial_correlation = serial_correlation,
+                       fat_tails = fat_tails)
   rho_tally <- ctx$rho_tally
 
   # initialize progress bar; NULL when quiet, since the bar writes with cat()
@@ -107,7 +115,7 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   }
 
   state <- list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
-                omega = omega, Xmat = Xmat, indicators = indicators)
+                omega = omega, Xmat = Xmat, indicators = indicators, kappa = kappa)
 
   # loop until sampling complete
   for(jx in 1:(burn_in + length_sample*thinning)){
@@ -117,7 +125,7 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
     state <- gibbs_sweep(state, ctx)
     f <- state$f; lambda <- state$lambda; phi <- state$phi; sigma <- state$sigma
     rho <- state$rho; h <- state$h; omega <- state$omega; Xmat <- state$Xmat
-    indicators <- state$indicators
+    indicators <- state$indicators; kappa <- state$kappa
 
     # 3. check convergence
     if(plots == TRUE){
@@ -171,6 +179,12 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
       par_save$rho[[(jx - burn_in)/thinning]] <- diag(rho)
       par_save$Xmat_sum <- if(is.null(par_save$Xmat_sum)) Xmat else par_save$Xmat_sum + Xmat
       par_save$Xmat_n <- par_save$Xmat_n + 1L
+      if(fat_tails){
+        par_save$kappa_sum <- if(is.null(par_save$kappa_sum)) kappa else par_save$kappa_sum + kappa
+        # the weight 1/kappa is what the plug-in precision of contributions,
+        # news and logLik() needs, and E[1/kappa] is not 1/E[kappa]
+        par_save$kappa_inv_sum <- if(is.null(par_save$kappa_inv_sum)) 1/kappa else par_save$kappa_inv_sum + 1/kappa
+      }
       par_save$ncast[[(jx - burn_in)/thinning]] <- get_nowcast(Xmat_full = ts(Xmat,
                                                                      start = time(Ymat)[1],
                                                                      frequency = frequency(Ymat)),
@@ -204,6 +218,7 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                                sigma = sigma, rho = rho, h = h,
                                omega = omega, Xmat = Xmat,
                                indicators = indicators)
+  if(fat_tails) par_save$final_state$kappa <- kappa
 
   return(par_save)
 
@@ -218,7 +233,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
 #'
 #' @noRd
 sweep_context <- function(Ymat, target, n, t, t2, p, s, inventory, Gmat_prealloc,
-                          priors, control, stochastic_volatility, serial_correlation){
+                          priors, control, stochastic_volatility, serial_correlation,
+                          fat_tails = FALSE){
 
   Smat <- Diagonal(x = sapply(1:t, function(tx) as.integer(Ymat[tx,] != 0)))
   V1 <- solve(Diagonal(x = 1e-9, n = t*n))
@@ -239,13 +255,27 @@ sweep_context <- function(Ymat, target, n, t, t2, p, s, inventory, Gmat_prealloc
   list(Gmat_prealloc = Gmat_prealloc, Llist = Llist,
        low_ix = low_ix,
        low_obs = lapply(low_ix, function(ix) series_obs(Ymat, ix, Llist, t, s)),
+       # for each low-frequency series, the observation period each week belongs
+       # to: weeks up to the first observation are period 1, weeks after the
+       # last are NA (#180)
+       low_period = lapply(low_ix, function(ix){
+         tau <- which(Ymat[, ix] != 0)
+         j <- findInterval(seq_len(t), tau, left.open = TRUE) + 1L
+         j[j > length(tau)] <- NA_integer_
+         j
+       }),
        inventory = inventory, target = target, n = n, t = t, t2 = t2, p = p, s = s,
        StV1S = StV1S, StV1SY = StV1SY, NtN = NtN, priors = priors, control = control,
        target_obs = series_obs(Ymat, which(inventory$key == target), Llist, t, s),
        # tally of rho stationarity-screen fallbacks, reported once after the chain
        rho_tally = new_rho_tally(inventory$key),
        stochastic_volatility = stochastic_volatility,
-       serial_correlation = serial_correlation)
+       serial_correlation = serial_correlation,
+       fat_tails = fat_tails,
+       # weekly series that get one fat-tail multiplier per week; the
+       # low-frequency ones get one per observation period instead, drawn in
+       # draw_low_frequency(), and the target none (#180)
+       kappa_weekly_ix = setdiff(seq_len(n), c(low_ix, which(inventory$key == target))))
 
 }
 
@@ -363,11 +393,18 @@ draw_series_latent <- function(obs, gf_ix, rho, sigma, t){
 #' @noRd
 #' @importFrom stats rgamma rnorm runif
 draw_low_frequency <- function(obs, f, lambda, rho, draw_rho, prior_sigma, prior_rho,
-                               prior_lambda, control, grid_size = 401L){
+                               prior_lambda, control, grid_size = 401L,
+                               kappa = NULL, nu = NULL){
 
   m <- length(obs$y)
   c0 <- prior_sigma$c0
   d0 <- prior_sigma$d0
+  # fat tails (#180): observation j's error has variance sigma * w_j * kappa_j.
+  # kappa enters every sum below as a weight 1/kappa_j; its log does not depend
+  # on rho, so the density's log(w) term is unchanged. With kappa = NULL every
+  # line is exactly the Gaussian one.
+  fat <- !is.null(kappa)
+  ik <- if(fat) 1/kappa else 1
 
   # the errors at the observation dates, and what each one follows: period 1's
   # is -lambda * B1 f, as period 1 has mean zero rather than the fitted value
@@ -383,6 +420,11 @@ draw_low_frequency <- function(obs, f, lambda, rho, draw_rho, prior_sigma, prior
   key <- paste(gaps, first)
   groups <- split(seq_len(m), key)
   stats_g <- lapply(groups, function(idx){
+    if(fat){
+      k <- ik[idx]
+      return(list(g = gaps[idx[1]], w_g = gaps[idx[1]] + as.integer(first[idx[1]]), n = length(idx),
+                  s11 = sum(k * e[idx]^2), s10 = sum(k * e[idx] * e0[idx]), s00 = sum(k * e0[idx]^2)))
+    }
     list(g = gaps[idx[1]], w_g = gaps[idx[1]] + as.integer(first[idx[1]]), n = length(idx),
          s11 = sum(e[idx]^2), s10 = sum(e[idx] * e0[idx]), s00 = sum(e0[idx]^2))
   })
@@ -445,11 +487,18 @@ draw_low_frequency <- function(obs, f, lambda, rho, draw_rho, prior_sigma, prior
   w <- skip_weights(rho, gaps + as.integer(first))
   x <- fb - rg * c(fb1, fb[-m])
   r <- obs$y - rg * c(0, obs$y[-m])
+  if(fat) w <- w * kappa
   prec <- 1/prior_lambda$B0 + sum(x^2/w)/sigma
   mu <- (prior_lambda$b0/prior_lambda$B0 + sum(x*r/w)/sigma)/prec
   lambda <- mu + rnorm(1)/sqrt(prec)
 
-  list(lambda = lambda, sigma = sigma, rho = rho)
+  # 4. kappa | lambda, rho, sigma, f, y: one per observation, conjugate
+  if(fat){
+    w0 <- w / kappa
+    kappa <- 1/rgamma(m, shape = (nu + 1)/2, rate = (nu + (r - lambda*x)^2/(sigma*w0))/2)
+  }
+
+  list(lambda = lambda, sigma = sigma, rho = rho, kappa = kappa)
 
 }
 
@@ -470,6 +519,8 @@ gibbs_sweep <- function(state, ctx){
 
   f <- state$f; lambda <- state$lambda; phi <- state$phi; sigma <- state$sigma
   rho <- state$rho; h <- state$h; omega <- state$omega; indicators <- state$indicators
+  # NULL unless fat_tails = TRUE; every draw below then runs its Gaussian code
+  kappa <- if(isTRUE(ctx$fat_tails)) state$kappa else NULL
 
   n <- ctx$n; t <- ctx$t; t2 <- ctx$t2; p <- ctx$p; s <- ctx$s
   Llist <- ctx$Llist; inventory <- ctx$inventory; target <- ctx$target
@@ -479,7 +530,8 @@ gibbs_sweep <- function(state, ctx){
 
   # 0. augment data
   Xmat <- draw_augmented_data(Gmat = Gmat, f = f, rho = rho, sigma = sigma, n = n, t = t,
-                              StV1S = ctx$StV1S, StV1SY = ctx$StV1SY, return_sample = TRUE)
+                              StV1S = ctx$StV1S, StV1SY = ctx$StV1SY, return_sample = TRUE,
+                              kappa = kappa)
 
   # quasi-differenced data used identically by draw_factors/draw_lambda/draw_sigma
   # below (Xmat and rho are unchanged across these three calls) - compute once
@@ -509,13 +561,14 @@ gibbs_sweep <- function(state, ctx){
                     sigma = sigma,
                     h = h,
                     collapsed_ix = tx,
-                    collapsed = list(target_reg))
+                    collapsed = list(target_reg),
+                    kappa = kappa)
 
   # draw_factors() does not condition on the rows past t2, so they are redrawn
   # given the new f before anything below uses them.
   if(t2 < t){
     Xmat <- draw_horizon_rows(Xmat, Gmat = Gmat, f = f, rho = rho, sigma = sigma,
-                              n = n, t = t, t2 = t2)
+                              n = n, t = t, t2 = t2, kappa = kappa)
   }
 
   gf <- as.numeric(Gmat %*% f)
@@ -563,14 +616,23 @@ gibbs_sweep <- function(state, ctx){
                         n = n, t = t,
                         inventory = inventory,
                         target = target,
-                        prior = priors$lambda)
+                        prior = priors$lambda,
+                        kappa = kappa)
 
   # sigma conditions on the lambda just drawn
   Gmat <- get_gmat(ctx$Gmat_prealloc, Llist, rho, lambda, s, t, n)
   sigma <- draw_sigma(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
                       x1 = Xmat[1,], inventory = inventory, target = target, sigma = sigma,
                       prior_target = priors$sigma_target,
-                      prior_other = priors$sigma_other, control = control)
+                      prior_other = priors$sigma_other, control = control,
+                      kappa = kappa)
+
+  # the weekly series' fat-tail multipliers, given the sigma just drawn (#180)
+  if(!is.null(kappa)){
+    kappa <- draw_kappa(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
+                        x1 = Xmat[1,], sigma = sigma, kappa = kappa,
+                        ix = ctx$kappa_weekly_ix, nu = priors$kappa$nu)
+  }
   phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi, prior = priors$phi, control = control)
 
   # omega (the variance of h's own innovations) exists solely to draw a
@@ -583,7 +645,7 @@ gibbs_sweep <- function(state, ctx){
                     lambda = lambda, Llist = Llist, inventory = inventory, target = target,
                     prior_target = priors$rho_target, prior_other = priors$rho_other,
                     control = control, tally = ctx$rho_tally,
-                    skip = ctx$low_ix, rho_old = diag(rho))
+                    skip = ctx$low_ix, rho_old = diag(rho), kappa = kappa)
   }
 
   # Low-frequency series: rho, sigma and lambda again, this time from the
@@ -599,22 +661,38 @@ gibbs_sweep <- function(state, ctx){
     fv <- as.numeric(f)
     for(j in seq_along(ctx$low_ix)){
       ix <- ctx$low_ix[j]
-      draw <- draw_low_frequency(ctx$low_obs[[j]], f = fv, lambda = lam[ix], rho = rh[ix],
+      obs <- ctx$low_obs[[j]]
+      # observation j's multiplier sits in every week of its period, so the
+      # cell at its own date holds it
+      k_obs <- if(!is.null(kappa)) kappa[obs$tau, ix] else NULL
+      draw <- draw_low_frequency(obs, f = fv, lambda = lam[ix], rho = rh[ix],
                                  draw_rho = ctx$serial_correlation,
                                  prior_sigma = priors$sigma_other,
                                  prior_rho = priors$rho_other,
-                                 prior_lambda = priors$lambda, control = control)
+                                 prior_lambda = priors$lambda, control = control,
+                                 kappa = k_obs, nu = priors$kappa$nu)
       lam[ix] <- draw$lambda
       sig[ix] <- draw$sigma
       rh[ix] <- draw$rho
+      if(!is.null(kappa)){
+        # weeks after the last observation are informed by nothing once the
+        # latent weeks are integrated out, so theirs come from the prior
+        per <- ctx$low_period[[j]]
+        kc <- draw$kappa[per]
+        miss <- is.na(per)
+        kc[miss] <- 1/rgamma(sum(miss), shape = priors$kappa$nu/2, rate = priors$kappa$nu/2)
+        kappa[, ix] <- kc
+      }
     }
     lambda <- Matrix(lam, n, 1)
     sigma <- Diagonal(x = sig)
     rho <- Diagonal(x = rh)
   }
 
-  list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
-       omega = omega, Xmat = Xmat, indicators = indicators)
+  out <- list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
+              omega = omega, Xmat = Xmat, indicators = indicators)
+  if(!is.null(kappa)) out$kappa <- kappa
+  out
 
 }
 
@@ -624,7 +702,7 @@ gibbs_sweep <- function(state, ctx){
 #' @noRd
 #' @importFrom stats rnorm
 draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return_sample = TRUE,
-                         collapsed_ix = integer(), collapsed = list()){
+                         collapsed_ix = integer(), collapsed = list(), kappa = NULL){
 
   # See section 2.5 Estimation
   H <- Reduce("+",lapply(1:p, function(px){
@@ -644,7 +722,12 @@ draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return
   # series in collapsed_ix enter through their own observations below instead
   sigma_inv <- 1/diag(sigma)
   sigma_inv[collapsed_ix] <- 0
-  Svec_sigma_inv <- Diagonal(x = Svec) %x% Diagonal(x = sigma_inv)
+  Svec_sigma_inv <- if(is.null(kappa)){
+    Diagonal(x = Svec) %x% Diagonal(x = sigma_inv)
+  } else {
+    # rows 2..t, stacked series within week, each over sigma_i * kappa_it (#180)
+    Diagonal(x = rep(Svec, each = n) * as.numeric(sigma_inv / t(kappa[-1, , drop = FALSE])))
+  }
 
   # Calculate conditional posterior of the factors
   F1 <- F0 + t(Gmat) %*% Svec_sigma_inv %*% Gmat
@@ -802,7 +885,8 @@ draw_indicators <- function(h, f, phi, n, p, s, t, control){
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_augmented_data <- function(Gmat, f, rho, sigma, n, t, StV1S, StV1SY, return_sample = TRUE){
+draw_augmented_data <- function(Gmat, f, rho, sigma, n, t, StV1S, StV1SY, return_sample = TRUE,
+                                kappa = NULL){
 
   # StV1S/StV1SY are the "propose dataset" mask terms (originally
   # t(Smat) %*% (t(Smat) %*% V1 %*% Smat) %*% Smat and ...%*% Yvec) - these
@@ -816,7 +900,12 @@ draw_augmented_data <- function(Gmat, f, rho, sigma, n, t, StV1S, StV1SY, return
   # (Kronecker product of invertible matrices), avoiding a solve() on the
   # full (t*n)x(t*n) matrix in favor of one on the much smaller n x n sigma
   sigma_inv <- solve(sigma)
-  Dt_sigma_inv <- Diagonal(n = t) %x% sigma_inv
+  Dt_sigma_inv <- if(is.null(kappa)){
+    Diagonal(n = t) %x% sigma_inv
+  } else {
+    # per cell 1/(sigma_i * kappa_it), series within week (#180)
+    Diagonal(x = as.numeric(diag(sigma_inv) / t(kappa)))
+  }
 
   P0 <- t(Kmat) %*% Dt_sigma_inv %*% Kmat
 
@@ -843,7 +932,7 @@ draw_augmented_data <- function(Gmat, f, rho, sigma, n, t, StV1S, StV1SY, return
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_horizon_rows <- function(Xmat, Gmat, f, rho, sigma, n, t, t2){
+draw_horizon_rows <- function(Xmat, Gmat, f, rho, sigma, n, t, t2, kappa = NULL){
 
   gf <- as.numeric(Gmat %*% f)
   dim(gf) <- c(n, t - 1)
@@ -851,7 +940,8 @@ draw_horizon_rows <- function(Xmat, Gmat, f, rho, sigma, n, t, t2){
   sd_v <- sqrt(diag(sigma))
 
   for(tx in (t2 + 1):t){
-    Xmat[tx,] <- gf[, tx - 1] + rd * Xmat[tx - 1,] + sd_v * rnorm(n)
+    sd_tx <- if(is.null(kappa)) sd_v else sd_v * sqrt(kappa[tx, ])
+    Xmat[tx,] <- gf[, tx - 1] + rd * Xmat[tx - 1,] + sd_tx * rnorm(n)
   }
 
   Xmat
@@ -863,7 +953,7 @@ draw_horizon_rows <- function(Xmat, Gmat, f, rho, sigma, n, t, t2){
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_lambda <- function(Xvec_tilde, Zmat, sigma, n, t, inventory, target, prior){
+draw_lambda <- function(Xvec_tilde, Zmat, sigma, n, t, inventory, target, prior, kappa = NULL){
 
   # See appendix A.4 Conditional distributions of Remaining Parameters: Factor Loadings
 
@@ -873,7 +963,11 @@ draw_lambda <- function(Xvec_tilde, Zmat, sigma, n, t, inventory, target, prior)
 
   # solve(sigma) and its Kronecker product with Diagonal(t-1) are otherwise
   # computed twice (once for B1, once for b1) for the same result
-  Z_sigma_inv <- t(Zmat) %*% (Diagonal(t-1) %x% solve(sigma))
+  Z_sigma_inv <- if(is.null(kappa)){
+    t(Zmat) %*% (Diagonal(t-1) %x% solve(sigma))
+  } else {
+    t(Zmat) %*% Diagonal(x = as.numeric((1/diag(sigma)) / t(kappa[-1, , drop = FALSE])))
+  }
 
   # Conditional posterior distribution of the factor loadings lambda
   B1 <- solve(B0) + Z_sigma_inv %*% Zmat
@@ -894,7 +988,7 @@ draw_lambda <- function(Xvec_tilde, Zmat, sigma, n, t, inventory, target, prior)
 #' @noRd
 #' @importFrom stats rgamma
 draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, x1, inventory, target, sigma, control,
-                       prior_target, prior_other){
+                       prior_target, prior_other, kappa = NULL){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Measurement Error Covariance Matrix
 
   # get errors
@@ -929,7 +1023,11 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, x1, inventory, target, sigma, 
     # t observations: the t-1 quasi-differenced rows and the first row, which
     # has mean zero (see the first block of Kmat in draw_augmented_data())
     c1 <- c0 + t
-    d1 <- d0 + t(U[,ix]) %*% U[,ix] + x1[ix]^2
+    d1 <- if(is.null(kappa)){
+      d0 + t(U[,ix]) %*% U[,ix] + x1[ix]^2
+    } else {
+      d0 + sum(U[,ix]^2 / kappa[-1, ix]) + x1[ix]^2 / kappa[1, ix]
+    }
 
     # sample from inverse gamma distribution
     1/rgamma(n = 1,
@@ -945,6 +1043,32 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, x1, inventory, target, sigma, 
 }
 
 
+#' Draw the weekly series' fat-tail multipliers
+#'
+#' With `kappa_it ~ IG(nu/2, nu/2)` the innovation of series `i`'s measurement
+#' error at week `t`, `N(0, sigma_i kappa_it)`, is Student-t with `nu` degrees of
+#' freedom marginally, and the conditional is conjugate:
+#' `kappa_it | . ~ IG((nu + 1)/2, (nu + u_it^2/sigma_i)/2)`, `u` the
+#' quasi-differenced residual (the first row: `x1`, which has mean zero). Only
+#' the columns in `ix` are drawn; the target's stay at 1 and the low-frequency
+#' series' are drawn by [draw_low_frequency()] (#180).
+#'
+#' @noRd
+#' @importFrom stats rgamma
+draw_kappa <- function(Xvec_tilde, Gmat, f, n, t, x1, sigma, kappa, ix, nu){
+
+  if(!length(ix)) return(kappa)
+  U <- Xvec_tilde - Gmat %*% f
+  dim(U) <- c(n, t - 1)
+  U2 <- rbind(x1^2, t(as.matrix(U))^2)[, ix, drop = FALSE]
+  sig <- diag(sigma)[ix]
+  rate <- (nu + sweep(U2, 2, sig, "/"))/2
+  kappa[, ix] <- 1/rgamma(length(rate), shape = (nu + 1)/2, rate = as.numeric(rate))
+  kappa
+
+}
+
+
 #' Draw the serial correlation of measurement errors
 #'
 #' @noRd
@@ -952,7 +1076,7 @@ draw_sigma <- function(Xvec_tilde, Gmat, f, n, t, x1, inventory, target, sigma, 
 draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
                     control,
                      prior_target, prior_other, tally = NULL,
-                     skip = integer(), rho_old = NULL){
+                     skip = integer(), rho_old = NULL, kappa = NULL){
 
   # See appendix A.4 Conditional distributions of Remaining Parameters: Autocorrelation of Measurement Errors
   # construct auxiliary matrix
@@ -1015,8 +1139,15 @@ draw_rho <- function(Xmat, f, n, t, s, sigma, lambda, Llist, inventory, target,
     # solve(sigma) %*% t(elag) %*% elead associates left to right and so
     # scales t(elag) BEFORE dotting it with elead. In floating point those
     # are not interchangeable, so both forms are preserved verbatim.
-    R1 = 1/(1/R0 + inv_sigma * (t(elag) %*% elag))
-    r1 = R1 %*% ((1/R0) * r0 + (inv_sigma * t(elag)) %*% Elead[,nx])
+    if(is.null(kappa)){
+      R1 = 1/(1/R0 + inv_sigma * (t(elag) %*% elag))
+      r1 = R1 %*% ((1/R0) * r0 + (inv_sigma * t(elag)) %*% Elead[,nx])
+    } else {
+      # the innovation at week t has variance sigma * kappa_t (#180)
+      ik <- 1/kappa[-1, nx]
+      R1 = 1/(1/R0 + inv_sigma * sum(ik * elag^2))
+      r1 = R1 * ((1/R0) * r0 + inv_sigma * sum(ik * elag * Elead[,nx]))
+    }
 
 
     # Initialize stationarity check

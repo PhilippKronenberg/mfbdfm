@@ -144,13 +144,14 @@ starting_value_names <- function(){
 #'
 #' @noRd
 fit_spec <- function(model, n, t, s, p, q, stochastic_volatility,
-                     serial_correlation){
+                     serial_correlation, fat_tails = FALSE){
 
   list(model = model,
        n = as.numeric(n), t = as.numeric(t), s = as.numeric(s),
        p = as.numeric(p), q = as.numeric(q),
        stochastic_volatility = isTRUE(stochastic_volatility),
-       serial_correlation = isTRUE(serial_correlation))
+       serial_correlation = isTRUE(serial_correlation),
+       fat_tails = isTRUE(fat_tails))
 
 }
 

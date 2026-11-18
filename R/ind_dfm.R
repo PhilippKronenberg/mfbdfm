@@ -249,6 +249,14 @@
 #' @param serial_correlation Logical. If `TRUE` (default) the measurement
 #'   errors are allowed to be serially correlated and their autocorrelations
 #'   are drawn. If `FALSE` they are held at (effectively) zero.
+#' @param fat_tails Logical. If `TRUE`, the measurement errors of every series
+#'   except `target` are Student-t rather than Gaussian: each innovation gets
+#'   its own variance multiplier `kappa ~ IG(nu/2, nu/2)`, drawn from the data,
+#'   so a single observation far from what the factor implies is down-weighted
+#'   instead of setting the series' loading (Antolin-Diaz, Drechsel and
+#'   Petrella 2024). `nu` is `priors$kappa$nu`, 5 by default; see
+#'   [dfm_priors()]. The posterior mean of `kappa` is returned as `$kappa`.
+#'   Default `FALSE`, the published model.
 #' @param priors Prior specification from [dfm_priors()]. The default
 #'   reproduces the published priors exactly. Note that two of them -- the
 #'   target's measurement-error variance and serial correlation -- carry the
@@ -324,6 +332,10 @@
 #'       covers the `t` in-sample ones only). Read by [mfbdfm_news()] and
 #'       [mfbdfm_contributions()]; not part of the API, and present on
 #'       [fcast_dfm()] fits too so the two agree.}
+#'     \item{kappa}{Only with `fat_tails = TRUE`: `ts` matrix, periods by
+#'       series, of the posterior mean of each observation's variance multiplier.
+#'       Well above 1 marks an observation the model treated as an outlier for
+#'       that series; the target's column is 1.}
 #'     \item{call}{The matched call.}
 #'   }
 #'
@@ -375,6 +387,7 @@ ind_dfm <- function(flows = NULL,
                     extend_to = NULL,
                     stochastic_volatility = TRUE,
                     serial_correlation = TRUE,
+                    fat_tails = FALSE,
                     priors = dfm_priors("ind_dfm"),
                     control = NULL){
 
@@ -395,6 +408,20 @@ ind_dfm <- function(flows = NULL,
 
   check_priors(priors, "ind_dfm")
   control <- resolve_control(control, "ind_dfm")
+
+  if(!is.logical(fat_tails) || length(fat_tails) != 1L || is.na(fat_tails)){
+    stop("`fat_tails` must be TRUE or FALSE.", call. = FALSE)
+  }
+  if(fat_tails){
+    # a dfm_priors() object from before #180 has no `kappa` entry
+    if(is.null(priors$kappa$nu)) priors$kappa <- list(nu = 5)
+    nu <- priors$kappa$nu
+    if(!is.numeric(nu) || length(nu) != 1L || !is.finite(nu) || nu <= 0){
+      stop("`priors$kappa$nu`, the degrees of freedom of the fat-tailed ",
+           "errors, must be a single positive finite number, not ",
+           deparse(nu), ".", call. = FALSE)
+    }
+  }
 
   # create an inventory of the time series involved
   inventory <- create_inventory(flows = flows, stocks = stocks)
@@ -455,7 +482,8 @@ ind_dfm <- function(flows = NULL,
   # the seed here is as good as setting it on entry (#117).
   spec <- fit_spec(model = "ind_dfm", n = n, t = t, s = s, p = p, q = 1,
                    stochastic_volatility = stochastic_volatility,
-                   serial_correlation = serial_correlation)
+                   serial_correlation = serial_correlation,
+                   fat_tails = fat_tails)
   start <- resolve_starting_values(control$starting_values, spec)
   rng <- rng_begin(control$seed, continue_from = start$rng)
   on.exit(rng_restore_caller(rng), add = TRUE)
@@ -485,6 +513,7 @@ ind_dfm <- function(flows = NULL,
                            fdat = flows,
                            stochastic_volatility = stochastic_volatility,
                            serial_correlation = serial_correlation,
+                           fat_tails = fat_tails,
                            priors = priors,
                        control = control,
                        verbose = verbose,
@@ -663,6 +692,8 @@ ind_dfm <- function(flows = NULL,
   # priors come back resolved - the data-dependent entries filled in with the
   # numbers this sample implies - and the starting values elided; see
   # fit_specification().
+  # without fat tails the record is the published model's, which has no `kappa`
+  if(!fat_tails) priors$kappa <- NULL
   .spec <- fit_specification(priors, control, t = t, p = p)
   out$priors <- .spec$priors
   out$control <- .spec$control
@@ -686,6 +717,18 @@ ind_dfm <- function(flows = NULL,
   out$internal <- list(p = p, t2 = t2, h_full = as.numeric(h_out),
                        rho_fallback = par_save$rho_fallback,
                        rho_fallback_by_series = par_save$rho_fallback_by_series)
+  # posterior mean of each cell's weight 1/kappa, t x n, for the plug-in precision
+  # of mfbdfm_contributions(), mfbdfm_news() and logLik() (#180)
+  if(fat_tails) out$internal$kappa_weight <- par_save$kappa_inv_sum / par_save$Xmat_n
+
+  # posterior mean of the fat-tail multipliers, a t x n matrix in the panel's
+  # column order; a value well above 1 marks an observation the model treated as
+  # an outlier for that series (#180). Absent without fat tails.
+  if(fat_tails){
+    out$kappa <- stats::ts(par_save$kappa_sum / par_save$Xmat_n,
+                           start = time(Ymat)[1], frequency = frequency(Ymat))
+    colnames(out$kappa) <- as.character(inventory$key)
+  }
 
   out$call <- match.call()
   class(out) <- "ind_dfm"

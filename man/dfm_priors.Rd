@@ -72,6 +72,14 @@ size in pseudo-observations, \code{d0} is the sum of squares they carry, and
 \code{d0 / c0} is roughly the prior's guess at the variance.
 }
 
+\section{Fat-tailed measurement errors}{
+With \code{ind_dfm(fat_tails = TRUE)}, \code{kappa = list(nu = 5)} sets the degrees of
+freedom of the Student-t measurement errors of the non-target series: each
+innovation's variance is \code{sigma * kappa}, \code{kappa ~ IG(nu/2, nu/2)}. Smaller
+\code{nu} means heavier tails; the Gaussian model is \code{fat_tails = FALSE}. It is not
+moved by \code{type}.
+}
+
 \examples{
 # the defaults reproduce the published priors
 dfm_priors("ind_dfm")

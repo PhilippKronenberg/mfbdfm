@@ -42,6 +42,14 @@
 #' size in pseudo-observations, `d0` is the sum of squares they carry, and
 #' `d0 / c0` is roughly the prior's guess at the variance.
 #'
+#' # Fat-tailed measurement errors
+#'
+#' With `ind_dfm(fat_tails = TRUE)`, `kappa = list(nu = 5)` sets the degrees of
+#' freedom of the Student-t measurement errors of the non-target series: each
+#' innovation's variance is `sigma * kappa`, `kappa ~ IG(nu/2, nu/2)`. Smaller
+#' `nu` means heavier tails; the Gaussian model is `fat_tails = FALSE`. It is not
+#' moved by `type`.
+#'
 #' @param model Character, which model the priors are for: `"ind_dfm"` or
 #'   `"fcast_dfm"`. The two models take different priors, and passing a set
 #'   built for one to the other is an error.
@@ -137,7 +145,10 @@ priors_ind_dfm <- function(type){
     lambda       = list(b0 = 0, B0 = 1),
     phi          = list(a0 = 0, A0 = NULL),      # NULL -> 0.12 / (1:p)^2
     omega        = list(k0 = NULL, l0 = NULL),   # NULL -> t and t * 1e-2
-    factor_var   = list(c0 = 3, d0 = 1e-2)       # used when SV is off
+    factor_var   = list(c0 = 3, d0 = 1e-2),      # used when SV is off
+    # degrees of freedom of the Student-t measurement errors; used only with
+    # fat_tails = TRUE (#180), and not moved by `type`
+    kappa        = list(nu = 5)
   )
 
   switch(type,
