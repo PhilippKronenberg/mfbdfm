@@ -107,6 +107,57 @@ test_that("an observation equal to its own forecast has zero impact (criterion 2
 })
 
 
+test_that("a surprise moves the nowcast in the direction of the series' loading", {
+
+  # The adding-up test compares the decomposition with a revision computed from
+  # the same joint precision, so it cannot see a sign error the two share:
+  # negating the indicators' loadings in dfm_joint_precision() leaves every
+  # other test here passing, and fails this one. x2 is negated in the data, so
+  # it loads negatively on the factor. One month of one series is released at
+  # a time, so its gain is a plain covariance ratio, whose sign is that of the
+  # loading.
+  pan <- make_synth_mm_panel(seed = 5, years = 6)
+  pan$flows$x2 <- -pan$flows$x2
+  cut_last <- function(x, k) stats::window(x, end = stats::time(x)[length(x) - k])
+  old <- list(flows = c(list(gdp = cut_last(pan$flows$gdp, 2)),
+                        lapply(pan$flows[-1], cut_last, 2)),
+              stocks = lapply(pan$stocks, cut_last, 2))
+
+  set.seed(1)
+  fit <- ind_dfm(flows = old$flows, stocks = old$stocks, target = "gdp",
+                 length_sample = 30, burn_in = 10,
+                 control = dfm_control("ind_dfm", verbose = FALSE))
+  lam <- coef(fit)
+  expect_gt(lam[["x1"]], 0)
+  expect_lt(lam[["x2"]], 0)
+
+  release <- function(nm, value) {
+    nd <- old
+    x <- nd$flows[[nm]]
+    nd$flows[[nm]] <- stats::ts(c(x, value), start = stats::start(x),
+                                frequency = stats::frequency(x))
+    mfbdfm_news(fit, new_data = nd$flows, stocks = nd$stocks)
+  }
+
+  for (nm in c("x1", "x2")) {
+    # the forecast of the new month, from a first release at any value
+    fc <- release(nm, 0)$news$forecast
+    delta <- stats::sd(old$flows[[nm]])
+    up <- release(nm, fc + delta)
+    down <- release(nm, fc - delta)
+
+    expect_identical(up$news$series, nm)
+    expect_equal(up$news$news, delta, tolerance = 1e-8)
+    expect_identical(sign(up$news$gain), sign(lam[[nm]]))
+    expect_identical(sign(up$totals$total), sign(lam[[nm]]))
+    expect_gt(abs(up$totals$total), 1e-6)
+    # linear in the surprise
+    expect_equal(down$totals$total, -up$totals$total, tolerance = 1e-8)
+  }
+
+})
+
+
 test_that("exact conditioning agrees with the sampler's 1e-9 nugget", {
 
   # the samplers pin an observed entry with a 1e-9 observation variance;
