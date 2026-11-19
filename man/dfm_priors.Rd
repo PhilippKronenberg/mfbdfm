@@ -80,6 +80,20 @@ innovation's variance is \code{sigma * kappa}, \code{kappa ~ IG(nu/2, nu/2)}. Sm
 moved by \code{type}.
 }
 
+\section{Factor outliers and a stationary volatility process}{
+With \code{ind_dfm(factor_outliers = TRUE)}, \code{factor_outliers = list(nu = 5)} sets
+the degrees of freedom of the Student-t factor innovations.
+
+With \code{ind_dfm(sv_process = "ar1")}, the factor's log-volatility \code{h} reverts
+to a level \code{mu} instead of following a random walk, and
+\code{sv_ar1 = list(mu0, M0, phi0, Phi0)} sets its priors: \code{mu ~ N(mu0, M0)} and a
+persistence \code{phi_h ~ N(phi0, Phi0)} restricted to \verb{(-1, 1)}. \code{mu0 = NULL}
+(the default) centres the level on the data: the log-sd of a weekly
+innovation that, with a weekly persistence of 0.5, reproduces the robust
+variance (squared median absolute deviation) of the standardised target
+through its aggregation weights. Neither is moved by \code{type}.
+}
+
 \examples{
 # the defaults reproduce the published priors
 dfm_priors("ind_dfm")

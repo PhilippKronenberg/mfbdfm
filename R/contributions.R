@@ -113,7 +113,15 @@ dfm_joint_precision <- function(object, Ymat = NULL){
   })) + Diagonal(n = q*(t+s))
 
   # one volatility path shared by all q factors, hence rep(h, each = q)
-  Vinv <- Diagonal(x = exp(-2*rep(h, each = q)))
+  # with factor outliers (#182) each period's precision is exp(-2h) times the
+  # posterior mean of 1/o
+  vinv <- exp(-2*rep(h, each = q))
+  ow <- if(!is_fcast) object$internal$o_weight else NULL
+  if(!is.null(ow)){
+    m_o <- min(length(vinv), length(ow))
+    vinv[seq_len(m_o)] <- vinv[seq_len(m_o)] * ow[seq_len(m_o)]
+  }
+  Vinv <- Diagonal(x = vinv)
   F0 <- t(H) %*% Vinv %*% H
 
   # measurement block, as in draw_augmented_data()

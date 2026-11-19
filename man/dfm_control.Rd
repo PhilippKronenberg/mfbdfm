@@ -146,10 +146,17 @@ should stop and complain rather than run forever.
 \section{Stability bounds}{
 \code{rho_max} bounds the measurement-error autocorrelation. A draw outside it is
 redrawn up to \code{rho_max_tries} times, after which \code{rho_fallback} is used. The
-others cap or reject a draw for numerical stability: \code{phi_sum_max} in
-\code{\link[=ind_dfm]{ind_dfm()}}, \code{omega_max} in \code{\link[=fcast_dfm]{fcast_dfm()}}. The measurement-error variance is
-not capped: \code{sigma_max} was removed in #176, as a clipped draw is not a draw
-from its conditional.
+others cap or reject a draw for numerical stability: \code{phi_sum_max} and
+\code{h_max} in \code{\link[=ind_dfm]{ind_dfm()}}, \code{omega_max} in \code{\link[=fcast_dfm]{fcast_dfm()}}. The measurement-error
+variance is not capped: \code{sigma_max} was removed in #176, as a clipped draw is
+not a draw from its conditional.
+
+\code{h_max} (default \code{-2.15}) bounds the factor's log volatility under
+\code{stochastic_volatility = TRUE}: wherever a draw of the path exceeds it, the
+previous value is kept. The bound binds during COVID-19 on the Swiss WAI
+panel. In March and April 2020 the volatility does not move at all, so the
+chain does not sample the stated posterior there (#182). \code{h_max = Inf} turns
+the rejection off.
 }
 
 \section{Retaining draws}{

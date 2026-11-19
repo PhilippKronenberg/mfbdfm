@@ -204,3 +204,67 @@ test_that("draw_kappa() draws from the conjugate inverse-gamma, and only the ser
   # an outlier gets a smaller weight than an ordinary observation
   expect_lt(mean(w[r == max(r)]), mean(w[r == min(r)]))
 })
+
+
+test_that("h_max bounds the factor log-volatility, and Inf lifts the bound (#182)", {
+  fit_h <- function(h_max) {
+    ind_dfm(mfbdfm_example_data, length_sample = 60, burn_in = 20,
+            control = dfm_control("ind_dfm", seed = 3, verbose = FALSE, h_max = h_max))
+  }
+  bounded <- fit_h(-2.15)
+  free <- fit_h(Inf)
+  # the default keeps every draw at or below the bound ...
+  expect_lte(max(bounded$draws$h_paths), -2.15)
+  # ... and on this panel the bound binds over COVID-19, so lifting it lets h past it
+  expect_gt(max(free$draws$h_paths), -2.15)
+})
+
+
+test_that("draw_factor_outliers() draws from the conjugate inverse-gamma (#182)", {
+  set.seed(5)
+  p <- 1; s <- 0; t <- 4000; nu <- 5
+  # f with AR coefficient 0 and alternating residuals 0.1 and 2, h = 0
+  f <- matrix(rep(c(0.1, 2), length.out = t), t, 1)
+  o <- mfbdfm:::draw_factor_outliers(f = f, phi = 0, h = rep(0, t), p = p, s = s, t = t, nu = nu)
+  expect_length(o, t)
+  expect_equal(o[1], 1)                               # no residual: kept at 1
+  e <- as.numeric(f)[-1]; w <- 1/o[-1]
+  for(v in unique(e)){
+    # E[1/o] = shape/rate = (nu + 1)/(nu + e^2)
+    expect_equal(mean(w[e == v]), (nu + 1)/(nu + v^2), tolerance = 0.05)
+  }
+})
+
+
+test_that("draw_sv_ar1() recovers the level and persistence of a simulated path (#182)", {
+  set.seed(6)
+  m <- 5000; mu <- -2.5; ph <- 0.9; om <- 0.04
+  h <- numeric(m); h[1] <- mu + rnorm(1, 0, sqrt(om/(1 - ph^2)))
+  for(i in 2:m) h[i] <- mu + ph*(h[i-1] - mu) + rnorm(1, 0, sqrt(om))
+  prior <- list(mu0 = 0, M0 = 100, phi0 = 0.5, Phi0 = 1)
+  st <- list(mu = 0, phi = 0.5)
+  keep <- t(replicate(400, {st <<- mfbdfm:::draw_sv_ar1(h, om, st$mu, st$phi, prior); unlist(st)}))
+  post <- colMeans(keep[-(1:100), ])
+  expect_equal(unname(post["mu"]), mean(h), tolerance = 0.05)
+  expect_equal(unname(post["phi"]), ph, tolerance = 0.02)
+  expect_true(all(abs(keep[, "phi"]) < 1))
+})
+
+
+test_that("draw_volatility() under an AR(1) prior is pulled to its level (#182)", {
+  # with the data carrying no information (huge mixture variances are not
+  # available, so a long flat stretch of zero residuals is used instead), the
+  # AR(1) prior keeps h near mu where the random walk lets it sit at the data
+  set.seed(7)
+  p <- 1; s <- 0; t <- 200
+  f <- matrix(rnorm(t, 0, exp(-2.5)), t, 1)
+  ctl <- dfm_control("ind_dfm", h_max = Inf)
+  ind <- rep(5L, t)
+  NtN <- Matrix::crossprod(Matrix::bandSparse(t - 1, t, k = c(0, 1),
+                                              diagonals = list(rep(-1, t - 1), rep(1, t - 1))))
+  h_ar <- replicate(200, mean(mfbdfm:::draw_volatility(f, 0, 1, p, s, t, omega = 1e-4,
+                     indicators = ind, h_old = rep(0, t), NtN = NtN, control = ctl,
+                     ar1 = list(mu = 1, phi = 0.5))))
+  # the prior at mu = 1 with a tiny omega dominates
+  expect_gt(mean(h_ar), 0.5)
+})

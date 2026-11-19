@@ -262,6 +262,25 @@
 #'   explain that episode as an outlier in each series separately. The
 #'   loadings then shrink towards zero and the factor loses its tie to the
 #'   indicators. On the Swiss WAI panel this made the backcast markedly worse.
+#' @param factor_outliers Logical. If `TRUE`, the factor's own innovations are
+#'   Student-t given the volatility path: the innovation at week `t` is
+#'   `exp(h_t) * sqrt(o_t) * z_t`, `o_t ~ IG(nu/2, nu/2)`, so a single extreme
+#'   week such as March 2020 is carried by its `o_t` rather than by a jump in
+#'   the volatility path `h`, which stays smooth (Antolin-Diaz, Drechsel and
+#'   Petrella 2024). Unlike `fat_tails`, the outlier is common to all series,
+#'   so the loadings keep being identified by it. `nu` is
+#'   `priors$factor_outliers$nu`, 5 by default. The posterior mean of `o` is
+#'   returned as `$factor_outliers`. Default `FALSE`, the published model.
+#' @param sv_process `"random_walk"` (default, the published model) or
+#'   `"ar1"`. With `"ar1"` the factor's log-volatility `h` reverts to a level
+#'   `mu` with persistence `phi_h`, both drawn, instead of following a random
+#'   walk with an improper prior. `mu`'s prior is centred on the level that
+#'   reproduces the target's robust variance; see [dfm_priors()], "Factor
+#'   outliers and a stationary volatility process". Under the random walk only
+#'   the rejection bound `h_max` in [dfm_control()] keeps `h` from drifting up,
+#'   and the weekly factor from turning into noise that cancels within each
+#'   quarter; `"ar1"` with `h_max = Inf` replaces that bound with a prior.
+#'   Their posterior means are returned in `$pars` as `h_mu` and `h_phi`.
 #' @param priors Prior specification from [dfm_priors()]. The default
 #'   reproduces the published priors exactly. Note that two of them -- the
 #'   target's measurement-error variance and serial correlation -- carry the
@@ -341,6 +360,9 @@
 #'       series, of the posterior mean of each observation's variance multiplier.
 #'       Well above 1 marks an observation the model treated as an outlier for
 #'       that series; the target's column is 1.}
+#'     \item{factor_outliers}{Only with `factor_outliers = TRUE`: `ts`, the
+#'       posterior mean of each week's factor-innovation multiplier `o`. Well
+#'       above 1 marks a week the model treated as a common outlier.}
 #'     \item{call}{The matched call.}
 #'   }
 #'
@@ -393,6 +415,8 @@ ind_dfm <- function(flows = NULL,
                     stochastic_volatility = TRUE,
                     serial_correlation = TRUE,
                     fat_tails = FALSE,
+                    factor_outliers = FALSE,
+                    sv_process = c("random_walk", "ar1"),
                     priors = dfm_priors("ind_dfm"),
                     control = NULL){
 
@@ -428,6 +452,35 @@ ind_dfm <- function(flows = NULL,
     }
   }
 
+  if(!is.logical(factor_outliers) || length(factor_outliers) != 1L || is.na(factor_outliers)){
+    stop("`factor_outliers` must be TRUE or FALSE.", call. = FALSE)
+  }
+  sv_process <- match.arg(sv_process)
+  if(sv_process == "ar1" && !isTRUE(stochastic_volatility)){
+    stop("`sv_process = \"ar1\"` describes a volatility path, which ",
+         "`stochastic_volatility = FALSE` switches off.", call. = FALSE)
+  }
+  if(factor_outliers){
+    # a dfm_priors() object from before #182 has no `factor_outliers` entry
+    if(is.null(priors$factor_outliers$nu)) priors$factor_outliers <- list(nu = 5)
+    nu_f <- priors$factor_outliers$nu
+    if(!is.numeric(nu_f) || length(nu_f) != 1L || !is.finite(nu_f) || nu_f <= 0){
+      stop("`priors$factor_outliers$nu`, the degrees of freedom of the factor ",
+           "innovations, must be a single positive finite number, not ",
+           deparse(nu_f), ".", call. = FALSE)
+    }
+  }
+  if(sv_process == "ar1"){
+    if(is.null(priors$sv_ar1)) priors$sv_ar1 <- list(mu0 = NULL, M0 = 0.25^2, phi0 = 0.95, Phi0 = 0.05^2)
+    a1 <- priors$sv_ar1
+    ok <- function(x, lo = -Inf) is.numeric(x) && length(x) == 1L && is.finite(x) && x > lo
+    if(!(is.null(a1$mu0) || ok(a1$mu0)) || !ok(a1$M0, 0) || !ok(a1$Phi0, 0) ||
+       !ok(a1$phi0) || abs(a1$phi0) >= 1){
+      stop("`priors$sv_ar1` must hold a finite `mu0` (or NULL), positive ",
+           "variances `M0` and `Phi0`, and a `phi0` inside (-1, 1).", call. = FALSE)
+    }
+  }
+
   # create an inventory of the time series involved
   inventory <- create_inventory(flows = flows, stocks = stocks)
 
@@ -436,6 +489,13 @@ ind_dfm <- function(flows = NULL,
                        stocks = stocks,
                        inventory = inventory,
                        target = target)
+
+  # the data-based centre of the volatility level (#182): the log-sd of a weekly
+  # innovation which, through an AR(1) factor with persistence 0.5 and the
+  # target's aggregation weights, reproduces the target's robust variance
+  if(sv_process == "ar1" && is.null(priors$sv_ar1$mu0)){
+    priors$sv_ar1$mu0 <- sv_level_from_target(Ymat, inventory, target)
+  }
 
   t2 <- nrow(Ymat)
 
@@ -488,7 +548,9 @@ ind_dfm <- function(flows = NULL,
   spec <- fit_spec(model = "ind_dfm", n = n, t = t, s = s, p = p, q = 1,
                    stochastic_volatility = stochastic_volatility,
                    serial_correlation = serial_correlation,
-                   fat_tails = fat_tails)
+                   fat_tails = fat_tails,
+                   factor_outliers = factor_outliers,
+                   sv_process = sv_process)
   start <- resolve_starting_values(control$starting_values, spec)
   rng <- rng_begin(control$seed, continue_from = start$rng)
   on.exit(rng_restore_caller(rng), add = TRUE)
@@ -519,6 +581,8 @@ ind_dfm <- function(flows = NULL,
                            stochastic_volatility = stochastic_volatility,
                            serial_correlation = serial_correlation,
                            fat_tails = fat_tails,
+                           factor_outliers = factor_outliers,
+                           sv_process = sv_process,
                            priors = priors,
                        control = control,
                        verbose = verbose,
@@ -699,6 +763,8 @@ ind_dfm <- function(flows = NULL,
   # fit_specification().
   # without fat tails the record is the published model's, which has no `kappa`
   if(!fat_tails) priors$kappa <- NULL
+  if(!factor_outliers) priors$factor_outliers <- NULL
+  if(sv_process != "ar1") priors$sv_ar1 <- NULL
   .spec <- fit_specification(priors, control, t = t, p = p)
   out$priors <- .spec$priors
   out$control <- .spec$control
@@ -733,6 +799,22 @@ ind_dfm <- function(flows = NULL,
     out$kappa <- stats::ts(par_save$kappa_sum / par_save$Xmat_n,
                            start = time(Ymat)[1], frequency = frequency(Ymat))
     colnames(out$kappa) <- as.character(inventory$key)
+  }
+
+  # factor outliers (#182): the posterior mean multiplier of each week's factor
+  # innovation, and, for the plug-in precision of contributions, news and
+  # logLik(), the posterior mean of 1/o over all t+s periods
+  if(factor_outliers){
+    o_draws <- do.call(cbind, par_save$fo)
+    out$factor_outliers <- ts(rowMeans(o_draws)[(s+1):(t+s)],
+                              start = time(Ymat)[1], frequency = frequency(Ymat))
+    out$internal$o_weight <- rowMeans(1/o_draws)
+  }
+
+  # the stationary volatility process (#182): its level and persistence
+  if(sv_process == "ar1"){
+    out$pars$h_mu <- mean(unlist(par_save$h_mu))
+    out$pars$h_phi <- mean(unlist(par_save$h_phi))
   }
 
   out$call <- match.call()

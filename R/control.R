@@ -124,10 +124,17 @@
 #'
 #' `rho_max` bounds the measurement-error autocorrelation. A draw outside it is
 #' redrawn up to `rho_max_tries` times, after which `rho_fallback` is used. The
-#' others cap or reject a draw for numerical stability: `phi_sum_max` in
-#' [ind_dfm()], `omega_max` in [fcast_dfm()]. The measurement-error variance is
-#' not capped: `sigma_max` was removed in #176, as a clipped draw is not a draw
-#' from its conditional.
+#' others cap or reject a draw for numerical stability: `phi_sum_max` and
+#' `h_max` in [ind_dfm()], `omega_max` in [fcast_dfm()]. The measurement-error
+#' variance is not capped: `sigma_max` was removed in #176, as a clipped draw is
+#' not a draw from its conditional.
+#'
+#' `h_max` (default `-2.15`) bounds the factor's log volatility under
+#' `stochastic_volatility = TRUE`: wherever a draw of the path exceeds it, the
+#' previous value is kept. The bound binds during COVID-19 on the Swiss WAI
+#' panel. In March and April 2020 the volatility does not move at all, so the
+#' chain does not sample the stated posterior there (#182). `h_max = Inf` turns
+#' the rejection off.
 #'
 #' # Retaining draws
 #'
@@ -350,6 +357,9 @@ control_defaults <- function(model){
   if(model == "ind_dfm"){
     c(shared,
       list(phi_sum_max = 0.9,     # draw_phi rejects and keeps the previous draw
+           # draw_volatility keeps the previous h where a draw exceeds this
+           # log-sd bound; Inf switches the rejection off (#182)
+           h_max = -2.15,
            # ind_dfm only; see ?dfm_control for why fcast_dfm cannot have it
            keep_burn_in = FALSE))
   } else {
@@ -411,6 +421,12 @@ validate_control <- function(ctrl){
   pos_num("jitter")
   pos_num("sv_offset")
   pos_num("phi_sum_max")
+  if(!is.null(ctrl$h_max) &&
+     (!is.numeric(ctrl$h_max) || length(ctrl$h_max) != 1 || is.na(ctrl$h_max) ||
+      ctrl$h_max == -Inf)){
+    stop("`h_max` must be a single number (a bound on the factor's log-sd), ",
+         "or Inf for no bound, not ", deparse(ctrl$h_max), ".", call. = FALSE)
+  }
   pos_num("omega_max")
   pos_num("rotation_tol")
   pos_num("rotation_init_tol")

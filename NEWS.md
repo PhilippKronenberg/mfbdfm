@@ -128,6 +128,26 @@
 
 ## New features
 
+* **`ind_dfm(factor_outliers = TRUE)` and `ind_dfm(sv_process = "ar1")`** (#182),
+  two opt-in alternatives to the bound on the factor's log-volatility.
+  - `factor_outliers = TRUE` makes the factor innovations Student-t given the
+    volatility path, `exp(h) * sqrt(o) * z` with `o ~ IG(nu/2, nu/2)`
+    (Antolin-Diaz, Drechsel and Petrella 2024), so a week like March 2020 is
+    carried by its own `o` instead of a jump in `h`. `$factor_outliers` returns
+    the posterior mean of `o`; `nu` is `dfm_priors(factor_outliers = )`.
+  - `sv_process = "ar1"` replaces the random walk of `h`, whose prior is
+    improper, with a stationary AR(1) around a level `mu`. Its prior is centred
+    on the log-sd that reproduces the target's robust variance, and both `mu` and
+    the persistence are drawn. See `dfm_priors(sv_ar1 = )`.
+  - `dfm_control("ind_dfm", h_max = )` exposes the bound itself, previously
+    hard-coded at -2.15: `draw_volatility()` keeps the previous `h` where a draw
+    exceeds it. It binds during COVID-19 on the WAI panel. `Inf` removes it,
+    and on its own that is worse: `h` drifts up in every year and the weekly
+    factor turns into noise that cancels within each quarter.
+  - `run_wai_adj()` now passes `factor_outliers`, `sv_process`, `priors` and
+    `control` through to `ind_dfm()`.
+  - The defaults are unchanged and reproduce the existing results exactly.
+
 * **`ind_dfm(fat_tails = TRUE)`: Student-t measurement errors** (#180). Every
   series except `target` gets a variance multiplier `kappa ~ IG(nu/2, nu/2)` per
   observation, drawn from the data, so an observation far from what the factor

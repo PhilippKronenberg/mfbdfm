@@ -21,6 +21,8 @@ test_that("defaults are exactly the literals that were hard-coded", {
 
   # ind_dfm only
   expect_identical(ind$phi_sum_max, 0.9)
+  expect_identical(ind$h_max, -2.15)  # the literal draw_volatility() had (#182)
+  expect_null(fc$h_max)
   expect_null(ind$sigma_max)          # removed in #176
   expect_null(ind$omega_max)
   expect_null(ind$rotation_criterion)
@@ -77,6 +79,9 @@ test_that("invalid settings are refused, naming the argument", {
   expect_error(dfm_control("ind_dfm", sigma_max = 5), "was removed")
   expect_error(dfm_control("ind_dfm", rho_max_tries = 2.5), "whole number")
   expect_error(dfm_control("ind_dfm", jitter = 0), "must be a single number")
+  expect_error(dfm_control("ind_dfm", h_max = NA_real_), "log-sd")
+  expect_error(dfm_control("ind_dfm", h_max = -Inf), "log-sd")
+  expect_identical(dfm_control("ind_dfm", h_max = Inf)$h_max, Inf)
 
   # a typo, or a knob the chosen model does not have, is an error rather than
   # being silently ignored

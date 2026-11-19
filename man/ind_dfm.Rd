@@ -17,6 +17,8 @@ ind_dfm(
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
   fat_tails = FALSE,
+  factor_outliers = FALSE,
+  sv_process = c("random_walk", "ar1"),
   priors = dfm_priors("ind_dfm"),
   control = NULL
 )
@@ -71,6 +73,27 @@ large common episode, such as the COVID-19 recession, the errors can
 explain that episode as an outlier in each series separately. The
 loadings then shrink towards zero and the factor loses its tie to the
 indicators. On the Swiss WAI panel this made the backcast markedly worse.}
+
+\item{factor_outliers}{Logical. If \code{TRUE}, the factor's own innovations are
+Student-t given the volatility path: the innovation at week \code{t} is
+\code{exp(h_t) * sqrt(o_t) * z_t}, \code{o_t ~ IG(nu/2, nu/2)}, so a single extreme
+week such as March 2020 is carried by its \code{o_t} rather than by a jump in
+the volatility path \code{h}, which stays smooth (Antolin-Diaz, Drechsel and
+Petrella 2024). Unlike \code{fat_tails}, the outlier is common to all series,
+so the loadings keep being identified by it. \code{nu} is
+\code{priors$factor_outliers$nu}, 5 by default. The posterior mean of \code{o} is
+returned as \verb{$factor_outliers}. Default \code{FALSE}, the published model.}
+
+\item{sv_process}{\code{"random_walk"} (default, the published model) or
+\code{"ar1"}. With \code{"ar1"} the factor's log-volatility \code{h} reverts to a level
+\code{mu} with persistence \code{phi_h}, both drawn, instead of following a random
+walk with an improper prior. \code{mu}'s prior is centred on the level that
+reproduces the target's robust variance; see \code{\link[=dfm_priors]{dfm_priors()}}, "Factor
+outliers and a stationary volatility process". Under the random walk only
+the rejection bound \code{h_max} in \code{\link[=dfm_control]{dfm_control()}} keeps \code{h} from drifting up,
+and the weekly factor from turning into noise that cancels within each
+quarter; \code{"ar1"} with \code{h_max = Inf} replaces that bound with a prior.
+Their posterior means are returned in \verb{$pars} as \code{h_mu} and \code{h_phi}.}
 
 \item{priors}{Prior specification from \code{\link[=dfm_priors]{dfm_priors()}}. The default
 reproduces the published priors exactly. Note that two of them -- the
@@ -152,6 +175,9 @@ covers the \code{t} in-sample ones only). Read by \code{\link[=mfbdfm_news]{mfbd
 series, of the posterior mean of each observation's variance multiplier.
 Well above 1 marks an observation the model treated as an outlier for
 that series; the target's column is 1.}
+\item{factor_outliers}{Only with \code{factor_outliers = TRUE}: \code{ts}, the
+posterior mean of each week's factor-innovation multiplier \code{o}. Well
+above 1 marks a week the model treated as a common outlier.}
 \item{call}{The matched call.}
 }
 }

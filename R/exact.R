@@ -129,6 +129,12 @@ mfbdfm_exact <- function(fit, n_draws = 100, paths = 20, seed = NULL){
     obj$pars$rho <- pars[i, paste0("rho[", keys, "]")]
     obj$pars$phi <- pars[i, phi_cols]
     obj$internal$h_full <- h_paths[i,]
+    # with factor outliers, this draw's own multipliers rather than their
+    # posterior mean weight (#182)
+    if(!is.null(d$o_paths)){
+      obj$internal$h_full <- h_paths[i,] + 0.5*log(d$o_paths[picks[i],])
+      obj$internal$o_weight <- NULL
+    }
 
     J <- dfm_joint_precision(obj)
     ch <- Cholesky(forceSymmetric(J$Q[J$ix_lat, J$ix_lat]), LDL = FALSE, perm = TRUE)

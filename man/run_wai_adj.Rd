@@ -17,6 +17,10 @@ run_wai_adj(
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
   fat_tails = FALSE,
+  factor_outliers = FALSE,
+  sv_process = c("random_walk", "ar1"),
+  priors = dfm_priors("ind_dfm"),
+  control = NULL,
   output_dir = NULL,
   extend_to = NULL
 )
@@ -66,6 +70,42 @@ large common episode, such as the COVID-19 recession, the errors can
 explain that episode as an outlier in each series separately. The
 loadings then shrink towards zero and the factor loses its tie to the
 indicators. On the Swiss WAI panel this made the backcast markedly worse.}
+
+\item{factor_outliers}{Logical. If \code{TRUE}, the factor's own innovations are
+Student-t given the volatility path: the innovation at week \code{t} is
+\code{exp(h_t) * sqrt(o_t) * z_t}, \code{o_t ~ IG(nu/2, nu/2)}, so a single extreme
+week such as March 2020 is carried by its \code{o_t} rather than by a jump in
+the volatility path \code{h}, which stays smooth (Antolin-Diaz, Drechsel and
+Petrella 2024). Unlike \code{fat_tails}, the outlier is common to all series,
+so the loadings keep being identified by it. \code{nu} is
+\code{priors$factor_outliers$nu}, 5 by default. The posterior mean of \code{o} is
+returned as \verb{$factor_outliers}. Default \code{FALSE}, the published model.}
+
+\item{sv_process}{\code{"random_walk"} (default, the published model) or
+\code{"ar1"}. With \code{"ar1"} the factor's log-volatility \code{h} reverts to a level
+\code{mu} with persistence \code{phi_h}, both drawn, instead of following a random
+walk with an improper prior. \code{mu}'s prior is centred on the level that
+reproduces the target's robust variance; see \code{\link[=dfm_priors]{dfm_priors()}}, "Factor
+outliers and a stationary volatility process". Under the random walk only
+the rejection bound \code{h_max} in \code{\link[=dfm_control]{dfm_control()}} keeps \code{h} from drifting up,
+and the weekly factor from turning into noise that cancels within each
+quarter; \code{"ar1"} with \code{h_max = Inf} replaces that bound with a prior.
+Their posterior means are returned in \verb{$pars} as \code{h_mu} and \code{h_phi}.}
+
+\item{priors}{Prior specification from \code{\link[=dfm_priors]{dfm_priors()}}. The default
+reproduces the published priors exactly. Note that two of them -- the
+target's measurement-error variance and serial correlation -- carry the
+identification rather than being tuning knobs; see \code{\link[=dfm_priors]{dfm_priors()}}.}
+
+\item{control}{Optional numerical and algorithmic settings from
+\code{\link[=dfm_control]{dfm_control()}}, or a named list of them. Bundles the stability bounds and
+numerical guards that were previously hard-coded -- the stationarity screen
+on the measurement-error autocorrelations, the caps on \code{phi} and \code{sigma},
+and the numerical jitter. Omit it (the default) and the published behaviour
+is reproduced exactly. \code{dfm_control("ind_dfm", verbose = FALSE)} silences
+the progress messages and the progress bar; \code{seed} and \code{starting_values}
+there make a fit reproducible on its own terms and let a chain be
+continued.}
 
 \item{output_dir}{Directory to save the fit to, or \code{NULL} (default) to
 skip saving. When given, the fit is saved as

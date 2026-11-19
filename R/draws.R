@@ -201,6 +201,10 @@ build_draws_ind <- function(par_save, flist, inventory, target, s, t,
   n_kept <- length(par_save$h)
   out$h_rows <- unique(round(seq(1, n_kept, length.out = min(200L, n_kept))))
   out$h_paths <- t(vapply(par_save$h[out$h_rows], as.numeric, numeric(t + s)))
+  # the factor-outlier multipliers of the same draws (#182)
+  if(!is.null(par_save$fo)){
+    out$o_paths <- t(vapply(par_save$fo[out$h_rows], as.numeric, numeric(t + s)))
+  }
 
   # the latest weeks of the published factor, whatever keep_factor_draws says: the
   # mixing of what is actually published has to be checkable (#172). The latest

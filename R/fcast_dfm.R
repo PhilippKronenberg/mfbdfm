@@ -120,6 +120,9 @@
 #'   measurement errors. If `FALSE`, the autocorrelations are fixed near zero.
 #' @param fat_tails Logical. Student-t measurement errors, as in [ind_dfm()].
 #'   Not implemented for this model yet: `TRUE` is an error. Default `FALSE`.
+#' @param factor_outliers,sv_process Factor outliers and a stationary
+#'   volatility process, as in [ind_dfm()]. Not implemented for this model yet:
+#'   anything but the defaults is an error.
 #' @param ncores Integer or `NULL`. Number of cores for the rotation step,
 #'   which is run in parallel via \pkg{doParallel} when supplied.
 #' @param priors Prior specification from [dfm_priors()]. The default
@@ -261,6 +264,8 @@ fcast_dfm <- function(flows = NULL,
                       stochastic_volatility = TRUE,
                       serial_correlation = TRUE,
                       fat_tails = FALSE,
+                      factor_outliers = FALSE,
+                      sv_process = "random_walk",
                       ncores = NULL,
                       priors = dfm_priors("fcast_dfm"),
                       control = NULL){
@@ -268,6 +273,15 @@ fcast_dfm <- function(flows = NULL,
   if(!identical(fat_tails, FALSE)){
     stop("`fat_tails = TRUE` is implemented for ind_dfm() only so far (#180); ",
          "fcast_dfm() has Gaussian measurement errors.", call. = FALSE)
+  }
+  if(!identical(factor_outliers, FALSE)){
+    stop("`factor_outliers = TRUE` is implemented for ind_dfm() only so far ",
+         "(#182); fcast_dfm() has Gaussian factor innovations.", call. = FALSE)
+  }
+  if(!identical(sv_process, "random_walk")){
+    stop("`sv_process = \"ar1\"` is implemented for ind_dfm() only so far ",
+         "(#182); fcast_dfm() normalises its volatility path's level away on ",
+         "every draw, so it has no level to give a prior.", call. = FALSE)
   }
 
   check_priors(priors, "fcast_dfm")

@@ -50,6 +50,20 @@
 #' `nu` means heavier tails; the Gaussian model is `fat_tails = FALSE`. It is not
 #' moved by `type`.
 #'
+#' # Factor outliers and a stationary volatility process
+#'
+#' With `ind_dfm(factor_outliers = TRUE)`, `factor_outliers = list(nu = 5)` sets
+#' the degrees of freedom of the Student-t factor innovations.
+#'
+#' With `ind_dfm(sv_process = "ar1")`, the factor's log-volatility `h` reverts
+#' to a level `mu` instead of following a random walk, and
+#' `sv_ar1 = list(mu0, M0, phi0, Phi0)` sets its priors: `mu ~ N(mu0, M0)` and a
+#' persistence `phi_h ~ N(phi0, Phi0)` restricted to `(-1, 1)`. `mu0 = NULL`
+#' (the default) centres the level on the data: the log-sd of a weekly
+#' innovation that, with a weekly persistence of 0.5, reproduces the robust
+#' variance (squared median absolute deviation) of the standardised target
+#' through its aggregation weights. Neither is moved by `type`.
+#'
 #' @param model Character, which model the priors are for: `"ind_dfm"` or
 #'   `"fcast_dfm"`. The two models take different priors, and passing a set
 #'   built for one to the other is an error.
@@ -148,7 +162,14 @@ priors_ind_dfm <- function(type){
     factor_var   = list(c0 = 3, d0 = 1e-2),      # used when SV is off
     # degrees of freedom of the Student-t measurement errors; used only with
     # fat_tails = TRUE (#180), and not moved by `type`
-    kappa        = list(nu = 5)
+    kappa        = list(nu = 5),
+    # degrees of freedom of the Student-t factor innovations; used only with
+    # factor_outliers = TRUE (#182)
+    factor_outliers = list(nu = 5),
+    # stationary volatility process, used only with sv_process = "ar1" (#182):
+    # level mu ~ N(mu0, M0), persistence ~ N(phi0, Phi0) on (-1, 1). mu0 = NULL
+    # -> the level that reproduces the target's robust variance; see ind_dfm()
+    sv_ar1       = list(mu0 = NULL, M0 = 0.25^2, phi0 = 0.95, Phi0 = 0.05^2)
   )
 
   switch(type,
@@ -247,6 +268,29 @@ resolve_priors <- function(priors, t, p){
   }
 
   priors
+
+}
+
+
+#' The data-based centre of the volatility level
+#'
+#' For `sv_process = "ar1"` (#182): the log-sd `mu0` of a weekly factor
+#' innovation such that an AR(1) factor with persistence `phi`, aggregated with
+#' the target's distributed-lag weights `w`, has the target's robust variance:
+#' `exp(2 mu0) w' Gamma(phi) w = mad(y)^2`, `Gamma` the AR(1) autocovariance at
+#' unit innovation variance. Robust, so a recession does not set the level for
+#' normal times; on the Swiss WAI panel this gives about -2.4.
+#'
+#' @noRd
+#' @importFrom stats mad
+sv_level_from_target <- function(Ymat, inventory, target, phi = 0.5){
+
+  tx <- which(inventory$key == target)
+  y <- as.numeric(Ymat[Ymat[, tx] != 0, tx])
+  Llist <- get_distributed_lags(inventory)
+  w <- vapply(Llist, function(m) Matrix::diag(m)[tx], numeric(1))
+  G <- phi^abs(outer(seq_along(w), seq_along(w), "-")) / (1 - phi^2)
+  0.5 * log(stats::mad(y)^2 / as.numeric(crossprod(w, G %*% w)))
 
 }
 

@@ -144,14 +144,20 @@ starting_value_names <- function(){
 #'
 #' @noRd
 fit_spec <- function(model, n, t, s, p, q, stochastic_volatility,
-                     serial_correlation, fat_tails = FALSE){
+                     serial_correlation, fat_tails = FALSE,
+                     factor_outliers = FALSE, sv_process = "random_walk"){
 
-  list(model = model,
-       n = as.numeric(n), t = as.numeric(t), s = as.numeric(s),
-       p = as.numeric(p), q = as.numeric(q),
-       stochastic_volatility = isTRUE(stochastic_volatility),
-       serial_correlation = isTRUE(serial_correlation),
-       fat_tails = isTRUE(fat_tails))
+  out <- list(model = model,
+              n = as.numeric(n), t = as.numeric(t), s = as.numeric(s),
+              p = as.numeric(p), q = as.numeric(q),
+              stochastic_volatility = isTRUE(stochastic_volatility),
+              serial_correlation = isTRUE(serial_correlation),
+              fat_tails = isTRUE(fat_tails))
+  # recorded only when switched on, so the specification of every other fit,
+  # and the state it can be continued from, is what it was before #182
+  if(isTRUE(factor_outliers)) out$factor_outliers <- TRUE
+  if(!identical(sv_process, "random_walk")) out$sv_process <- sv_process
+  out
 
 }
 
@@ -262,7 +268,11 @@ starting_values_from_fit <- function(fit, spec){
          "), so the chain cannot be continued from it exactly.", call. = FALSE)
   }
 
-  list(state = state[starting_value_names()], rng = fit$rng$end)
+  # the optional blocks a switch adds (#180, #182) travel with the state, so a
+  # continued chain resumes them rather than restarting them at their initial
+  # values
+  extra <- intersect(c("kappa", "fo", "h_mu", "h_phi"), names(state))
+  list(state = state[c(starting_value_names(), extra)], rng = fit$rng$end)
 
 }
 

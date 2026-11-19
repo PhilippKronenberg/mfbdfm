@@ -669,3 +669,74 @@ test_that("fat_tails is validated, and fcast_dfm() says it does not have it yet 
                "single positive finite number")
   expect_error(fcast_dfm(mfbdfm_example_data, fat_tails = TRUE), "ind_dfm() only so far", fixed = TRUE)
 })
+
+
+test_that("ind_dfm(factor_outliers = TRUE) returns the multipliers and is seed-deterministic (#182)", {
+  fit <- function() ind_dfm(mfbdfm_example_data, length_sample = 20, burn_in = 5,
+                            factor_outliers = TRUE,
+                            control = dfm_control("ind_dfm", seed = 2, verbose = FALSE))
+  a <- fit(); b <- fit()
+  expect_identical(a$factor_outliers, b$factor_outliers)
+  expect_s3_class(a$factor_outliers, "ts")
+  expect_equal(length(a$factor_outliers), length(a$factor))
+  expect_true(all(is.finite(a$factor_outliers)) && all(a$factor_outliers > 0))
+  expect_length(a$internal$o_weight, length(a$internal$h_full))
+  expect_equal(a$priors$factor_outliers$nu, 5)
+  expect_equal(dim(a$draws$o_paths), dim(a$draws$h_paths))
+  expect_null(a$priors$sv_ar1)
+})
+
+
+test_that("ind_dfm(sv_process = \"ar1\") draws a level and persistence for h (#182)", {
+  a <- ind_dfm(mfbdfm_example_data, length_sample = 20, burn_in = 5, sv_process = "ar1",
+               control = dfm_control("ind_dfm", seed = 2, verbose = FALSE, h_max = Inf))
+  expect_true(is.finite(a$pars$h_mu))
+  expect_true(abs(a$pars$h_phi) < 1)
+  # the prior's centre comes from the target's robust variance, and is recorded
+  expect_true(is.finite(a$priors$sv_ar1$mu0))
+  expect_equal(a$priors$sv_ar1$mu0,
+               mfbdfm:::sv_level_from_target(a$data, a$inventory, a$target))
+  expect_null(a$factor_outliers)
+  expect_null(a$priors$factor_outliers)
+})
+
+
+test_that("a default fit carries none of the #182 additions", {
+  fit <- ind_dfm(mfbdfm_example_data, length_sample = 10, burn_in = 2,
+                 control = dfm_control("ind_dfm", seed = 2, verbose = FALSE))
+  expect_null(fit$factor_outliers)
+  expect_null(fit$internal$o_weight)
+  expect_null(fit$pars$h_mu)
+  expect_null(fit$priors$sv_ar1)
+  expect_null(fit$priors$factor_outliers)
+  expect_null(attr(fit$final_state, "spec")$factor_outliers)
+})
+
+
+test_that("factor outliers and an AR(1) volatility are validated (#182)", {
+  expect_error(ind_dfm(mfbdfm_example_data, factor_outliers = NA), "`factor_outliers` must be TRUE or FALSE")
+  expect_error(ind_dfm(mfbdfm_example_data, sv_process = "ar1", stochastic_volatility = FALSE),
+               "switches off")
+  expect_error(ind_dfm(mfbdfm_example_data, sv_process = "garch"), "should be one of")
+  expect_error(ind_dfm(mfbdfm_example_data, factor_outliers = TRUE,
+                       priors = dfm_priors("ind_dfm", factor_outliers = list(nu = 0))),
+               "factor_outliers$nu", fixed = TRUE)
+  expect_error(ind_dfm(mfbdfm_example_data, sv_process = "ar1",
+                       priors = dfm_priors("ind_dfm", sv_ar1 = list(phi0 = 1))),
+               "inside (-1, 1)", fixed = TRUE)
+  expect_error(fcast_dfm(mfbdfm_example_data, factor_outliers = TRUE), "ind_dfm() only so far", fixed = TRUE)
+  expect_error(fcast_dfm(mfbdfm_example_data, sv_process = "ar1"), "ind_dfm() only so far", fixed = TRUE)
+})
+
+
+test_that("a fit with factor outliers and an AR(1) volatility can be continued (#182)", {
+  ctl <- function(...) dfm_control("ind_dfm", verbose = FALSE, h_max = Inf, ...)
+  a <- ind_dfm(mfbdfm_example_data, length_sample = 10, burn_in = 2, factor_outliers = TRUE,
+               sv_process = "ar1", control = ctl(seed = 4))
+  b <- ind_dfm(mfbdfm_example_data, length_sample = 5, burn_in = 0, factor_outliers = TRUE,
+               sv_process = "ar1", control = ctl(starting_values = a))
+  expect_true(is.finite(b$pars$h_mu))
+  # but not into a model without them
+  expect_error(ind_dfm(mfbdfm_example_data, length_sample = 5, burn_in = 0,
+                       control = ctl(starting_values = a)), "different model specification")
+})

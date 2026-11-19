@@ -18,6 +18,8 @@ fcast_dfm(
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
   fat_tails = FALSE,
+  factor_outliers = FALSE,
+  sv_process = "random_walk",
   ncores = NULL,
   priors = dfm_priors("fcast_dfm"),
   control = NULL
@@ -63,6 +65,10 @@ measurement errors. If \code{FALSE}, the autocorrelations are fixed near zero.}
 
 \item{fat_tails}{Logical. Student-t measurement errors, as in \code{\link[=ind_dfm]{ind_dfm()}}.
 Not implemented for this model yet: \code{TRUE} is an error. Default \code{FALSE}.}
+
+\item{factor_outliers, sv_process}{Factor outliers and a stationary
+volatility process, as in \code{\link[=ind_dfm]{ind_dfm()}}. Not implemented for this model yet:
+anything but the defaults is an error.}
 
 \item{ncores}{Integer or \code{NULL}. Number of cores for the rotation step,
 which is run in parallel via \pkg{doParallel} when supplied.}

@@ -21,6 +21,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                          inventory, plots,Gmat_prealloc, fdat,
                          stochastic_volatility = TRUE, serial_correlation = TRUE,
                          fat_tails = FALSE,
+                         factor_outliers = FALSE,
+                         sv_process = "random_walk",
                          priors = dfm_priors("ind_dfm"),
                          control = dfm_control("ind_dfm"),
                          verbose = TRUE,
@@ -94,13 +96,21 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   # the fat-tail multipliers start at 1, which consumes no random numbers, so a
   # chain with fat_tails = FALSE draws exactly the stream it always did (#180)
   kappa <- if(fat_tails) init("kappa", matrix(1, t, n)) else NULL
+  # likewise deterministic starts for the factor outliers and the stationary
+  # volatility process (#182): o at 1, h's level and persistence at their prior
+  # means
+  o <- if(factor_outliers) init("fo", rep(1, t+s)) else NULL
+  h_mu <- if(sv_process == "ar1") init("h_mu", priors$sv_ar1$mu0) else NULL
+  h_phi <- if(sv_process == "ar1") init("h_phi", priors$sv_ar1$phi0) else NULL
 
   ctx <- sweep_context(Ymat = Ymat, target = target, n = n, t = t, t2 = t2, p = p, s = s,
                        inventory = inventory, Gmat_prealloc = Gmat_prealloc,
                        priors = priors, control = control,
                        stochastic_volatility = stochastic_volatility,
                        serial_correlation = serial_correlation,
-                       fat_tails = fat_tails)
+                       fat_tails = fat_tails,
+                       factor_outliers = factor_outliers,
+                       sv_process = sv_process)
   rho_tally <- ctx$rho_tally
 
   # initialize progress bar; NULL when quiet, since the bar writes with cat()
@@ -115,7 +125,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   }
 
   state <- list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
-                omega = omega, Xmat = Xmat, indicators = indicators, kappa = kappa)
+                omega = omega, Xmat = Xmat, indicators = indicators, kappa = kappa,
+                fo = o, h_mu = h_mu, h_phi = h_phi)
 
   # loop until sampling complete
   for(jx in 1:(burn_in + length_sample*thinning)){
@@ -126,6 +137,7 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
     f <- state$f; lambda <- state$lambda; phi <- state$phi; sigma <- state$sigma
     rho <- state$rho; h <- state$h; omega <- state$omega; Xmat <- state$Xmat
     indicators <- state$indicators; kappa <- state$kappa
+    o <- state$fo; h_mu <- state$h_mu; h_phi <- state$h_phi
 
     # 3. check convergence
     if(plots == TRUE){
@@ -185,6 +197,11 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
         # news and logLik() needs, and E[1/kappa] is not 1/E[kappa]
         par_save$kappa_inv_sum <- if(is.null(par_save$kappa_inv_sum)) 1/kappa else par_save$kappa_inv_sum + 1/kappa
       }
+      if(factor_outliers) par_save$fo[[(jx - burn_in)/thinning]] <- o
+      if(sv_process == "ar1"){
+        par_save$h_mu[[(jx - burn_in)/thinning]] <- h_mu
+        par_save$h_phi[[(jx - burn_in)/thinning]] <- h_phi
+      }
       par_save$ncast[[(jx - burn_in)/thinning]] <- get_nowcast(Xmat_full = ts(Xmat,
                                                                      start = time(Ymat)[1],
                                                                      frequency = frequency(Ymat)),
@@ -219,6 +236,11 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                                omega = omega, Xmat = Xmat,
                                indicators = indicators)
   if(fat_tails) par_save$final_state$kappa <- kappa
+  if(factor_outliers) par_save$final_state$fo <- o
+  if(sv_process == "ar1"){
+    par_save$final_state$h_mu <- h_mu
+    par_save$final_state$h_phi <- h_phi
+  }
 
   return(par_save)
 
@@ -234,7 +256,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
 #' @noRd
 sweep_context <- function(Ymat, target, n, t, t2, p, s, inventory, Gmat_prealloc,
                           priors, control, stochastic_volatility, serial_correlation,
-                          fat_tails = FALSE){
+                          fat_tails = FALSE, factor_outliers = FALSE,
+                          sv_process = "random_walk"){
 
   Smat <- Diagonal(x = sapply(1:t, function(tx) as.integer(Ymat[tx,] != 0)))
   V1 <- solve(Diagonal(x = 1e-9, n = t*n))
@@ -272,6 +295,8 @@ sweep_context <- function(Ymat, target, n, t, t2, p, s, inventory, Gmat_prealloc
        stochastic_volatility = stochastic_volatility,
        serial_correlation = serial_correlation,
        fat_tails = fat_tails,
+       factor_outliers = factor_outliers,
+       sv_process = sv_process,
        # weekly series that get one fat-tail multiplier per week; the
        # low-frequency ones get one per observation period instead, drawn in
        # draw_low_frequency(), and the target none (#180)
@@ -559,7 +584,8 @@ gibbs_sweep <- function(state, ctx){
                     t2 = t2,
                     phi = phi,
                     sigma = sigma,
-                    h = h,
+                    # with factor outliers the innovation variance is exp(2h) * o (#182)
+                    h = if(isTRUE(ctx$factor_outliers)) h + 0.5*log(state$fo) else h,
                     collapsed_ix = tx,
                     collapsed = list(target_reg),
                     kappa = kappa)
@@ -590,8 +616,18 @@ gibbs_sweep <- function(state, ctx){
   #    nothing drawn in between: they are the auxiliary variables of the
   #    Kim-Shephard-Chib step, not a block of their own. Del Negro & Primiceri
   #    (2015), Algorithm 2.
+  #
+  #    With factor outliers (#182) the innovation is exp(h) * sqrt(o) * z: o is
+  #    drawn first, given f and h, and h then sees the innovations divided by
+  #    sqrt(o), so a single extreme week is carried by o rather than by h.
+  o <- if(isTRUE(ctx$factor_outliers)) state$fo else NULL
+  if(!is.null(o)){
+    o <- draw_factor_outliers(f = f, phi = phi, h = h, p = p, s = s, t = t,
+                              nu = priors$factor_outliers$nu)
+  }
+  ar1 <- if(identical(ctx$sv_process, "ar1")) list(mu = state$h_mu, phi = state$h_phi) else NULL
   if(ctx$stochastic_volatility){
-    indicators <- draw_indicators(h, f, phi, n, p, s, t, control)
+    indicators <- draw_indicators(h, f, phi, n, p, s, t, control, o = o)
     h <- draw_volatility(f = f,
                          phi = phi,
                          n = n,
@@ -602,11 +638,16 @@ gibbs_sweep <- function(state, ctx){
                          indicators = indicators,
                          h_old = h,
                          NtN = ctx$NtN,
-                         control = control)
+                         control = control,
+                         o = o,
+                         ar1 = ar1)
   } else {
     h <- draw_factor_variance(f = f, phi = phi, p = p, s = s, t = t,
-                              prior = priors$factor_var, control = control)
+                              prior = priors$factor_var, control = control, o = o)
   }
+  # the factor-innovation log-sd the factor and phi draws see: exp(2*h_eff) is
+  # the variance exp(2*h) * o
+  h_eff <- if(is.null(o)) h else h + 0.5*log(o)
 
   # 3. draw model parameters (conditional on factors and volatility)
   Zmat <- get_zmat(f = f, n = n, t = t, s = s, Llist = Llist, rho = rho)
@@ -633,12 +674,19 @@ gibbs_sweep <- function(state, ctx){
                         x1 = Xmat[1,], sigma = sigma, kappa = kappa,
                         ix = ctx$kappa_weekly_ix, nu = priors$kappa$nu)
   }
-  phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi, prior = priors$phi, control = control)
+  phi <- draw_phi(f = f, h = h_eff, p = p, t = t, phi_old = phi, prior = priors$phi, control = control)
 
   # omega (the variance of h's own innovations) exists solely to draw a
   # volatility PATH; with a constant variance it is meaningless.
   if(ctx$stochastic_volatility) omega <- draw_omega(h = h, t = t, s = s, p = p,
-                                                    prior = priors$omega, control = control)
+                                                    prior = priors$omega, control = control,
+                                                    ar1 = ar1)
+
+  # the level and persistence of a stationary volatility process (#182)
+  if(!is.null(ar1) && ctx$stochastic_volatility){
+    ar1 <- draw_sv_ar1(h = h, omega = omega, mu = ar1$mu, phi_h = ar1$phi,
+                       prior = priors$sv_ar1)
+  }
 
   if(ctx$serial_correlation){
     rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
@@ -692,6 +740,8 @@ gibbs_sweep <- function(state, ctx){
   out <- list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
               omega = omega, Xmat = Xmat, indicators = indicators)
   if(!is.null(kappa)) out$kappa <- kappa
+  if(!is.null(o)) out$fo <- o
+  if(!is.null(ar1)){ out$h_mu <- ar1$mu; out$h_phi <- ar1$phi }
   out
 
 }
@@ -761,11 +811,14 @@ draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return
 #'
 #' @noRd
 #' @importFrom stats rnorm
-draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN, control){
+draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN, control,
+                            o = NULL, ar1 = NULL){
 
   #  See appendix A.2 Stochastic Volatility
   err <- c(rep(0,p),f[seq(1+p,t+s),] - Reduce('+', lapply(1:p, function(px){
     f[seq(from = 1+p-px, t+s-px),,drop=FALSE] %*% phi[px]})))
+  # with factor outliers h sees the innovations net of their multipliers (#182)
+  if(!is.null(o)) err <- err / sqrt(o)
 
   # qs <- quantile(err, probs = c(0.05,0.95))
   # err[which(err<qs[1])] <- qs[1]
@@ -779,6 +832,18 @@ draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN, c
   # NtN = crossprod(N) for the (parameter-independent) first-difference operator
   # N is precomputed once in run_sampling() rather than rebuilt every iteration
   Q0 <- NtN / omega # precision matrix
+  if(!is.null(ar1)){
+    # stationary AR(1) around the level ar1$mu (#182): a proper prior with
+    # precision P/omega, P tridiagonal with 1 at both ends, 1 + phi^2 inside and
+    # -phi off the diagonal, the first period drawn from the stationary
+    # distribution N(mu, omega/(1 - phi^2))
+    m <- t+s
+    ph <- ar1$phi
+    P <- bandSparse(m, k = c(0, 1), symmetric = TRUE,
+                    diagonals = list(c(1, rep(1 + ph^2, m - 2), 1), rep(-ph, m - 1)))
+    Q0 <- P / omega
+    b0 <- Q0 %*% rep(ar1$mu, m)
+  }
 
   # simulate from approximated chi-loq square distribution using the
   # log chi-squared normal-mixture constants defined at the top of this file
@@ -788,13 +853,16 @@ draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN, c
 
   # Calculate conditional posterior of the stochastic volatility (Appendix A.2)
   Q1 <-  forceSymmetric(Q0 + t(W) %*% solve(xi) %*% W)
-  q1 <- solve(Q1,  t(W) %*% solve(xi) %*% (w - mu))
+  rhs <- t(W) %*% solve(xi) %*% (w - mu)
+  if(!is.null(ar1)) rhs <- rhs + b0
+  q1 <- solve(Q1, rhs)
 
   h <- as.matrix(q1 + solve(chol(Q1), rnorm((t+s))) + control$jitter)
 
-  # numerical stability, discard draws that are above the upper bound
-  ubound <- -2.15
-  h[which(h > ubound)] <- h_old[which(h > ubound)]
+  # numerical stability, discard draws that are above the upper bound. This is a
+  # rejection, not a draw from the conditional; it binds over COVID-19 (#182).
+  ubound <- control$h_max
+  if(is.finite(ubound)) h[which(h > ubound)] <- h_old[which(h > ubound)]
 
   return(h)
 
@@ -826,12 +894,14 @@ draw_volatility <- function(f, phi, n, p, s, t, omega, indicators, h_old, NtN, c
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_factor_variance <- function(f, phi, p, s, t, prior, control){
+draw_factor_variance <- function(f, phi, p, s, t, prior, control, o = NULL){
 
   # residuals of the factor state equation, computed exactly as in
   # draw_volatility(); the first p entries are the zero padding it also uses
   err <- c(rep(0,p), f[seq(1+p,t+s),] - Reduce('+', lapply(1:p, function(px){
     f[seq(from = 1+p-px, t+s-px),,drop=FALSE] %*% phi[px]})))
+  # net of the factor-outlier multipliers (#182)
+  if(!is.null(o)) err <- err / sqrt(o)
   v <- err[(p+1):(t+s)]
 
   # uninformative prior; see dfm_priors()
@@ -852,11 +922,13 @@ draw_factor_variance <- function(f, phi, p, s, t, prior, control){
 #'
 #' @noRd
 #' @importFrom stats dnorm
-draw_indicators <- function(h, f, phi, n, p, s, t, control){
+draw_indicators <- function(h, f, phi, n, p, s, t, control, o = NULL){
 
   #  See appendix A.2 Stochastic Volatility
   err <- c(rep(0,p),f[seq(1+p,t+s),] - Reduce('+', lapply(1:p, function(px){
     f[seq(from = 1+p-px, t+s-px),,drop=FALSE] %*% phi[px]})))
+  # net of the factor-outlier multipliers, as in draw_volatility() (#182)
+  if(!is.null(o)) err <- err / sqrt(o)
 
   w <- log(err^2 + control$sv_offset)
 
@@ -1221,9 +1293,15 @@ draw_phi = function(f, h, p, t, phi_old, prior, control){
 #'
 #' @noRd
 #' @importFrom stats rgamma
-draw_omega <- function(h, t, s, p, prior, control){
+draw_omega <- function(h, t, s, p, prior, control, ar1 = NULL){
   # See appendix A.4 Conditional distributions of Remaining Parameters: Stochastic Volatility Variance
   v <- h[2:nrow(h),] - h[seq(from = 1, nrow(h)-1),,drop=FALSE]
+  if(!is.null(ar1)){
+    # stationary AR(1) (#182): t+s innovations, the first scaled to the
+    # stationary variance, so the count in k1 below is exact
+    x <- as.numeric(h) - ar1$mu
+    v <- c(sqrt(1 - ar1$phi^2) * x[1], x[-1] - ar1$phi * x[-length(x)])
+  }
 
   # informative prior; defaults to k0 = t, l0 = t * 1e-2, see dfm_priors()
   k0 <- prior$k0
@@ -1241,5 +1319,67 @@ draw_omega <- function(h, t, s, p, prior, control){
   # if(omega > 0.1)  omega <- 0.1
 
   return(omega)
+
+}
+
+
+#' Draw the factor-outlier multipliers
+#'
+#' With `factor_outliers = TRUE` the factor innovation is
+#' `exp(h_t) * sqrt(o_t) * z_t`, `o_t ~ IG(nu/2, nu/2)`, so it is Student-t
+#' given the volatility path (Antolin-Diaz, Drechsel and Petrella 2024). The
+#' conditional is conjugate:
+#' `o_t | . ~ IG((nu + 1)/2, (nu + e_t^2 exp(-2 h_t))/2)`, `e` the state-equation
+#' residual. The first `p` periods have no residual and keep `o = 1` (#182).
+#'
+#' @noRd
+#' @importFrom stats rgamma
+draw_factor_outliers <- function(f, phi, h, p, s, t, nu){
+
+  err <- f[seq(1+p,t+s),] - Reduce('+', lapply(1:p, function(px){
+    f[seq(from = 1+p-px, t+s-px),,drop=FALSE] %*% phi[px]}))
+  e2 <- as.numeric(err)^2 * exp(-2*as.numeric(h)[seq(1+p, t+s)])
+  c(rep(1, p), 1/rgamma(length(e2), shape = (nu + 1)/2, rate = (nu + e2)/2))
+
+}
+
+
+#' Draw the level and persistence of a stationary volatility process
+#'
+#' With `sv_process = "ar1"`, `h_t - mu = phi_h (h_{t-1} - mu) + eta_t`,
+#' `eta_t ~ N(0, omega)`, and `h_1` from the stationary distribution. `mu`
+#' has a normal prior `N(mu0, M0)` and is conjugate. `phi_h` has a normal
+#' prior `N(phi0, Phi0)` truncated to `(-1, 1)`: it is proposed from the
+#' conjugate conditional of the transitions, and the stationary density of
+#' `h_1` enters as a Metropolis-Hastings correction (#182).
+#'
+#' @return `list(mu, phi)`.
+#'
+#' @noRd
+#' @importFrom stats rnorm runif
+draw_sv_ar1 <- function(h, omega, mu, phi_h, prior){
+
+  h <- as.numeric(h)
+  m <- length(h)
+
+  # mu given phi_h
+  a <- 1 - phi_h
+  prec <- 1/prior$M0 + ((1 - phi_h^2) + (m - 1)*a^2)/omega
+  num <- prior$mu0/prior$M0 +
+    ((1 - phi_h^2)*h[1] + a*sum(h[-1] - phi_h*h[-m]))/omega
+  mu <- rnorm(1, num/prec, sqrt(1/prec))
+
+  # phi_h given mu
+  x <- h - mu
+  xl <- x[-m]; xc <- x[-1]
+  pp <- 1/prior$Phi0 + sum(xl^2)/omega
+  pm <- (prior$phi0/prior$Phi0 + sum(xl*xc)/omega)/pp
+  prop <- rnorm(1, pm, sqrt(1/pp))
+  if(abs(prop) < 1){
+    log_init <- function(ph) 0.5*log(1 - ph^2) - (1 - ph^2)*x[1]^2/(2*omega)
+    if(log(runif(1)) < log_init(prop) - log_init(phi_h)) phi_h <- prop
+  }
+
+  list(mu = mu, phi = phi_h)
 
 }
