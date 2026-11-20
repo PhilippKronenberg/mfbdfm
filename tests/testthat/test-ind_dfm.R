@@ -669,3 +669,63 @@ test_that("fat_tails is validated, and fcast_dfm() says it does not have it yet 
                "single positive finite number")
   expect_error(fcast_dfm(mfbdfm_example_data, fat_tails = TRUE), "ind_dfm() only so far", fixed = TRUE)
 })
+
+test_that("ind_dfm(time_varying_mean = TRUE) returns trend and cycle (#181)", {
+  run <- function(seed) suppressMessages(ind_dfm(
+    mfbdfm_example_data, length_sample = 20, burn_in = 5, time_varying_mean = TRUE,
+    control = dfm_control("ind_dfm", verbose = FALSE, seed = seed)))
+  a <- run(7); b <- run(7)
+  expect_identical(a$nowcast, b$nowcast)
+  expect_identical(a$trend, b$trend)
+  for(nm in c("trend", "cycle")){
+    expect_s3_class(a[[nm]], "ts")
+    expect_equal(tsp(a[[nm]]), tsp(a$factor))
+    expect_true(all(is.finite(a[[nm]])))
+  }
+  expect_equal(colnames(a$trend_bands), c("q05", "q95"))
+  expect_true(all(a$trend_bands[, 1] <= a$trend + 1e-12 & a$trend <= a$trend_bands[, 2] + 1e-12))
+  expect_true(is.finite(a$pars$omega_m) && a$pars$omega_m > 0)
+  expect_length(a$internal$trend_std, length(a$factor_std))
+  expect_true(all(c("l0", "V0") %in% names(a$priors$trend)))
+  expect_equal(dim(fitted(a)), dim(a$data))
+  expect_error(mfbdfm_contributions(a), "time_varying_mean = TRUE")
+})
+
+test_that("a time-varying-mean chain continues exactly, and only onto the same model (#181)", {
+  ctl <- function(...) dfm_control("ind_dfm", verbose = FALSE, ...)
+  fit_n <- function(n, ...) suppressMessages(ind_dfm(mfbdfm_example_data, length_sample = n,
+                                                     burn_in = 0, time_varying_mean = TRUE,
+                                                     control = ctl(...)))
+  one <- fit_n(10, seed = 3)
+  leg1 <- fit_n(5, seed = 3)
+  leg2 <- fit_n(5, starting_values = leg1)
+  expect_identical(one$final_state$m, leg2$final_state$m)
+  expect_identical(one$final_state$omega_m, leg2$final_state$omega_m)
+  expect_error(suppressMessages(ind_dfm(mfbdfm_example_data, length_sample = 2, burn_in = 0,
+                                        control = ctl(starting_values = leg1))),
+               "time_varying_mean")
+})
+
+test_that("without a time-varying mean the fit carries none of it (#181)", {
+  fit <- suppressMessages(ind_dfm(mfbdfm_example_data, length_sample = 10, burn_in = 2,
+                                  control = dfm_control("ind_dfm", verbose = FALSE, seed = 1)))
+  expect_null(fit$trend)
+  expect_null(fit$cycle)
+  expect_null(fit$pars$omega_m)
+  expect_null(fit$internal$trend_std)
+  expect_null(fit$priors$trend)
+  expect_null(attr(fit$final_state, "spec")$time_varying_mean)
+})
+
+test_that("time_varying_mean is validated, and fcast_dfm() says it does not have it yet (#181)", {
+  expect_error(ind_dfm(mfbdfm_example_data, time_varying_mean = NA),
+               "`time_varying_mean` must be TRUE or FALSE")
+  expect_error(ind_dfm(mfbdfm_example_data, time_varying_mean = TRUE,
+                       priors = dfm_priors("ind_dfm", trend = list(change_10y = -1, k0 = 100, initial_sd = 2))),
+               "single positive finite number")
+  expect_error(ind_dfm(mfbdfm_example_data, time_varying_mean = TRUE,
+                       priors = dfm_priors("ind_dfm", trend = list(change_10y = 1, k0 = 1, initial_sd = 2))),
+               "larger than 1")
+  expect_error(fcast_dfm(mfbdfm_example_data, time_varying_mean = TRUE), "ind_dfm() only so far",
+               fixed = TRUE)
+})

@@ -110,3 +110,14 @@ test_that("print.dfm_priors is registered and returns invisibly", {
   expect_output(print(p), "from data")
   expect_false(withVisible(print(p))$visible)
 })
+
+test_that("the trend prior is calibrated in annualised points (#181)", {
+  pr <- resolve_trend_prior(list(change_10y = 1, k0 = 100, initial_sd = 2),
+                            target_sd = 0.01, freq = 48)
+  u <- 100 * 48 * 0.01
+  omega_m <- pr$l0/(pr$k0 - 1)
+  # a 10-year random walk of 480 weekly steps has sd 1 point annualised
+  expect_equal(sqrt(480 * omega_m) * u, 1)
+  expect_equal(sqrt(pr$V0) * u, 2)
+  expect_equal(dfm_priors("ind_dfm")$trend$change_10y, 1)
+})

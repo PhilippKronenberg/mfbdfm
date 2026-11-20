@@ -58,6 +58,14 @@ dfm_joint_precision <- function(object, Ymat = NULL){
 
   is_fcast <- inherits(object, "fcast_dfm")
 
+  # the plug-in system has no trend state yet; refuse rather than treat the
+  # trend as part of the target's cycle (#181)
+  if(!is.null(object$internal$trend_std)){
+    stop("This fit was estimated with `time_varying_mean = TRUE`. ",
+         "mfbdfm_contributions(), mfbdfm_news(), mfbdfm_exact() and logLik() ",
+         "do not support the time-varying mean yet (#181).", call. = FALSE)
+  }
+
   if(is.null(Ymat)) Ymat <- object$data
   inventory <- object$inventory
   n <- ncol(Ymat)

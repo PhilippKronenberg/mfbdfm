@@ -18,6 +18,7 @@ fcast_dfm(
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
   fat_tails = FALSE,
+  time_varying_mean = FALSE,
   ncores = NULL,
   priors = dfm_priors("fcast_dfm"),
   control = NULL
@@ -61,7 +62,10 @@ factor state equation.}
 \item{serial_correlation}{Logical, model serial correlation in the
 measurement errors. If \code{FALSE}, the autocorrelations are fixed near zero.}
 
-\item{fat_tails}{Logical. Student-t measurement errors, as in \code{\link[=ind_dfm]{ind_dfm()}}.
+\item{fat_tails}{Logical. Student-t measurement errors, as in \code{\link[=ind_dfm]{ind_dfm()}}.}
+
+\item{time_varying_mean}{Logical. A trend in the target's mean growth, as in
+\code{\link[=ind_dfm]{ind_dfm()}}. Not implemented for this model yet: \code{TRUE} is an error.
 Not implemented for this model yet: \code{TRUE} is an error. Default \code{FALSE}.}
 
 \item{ncores}{Integer or \code{NULL}. Number of cores for the rotation step,

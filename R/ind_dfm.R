@@ -262,6 +262,14 @@
 #'   explain that episode as an outlier in each series separately. The
 #'   loadings then shrink towards zero and the factor loses its tie to the
 #'   indicators. On the Swiss WAI panel this made the backcast markedly worse.
+#' @param time_varying_mean Logical. If `TRUE`, the target's mean growth is
+#'   not a constant: its growth is a cycle `f`, which the indicators load on,
+#'   plus a trend `m`, a slow weekly random walk that only the target sees
+#'   (Antolin-Diaz, Drechsel and Petrella 2017). The two are drawn jointly. The
+#'   activity factor stays the target's growth rate, trend plus cycle; the
+#'   parts are returned as `$trend` and `$cycle`. How fast the trend may move
+#'   is set by `priors$trend`, see [dfm_priors()]. Default `FALSE`, the
+#'   published model with a constant mean.
 #' @param priors Prior specification from [dfm_priors()]. The default
 #'   reproduces the published priors exactly. Note that two of them -- the
 #'   target's measurement-error variance and serial correlation -- carry the
@@ -341,6 +349,13 @@
 #'       series, of the posterior mean of each observation's variance multiplier.
 #'       Well above 1 marks an observation the model treated as an outlier for
 #'       that series; the target's column is 1.}
+#'     \item{trend, cycle}{Only with `time_varying_mean = TRUE`: `ts`, the
+#'       posterior mean of the trend in the target's growth and of the cycle
+#'       around it, annualised like `factor`. `trend_bands` holds the 5% and
+#'       95% posterior quantiles of the trend. `factor` is trend plus cycle, the
+#'       cycle being `factor` with the full-sample mean in place of the trend.
+#'       `pars$omega_m` is the variance of the trend's weekly steps on the
+#'       standardised scale.}
 #'     \item{call}{The matched call.}
 #'   }
 #'
@@ -393,6 +408,7 @@ ind_dfm <- function(flows = NULL,
                     stochastic_volatility = TRUE,
                     serial_correlation = TRUE,
                     fat_tails = FALSE,
+                    time_varying_mean = FALSE,
                     priors = dfm_priors("ind_dfm"),
                     control = NULL){
 
@@ -428,6 +444,26 @@ ind_dfm <- function(flows = NULL,
     }
   }
 
+  if(!is.logical(time_varying_mean) || length(time_varying_mean) != 1L ||
+     is.na(time_varying_mean)){
+    stop("`time_varying_mean` must be TRUE or FALSE.", call. = FALSE)
+  }
+  if(time_varying_mean){
+    # a dfm_priors() object from before #181 has no `trend` entry
+    if(is.null(priors$trend)) priors$trend <- list(change_10y = 1, k0 = 100, initial_sd = 2)
+    for(nm in c("change_10y", "k0", "initial_sd")){
+      v <- priors$trend[[nm]]
+      if(!is.numeric(v) || length(v) != 1L || !is.finite(v) || v <= 0){
+        stop("`priors$trend$", nm, "` must be a single positive finite number, ",
+             "not ", deparse(v), ".", call. = FALSE)
+      }
+    }
+    if(priors$trend$k0 <= 1){
+      stop("`priors$trend$k0` must be larger than 1, so that the prior on the ",
+           "trend's variance has a mean.", call. = FALSE)
+    }
+  }
+
   # create an inventory of the time series involved
   inventory <- create_inventory(flows = flows, stocks = stocks)
 
@@ -438,6 +474,14 @@ ind_dfm <- function(flows = NULL,
                        target = target)
 
   t2 <- nrow(Ymat)
+
+  # the trend prior in the sampler's own units, which depend on the target's
+  # standard deviation (#181)
+  if(time_varying_mean){
+    priors$trend <- resolve_trend_prior(priors$trend,
+                                        target_sd = inventory$sd[inventory$key == target],
+                                        freq = frequency(Ymat))
+  }
 
   # extend dataset to allow for forecasts
   if(!(is.null(extend_to))){
@@ -488,7 +532,8 @@ ind_dfm <- function(flows = NULL,
   spec <- fit_spec(model = "ind_dfm", n = n, t = t, s = s, p = p, q = 1,
                    stochastic_volatility = stochastic_volatility,
                    serial_correlation = serial_correlation,
-                   fat_tails = fat_tails)
+                   fat_tails = fat_tails,
+                   time_varying_mean = time_varying_mean)
   start <- resolve_starting_values(control$starting_values, spec)
   rng <- rng_begin(control$seed, continue_from = start$rng)
   on.exit(rng_restore_caller(rng), add = TRUE)
@@ -519,6 +564,7 @@ ind_dfm <- function(flows = NULL,
                            stochastic_volatility = stochastic_volatility,
                            serial_correlation = serial_correlation,
                            fat_tails = fat_tails,
+                           time_varying_mean = time_varying_mean,
                            priors = priors,
                        control = control,
                        verbose = verbose,
@@ -568,12 +614,16 @@ ind_dfm <- function(flows = NULL,
   target_sd <- inventory[which(inventory$key == target),"sd"]
   target_mean <- inventory[which(inventory$key == target),"mean"]
 
-  rescaled_list <- lapply(par_save$f, function(fx){
+  # with a time-varying mean the target's growth is trend plus cycle, f + m
+  # (#181); the factor stays the target's growth rate
+  growth_draws <- if(time_varying_mean) Map(`+`, par_save$f, par_save$m) else par_save$f
+  rescale_growth <- function(fx){
 
     f_cut <- fx[(s+1):(t+s)]
     (f_cut * target_sd) + target_mean/k
 
-  })
+  }
+  rescaled_list <- lapply(growth_draws, rescale_growth)
 
   # growth rates of factor at a quarterly rate, annualized
   flist <- lapply(rescaled_list, function(f_rescaled){
@@ -699,6 +749,7 @@ ind_dfm <- function(flows = NULL,
   # fit_specification().
   # without fat tails the record is the published model's, which has no `kappa`
   if(!fat_tails) priors$kappa <- NULL
+  if(!time_varying_mean) priors$trend <- NULL
   .spec <- fit_specification(priors, control, t = t, p = p)
   out$priors <- .spec$priors
   out$control <- .spec$control
@@ -729,6 +780,20 @@ ind_dfm <- function(flows = NULL,
   # posterior mean of the fat-tail multipliers, a t x n matrix in the panel's
   # column order; a value well above 1 marks an observation the model treated as
   # an outlier for that series (#180). Absent without fat tails.
+  if(time_varying_mean){
+    annualise <- function(x) ((1 + rescale_growth(x))^frequency(Ymat) - 1) * 100
+    tr <- do.call(cbind, lapply(par_save$m, annualise))
+    like <- function(x) ts(x, start = time(Ymat)[1], frequency = frequency(Ymat))
+    out$trend <- like(rowMeans(tr))
+    out$trend_bands <- like(t(apply(tr, 1, stats::quantile, probs = c(0.05, 0.95))))
+    colnames(out$trend_bands) <- c("q05", "q95")
+    out$cycle <- like(rowMeans(do.call(cbind, lapply(par_save$f, annualise))))
+    out$pars$omega_m <- mean(unlist(par_save$omega_m))
+    # the posterior mean trend on the standardised t+s grid, which fitted() and
+    # residuals() add to the target's common component
+    out$internal$trend_std <- as.numeric(Reduce("+", par_save$m)/length(par_save$m))
+  }
+
   if(fat_tails){
     out$kappa <- stats::ts(par_save$kappa_sum / par_save$Xmat_n,
                            start = time(Ymat)[1], frequency = frequency(Ymat))

@@ -113,7 +113,7 @@ run_wai_adj <- function(flows, stocks, target, date, dataset_used,
                         p = 1,
                         length_sample = 5000, burn_in = 1000, thinning = 1,
                         stochastic_volatility = TRUE, serial_correlation = TRUE,
-                        fat_tails = FALSE,
+                        fat_tails = FALSE, time_varying_mean = FALSE,
                         output_dir = NULL, extend_to = NULL){
 
   if(!is.null(extend_to) &&
@@ -133,7 +133,8 @@ run_wai_adj <- function(flows, stocks, target, date, dataset_used,
                  extend_to = extend_to,
                  stochastic_volatility = stochastic_volatility,
                  serial_correlation = serial_correlation,
-                 fat_tails = fat_tails)
+                 fat_tails = fat_tails,
+                 time_varying_mean = time_varying_mean)
 
   # trim_to() rather than window(): the requested end is often past the series,
   # where window() leaves it untouched but warns "'end' value not changed".

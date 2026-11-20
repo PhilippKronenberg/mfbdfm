@@ -204,3 +204,56 @@ test_that("draw_kappa() draws from the conjugate inverse-gamma, and only the ser
   # an outlier gets a smaller weight than an ordinary observation
   expect_lt(mean(w[r == max(r)]), mean(w[r == min(r)]))
 })
+
+test_that("the joint factor-trend draw has the conditional mean and covariance (#181)", {
+  set.seed(181)
+  t <- 30; s <- 4; nT <- t + s
+  F1 <- Matrix::forceSymmetric(Matrix::bandSparse(nT, nT, k = 0:1,
+          diagonals = list(rep(2.5, nT), rep(-0.9, nT - 1)), symmetric = TRUE))
+  rhs <- Matrix::Matrix(rnorm(nT), nT, 1)
+  A <- Matrix::Matrix(0, 6, nT, sparse = TRUE)
+  for(i in 1:6) A[i, (5*i - 4):(5*i)] <- c(1, 2, 3, 2, 1)/9
+  reg <- list(A = A, r = rnorm(6), w = rep(1, 6), lambda = 1, sigma = 0.01)
+  N <- cbind(rbind(Matrix::Matrix(0, 1, nT - 1), Matrix::Diagonal(nT - 1) * -1),
+             Matrix::Matrix(0, nT, 1)) + Matrix::Diagonal(nT)
+  N <- N[-1, ]
+  trend <- list(omega_m = 0.05, V0 = 0.5, NtN = Matrix::crossprod(N))
+  mu <- draw_factor_and_trend(F1, rhs, list(reg), trend, t, s, return_sample = FALSE)
+
+  # dense reference
+  P_ff <- as.matrix(F1 + Matrix::crossprod(A)/0.01)
+  P_fm <- as.matrix(Matrix::crossprod(A)/0.01)
+  P_mm <- as.matrix(trend$NtN/0.05 + Matrix::crossprod(A)/0.01); P_mm[1, 1] <- P_mm[1, 1] + 2
+  P <- rbind(cbind(P_ff, P_fm), cbind(t(P_fm), P_mm))
+  b <- c(as.numeric(rhs) + as.numeric(Matrix::crossprod(A, reg$r))/0.01,
+         as.numeric(Matrix::crossprod(A, reg$r))/0.01)
+  z <- solve(P, b)
+  expect_equal(c(mu$f, mu$m), z, tolerance = 1e-8)
+
+  draws <- replicate(4000, {d <- draw_factor_and_trend(F1, rhs, list(reg), trend, t, s); c(d$f, d$m)})
+  expect_equal(rowMeans(draws), z, tolerance = 0.05)
+  # the target pins f + m, not f and m: the draw must carry that correlation
+  i <- 20
+  expect_equal(cor(draws[i, ], draws[nT + i, ]), cov2cor(solve(P))[i, nT + i], tolerance = 0.05)
+})
+
+test_that("draw_trend_variance is the conjugate inverse-gamma (#181)", {
+  set.seed(2)
+  m <- cumsum(rnorm(500, sd = 0.1))
+  pr <- list(k0 = 10, l0 = 10 * 0.02)
+  d <- replicate(5000, draw_trend_variance(m, pr))
+  a <- pr$k0 + 499/2; b <- pr$l0 + sum(diff(m)^2)/2
+  expect_equal(mean(d), b/(a - 1), tolerance = 0.01)
+})
+
+test_that("target_lag_matrix agrees with the observation rows of series_obs (#181)", {
+  d <- mfbdfm_example_data
+  inv <- create_inventory(d$flows, d$stocks)
+  Y <- prepare_data(d$flows, d$stocks, inv, d$target)
+  L <- get_distributed_lags(inv)
+  t <- nrow(Y); s <- length(L) - 1L
+  ix <- which(inv$key == d$target)
+  obs <- series_obs(Y, ix, L, t, s)
+  B <- target_lag_matrix(Y, ix, L, t, s)
+  expect_equal(as.matrix(B[obs$tau, ]), as.matrix(obs$B))
+})

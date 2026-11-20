@@ -27,6 +27,10 @@
 # weekly series has one per week, the monthly one per observation period, the
 # target none. Compared through log(kappa) and 1/kappa, whose moments are finite
 # for any nu.
+#
+# Time-varying mean (#181): geweke_run(trend = TRUE) gives the target a random
+# walk trend m, m[1] ~ N(0, V0) and steps of variance omega_m ~ IG(k0, l0), drawn
+# jointly with f, and adds moments of m, of omega_m and of f + m.
 
 GEWEKE_T <- 32L
 
@@ -44,10 +48,11 @@ geweke_priors <- function(){
        phi = list(a0 = 0.6, A0 = 1e-10),
        omega = list(k0 = 3, l0 = 0.03),
        factor_var = list(c0 = 2e6, d0 = 5e5),
-       kappa = list(nu = 5))
+       kappa = list(nu = 5),
+       trend = list(k0 = 6, l0 = 0.1, V0 = 0.5))
 }
 
-geweke_setup <- function(t = GEWEKE_T, fat = FALSE){
+geweke_setup <- function(t = GEWEKE_T, fat = FALSE, trend = FALSE){
   inventory <- data.frame(key = c("wk", "mo", "gdp"), type = c("flow", "stock", "flow"),
                           freq = c(48, 12, 12), stringsAsFactors = FALSE)
   n <- 3L; s <- 2L*(4L - 1L); p <- 1L
@@ -61,7 +66,7 @@ geweke_setup <- function(t = GEWEKE_T, fat = FALSE){
        control = dfm_control("ind_dfm"),
        # weekly series every week, the monthly ones every fourth
        observed = cbind(rep(TRUE, t), seq_len(t) %% 4L == 0L, seq_len(t) %% 4L == 0L),
-       fat = fat)
+       fat = fat, trend = trend)
 }
 
 # The multipliers from their prior: one per week for the weekly series, one per
@@ -97,6 +102,12 @@ geweke_prior_draw <- function(g){
               h = matrix(0.5*log(var_f), tt, 1), omega = 0.01,
               Xmat = matrix(0, g$t, n), indicators = rep(1L, tt))
   if(isTRUE(g$fat)) out$kappa <- geweke_prior_kappa(g)
+  if(isTRUE(g$trend)){
+    tr <- pr$trend
+    out$omega_m <- 1/stats::rgamma(1, tr$k0, rate = tr$l0)
+    out$m <- matrix(cumsum(c(stats::rnorm(1, 0, sqrt(tr$V0)),
+                             stats::rnorm(tt - 1, 0, sqrt(out$omega_m)))), tt, 1)
+  }
   out
 }
 
@@ -108,6 +119,11 @@ geweke_simulate_x <- function(state, g){
   gf <- as.numeric(G %*% state$f)
   dim(gf) <- c(n, t - 1)
   rd <- Matrix::diag(state$rho)
+  if(isTRUE(g$trend)){
+    # the target loads on f + m
+    lm <- as.numeric(mfbdfm:::target_lag_matrix(NULL, n, g$Llist, t, g$s) %*% state$m)
+    gf[n,] <- gf[n,] + lm[-1] - rd[n]*lm[-t]
+  }
   sd_v <- sqrt(Matrix::diag(state$sigma))
   k <- if(isTRUE(g$fat)) sqrt(state$kappa) else matrix(1, t, n)
   X <- matrix(0, t, n)
@@ -123,7 +139,8 @@ geweke_context <- function(X, g){
                          s = g$s, inventory = g$inventory, Gmat_prealloc = g$Gmat_prealloc,
                          priors = g$priors, control = g$control,
                          stochastic_volatility = FALSE, serial_correlation = TRUE,
-                         fat_tails = isTRUE(g$fat))
+                         fat_tails = isTRUE(g$fat),
+                         time_varying_mean = isTRUE(g$trend))
 }
 
 # The moments compared. rho only through even powers for the monthly series,
@@ -142,6 +159,12 @@ geweke_moments <- function(state, g){
       c(lkap_wk = mean(log(k[, 1])), ikap_wk = mean(1/k[, 1]), lkap_wk_last = log(k[g$t, 1]),
         lkap_mo = mean(log(k[, 2])), ikap_mo = mean(1/k[, 2]), lkap_mo_last = log(k[g$t, 2]),
         sigKap_wk = v[1]*mean(1/k[, 1]))
+    },
+    if(isTRUE(g$trend)){
+      m <- as.numeric(state$m)
+      c(m_mean = mean(m), m_var = mean(m^2), m_last = m[length(m)], m_last2 = m[length(m)]^2,
+        omega_m = state$omega_m, fm_last = f[length(f)] + m[length(m)],
+        fm_cov = mean(f*m))
     })
 }
 
@@ -173,13 +196,13 @@ geweke_se <- function(x, batches = 40L){
 #' @param patch Called in each worker before sampling, e.g. to swap in a known
 #'   wrong function as a negative control.
 geweke_run <- function(sweeps = 20000L, draws = 200000L, chains = 4L, burn = 500L,
-                       patch = NULL, seed = 2026L, fat = FALSE){
+                       patch = NULL, seed = 2026L, fat = FALSE, trend = FALSE){
 
   cl <- parallel::makeCluster(chains)
   on.exit(parallel::stopCluster(cl))
   parallel::clusterSetRNGStream(cl, seed)
   wd <- getwd()
-  parallel::clusterExport(cl, c("patch", "wd", "sweeps", "draws", "burn", "fat"), envir = environment())
+  parallel::clusterExport(cl, c("patch", "wd", "sweeps", "draws", "burn", "fat", "trend"), envir = environment())
   parallel::clusterEvalQ(cl, {
     setwd(wd)
     suppressMessages(devtools::load_all(".", quiet = TRUE))
@@ -188,7 +211,7 @@ geweke_run <- function(sweeps = 20000L, draws = 200000L, chains = 4L, burn = 500
     NULL
   })
   res <- parallel::parLapply(cl, seq_len(chains), function(i){
-    g <- geweke_setup(fat = fat)
+    g <- geweke_setup(fat = fat, trend = trend)
     list(succ = geweke_successive(sweeps + burn, g)[-seq_len(burn),],
          marg = geweke_marginal(draws, g))
   })

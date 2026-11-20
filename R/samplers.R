@@ -21,6 +21,7 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                          inventory, plots,Gmat_prealloc, fdat,
                          stochastic_volatility = TRUE, serial_correlation = TRUE,
                          fat_tails = FALSE,
+                         time_varying_mean = FALSE,
                          priors = dfm_priors("ind_dfm"),
                          control = dfm_control("ind_dfm"),
                          verbose = TRUE,
@@ -94,13 +95,18 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   # the fat-tail multipliers start at 1, which consumes no random numbers, so a
   # chain with fat_tails = FALSE draws exactly the stream it always did (#180)
   kappa <- if(fat_tails) init("kappa", matrix(1, t, n)) else NULL
+  # the trend starts flat at the full-sample mean and its variance at the prior
+  # mean, neither of which consumes random numbers (#181)
+  m <- if(time_varying_mean) init("m", matrix(0, t+s, 1)) else NULL
+  omega_m <- if(time_varying_mean) init("omega_m", priors$trend$l0/(priors$trend$k0 - 1)) else NULL
 
   ctx <- sweep_context(Ymat = Ymat, target = target, n = n, t = t, t2 = t2, p = p, s = s,
                        inventory = inventory, Gmat_prealloc = Gmat_prealloc,
                        priors = priors, control = control,
                        stochastic_volatility = stochastic_volatility,
                        serial_correlation = serial_correlation,
-                       fat_tails = fat_tails)
+                       fat_tails = fat_tails,
+                       time_varying_mean = time_varying_mean)
   rho_tally <- ctx$rho_tally
 
   # initialize progress bar; NULL when quiet, since the bar writes with cat()
@@ -115,7 +121,8 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
   }
 
   state <- list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
-                omega = omega, Xmat = Xmat, indicators = indicators, kappa = kappa)
+                omega = omega, Xmat = Xmat, indicators = indicators, kappa = kappa,
+                m = m, omega_m = omega_m)
 
   # loop until sampling complete
   for(jx in 1:(burn_in + length_sample*thinning)){
@@ -126,6 +133,7 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
     f <- state$f; lambda <- state$lambda; phi <- state$phi; sigma <- state$sigma
     rho <- state$rho; h <- state$h; omega <- state$omega; Xmat <- state$Xmat
     indicators <- state$indicators; kappa <- state$kappa
+    m <- state$m; omega_m <- state$omega_m
 
     # 3. check convergence
     if(plots == TRUE){
@@ -185,6 +193,10 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
         # news and logLik() needs, and E[1/kappa] is not 1/E[kappa]
         par_save$kappa_inv_sum <- if(is.null(par_save$kappa_inv_sum)) 1/kappa else par_save$kappa_inv_sum + 1/kappa
       }
+      if(time_varying_mean){
+        par_save$m[[(jx - burn_in)/thinning]] <- m
+        par_save$omega_m[[(jx - burn_in)/thinning]] <- omega_m
+      }
       par_save$ncast[[(jx - burn_in)/thinning]] <- get_nowcast(Xmat_full = ts(Xmat,
                                                                      start = time(Ymat)[1],
                                                                      frequency = frequency(Ymat)),
@@ -219,6 +231,10 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
                                omega = omega, Xmat = Xmat,
                                indicators = indicators)
   if(fat_tails) par_save$final_state$kappa <- kappa
+  if(time_varying_mean){
+    par_save$final_state$m <- m
+    par_save$final_state$omega_m <- omega_m
+  }
 
   return(par_save)
 
@@ -234,7 +250,7 @@ run_sampling <- function(Ymat, target, n, t, t2, p, s, length_sample, burn_in, t
 #' @noRd
 sweep_context <- function(Ymat, target, n, t, t2, p, s, inventory, Gmat_prealloc,
                           priors, control, stochastic_volatility, serial_correlation,
-                          fat_tails = FALSE){
+                          fat_tails = FALSE, time_varying_mean = FALSE){
 
   Smat <- Diagonal(x = sapply(1:t, function(tx) as.integer(Ymat[tx,] != 0)))
   V1 <- solve(Diagonal(x = 1e-9, n = t*n))
@@ -272,6 +288,10 @@ sweep_context <- function(Ymat, target, n, t, t2, p, s, inventory, Gmat_prealloc
        stochastic_volatility = stochastic_volatility,
        serial_correlation = serial_correlation,
        fat_tails = fat_tails,
+       time_varying_mean = time_varying_mean,
+       # the target's distributed lag at every week, t x (t+s): maps the trend
+       # onto the weeks of the target's own scale (#181)
+       target_lag = if(time_varying_mean) target_lag_matrix(Ymat, which(inventory$key == target), Llist, t, s),
        # weekly series that get one fat-tail multiplier per week; the
        # low-frequency ones get one per observation period instead, drawn in
        # draw_low_frequency(), and the target none (#180)
@@ -521,6 +541,10 @@ gibbs_sweep <- function(state, ctx){
   rho <- state$rho; h <- state$h; omega <- state$omega; indicators <- state$indicators
   # NULL unless fat_tails = TRUE; every draw below then runs its Gaussian code
   kappa <- if(isTRUE(ctx$fat_tails)) state$kappa else NULL
+  # NULL unless time_varying_mean = TRUE (#181)
+  tvm <- isTRUE(ctx$time_varying_mean)
+  m <- if(tvm) state$m else NULL
+  omega_m <- if(tvm) state$omega_m else NULL
 
   n <- ctx$n; t <- ctx$t; t2 <- ctx$t2; p <- ctx$p; s <- ctx$s
   Llist <- ctx$Llist; inventory <- ctx$inventory; target <- ctx$target
@@ -550,6 +574,9 @@ gibbs_sweep <- function(state, ctx){
   target_reg$lambda <- as.numeric(lambda)[tx]
   target_reg$sigma <- diag(sigma)[tx]
 
+  # With a time-varying mean (#181) the target loads on f + m, and the two are
+  # one draw: given the target's observations they are almost perfectly
+  # negatively correlated, so drawing one given the other would freeze.
   f <- draw_factors(Xvec_tilde = Xvec_tilde,
                     Gmat = Gmat,
                     n = n,
@@ -562,7 +589,13 @@ gibbs_sweep <- function(state, ctx){
                     h = h,
                     collapsed_ix = tx,
                     collapsed = list(target_reg),
-                    kappa = kappa)
+                    kappa = kappa,
+                    trend = if(tvm) list(omega_m = omega_m, V0 = priors$trend$V0,
+                                         NtN = ctx$NtN))
+  if(tvm){
+    m <- f$m
+    f <- f$f
+  }
 
   # draw_factors() does not condition on the rows past t2, so they are redrawn
   # given the new f before anything below uses them.
@@ -573,7 +606,15 @@ gibbs_sweep <- function(state, ctx){
 
   gf <- as.numeric(Gmat %*% f)
   dim(gf) <- c(n, t - 1)
-  Xmat[, tx] <- draw_series_latent(obs, gf[tx,], diag(rho)[tx], diag(sigma)[tx], t)
+  # the trend's share of the target at every week, and the same quasi-differenced
+  lm_tx <- if(tvm) as.numeric(ctx$target_lag %*% m) else 0
+  gm_tx <- if(tvm) lm_tx[-1] - diag(rho)[tx] * lm_tx[-t] else 0
+  Xmat[, tx] <- draw_series_latent(obs, gf[tx,] + gm_tx, diag(rho)[tx], diag(sigma)[tx], t)
+
+  # Every draw below sees the target net of its trend, which is the cycle the
+  # factor explains; `Xmat` itself, which carries the nowcast, keeps it.
+  Xmat_state <- Xmat
+  if(tvm) Xmat[, tx] <- Xmat[, tx] - lm_tx
 
   Xmat_tilde <- Xmat[-1,] - Xmat[-nrow(Xmat),] %*% rho
   Xvec_tilde <- t(Xmat_tilde)
@@ -640,6 +681,9 @@ gibbs_sweep <- function(state, ctx){
   if(ctx$stochastic_volatility) omega <- draw_omega(h = h, t = t, s = s, p = p,
                                                     prior = priors$omega, control = control)
 
+  # the variance of the trend's weekly steps, given the trend (#181)
+  if(tvm) omega_m <- draw_trend_variance(m, prior = priors$trend)
+
   if(ctx$serial_correlation){
     rho <- draw_rho(Xmat = Xmat, f = f,  n = n, t = t, s = s, sigma = sigma,
                     lambda = lambda, Llist = Llist, inventory = inventory, target = target,
@@ -690,8 +734,12 @@ gibbs_sweep <- function(state, ctx){
   }
 
   out <- list(f = f, lambda = lambda, phi = phi, sigma = sigma, rho = rho, h = h,
-              omega = omega, Xmat = Xmat, indicators = indicators)
+              omega = omega, Xmat = Xmat_state, indicators = indicators)
   if(!is.null(kappa)) out$kappa <- kappa
+  if(tvm){
+    out$m <- m
+    out$omega_m <- omega_m
+  }
   out
 
 }
@@ -702,7 +750,8 @@ gibbs_sweep <- function(state, ctx){
 #' @noRd
 #' @importFrom stats rnorm
 draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return_sample = TRUE,
-                         collapsed_ix = integer(), collapsed = list(), kappa = NULL){
+                         collapsed_ix = integer(), collapsed = list(), kappa = NULL,
+                         trend = NULL){
 
   # See section 2.5 Estimation
   H <- Reduce("+",lapply(1:p, function(px){
@@ -733,6 +782,9 @@ draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return
   F1 <- F0 + t(Gmat) %*% Svec_sigma_inv %*% Gmat
   rhs <- t(Gmat) %*% Svec_sigma_inv %*% Xvec_tilde
 
+  if(!is.null(trend)) return(draw_factor_and_trend(F1, rhs, collapsed, trend, t, s,
+                                                    return_sample))
+
   for(reg in collapsed){
     A_w <- reg$lambda * t(reg$A) %*% Diagonal(x = 1/(reg$sigma * reg$w))
     F1 <- F1 + reg$lambda * A_w %*% reg$A
@@ -753,6 +805,87 @@ draw_factors <- function(Xvec_tilde, Gmat, n, p, s, t, t2, phi, sigma, h, return
   }
 
   return(f)
+
+}
+
+
+
+#' Draw the factor and the trend jointly
+#'
+#' With `ind_dfm(time_varying_mean = TRUE)` (#181) the target loads on `f + m`,
+#' `m` a random walk with `m[1] ~ N(0, V0)` and steps of variance `omega_m`. The
+#' series in `collapsed` (the target only) enter through `f + m`, everything
+#' else through `f` alone, which is already in `F1` and `rhs`. Given the
+#' target's observations `f` and `m` are close to perfectly negatively
+#' correlated, so they are one Gaussian draw of length `2(t+s)`. Ordered
+#' `f[1], m[1], f[2], m[2], ...`, its precision stays banded.
+#'
+#' @return A list with `f` and `m`, each a `(t+s) x 1` matrix.
+#'
+#' @noRd
+#' @importFrom stats rnorm
+draw_factor_and_trend <- function(F1, rhs, collapsed, trend, t, s, return_sample = TRUE){
+
+  nT <- t + s
+  Pfm <- Matrix(0, nT, nT, sparse = TRUE)
+  Pmm <- trend$NtN/trend$omega_m
+  Pmm[1, 1] <- Pmm[1, 1] + 1/trend$V0
+  rhs_m <- Matrix(0, nT, 1, sparse = TRUE)
+
+  for(reg in collapsed){
+    AtW <- t(reg$A) %*% Diagonal(x = 1/(reg$sigma * reg$w))
+    AtWA <- AtW %*% reg$A
+    AtWr <- AtW %*% reg$r
+    F1 <- F1 + reg$lambda^2 * AtWA
+    Pfm <- Pfm + reg$lambda * AtWA
+    Pmm <- Pmm + AtWA
+    rhs <- rhs + reg$lambda * AtWr
+    rhs_m <- rhs_m + AtWr
+  }
+
+  perm <- as.vector(rbind(seq_len(nT), nT + seq_len(nT)))
+  P <- rbind(cbind(F1, Pfm), cbind(t(Pfm), Pmm))[perm, perm]
+  P <- forceSymmetric(P)
+  b <- rbind(rhs, rhs_m)[perm, , drop = FALSE]
+
+  z <- solve(P, b)
+  if(return_sample) z <- z + solve(chol(P), rnorm(2*nT))
+
+  zz <- numeric(2*nT)
+  zz[perm] <- as.numeric(z)
+  list(f = matrix(zz[seq_len(nT)], nT, 1), m = matrix(zz[nT + seq_len(nT)], nT, 1))
+
+}
+
+
+#' The target's distributed lag at every week
+#'
+#' Row `tx` maps the `t+s` weekly states to the target's aggregate at week `tx`,
+#' the same weights [series_obs()] uses at the observation dates (#181).
+#'
+#' @noRd
+target_lag_matrix <- function(Ymat, ix, Llist, t, s){
+
+  w <- vapply(Llist, function(m) diag(m)[ix], numeric(1))
+  lags <- which(w != 0) - 1L
+  sparseMatrix(i = rep(seq_len(t), each = length(lags)),
+               j = as.vector(outer(s - lags, seq_len(t), "+")),
+               x = rep(w[lags + 1L], t),
+               dims = c(t, t + s))
+
+}
+
+
+#' Draw the variance of the trend's weekly steps
+#'
+#' Conjugate: `omega_m | m ~ IG(k0 + (T-1)/2, l0 + sum(diff(m)^2)/2)` (#181).
+#'
+#' @noRd
+#' @importFrom stats rgamma
+draw_trend_variance <- function(m, prior){
+
+  dm <- diff(as.numeric(m))
+  1/rgamma(1, shape = prior$k0 + length(dm)/2, rate = prior$l0 + sum(dm^2)/2)
 
 }
 

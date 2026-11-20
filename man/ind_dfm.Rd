@@ -17,6 +17,7 @@ ind_dfm(
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
   fat_tails = FALSE,
+  time_varying_mean = FALSE,
   priors = dfm_priors("ind_dfm"),
   control = NULL
 )
@@ -71,6 +72,15 @@ large common episode, such as the COVID-19 recession, the errors can
 explain that episode as an outlier in each series separately. The
 loadings then shrink towards zero and the factor loses its tie to the
 indicators. On the Swiss WAI panel this made the backcast markedly worse.}
+
+\item{time_varying_mean}{Logical. If \code{TRUE}, the target's mean growth is
+not a constant: its growth is a cycle \code{f}, which the indicators load on,
+plus a trend \code{m}, a slow weekly random walk that only the target sees
+(Antolin-Diaz, Drechsel and Petrella 2017). The two are drawn jointly. The
+activity factor stays the target's growth rate, trend plus cycle; the
+parts are returned as \verb{$trend} and \verb{$cycle}. How fast the trend may move
+is set by \code{priors$trend}, see \code{\link[=dfm_priors]{dfm_priors()}}. Default \code{FALSE}, the
+published model with a constant mean.}
 
 \item{priors}{Prior specification from \code{\link[=dfm_priors]{dfm_priors()}}. The default
 reproduces the published priors exactly. Note that two of them -- the
@@ -152,6 +162,13 @@ covers the \code{t} in-sample ones only). Read by \code{\link[=mfbdfm_news]{mfbd
 series, of the posterior mean of each observation's variance multiplier.
 Well above 1 marks an observation the model treated as an outlier for
 that series; the target's column is 1.}
+\item{trend, cycle}{Only with \code{time_varying_mean = TRUE}: \code{ts}, the
+posterior mean of the trend in the target's growth and of the cycle
+around it, annualised like \code{factor}. \code{trend_bands} holds the 5\% and
+95\% posterior quantiles of the trend. \code{factor} is trend plus cycle, the
+cycle being \code{factor} with the full-sample mean in place of the trend.
+\code{pars$omega_m} is the variance of the trend's weekly steps on the
+standardised scale.}
 \item{call}{The matched call.}
 }
 }

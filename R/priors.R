@@ -50,6 +50,27 @@
 #' `nu` means heavier tails; the Gaussian model is `fat_tails = FALSE`. It is not
 #' moved by `type`.
 #'
+#' # Time-varying mean growth
+#'
+#' With `ind_dfm(time_varying_mean = TRUE)`, the target's growth is a cycle `f`
+#' plus a trend `m`, a weekly random walk with steps of variance `omega_m`
+#' (#181). `trend = list(change_10y = 1, k0 = 100, initial_sd = 2)` calibrates
+#' it in annualised percentage points of the target:
+#'
+#' - `change_10y`: the prior standard deviation of the change in trend growth
+#'   over ten years. `omega_m` gets an inverse-gamma prior with mean
+#'   `(change_10y / u)^2 / (10 * freq)`, where `u = 100 * freq * sd` converts
+#'   the standardised weekly trend into annualised percent, `freq` is the
+#'   number of weeks per year and `sd` the target's standard deviation.
+#' - `k0`: the prior's weight, in pseudo-observations. The default 100 keeps the
+#'   trend slow: left to the data, the random walk would also absorb part of
+#'   the cycle.
+#' - `initial_sd`: the prior standard deviation of the trend's starting value
+#'   around the full-sample mean, `m[1] ~ N(0, (initial_sd / u)^2)`.
+#'
+#' The resolved values `l0` (the prior's sum of squares) and `V0` are filled in
+#' at fit time and stored with the fit. None of it is moved by `type`.
+#'
 #' @param model Character, which model the priors are for: `"ind_dfm"` or
 #'   `"fcast_dfm"`. The two models take different priors, and passing a set
 #'   built for one to the other is an error.
@@ -148,7 +169,10 @@ priors_ind_dfm <- function(type){
     factor_var   = list(c0 = 3, d0 = 1e-2),      # used when SV is off
     # degrees of freedom of the Student-t measurement errors; used only with
     # fat_tails = TRUE (#180), and not moved by `type`
-    kappa        = list(nu = 5)
+    kappa        = list(nu = 5),
+    # calibration of the trend in mean growth; used only with
+    # time_varying_mean = TRUE (#181), and not moved by `type`
+    trend        = list(change_10y = 1, k0 = 100, initial_sd = 2)
   )
 
   switch(type,
@@ -322,3 +346,21 @@ print.dfm_priors <- function(x, ...){
   invisible(x)
 
 }
+
+
+#' Put the trend prior on the sampler's own scale
+#'
+#' `change_10y` and `initial_sd` are in annualised percentage points of the
+#' target; the sampler's trend is weekly and standardised (#181).
+#'
+#' @noRd
+resolve_trend_prior <- function(prior, target_sd, freq){
+
+  u <- 100 * freq * target_sd
+  omega_m <- (prior$change_10y / u)^2 / (10 * freq)
+  prior$l0 <- (prior$k0 - 1) * omega_m
+  prior$V0 <- (prior$initial_sd / u)^2
+  prior
+
+}
+

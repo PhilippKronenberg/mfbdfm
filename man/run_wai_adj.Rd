@@ -17,6 +17,7 @@ run_wai_adj(
   stochastic_volatility = TRUE,
   serial_correlation = TRUE,
   fat_tails = FALSE,
+  time_varying_mean = FALSE,
   output_dir = NULL,
   extend_to = NULL
 )
@@ -66,6 +67,15 @@ large common episode, such as the COVID-19 recession, the errors can
 explain that episode as an outlier in each series separately. The
 loadings then shrink towards zero and the factor loses its tie to the
 indicators. On the Swiss WAI panel this made the backcast markedly worse.}
+
+\item{time_varying_mean}{Logical. If \code{TRUE}, the target's mean growth is
+not a constant: its growth is a cycle \code{f}, which the indicators load on,
+plus a trend \code{m}, a slow weekly random walk that only the target sees
+(Antolin-Diaz, Drechsel and Petrella 2017). The two are drawn jointly. The
+activity factor stays the target's growth rate, trend plus cycle; the
+parts are returned as \verb{$trend} and \verb{$cycle}. How fast the trend may move
+is set by \code{priors$trend}, see \code{\link[=dfm_priors]{dfm_priors()}}. Default \code{FALSE}, the
+published model with a constant mean.}
 
 \item{output_dir}{Directory to save the fit to, or \code{NULL} (default) to
 skip saving. When given, the fit is saved as

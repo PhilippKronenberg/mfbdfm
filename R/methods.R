@@ -488,6 +488,16 @@ fit_common_component <- function(object){
       t(lambda * w)
   }
 
+  # with a time-varying mean the target's fit is trend plus cycle (#181)
+  m <- object$internal$trend_std
+  if(!is.null(m) && length(m) == t + s){
+    tx <- which(object$inventory$key == object$target)
+    for(sx in 0:s){
+      w <- diag(Llist[[as.character(sx)]])[tx]
+      out[, tx] <- out[, tx] + w * m[seq(from = 1 + s - sx, to = t + s - sx)]
+    }
+  }
+
   colnames(out) <- object$inventory$key
   ts(out, start = time(object$data)[1], frequency = frequency(object$data))
 

@@ -80,6 +80,28 @@ innovation's variance is \code{sigma * kappa}, \code{kappa ~ IG(nu/2, nu/2)}. Sm
 moved by \code{type}.
 }
 
+\section{Time-varying mean growth}{
+With \code{ind_dfm(time_varying_mean = TRUE)}, the target's growth is a cycle \code{f}
+plus a trend \code{m}, a weekly random walk with steps of variance \code{omega_m}
+(#181). \code{trend = list(change_10y = 1, k0 = 100, initial_sd = 2)} calibrates
+it in annualised percentage points of the target:
+\itemize{
+\item \code{change_10y}: the prior standard deviation of the change in trend growth
+over ten years. \code{omega_m} gets an inverse-gamma prior with mean
+\code{(change_10y / u)^2 / (10 * freq)}, where \code{u = 100 * freq * sd} converts
+the standardised weekly trend into annualised percent, \code{freq} is the
+number of weeks per year and \code{sd} the target's standard deviation.
+\item \code{k0}: the prior's weight, in pseudo-observations. The default 100 keeps the
+trend slow: left to the data, the random walk would also absorb part of
+the cycle.
+\item \code{initial_sd}: the prior standard deviation of the trend's starting value
+around the full-sample mean, \code{m[1] ~ N(0, (initial_sd / u)^2)}.
+}
+
+The resolved values \code{l0} (the prior's sum of squares) and \code{V0} are filled in
+at fit time and stored with the fit. None of it is moved by \code{type}.
+}
+
 \examples{
 # the defaults reproduce the published priors
 dfm_priors("ind_dfm")

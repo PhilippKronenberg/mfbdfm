@@ -144,14 +144,19 @@ starting_value_names <- function(){
 #'
 #' @noRd
 fit_spec <- function(model, n, t, s, p, q, stochastic_volatility,
-                     serial_correlation, fat_tails = FALSE){
+                     serial_correlation, fat_tails = FALSE,
+                     time_varying_mean = FALSE){
 
-  list(model = model,
+  spec <- list(model = model,
        n = as.numeric(n), t = as.numeric(t), s = as.numeric(s),
        p = as.numeric(p), q = as.numeric(q),
        stochastic_volatility = isTRUE(stochastic_volatility),
        serial_correlation = isTRUE(serial_correlation),
        fat_tails = isTRUE(fat_tails))
+  # recorded only when on, so that the default model's specification, and with
+  # it every stored final state, is unchanged (#181)
+  if(isTRUE(time_varying_mean)) spec$time_varying_mean <- TRUE
+  spec
 
 }
 
@@ -237,6 +242,11 @@ starting_values_from_fit <- function(fit, spec){
 
   old <- attr(state, "spec")
   if(!is.null(old)){
+    # a switch recorded only when on is off where it is absent (#181)
+    for(sw in "time_varying_mean"){
+      if(is.null(old[[sw]])) old[[sw]] <- FALSE
+      if(is.null(spec[[sw]])) spec[[sw]] <- FALSE
+    }
     moved <- names(old)[!vapply(names(old), function(k){
       identical(old[[k]], spec[[k]])
     }, logical(1))]
@@ -262,7 +272,9 @@ starting_values_from_fit <- function(fit, spec){
          "), so the chain cannot be continued from it exactly.", call. = FALSE)
   }
 
-  list(state = state[starting_value_names()], rng = fit$rng$end)
+  # the blocks that exist only under a model switch come along when present
+  extra <- intersect(c("kappa", "m", "omega_m"), names(state))
+  list(state = state[c(starting_value_names(), extra)], rng = fit$rng$end)
 
 }
 

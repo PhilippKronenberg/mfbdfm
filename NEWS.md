@@ -128,6 +128,19 @@
 
 ## New features
 
+* **`ind_dfm(time_varying_mean = TRUE)`: a trend in mean growth** (#181).
+  The target's growth becomes a cycle, which the indicators load on, plus a
+  slow weekly random walk that only the target sees (Antolin-Diaz, Drechsel
+  and Petrella 2017). The two are drawn jointly, since given the target's
+  observations either one pins the other. The activity factor stays the
+  target's growth, trend plus cycle; the parts are returned as `$trend` (with
+  `$trend_bands`) and `$cycle`. `dfm_priors()` gains `trend`, calibrated in
+  annualised points: by default the trend's 10-year change has a prior
+  standard deviation of 1 point. `run_wai_adj()` passes the argument on. The
+  default is `FALSE`, which leaves every result unchanged. Contributions, news,
+  `mfbdfm_exact()` and `logLik()` do not support it yet and say so.
+  `fcast_dfm()` takes the argument for parity, and `TRUE` is an error there.
+
 * **`ind_dfm(fat_tails = TRUE)`: Student-t measurement errors** (#180). Every
   series except `target` gets a variance multiplier `kappa ~ IG(nu/2, nu/2)` per
   observation, drawn from the data, so an observation far from what the factor

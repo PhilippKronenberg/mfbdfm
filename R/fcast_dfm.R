@@ -119,6 +119,8 @@
 #' @param serial_correlation Logical, model serial correlation in the
 #'   measurement errors. If `FALSE`, the autocorrelations are fixed near zero.
 #' @param fat_tails Logical. Student-t measurement errors, as in [ind_dfm()].
+#' @param time_varying_mean Logical. A trend in the target's mean growth, as in
+#'   [ind_dfm()]. Not implemented for this model yet: `TRUE` is an error.
 #'   Not implemented for this model yet: `TRUE` is an error. Default `FALSE`.
 #' @param ncores Integer or `NULL`. Number of cores for the rotation step,
 #'   which is run in parallel via \pkg{doParallel} when supplied.
@@ -261,6 +263,7 @@ fcast_dfm <- function(flows = NULL,
                       stochastic_volatility = TRUE,
                       serial_correlation = TRUE,
                       fat_tails = FALSE,
+                      time_varying_mean = FALSE,
                       ncores = NULL,
                       priors = dfm_priors("fcast_dfm"),
                       control = NULL){
@@ -268,6 +271,10 @@ fcast_dfm <- function(flows = NULL,
   if(!identical(fat_tails, FALSE)){
     stop("`fat_tails = TRUE` is implemented for ind_dfm() only so far (#180); ",
          "fcast_dfm() has Gaussian measurement errors.", call. = FALSE)
+  }
+  if(!identical(time_varying_mean, FALSE)){
+    stop("`time_varying_mean = TRUE` is implemented for ind_dfm() only so far ",
+         "(#181); fcast_dfm() has a constant mean.", call. = FALSE)
   }
 
   check_priors(priors, "fcast_dfm")
