@@ -613,6 +613,9 @@ gibbs_sweep <- function(state, ctx){
 
   # Every draw below sees the target net of its trend, which is the cycle the
   # factor explains; `Xmat` itself, which carries the nowcast, keeps it.
+  # The first row is the exception: the model gives it mean zero, with neither
+  # the factor nor the trend in it, so draw_sigma() and draw_kappa() score it
+  # from `Xmat_state` (#181).
   Xmat_state <- Xmat
   if(tvm) Xmat[, tx] <- Xmat[, tx] - lm_tx
 
@@ -663,7 +666,7 @@ gibbs_sweep <- function(state, ctx){
   # sigma conditions on the lambda just drawn
   Gmat <- get_gmat(ctx$Gmat_prealloc, Llist, rho, lambda, s, t, n)
   sigma <- draw_sigma(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
-                      x1 = Xmat[1,], inventory = inventory, target = target, sigma = sigma,
+                      x1 = Xmat_state[1,], inventory = inventory, target = target, sigma = sigma,
                       prior_target = priors$sigma_target,
                       prior_other = priors$sigma_other, control = control,
                       kappa = kappa)
@@ -671,7 +674,7 @@ gibbs_sweep <- function(state, ctx){
   # the weekly series' fat-tail multipliers, given the sigma just drawn (#180)
   if(!is.null(kappa)){
     kappa <- draw_kappa(Xvec_tilde = Xvec_tilde, Gmat = Gmat, f = f, n = n, t = t,
-                        x1 = Xmat[1,], sigma = sigma, kappa = kappa,
+                        x1 = Xmat_state[1,], sigma = sigma, kappa = kappa,
                         ix = ctx$kappa_weekly_ix, nu = priors$kappa$nu)
   }
   phi <- draw_phi(f = f, h = h, p = p, t = t, phi_old = phi, prior = priors$phi, control = control)
